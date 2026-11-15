@@ -407,7 +407,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
       </View>
       {opts.right ?? (
         /* El cheurón señala que la fila lleva a otro sitio, y abre lo mismo que el nombre. El vacío de en medio sigue sin escuchar. */
-        <TouchableOpacity onPress={onPress} activeOpacity={0.7} hitSlop={MARGEN_DE_TOQUE} accessible={false} importantForAccessibility="no" tabIndex={-1}>
+        <TouchableOpacity onPress={onPress} activeOpacity={0.7} hitSlop={MARGEN_DE_TOQUE} accessible={false} importantForAccessibility="no">
           <IconoDireccional name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       )}
@@ -551,7 +551,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
                         <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]} numberOfLines={1}>{t(MENU_ITEM.mywees.clave)}</Text>
                       </TouchableOpacity>
                     </View>
-                    <TouchableOpacity onPress={goMyWees} activeOpacity={0.7} hitSlop={MARGEN_DE_TOQUE} accessible={false} importantForAccessibility="no" tabIndex={-1}>
+                    <TouchableOpacity onPress={goMyWees} activeOpacity={0.7} hitSlop={MARGEN_DE_TOQUE} accessible={false} importantForAccessibility="no">
                       <IconoDireccional name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
                     </TouchableOpacity>
                   </View>

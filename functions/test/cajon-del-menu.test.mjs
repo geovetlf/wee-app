@@ -70,6 +70,10 @@ const crearCajon = ({ so = 'web', ancho = 390, inferior = 0, usuario = { uid: 'd
     './icons/trazosDeWee': {},
     './CreditsPill': { MarcaDeCredits: Nada },
     './icons/MarcaDeWeeAi': { MarcaDeWeeAi: Nada },
+    /* Rediseño del 2026-11-15: el cajón pinta el logo y dos piezas nuevas (selector de identidad y tarjeta de WeëAI). Dobles mínimos, como el resto. */
+    'expo-image': { Image: Nada },
+    './inicio/SelectorDeIdentidad': { __esModule: true, default: Nada },
+    './inicio/TarjetaWeeAi': { __esModule: true, default: Nada },
     './avatars/AvatarDisplay': { __esModule: true, default: Nada },
     './GradienteDeMarca': { RellenoDeMarca: Nada },
     '../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ formato: { numero: String } }) },

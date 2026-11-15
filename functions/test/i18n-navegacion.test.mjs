@@ -41,6 +41,9 @@ const enT = textosDe('en');
 const F = {
   landing: 'screens/LandingScreen.tsx',
   web: 'screens/WebLandingScreen.tsx',
+  /* Rediseño del 2026-11-15: las pastillas del muro son UNA pieza para las dos portadas. */
+  pastillas: 'components/inicio/PastillasDelFeed.tsx',
+  tarjeta: 'components/inicio/TarjetaWeeAi.tsx',
   tag: 'components/WeeTag.tsx',
   barra: 'components/BarraInferior.tsx',
   lateral: 'components/Sidebar.tsx',
@@ -62,9 +65,9 @@ console.log('\n── A · Ninguna frase sigue escrita a mano ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   check('1) LandingScreen ya no escribe "Filtrar:"',
-    !/Filtrar:/.test(C.landing) && /t\('home\.filterBy', \{ nombre: etiqueta \}\)/.test(C.landing));
+    !/Filtrar:/.test(C.landing) && /<PastillasDelFeed /.test(C.landing) && /t\('home\.filterBy', \{ nombre: etiqueta \}\)/.test(C.pastillas));
   check('2) WebLandingScreen tampoco',
-    !/Filtrar:/.test(C.web) && /t\('home\.filterBy', \{ nombre: etiqueta \}\)/.test(C.web));
+    !/Filtrar:/.test(C.web) && /<PastillasDelFeed /.test(C.web) && /t\('home\.filterBy', \{ nombre: etiqueta \}\)/.test(C.pastillas));
   check('3) WeeTag ya no escribe "Ir a "',
     !/Ir a \$\{/.test(C.tag) && /t\('nav\.goTo', \{ nombre \}\)/.test(C.tag));
   check('4) la barra inferior ya no escribe "Navegación de Weë"',
@@ -75,8 +78,8 @@ console.log('\n── A · Ninguna frase sigue escrita a mano ──');
     .filter((f) => C.lateral.includes(f));
   check('5) la barra lateral ya no escribe ninguno de sus cinco', enLateral.length === 0, enLateral.join(' '));
 
-  check('6) la columna derecha ya no escribe "Ir a WEË AI"',
-    !/WEË AI/.test(C.derecha) && /t\('nav\.goToWeeAi'\)/.test(C.derecha));
+  check('6) ni la columna derecha ni la tarjeta de WeëAI escriben "Ir a WEË AI": la tarjeta usa sus claves',
+    !/WEË AI/.test(C.derecha) && !/WEË AI/.test(C.tarjeta) && /t\('nav\.openWeeAi'\)/.test(C.tarjeta));
   /* Y de paso deja de existir esa grafía: el sitio se llama "Weë AI". */
   check('6) y el nombre queda escrito "Weë AI"',
     esT.nav.goToWeeAi === 'Ir a Weë AI' && enT.nav.goToWeeAi === 'Go to Weë AI');
@@ -181,9 +184,10 @@ console.log('\n── E · Las pastillas: marca fuera, interfaz dentro ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   /* Solo "Todo" guarda clave. Las otras seis son nombres y se copian. */
-  check('21) solo la pastilla "Todo" lleva clave',
-    (C.filtros.match(/clave: '/g) || []).length === 1
-    && /\{ id: 'all', label: 'Todo', clave: 'home\.filterAll' \}/.test(C.filtros));
+  check('21) de las secciones, solo "Todo" lleva clave; las dos pastillas del Home (Para ti, Creatividad) llevan la suya',
+    (C.filtros.match(/clave: '/g) || []).length === 3
+    && /\{ id: 'all', label: 'Todo', clave: 'home\.filterAll' \}/.test(C.filtros)
+    && /\{ id: 'paraTi', clave: 'home\.feedForYou', secciones: \[\] \}/.test(C.filtros) && /\{ id: 'creatividad', clave: 'home\.feedCreativity', secciones: SECCIONES_CREATIVAS \}/.test(C.filtros));
   /*
    * Y las seis marcas se copian tal cual, CON LA GRAFÍA APROBADA DE PRODUCTO:
    * con diéresis y separada (fase 5P). No se traducen —son nombres— pero sí se
@@ -202,8 +206,8 @@ console.log('\n── E · Las pastillas: marca fuera, interfaz dentro ──');
   /* Quien pinta resuelve; el catálogo no llama al traductor. */
   check('22) el catálogo no traduce: lo hace quien pinta',
     !/IdiomaContext|useT\(\)|\bt\('/.test(C.filtros)
-    && /const etiqueta = f\.clave \? t\(f\.clave\) : f\.label;/.test(C.landing)
-    && /const etiqueta = f\.clave \? t\(f\.clave\) : f\.label;/.test(C.web));
+    && /const etiqueta = t\(f\.clave\);/.test(C.pastillas)
+    && !/\bt\('home\.feed/.test(C.landing) && !/\bt\('home\.feed/.test(C.web));
 
   /* CONTROL: ni los ids, ni el orden, ni el reparto cambiaron. */
   check('23) control: los ids y su orden son los de siempre',
@@ -213,9 +217,11 @@ console.log('\n── E · Las pastillas: marca fuera, interfaz dentro ──');
     /export const estaActiva = \(elegidas: SeccionesElegidas, id: HomeSectionId\): boolean =>/.test(C.filtros)
     && /id === 'all' \? elegidas\.length === 0 : elegidas\.includes\(id\)/.test(C.filtros)
     && /if \(tocada === 'all'\) return \[\];/.test(C.filtros));
-  check('24) control: tocar una pastilla sigue haciendo lo mismo',
-    /onPress=\{\(\) => setFeedFilter\(\(elegidas\) => alternarSeccion\(elegidas, f\.id\)\)\}/.test(C.landing)
-    && /onPress=\{\(\) => setFeedFilter\(\(elegidas\) => alternarSeccion\(elegidas, f\.id\)\)\}/.test(C.web));
+  check('24) control: tocar una pastilla solo acota el muro (no navega), con el reparto por secciones de siempre',
+    /<PastillasDelFeed puesto=\{feedFilter\} onSelect=\{setFeedFilter\} \/>/.test(C.landing)
+    && /<PastillasDelFeed puesto=\{feedFilter\} onSelect=\{setFeedFilter\} \/>/.test(C.web)
+    && /filterBySections\(feedPosts, seccionesDelFeed\(feedFilter\)\)/.test(C.landing) && /filterBySections\(posts, seccionesDelFeed\(feedFilter\)\)/.test(C.web)
+    && !/navigat/.test(C.pastillas));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -229,9 +235,11 @@ console.log('\n── F · Nada más se movió ──');
   check('25) y el nombre se sigue pintando crudo', /\{nombre\}\s*<\/Text>/.test(C.tag) && !/t\(nombre\)/.test(C.tag));
 
   /* La barra inferior: mismos destinos, mismo orden, misma forma. */
-  check('26) control: los cinco destinos y su orden no cambiaron',
-    /'Home' \| 'Search' \| 'Create' \| 'Inbox' \| 'Notifications'/.test(C.barra)
-    && C.barra.indexOf("id: 'Home'") < C.barra.indexOf("id: 'Notifications'"));
+  check('26) control: los cinco destinos y su orden son los del rediseño: Inicio · WeëAI · Crear · Mensajes · Mi Weë',
+    /'Home' \| 'WeeAI' \| 'Create' \| 'Inbox' \| 'Profile'/.test(C.barra)
+    && C.barra.indexOf("id: 'Home'") < C.barra.indexOf("id: 'WeeAI'") && C.barra.indexOf("id: 'WeeAI'") < C.barra.indexOf("id: 'Create'")
+    && C.barra.indexOf("id: 'Create'") < C.barra.indexOf("id: 'Inbox'") && C.barra.indexOf("id: 'Inbox'") < C.barra.indexOf("id: 'Profile'")
+    && ES('nav.weeAi') === 'WeëAI' && ES('nav.messages') === 'Mensajes' && ES('nav.myWee') === 'Mi Weë' && EN('nav.messages') === 'Messages');
   check('26) y cada destino sigue diciendo si está puesto',
     /accessibilityLabel=\{activo \? `\$\{t\(destino\.clave\)\}, \$\{t\('nav\.current'\)\}` : t\(destino\.clave\)\}/.test(C.barra));
 
@@ -245,8 +253,8 @@ console.log('\n── F · Nada más se movió ──');
     /MENU_ITEM\[id\]\.icono/.test(C.lateral) && /t\(MENU_ITEM\[id\]\.clave\)/.test(C.lateral));
 
   /* La columna derecha: mismo destino, mismo pie. */
-  check('28) control: la columna derecha sigue llevando a Weë AI',
-    /onPress=\{\(\) => navigation\.navigate\('WeeCreator'\)\}/.test(C.derecha));
+  check('28) control: a WeëAI se sigue llegando con un toque: la tarjeta de la barra lateral (la columna derecha ya no la repite)',
+    /<TarjetaWeeAi variante="menu" onOpenWeeAi=\{\(\) => navigation\.navigate\('WeeCreator'\)\} \/>/.test(C.lateral) && !/WeeCreator/.test(C.derecha));
 
   /* Y ninguno de los seis se inventó un sistema de traducción propio. */
   const paralelos = Object.entries(C)

@@ -288,8 +288,8 @@ console.log('\n── G · Los filtros: identificador ≠ etiqueta ──');
     !/WeeStudio|WeeTravel|WeeMusic|WeeChef|WeeDesign|WEEBusiness/.test(FILTROS));
 
   /* 37 · "Todo" sigue siendo la única que es interfaz, y sigue siendo clave. */
-  check('37) solo "Todo" lleva clave, y el catálogo no traduce',
-    (FILTROS.match(/clave: '/g) || []).length === 1
+  check('37) de las secciones solo "Todo" lleva clave; las dos pastillas del Home (Para ti, Creatividad) llevan la suya, y el catálogo no traduce',
+    (FILTROS.match(/clave: '/g) || []).length === 3 && /clave: 'home\.feedForYou'/.test(FILTROS) && /clave: 'home\.feedCreativity'/.test(FILTROS)
     && /\{ id: 'all', label: 'Todo', clave: 'home\.filterAll' \}/.test(FILTROS)
     && !/\bt\(/.test(soloCodigo(FILTROS)));
 }

@@ -215,7 +215,7 @@ console.log('\n── C · Los filtros por tipo de contenido no se movieron ─�
   check('14) el filtro por tipo sigue existiendo y separado del de secciones',
     typeof filterPosts === 'function' && filterPosts !== filtros.filterBySection);
   check('15) y las pastillas del Home son las únicas que reparten por sección',
-    /HOME_SECTION_FILTERS/.test(leer('screens/LandingScreen.tsx')) && !/SectionWall/.test(leer('screens/SpecialistScreen.tsx')));
+    /filterBySections\(feedPosts, seccionesDelFeed\(feedFilter\)\)/.test(leer('screens/LandingScreen.tsx')) && /HOME_FEED_TABS\.map/.test(leer('components/inicio/PastillasDelFeed.tsx')) && !/SectionWall/.test(leer('screens/SpecialistScreen.tsx')));
 }
 
 console.log('\n── D · El Home abre diciendo quién eres ──');
@@ -294,8 +294,8 @@ console.log('\n── F · Ẅall y Ẅells ──');
     /<Text style=\{\[styles\.title[^>]*>Weëls<\/Text>/.test(leer('components/WeelsRow.tsx'))
     && !/>Ẅells</.test(leer('components/WeelsRow.tsx')));
   /* Ẅells es una puerta a WeëlsScreen, no una página del Home: la fila abre el visor de siempre. */
-  check('33) y sigue abriendo WeëlsScreen, en la web', /<WeelsRow[^>]*onOpenWeels=\{handleOpenWeels\}/.test(web));
-  check('33) y en el móvil', /onOpenWeels=\{\(\) => abrirElVisor\(\)\}/.test(nativo));
+  check('33) y sigue abriendo WeëlsScreen, en la web: ahora desde el atajo «Weëls» de arriba', /<PestanasDeInicio puesto="wall" onSelect=\{handleAtajo\} \/>/.test(web) && /if \(atajo === 'weels'\) return handleOpenWeels\(\);/.test(web));
+  check('33) y en el móvil', /<PestanasDeInicio puesto="wall" onSelect=\{handleAtajo\} \/>/.test(nativo) && /if \(atajo === 'weels'\) return abrirElVisor\(\);/.test(nativo));
 }
 
 console.log('\n── F2 · El Home es un solo muro ──');
@@ -345,53 +345,54 @@ console.log('\n── F2 · El Home es un solo muro ──');
    * `feedFilter` y nada más: ni navega, ni abre Weëls, ni cambia de página.
    */
   const carruselNativo = nativo.slice(nativo.indexOf('const renderFeedFilters = () => ('), nativo.indexOf('const filteredFeedPosts'));
-  check('33c) el carrusel de secciones vuelve como filtro del Wäll, por dentro',
-    /<ScrollView\s*\n\s*horizontal\s*\n\s*showsHorizontalScrollIndicator=\{false\}/.test(carruselNativo)
-    && /directionalLockEnabled/.test(carruselNativo) && /HOME_SECTION_FILTERS\.map\(\(f\) => \{/.test(carruselNativo)
-    && /onPress=\{\(\) => setFeedFilter\(\(elegidas\) => alternarSeccion\(elegidas, f\.id\)\)\}/.test(carruselNativo)
-    && !/navigate\(|abrirElVisor|scrollTo\(/.test(carruselNativo));
+  check('33c) las pastillas del muro (Para ti · Creatividad) son un filtro del Wäll, por dentro: no navegan',
+    /<ScrollView\s*\n\s*horizontal\s*\n\s*showsHorizontalScrollIndicator=\{false\}/.test(leer('components/inicio/PastillasDelFeed.tsx'))
+    && /directionalLockEnabled/.test(leer('components/inicio/PastillasDelFeed.tsx')) && /HOME_FEED_TABS\.map\(\(f\) => \{/.test(leer('components/inicio/PastillasDelFeed.tsx'))
+    && /onPress=\{\(\) => onSelect\(f\.id\)\}/.test(leer('components/inicio/PastillasDelFeed.tsx'))
+    && !/navigate\(|abrirElVisor|scrollTo\(/.test(leer('components/inicio/PastillasDelFeed.tsx')) && /const renderFeedFilters = \(\) => <PastillasDelFeed puesto=\{feedFilter\} onSelect=\{setFeedFilter\} \/>;/.test(nativo));
   /*
    * Selección múltiple con la MISMA lógica en las dos plataformas: el estado es
    * la lista de secciones puestas (vacía = "Todo"), cada pastilla pregunta a
    * `estaActiva`, cada toque pasa por `alternarSeccion` y el muro por
    * `filterBySections`. Nada de eso se reimplementa en las pantallas.
    */
-  check('33c) y el muro se acota con él, en el acto, con una o varias secciones',
-    /const \[feedFilter, setFeedFilter\] = useState<SeccionesElegidas>\(\[\]\);/.test(nativo)
-    && /const active = estaActiva\(feedFilter, f\.id\);/.test(carruselNativo)
-    && /const filteredFeedPosts = useMemo\(\(\) => filterBySections\(feedPosts, feedFilter\), \[feedPosts, feedFilter\]\);/.test(nativo)
-    && /data=\{filteredFeedPosts\}/.test(arbolNativo));
+  check('33c) y el muro se acota con él, en el acto: entero con «Para ti», las secciones creativas con «Creatividad»',
+    /const \[feedFilter, setFeedFilter\] = useState<HomeFeedId>\('paraTi'\);/.test(nativo)
+    && /const activa = f\.id === puesto;/.test(leer('components/inicio/PastillasDelFeed.tsx'))
+    && /const filteredFeedPosts = useMemo\(\(\) => filterBySections\(feedPosts, seccionesDelFeed\(feedFilter\)\), \[feedPosts, feedFilter\]\);/.test(nativo)
+    && /data=\{filteredFeedPosts\}/.test(arbolNativo)
+    && /\{ id: 'paraTi', clave: 'home\.feedForYou', secciones: \[\] \}/.test(leer('utils/feedFilters.ts'))
+    && /SECCIONES_CREATIVAS: SeccionesElegidas = \['studio', 'travel', 'music', 'chef', 'design', 'business'\]/.test(leer('utils/feedFilters.ts')));
   check('33c) en la web, lo mismo',
-    /const \[feedFilter, setFeedFilter\] = useState<SeccionesElegidas>\(\[\]\);/.test(web)
-    && /const active = estaActiva\(feedFilter, f\.id\);/.test(web)
-    && /onPress=\{\(\) => setFeedFilter\(\(elegidas\) => alternarSeccion\(elegidas, f\.id\)\)\}/.test(web)
-    && /const filteredPosts = useMemo\(\(\) => filterBySections\(posts, feedFilter\), \[posts, feedFilter\]\);/.test(web)
-    && /<ScrollView horizontal showsHorizontalScrollIndicator=\{false\} contentContainerStyle=\{styles\.filters\} style=\{styles\.filtersScroll\}>/.test(web)
+    /const \[feedFilter, setFeedFilter\] = useState<HomeFeedId>\('paraTi'\);/.test(web)
+    && /<PastillasDelFeed puesto=\{feedFilter\} onSelect=\{setFeedFilter\} \/>/.test(web)
+    && /const filteredPosts = useMemo\(\(\) => filterBySections\(posts, seccionesDelFeed\(feedFilter\)\), \[posts, feedFilter\]\);/.test(web)
     && /filteredPosts\.map\(\(post\) =>/.test(web));
   /* Control: la lógica de selección está en un solo sitio; las pantallas no la duplican. */
   check('33c) control: las pantallas no reimplementan la selección',
     !/feedFilter\.includes|feedFilter === f\.id|feedFilter\.filter\(/.test(nativo) && !/feedFilter\.includes|feedFilter === f\.id|feedFilter\.filter\(/.test(web)
     && /export const alternarSeccion/.test(leer('utils/feedFilters.ts')) && /export const filterBySections/.test(leer('utils/feedFilters.ts')));
   /* Control: el carrusel va DESPUÉS de la fila de Weëls y ANTES del muro, y la fila no sabe nada de él. */
-  check('33c) control: va entre la fila de Weëls y el muro',
-    cabecera.indexOf('renderWeelsRow()') < cabecera.indexOf('renderFeedFilters()')
-    && web.indexOf('<WeelsRow ') < web.indexOf('HOME_SECTION_FILTERS.map') && web.indexOf('HOME_SECTION_FILTERS.map') < web.indexOf('filteredPosts.map((post) =>')
+  check('33c) control: van entre la tarjeta de WeëAI y el muro',
+    cabecera.indexOf('renderWeeAi()') > 0 && cabecera.indexOf('renderWeeAi()') < cabecera.indexOf('renderFeedFilters()')
+    && web.indexOf('<TarjetaWeeAi ') < web.indexOf('<PastillasDelFeed ') && web.indexOf('<PastillasDelFeed ') < web.indexOf('filteredPosts.map((post) =>')
     && !/feedFilter|HOME_SECTION_FILTERS/.test(fila));
   check('33c) las secciones siguen en el WeeTag de cada publicación',
     /import WeeTag from '\.\/WeeTag';/.test(publicacion)
     && /const seccion = useMemo\(\(\) => seccionDe\(post\), \[post\]\);/.test(publicacion)
     && /<WeeTag nombre=\{seccion\.nombre\} icono="sparkles-outline" \/>/.test(publicacion));
   /* El orden del Home: saludo · compositor · fila de Weëls · carrusel de secciones, y debajo el Wäll. */
-  check('33d) el Home nativo: saludo · compositor · fila de Weëls · secciones, y debajo el Wäll',
-    cabecera.indexOf('renderHero()') > 0 && cabecera.indexOf('renderHero()') < cabecera.indexOf('renderComposer()')
-    && cabecera.indexOf('renderComposer()') < cabecera.indexOf('renderWeelsRow()')
-    && cabecera.indexOf('renderWeelsRow()') < cabecera.indexOf('renderFeedFilters()')
+  check('33d) el Home nativo: cabecera y atajos fijos arriba; en la lista, WeëAI · pastillas, y debajo el Wäll',
+    nativo.indexOf('<Header') > 0 && nativo.indexOf('<Header') < nativo.indexOf('<PestanasDeInicio ')
+    && cabecera.indexOf('renderWeeAi()') > 0 && cabecera.indexOf('renderWeeAi()') < cabecera.indexOf('renderFeedFilters()')
+    && !/renderHero|renderComposer|renderWeelsRow/.test(cabecera)
     && !/renderTabBar/.test(cabecera) && /renderItem=\{renderPostItem\}/.test(nativo));
   const entreFilaYMuro = web.slice(web.indexOf('<WeelsRow '), web.indexOf('filteredPosts.map((post) =>'));
-  check('33d) y en la web lo mismo, con solo el carrusel entre la fila y el muro',
-    web.indexOf('<HomeGreeting ') > 0 && web.indexOf('<HomeGreeting ') < web.indexOf('<ComposerEntry ')
-    && web.indexOf('<ComposerEntry ') < web.indexOf('<WeelsRow ') && web.indexOf('<WeelsRow ') < web.indexOf('filteredPosts.map((post) =>')
-    && /HOME_SECTION_FILTERS\.map/.test(entreFilaYMuro) && !/selectorZona|role="tab"|estiloDePagina/.test(entreFilaYMuro));
+  check('33d) y en la web lo mismo: cabecera · atajos · WeëAI · pastillas · muro, y nada más entre la tarjeta y el muro',
+    web.indexOf('<Header') > 0 && web.indexOf('<Header') < web.indexOf('<PestanasDeInicio ')
+    && web.indexOf('<PestanasDeInicio ') < web.indexOf('<TarjetaWeeAi ') && web.indexOf('<TarjetaWeeAi ') < web.indexOf('<PastillasDelFeed ')
+    && web.indexOf('<PastillasDelFeed ') < web.indexOf('filteredPosts.map((post) =>')
+    && !/<HomeGreeting|<ComposerEntry|<WeelsRow/.test(web) && !/selectorZona|role="tab"|estiloDePagina/.test(web.slice(web.indexOf('<TarjetaWeeAi '), web.indexOf('filteredPosts.map((post) =>'))));
   /* Las dos puertas de la fila: cualquier tarjeta y "Ver todos →" abren WeëlsScreen. */
   check('33e) en la fila, las tarjetas y "Ver todos →" llaman a la misma puerta',
     (fila.match(/onPress=\{onOpenWeels\}/g) || []).length >= 3 && /accessibilityLabel=\{t\('weels\.seeAll'\)\}/.test(fila));
@@ -400,11 +401,11 @@ console.log('\n── F2 · El Home es un solo muro ──');
    * el feed —que pide los suyos y dice si no hay— y NUNCA el compositor; antes saltaba a `crearWeel()`. Lo ejecuta
    * `weels-feed.test.mjs`.
    */
-  check('33e) y esa puerta abre WeëlsScreen en el móvil, también sin Weëls cargados (nunca el compositor)',
-    /onOpenWeels=\{\(\) => abrirElVisor\(\)\}/.test(nativo)
+  check('33e) y el atajo «Weëls» abre WeëlsScreen en el móvil, también sin Weëls cargados (nunca el compositor)',
+    /if \(atajo === 'weels'\) return abrirElVisor\(\);/.test(nativo) && !/crearWeel/.test(nativo)
     && /const abrirElVisor = useCallback\(\(desde\?: Post\) => \{(?![\s\S]{0,300}crearWeel\(\))[\s\S]{0,200}navigate\('Reels', videoPosts\.length > 0\s*\?\s*\{ initialPost: desde \|\| videoPosts\[0\], initialVideoPosts: videoPosts \}\s*:\s*undefined\)/.test(nativo));
   check('33e) y en la web',
-    /<WeelsRow[^>]*onOpenWeels=\{handleOpenWeels\}/.test(web)
+    /if \(atajo === 'weels'\) return handleOpenWeels\(\);/.test(web)
     && /const handleOpenWeels = \(\) => \{\s*navigation\.navigate\('Reels', weels\.length > 0 \? \{ initialPost: weels\[0\], initialVideoPosts: weels \} : undefined\);/.test(web));
   check('33e) "Explora → Weëls" del menú también abre WeëlsScreen, sin página intermedia',
     /if \(!openWeelsParam \|\| videosLoading\) return;[\s\S]{0,160}abrirElVisor\(\);/.test(nativo)
@@ -465,8 +466,8 @@ console.log('\n── G · Los Weëls pesan menos ──');
   check('34) hay un modo compacto', !!compacta && !!normal);
   check('35) y de verdad es más pequeño', !!compacta && !!normal && compacta.w < normal.w && compacta.h < normal.h,
     compacta && normal ? `${compacta.w}×${compacta.h} frente a ${normal.w}×${normal.h}` : '');
-  check('36) lo usan las dos pantallas del Home',
-    /<WeelsRow[^>]*compacta|compacta\n/.test(leer('screens/WebLandingScreen.tsx')) && /compacta/.test(leer('screens/LandingScreen.tsx')));
+  check('36) la fila compacta ya no se monta en el Home (la pieza se conserva, con su modo compacto)',
+    !/WeelsRow/.test(leer('screens/WebLandingScreen.tsx')) && !/WeelsRow/.test(leer('screens/LandingScreen.tsx')) && /compacta/.test(leer('components/WeelsRow.tsx')));
   /*
    * Control: compacta encoge y quita adorno —el subtítulo, las visitas, el
    * emoji, la duración—, pero NO decide qué Weëls se ven ni qué hace cada uno.
@@ -493,7 +494,7 @@ console.log('\n── H · Lo que no se tocó ──');
 {
   const nativo = leer('screens/LandingScreen.tsx');
   const web = leer('screens/WebLandingScreen.tsx');
-  check('38) el compositor sigue en el Home', /ComposerEntry/.test(nativo) && /ComposerEntry/.test(web));
+  check('38) se publica desde el + (la hoja Crear de siempre); el Home ya no monta la puerta de publicar', !/ComposerEntry/.test(nativo) && !/ComposerEntry/.test(web) && /<CreateSheet/.test(leer('navigation/NavegacionGlobal.tsx')) && /irARaiz\('Create', \{ kind \}\)/.test(leer('navigation/NavegacionGlobal.tsx')));
   check('39) el ☰ sigue abriendo el menú de siempre', /DrawerMenu/.test(web) && /setDrawerVisible\(true\)/.test(web));
   check('40) el Home no publica: solo abre la pantalla de crear', !/createPost\(/.test(nativo) && !/createPost\(/.test(web));
   /*
@@ -523,7 +524,7 @@ console.log('\n── I · El refinamiento visual ──');
    * publicar, que es donde se actúa.
    */
   check('43) el saludo comparte el fondo de la pantalla', /styles\.fila, \{ backgroundColor: theme\.colors\.background \}/.test(saludo));
-  check('44) y la fila de Weëls también', /<View style=\{\{ backgroundColor: theme\.colors\.background \}\}>/.test(nativo));
+  check('44) y las pastillas del muro también', /style=\{\[dir\.contenedor, \{ backgroundColor: theme\.colors\.background \}\]\}/.test(leer('components/inicio/PastillasDelFeed.tsx')) && !/renderWeelsRow/.test(nativo));
 
   /*
    * Un solo tamaño en el saludo. Al quedarse sin la segunda frase, el bloque
@@ -548,7 +549,7 @@ console.log('\n── I · El refinamiento visual ──');
   check('49) el "+" solo sale en el Home', /variante === 'home' \? \([\s\S]{0,600}accessibilityLabel=\{t\('composer\.createPost'\)\}/.test(puerta));
   check('50) mide 44 sin escalar', /crear: \{\s*width: 44,\s*height: 44,/.test(puerta));
   check('51) y responde al dedo', /onPressIn=\{\(\) => hundir\(0\.92\)\}/.test(puerta) && /useNativeDriver: true/.test(puerta));
-  check('52) las dos pantallas del Home lo piden', /variante="home"/.test(nativo) && /variante="home"/.test(web));
+  check('52) ninguna pantalla del Home pide ya la variante «home» de la puerta; la variante sigue en la pieza', !/variante="home"/.test(nativo) && !/variante="home"/.test(web) && /variante/.test(puerta));
   /*
    * Control: los muros de sección NO lo piden, así que siguen exactamente como
    * estaban. Si esto fallara, el rediseño se habría salido del Home.
@@ -618,16 +619,16 @@ console.log('\n── I · El refinamiento visual ──');
   const pastillaNativa = alturaPastilla(nativo, 'feedFilterChip');
   const pastillaWeb = alturaPastilla(web, 'chip');
   /* Medidas de verdad, no ausencias: sin el `!== null` un estilo que desapareciera pasaría. */
-  check('59) la pastilla es baja', pastillaNativa !== null && pastillaWeb !== null && pastillaNativa <= 36 && pastillaWeb <= 36,
-    `${pastillaNativa} en móvil, ${pastillaWeb} en web`);
-  check('60) y aun así se toca cómoda', /hitSlop=\{\{ top: 8, bottom: 8/.test(nativo) && /hitSlop=\{\{ top: 8, bottom: 8/.test(web));
-  check('61) la apagada lleva borde para que se lea como tocable',
-    /feedFilterChip: \{[^}]*borderWidth: StyleSheet\.hairlineWidth/.test(nativo) && /borderColor: active \? theme\.colors\.accent : theme\.colors\.border/.test(web));
+  check('59) la pastilla es baja', (() => { const m = /pastilla: \{\s*minHeight: scale\((\d+)\)/.exec(leer('components/inicio/PastillasDelFeed.tsx')); return m !== null && Number(m[1]) <= 36; })(),
+    `${pastillaNativa} / ${pastillaWeb}: las pastillas viven ahora en components/inicio/PastillasDelFeed.tsx`);
+  check('60) y aun así se toca cómoda', /hitSlop=\{\{ top: 8, bottom: 8/.test(leer('components/inicio/PastillasDelFeed.tsx')));
+  check('61) la puesta se distingue por su velo y la apagada se lee como texto tocable (botón con nombre accesible), con el acento de interacción',
+    /backgroundColor: activa \? theme\.colors\.interactionSoft : 'transparent'/.test(leer('components/inicio/PastillasDelFeed.tsx')) && /accessibilityRole="button"/.test(leer('components/inicio/PastillasDelFeed.tsx')));
   /*
    * Y el texto de la apagada toma el color del tema. Con un gris fijo, sobre el
    * fondo casi negro del Perfil Weë, las secciones eran invisibles.
    */
-  check('62) el texto de la pastilla apagada sigue al tema', /color: active \? '#1F2937' : theme\.colors\.text/.test(web) && /color: active \? '#1F2937' : theme\.colors\.text/.test(nativo));
+  check('62) el texto de la pastilla sigue al tema, puesta o apagada', /color: activa \? theme\.colors\.interaction : theme\.colors\.textSecondary/.test(leer('components/inicio/PastillasDelFeed.tsx')) && !/#[0-9A-Fa-f]{6}/.test(leer('components/inicio/PastillasDelFeed.tsx')));
   /* Y ninguna píldora Ẅall/Ẅells volvió con ellas. */
   check('63) control: la píldora Ẅall/Ẅells no volvió con el carrusel', !/tabItem|tabBarZona|mitad\('flow'|accessibilityRole="tab"/.test(nativo) && !/selectorMitad|selectorZona|irALaPagina|accessibilityRole="tab"/.test(web));
   /* Lo que sí queda: la sección de cada publicación, en su WeeTag, sin tocar. */
@@ -641,11 +642,11 @@ console.log('\n── I · El refinamiento visual ──');
    * React Native Web no lo traduce a ningún atributo, así que el estado va
    * escrito a mano o no existe para un lector de pantalla.
    */
-  check('65) el móvil dice qué sección está puesta',
-    /accessibilityState=\{\{ selected: active \}\}/.test(nativo)
-    && /accessibilityLabel=\{t\('home\.filterBy', \{ nombre: etiqueta \}\)\}/.test(nativo)
+  check('65) el móvil dice qué pastilla está puesta',
+    /accessibilityState=\{\{ selected: activa \}\}/.test(leer('components/inicio/PastillasDelFeed.tsx'))
+    && /accessibilityLabel=\{t\('home\.filterBy', \{ nombre: etiqueta \}\)\}/.test(leer('components/inicio/PastillasDelFeed.tsx'))
     && /filterBy: 'Filtrar: \{\{nombre\}\}'/.test(leer('i18n/textos/es/home.ts')));
-  check('66) y la web también, con su propio atributo', /aria-pressed=\{active\}/.test(web) && !/aria-selected/.test(web));
+  check('66) y la web también, con su propio atributo', /aria-pressed=\{activa\}/.test(leer('components/inicio/PastillasDelFeed.tsx')) && !/aria-selected/.test(leer('components/inicio/PastillasDelFeed.tsx')));
 
   /*
    * LOS BOTONES DE UNA PUBLICACIÓN.
@@ -1486,8 +1487,8 @@ console.log('\n── M · La marca en el centro del Home ──');
    * queda a la derecha con sesión es SOLO el selector de identidad, y sin
    * sesión el botón de entrar. Ni icono, ni contador, ni el hueco de ninguno.
    */
-  check('106c) la campana ya no está en el encabezado',
-    !/notifications/i.test(cabecera) && !/unreadCount/.test(cabecera) && !/onNotificationsPress/.test(cabecera));
+  check('106c) la campana vuelve al encabezado SOLO en la variante de portada, sin contador ni punto de no leídas',
+    /\{portada && \(/.test(cabecera) && /onPress=\{onNotificationsPress\}/.test(cabecera) && /name="notifications-outline"/.test(cabecera) && !/unreadCount/.test(cabecera));
   check('106c) y con ella se fue su contador, sin tocar el servicio',
     !/notificationService/.test(cabecera) && /subscribeToUnreadCount/.test(leer('services/notificationService.ts')));
   check('106c) los márgenes de la fila también', /content: \{[\s\S]{0,160}paddingHorizontal: SPACING\.md,/.test(cabecera) && /marca: \{[\s\S]{0,160}paddingHorizontal: SPACING\.md,/.test(cabecera));
@@ -1504,10 +1505,10 @@ console.log('\n── M · La marca en el centro del Home ──');
    * los Weëls a pantalla completa—; desde que Ẅells es una página más de la
    * portada, con su fondo, esa segunda capa se fue. Un solo encabezado.
    */
-  check('109) las dos pantallas del Home la piden, una vez cada una',
-    (nativo.match(/conMarca \/>/g) || []).length === 1
-    && (web.match(/conMarca \/>/g) || []).length === 1
-    && !/transparent conMarca/.test(nativo));
+  check('109) las dos pantallas del Home piden la cabecera de portada, una vez cada una, y ya no la marca centrada con el eslogan',
+    (nativo.match(/\n\s*portada\n/g) || []).length === 1
+    && (web.match(/\n\s*portada\n/g) || []).length === 1
+    && !/conMarca/.test(nativo) && !/conMarca/.test(web));
   /*
    * Control: las otras pantallas que usan este mismo encabezado —Notificaciones,
    * WeeTalk y HomeScreen— NO la piden, así que siguen con el logo a la izquierda
@@ -1649,16 +1650,20 @@ console.log('\n── O · La navegación inferior, una sola para todo Weë ─�
   const pestanas = leer('navigation/TabNavigator.tsx');
 
   /* Cinco destinos, los de siempre, en el mismo orden. */
-  const ids = [...barra.matchAll(/\{ id: '(\w+)', etiqueta: '([^']+)'/g)].map((m) => [m[1], m[2]]);
+  /* Desde el rediseño del 2026-11-15 el catálogo de la barra guarda solo la CLAVE de cada destino (no el texto en español). */
+  const ids = [...barra.matchAll(/\{ id: '(\w+)', clave: '([^']+)'/g)].map((m) => [m[1], m[2]]);
   check('132) son exactamente cinco destinos', ids.length === 5, ids.map(([, e]) => e).join(' · '));
   /*
    * El quinto dejó de ser Perfil y pasó a ser Notificaciones (fase 2E-77): la
    * campana estaba en el encabezado y bajó aquí.
    */
-  check('133) con las rutas de siempre',
-    JSON.stringify(ids.map(([i]) => i)) === JSON.stringify(['Home', 'Search', 'Create', 'Inbox', 'Notifications']));
-  check('134) y los nombres de siempre',
-    JSON.stringify(ids.map(([, e]) => e)) === JSON.stringify(['Inicio', 'Buscar', 'Crear', 'WeeTalk', 'Notificaciones']));
+  check('133) con rutas que ya existían: las pestañas Home, Inbox y Profile, la hoja Crear y el centro creativo',
+    JSON.stringify(ids.map(([i]) => i)) === JSON.stringify(['Home', 'WeeAI', 'Create', 'Inbox', 'Profile'])
+    && /if \(destino === 'WeeAI'\) return irARaiz\('WeeCreator'\);/.test(global) && /irARaiz\('Main', \{ screen: destino \}\);/.test(global));
+  check('134) y los nombres del rediseño: Inicio · WeëAI · Crear · Mensajes · Mi Weë',
+    JSON.stringify(ids.map(([, e]) => e)) === JSON.stringify(['nav.home', 'nav.weeAi', 'nav.create', 'nav.messages', 'nav.myWee'])
+    && /home: 'Inicio'/.test(leer('i18n/textos/es/nav.ts')) && /weeAi: 'WeëAI'/.test(leer('i18n/textos/es/nav.ts')) && /create: 'Crear'/.test(leer('i18n/textos/es/nav.ts'))
+    && /messages: 'Mensajes'/.test(leer('i18n/textos/es/nav.ts')) && /myWee: 'Mi Weë'/.test(leer('i18n/textos/es/nav.ts')));
   /*
    * Control: las cuatro que son pestañas siguen declaradas como pestañas, y la
    * de Perfil TAMBIÉN, aunque ya no esté en la barra: su pantalla y su pila no
@@ -1708,32 +1713,28 @@ console.log('\n── O · La navegación inferior, una sola para todo Weë ─�
    * enciende el destino es la ruta más honda y no la pestaña —estando en
    * Notificaciones, la pestaña sigue siendo Inicio—.
    */
-  check('141) Notificaciones es el quinto, con el icono de la familia',
-    /*
-     * Entre la etiqueta y el icono puede haber más campos —hoy la clave de
-     * traducción—. Lo que se exige es que el quinto destino siga siendo
-     * Notifications y siga llevando el icono de la familia.
-     */
-    /\{ id: 'Notifications', etiqueta: 'Notificaciones',[^}]*icono: 'notifications-outline', iconoPuesto: 'notifications' \}/.test(barra)
-    && ids[4][0] === 'Notifications');
-  check('141) y abre la pantalla que ya existía, sin ruta nueva',
-    /if \(destino === 'Notifications'\) \{\s*return irARaiz\('Main', \{ screen: 'Home', params: \{ screen: 'Notifications' \} \}\);/.test(global)
+  check('141) Mi Weë es el quinto, con el icono de la familia',
+    /\{ id: 'Profile', clave: 'nav\.myWee', icono: 'person-outline', iconoPuesto: 'person' \}/.test(barra)
+    && ids[4][0] === 'Profile');
+  check('141) y Notificaciones abre la pantalla que ya existía, sin ruta nueva, desde la campana de la cabecera',
+    /onNotificationsPress=\{\(\) => navigation\.navigate\('Notifications'\)\}/.test(leer('screens/WebLandingScreen.tsx'))
+    && /onNotificationsPress=\{\(\) => \(navigation as any\)\.navigate\('Notifications'\)\}/.test(leer('screens/LandingScreen.tsx'))
     && /name="Notifications"/.test(leer('navigation/HomeStackNavigator.tsx'))
     && (leer('navigation/HomeStackNavigator.tsx').match(/name="Notifications"/g) || []).length === 1);
-  check('141) se enciende estando en ella, aunque la pestaña sea Inicio',
-    /const enNotificaciones = rutaHonda\(estado\) === 'Notifications';/.test(global)
-    && /enNotificaciones\s*\n?\s*\? 'Notifications'/.test(global));
+  check('141) estando en Notificaciones sigue encendido Inicio: ya no es un destino de la barra',
+    !/enNotificaciones/.test(global)
+    && /const puesto: DestinoId \| null = pestanaPuesta\(estado\) \|\| DESTINO_DE_RUTA\[rutaRaiz\] \|\| 'Home';/.test(global));
   /* Perfil sale de la BARRA, no de la aplicación: su pantalla y sus puertas siguen. */
-  check('142) Perfil ya no está en la barra', !/'Profile'/.test(barra) && !/etiqueta: 'Perfil'/.test(barra));
+  check('142) Mi Weë está en la barra: es la pestaña Profile de siempre, con otro rótulo', /id: 'Profile'/.test(barra) && !/etiqueta: 'Perfil'/.test(barra) && /Profile: 'Profile'/.test(global));
   check('142) pero su pantalla y su pila siguen enteras',
     /<Tab\.Screen\s+name="Profile"/.test(pestanas) && /ProfileStackNavigator/.test(pestanas));
   check('142) y se sigue abriendo desde el menú ☰ y la barra lateral',
     /navigateTab\('Profile'\)/.test(leer('components/DrawerMenu.tsx')) && /goTab\('Profile'\)/.test(leer('components/Sidebar.tsx')));
   /* Control: una sola puerta a Notificaciones desde la barra, y ninguna campana arriba. */
-  check('142) control: ni campana arriba ni Perfil duplicado abajo',
-    !/notifications/i.test(leer('components/Header.tsx'))
-    && (barra.match(/\{ id: 'Notifications'/g) || []).length === 1
-    && !/person-outline|AvatarDisplay|person'/.test(barra));
+  check('142) control: la campana de arriba no lleva contador, y Mi Weë está una sola vez abajo, sin avatar',
+    !/unreadCount|notificationService/.test(leer('components/Header.tsx'))
+    && (barra.match(/\{ id: 'Profile'/g) || []).length === 1 && !/\{ id: 'Notifications'/.test(barra)
+    && !/AvatarDisplay/.test(barra));
 
   /* Las pantallas que de verdad piden pantalla completa se quedan sin barra. */
   ['Login', 'Register', 'Create', 'Reels', 'Settings'].forEach((r) => {
@@ -1928,14 +1929,15 @@ console.log('\n── Q · El Home va directo a "Crear publicación" ──');
    * aquí se vigila el cableado del Home: que las dos pantallas lo pidan, a
    * dónde llevan y que el compositor sea uno.
    */
-  check('164) el Home nativo pide la barra directa', /<ComposerEntry [^>]*variante="home" directo \/>/.test(nativo));
-  check('165) y la portada web también', /<ComposerEntry [^>]*variante="home" directo \/>/.test(web));
+  check('164) el Home nativo pide la tarjeta de WeëAI con su puerta a Weë Brain', /<TarjetaWeeAi variante="portada" [^>]*onOpenBrain=/.test(nativo));
+  check('165) y la portada web también', /<TarjetaWeeAi variante="portada" [^>]*onOpenBrain=\{abrirBrain\}/.test(web));
 
   /* 3 y 4: la pregunta y el "+" acaban en el MISMO handler, y ese handler navega. */
   const handlerNativo = nativo.slice(nativo.indexOf('const handleCompose ='), nativo.indexOf('const handleCompose =') + 400);
   const handlerWeb = web.slice(web.indexOf('const handleCompose ='), web.indexOf('const handleCompose =') + 200);
-  check('166) en nativo el handler navega a Create con el kind', /navigate\('Create', \{ kind \}\)/.test(handlerNativo) && /mainNavigation/.test(handlerNativo));
-  check('167) en web el handler navega a Create con el kind', /irAlCompositor\(\{ kind \}\)/.test(handlerWeb) && /navigate\('Create', params\)/.test(web));
+  check('166) en nativo la puerta abre Weë Brain (Specialist brain) en la pila principal, sin texto ni adjuntos', /irAlPrincipal\('Specialist', \{ id: 'brain' \}\)/.test(nativo) && /const mainNavigation = navigation\.getParent\(\)\?\.getParent\(\);/.test(nativo));
+  check('167) en web la puerta abre Weë Brain igual, y la tarjeta no tiene campo de texto ni lleva nada', /const abrirBrain = \(\) => navigation\.navigate\('Specialist', \{ id: 'brain' \}\);/.test(web)
+    && !/<TextInput|onChangeText|goal|adjuntos/.test(leer('components/inicio/TarjetaWeeAi.tsx')) && !/BrainChatScreen|brainService/.test(leer('components/inicio/TarjetaWeeAi.tsx') + nativo + web));
   /*
    * Sube DOS niveles a propósito: hay un `Create` en la barra de pestañas que
    * no tiene pantalla —solo dibuja el "+"—. Un navigate lanzado desde el Home
@@ -1944,10 +1946,10 @@ console.log('\n── Q · El Home va directo a "Crear publicación" ──');
   check('168) y suben hasta el navegador de arriba, saltando la pestaña vacía',
     /navigation\.getParent\(\);\s*const mainNavigation = tabNavigation\?\.getParent\(\);/.test(nativo) && /navigation\.getParent\(\);\s*const mainNavigation = tabNavigation\?\.getParent\(\);/.test(web) &&
     /name="Create"\s*component=\{CreateTabPlaceholder\}/.test(pestanas));
-  check('169) sin sesión, el Home lleva a registrarse en vez de al compositor', /if \(!user\) return handleRegister\(\);/.test(handlerNativo) && /if \(!user\) return navigation\.navigate\('Register'\);/.test(handlerWeb));
+  check('169) sin sesión, publicar desde el + lleva a registrarse en vez de al compositor', /const crear = \(kind: CreateKind\) => \{\s*setHoja\(false\);\s*if \(!user\) return irARaiz\('Register'\);/.test(leer('navigation/NavegacionGlobal.tsx')));
 
   /* 5: una puerta por pantalla, y un solo compositor de verdad. */
-  check('170) una sola barra en cada pantalla del Home', (nativo.match(/<ComposerEntry/g) || []).length === 1 && (web.match(/<ComposerEntry/g) || []).length === 1);
+  check('170) una sola tarjeta de WeëAI en cada pantalla del Home, y ninguna puerta de publicar', (nativo.match(/<TarjetaWeeAi/g) || []).length === 1 && (web.match(/<TarjetaWeeAi/g) || []).length === 1 && !/<ComposerEntry/.test(nativo + web));
   check('171) el Home no monta el compositor dentro: solo navega a él', !/import CreateScreen|<CreateScreen/.test(nativo) && !/import CreateScreen|<CreateScreen/.test(web));
   const rutaCrear = pila.slice(pila.indexOf('const CreateWrapper'), pila.indexOf('const CreateWrapper') + 300);
   check('172) "Crear publicación" está registrada una sola vez',
@@ -1968,8 +1970,8 @@ console.log('\n── Q · El Home va directo a "Crear publicación" ──');
     }
   }
   const directas = etiquetas.filter((e) => e.directo).map((e) => e.archivo).sort();
-  check('176) control: solo las dos pantallas del Home piden la barra directa',
-    directas.join(' · ') === 'screens/LandingScreen.tsx · screens/WebLandingScreen.tsx',
+  check('176) control: ninguna pantalla pide ya la barra directa (el Home dejó de montarla)',
+    directas.join(' · ') === '',
     etiquetas.map((e) => e.archivo + (e.directo ? ' (directo)' : '')).join(' · '));
   check('177) control: la barra nace sin `directo`, así que quien no lo pide no cambia', /directo = false \}\) =>/.test(puerta) && /const desplegable = !compact && !directo;/.test(puerta));
   /*
@@ -1998,10 +2000,11 @@ console.log('\n── Q · El Home va directo a "Crear publicación" ──');
    */
   /* La cabecera de la lista es el orden del Home; ya no hay pestañas, y los filtros van al final. */
   const cabeceraDelHome = nativo.slice(nativo.indexOf('const listHeader'), nativo.indexOf('const renderPostItem'));
-  const bloques = ['renderHero()', 'renderComposer()', 'renderWeelsRow()', 'renderFeedFilters()'];
-  check('180) el Home mantiene su orden: saludo · compositor · Ẅells · secciones, y debajo el muro',
+  /* Rediseño del 2026-11-15: la cabecera de la lista es WeëAI y las pastillas; saludo, compositor y fila de Weëls salieron del Home. */
+  const bloques = ['renderWeeAi()', 'renderFeedFilters()'];
+  check('180) el Home mantiene su orden: WeëAI · pastillas, y debajo el muro',
     bloques.every((b, i) => cabeceraDelHome.indexOf(b) >= 0 && (i === 0 || cabeceraDelHome.indexOf(bloques[i - 1]) < cabeceraDelHome.indexOf(b)))
-    && !/renderTabBar/.test(cabeceraDelHome),
+    && !/renderTabBar|renderHero|renderComposer|renderWeelsRow/.test(cabeceraDelHome),
     bloques.filter((b) => cabeceraDelHome.includes(b)).join(' · '));
   check('180) y el muro va después, como contenido de la lista', /ListHeaderComponent=\{listHeader\}/.test(nativo) && /renderItem=\{renderPostItem\}/.test(nativo));
 

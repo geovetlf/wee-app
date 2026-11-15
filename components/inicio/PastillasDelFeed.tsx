@@ -44,7 +44,7 @@ const PastillasDelFeed: React.FC<Props> = ({ puesto, onSelect }) => {
             onPress={() => onSelect(f.id)}
             style={[styles.pastilla, { backgroundColor: activa ? theme.colors.interactionSoft : 'transparent' }]}
             activeOpacity={0.7}
-            hitSlop={{ top: 6, bottom: 6, left: 2, right: 2 }}
+            hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
             accessibilityRole="button"
             accessibilityState={{ selected: activa }}
             aria-pressed={activa}

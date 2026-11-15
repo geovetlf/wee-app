@@ -731,8 +731,10 @@ console.log('\n── Las secciones de Weë AI ya no duplican el muro ──');
    * secciones y con los WeeTags diciendo de dónde viene cada publicación.
    */
   check('4) el Wäll sigue siendo el único muro, con su filtro por secciones',
-    /HOME_SECTION_FILTERS/.test(leer('screens/LandingScreen.tsx'))
-    && /HOME_SECTION_FILTERS/.test(leer('screens/WebLandingScreen.tsx'))
+    /* Rediseño del 2026-11-15: el filtro son dos pastillas (Para ti · Creatividad) sobre el MISMO reparto por secciones. */
+    /filterBySections\(feedPosts, seccionesDelFeed\(feedFilter\)\)/.test(leer('screens/LandingScreen.tsx'))
+    && /filterBySections\(posts, seccionesDelFeed\(feedFilter\)\)/.test(leer('screens/WebLandingScreen.tsx'))
+    && /HOME_SECTION_FILTERS/.test(leer('utils/feedFilters.ts')) && /SECCIONES_CREATIVAS/.test(leer('utils/feedFilters.ts'))
     && existe('components/WeeTag.tsx'));
   /* Y publicar desde una experiencia sigue existiendo: la puerta es la de siempre. */
   check('4) publicar desde una experiencia sigue en pie',
@@ -2031,7 +2033,7 @@ console.log('\n── Credits: del encabezado del Home al menú ☰ ──');
   check('C1) y el resto del encabezado sigue entero', /styles\.actions/.test(cabecera) && /switchButton/.test(cabecera));
 
   // 2) En el menú aparece una sola vez.
-  check('C2) el menú tiene Credits una sola vez', (codigoMenu.match(/fila\('credits'/g) || []).length === 1);
+  check('C2) el menú tiene Credits una sola vez', (codigoMenu.match(/credits: goCredits/g) || []).length === 1 && (leer('constants/weeMenu.ts').slice(leer('constants/weeMenu.ts').indexOf('export const WEE_MENU')).match(/'credits'/g) || []).length === 1);
 
   // 3) Debajo de los dos perfiles y antes de EXPLORA.
   const real = codigoMenu.indexOf("fila('realProfile'");
@@ -2039,8 +2041,10 @@ console.log('\n── Credits: del encabezado del Home al menú ☰ ──');
   const credits = codigoMenu.indexOf("fila('credits'");
   const explora = codigoMenu.indexOf("renderSectionLabel(t('menu.sectionExplore'))");
   const comunidades = codigoMenu.indexOf("fila('communities'");
-  check('C3) va después de Perfil Real y Perfil Weë', credits > real && credits > wee, `real ${real} · weë ${wee} · credits ${credits}`);
-  check('C4) y antes de EXPLORA', credits < explora && explora < comunidades, `credits ${credits} · explora ${explora}`);
+  /* Rediseño del 2026-11-15: el orden ya no se escribe en el cajón; lo da el catálogo, y Credits va con lo tuyo. */
+  const ordenDelMenu = leer('constants/weeMenu.ts').slice(leer('constants/weeMenu.ts').indexOf('export const WEE_MENU'));
+  check('C3) va con lo tuyo: tras Guardados e Historial y antes de Configuración', /\['saved', 'history', 'credits', 'settings'\]/.test(ordenDelMenu), `real ${real} · weë ${wee} · credits ${credits}`);
+  check('C4) y después de los destinos y de MyWeës', ordenDelMenu.indexOf("'communities'") < ordenDelMenu.indexOf("'credits'") && ordenDelMenu.indexOf("'mywees'") < ordenDelMenu.indexOf("'credits'") && explora === -1 && comunidades === -1);
 
   // 5) El saldo sale de donde salía; no hay una segunda fuente.
   /* Sin uid: la cuenta es la sesión (Firebase Auth); el hook ya no admite un uid de perfil ni recorta prefijos. */
@@ -2048,8 +2052,10 @@ console.log('\n── Credits: del encabezado del Home al menú ☰ ──');
   check('C5) y no hay un saldo inventado en el menú', !/balance\s*=\s*\d/.test(codigoMenu) && (menu.match(/useWallet\(/g) || []).length === 1);
 
   // 6) Tocar Credits sigue llevando al mismo sitio.
-  check('C6) Credits sigue abriendo CreditStore', codigoMenu.includes("const goCredits = () => (user ? after(() => navigateRoot('CreditStore')) : requireLogin());"));
-  check('C6) y el resto de filas del menú siguen ahí', ["fila('saved'", "fila('settings'", "fila('help'"].every((t) => codigoMenu.includes(t)));
+  check('C6) Credits sigue abriendo CreditStore, y sin sesión pide entrar',
+    codigoMenu.includes("const goCredits = conCuenta('CreditStore');")
+    && codigoMenu.includes("const conCuenta = (pantalla: string, params?: object) => () => (user ? after(() => navigateRoot(pantalla, params)) : requireLogin());"));
+  check('C6) y el resto de filas del menú siguen ahí', ['saved: goSaved', 'settings: goSettings', 'help: goHelp'].every((t) => codigoMenu.includes(t)));
 
   /*
    * 7) Los Credits, DENTRO de Weë AI, se ven en la cabecera.
@@ -2091,10 +2097,11 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
    * comprueba la regla y no un número, para que añadir una opción no obligue a
    * tocar la prueba.
    */
-  const anidadas = ['projects', 'creations'];
+  /* Rediseño del 2026-11-15: lo que el catálogo declara y ya no es una fila —el selector, la tarjeta de WeëAI, Mensajes, la agenda y Mis creaciones—. */
+  const anidadas = ['realProfile', 'weeProfile', 'econtact', 'weetalk', 'creator', 'creations'];
   const declaradas = Object.keys(menu.MENU_ITEM).length;
   check('M1) existe una sola fuente del menú', menu.MENU_ORDER.length === declaradas - anidadas.length && !!menu.MENU_ITEM.credits, `${menu.MENU_ORDER.length} de ${declaradas}: ${menu.MENU_ORDER.join(',')}`);
-  check('M1) y "Mis proyectos" está en ella, dentro de Weë Creator', !!menu.MENU_ITEM.projects && !menu.MENU_ORDER.includes('projects'));
+  check('M1) y «Proyectos» está en ella, ahora como fila propia', !!menu.MENU_ITEM.projects && menu.MENU_ORDER.includes('projects') && menu.MENU_ITEM.projects.clave === 'menu.projectsTitle');
   check('M1) y "Mis creaciones" también, dentro de Weë Creator', !!menu.MENU_ITEM.creations && !menu.MENU_ORDER.includes('creations') && menu.MENU_ITEM.creations.clave === 'creaciones.title');
   check('M1) el cajón la lee', /from '\.\.\/constants\/weeMenu'/.test(cajon));
   check('M1) y la barra de escritorio también', /from '\.\.\/constants\/weeMenu'/.test(barra));
@@ -2107,10 +2114,11 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
 
   // 3) Mismo orden conceptual: PERFIL (con Credits) y luego EXPLORA.
   const orden = menu.MENU_ORDER.join(',');
-  check('M3) Credits va tras los dos perfiles', orden.startsWith('realProfile,weeProfile,credits'), orden);
-  check('M3) y antes de Comunidades', menu.MENU_ORDER.indexOf('credits') < menu.MENU_ORDER.indexOf('communities'));
-  const grupos = menu.WEE_MENU.map((g) => g.label).filter(Boolean).join(',');
-  check('M3) los grupos son PERFIL y EXPLORA', grupos === 'PERFIL,EXPLORA', grupos);
+  check('M3) el orden es el del rediseño: doce entradas', orden === 'home,weels,explore,communities,projects,pages,mywees,saved,history,credits,settings,help', orden);
+  check('M3) y Credits va con lo tuyo, después de Comunidades', menu.MENU_ORDER.indexOf('credits') > menu.MENU_ORDER.indexOf('communities') && orden.includes('saved,history,credits,settings'));
+  const grupos = menu.WEE_MENU.map((g) => g.items.join('+')).join(',');
+  check('M3) los grupos son cuatro y sin rótulo: destinos, MyWeës destacada, lo tuyo y la ayuda',
+    menu.WEE_MENU.length === 4 && menu.WEE_MENU.every((g) => !g.label) && menu.WEE_MENU[1].destacado === true && menu.WEE_MENU[1].items.join() === 'mywees' && menu.WEE_MENU[3].items.join() === 'help', grupos);
 
   /*
    * 3b) NOTIFICACIONES NO ESTÁ EN EL MENÚ, y no por descuido: es el quinto
@@ -2126,7 +2134,9 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
   check('M3b) control: la pantalla, la ruta y el servicio de notificaciones siguen enteros',
     fs3.existsSync(new URL('../../screens/NotificationsScreen.tsx', import.meta.url))
     && /name="Notifications"/.test(leer3('navigation/HomeStackNavigator.tsx'))
-    && /\{ id: 'Notifications', etiqueta: 'Notificaciones'/.test(leer3('components/BarraInferior.tsx')));
+    /* Rediseño del 2026-11-15: la puerta es la campana de la cabecera del Home, ya no un destino de la barra. */
+    && /onPress=\{onNotificationsPress\}/.test(leer3('components/Header.tsx')) && /accessibilityLabel=\{t\('nav\.notifications'\)\}/.test(leer3('components/Header.tsx'))
+    && /navigate\('Notifications'\)/.test(leer3('screens/WebLandingScreen.tsx')) && /navigate\('Notifications'\)/.test(leer3('screens/LandingScreen.tsx')));
 
   /*
    * 3c) SIN RESALTADO AMARILLO EN LAS OPCIONES.
@@ -2143,17 +2153,19 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
   }
   /* Y el amarillo sigue donde sí informa: la etiqueta del Perfil Weë y el saldo. */
   check('M3c) control: el amarillo de Weë sigue donde informa',
-    /styles\.tag, \{ backgroundColor: theme\.colors\.accent \}/.test(cajon)
+    /* La etiqueta «Nuevo» se fue con la fila «Crear mi perfil Weë»; el dorado sigue en el saldo, con su degradado. */
+    /<RellenoDeMarca radio=\{BORDER_RADIUS\.full\} \/>/.test(cajon)
     && /styles\.creditsBadge, \{ backgroundColor: theme\.colors\.accent \}/.test(cajon)
     && /styles\.saldo, \{ backgroundColor: theme\.colors\.accent \}/.test(barra));
 
   // 4) Los dos pintan los mismos grupos y la misma cabecera de cuenta.
   for (const [nombre, texto] of [['el cajón', cajon], ['la barra', barra]]) {
-    check(`M4) ${nombre} rotula PERFIL y EXPLORA`,
-      /menu\.sectionProfile|PERFIL/.test(texto) && /menu\.sectionExplore|EXPLORA/.test(texto));
+    check(`M4) ${nombre} pinta el orden del catálogo, sin rótulos de grupo`,
+      /WEE_MENU\.map\(/.test(texto) && !/menu\.sectionProfile|menu\.sectionExplore/.test(texto));
     check(`M4) ${nombre} tiene cabecera de cuenta con el perfil activo`,
       /menu\.activeReal|Perfil Real activo/.test(texto) && /AvatarDisplay/.test(texto));
-    check(`M4) ${nombre} ofrece los dos perfiles`, /realProfile/.test(texto) && /weeProfile/.test(texto));
+    check(`M4) ${nombre} ofrece los dos perfiles con el selector de identidad, y cambia con la lógica de siempre`,
+      /<SelectorDeIdentidad /.test(texto) && /switchIdentity\(\);\s*setThemeMode\('dark'\);/.test(texto) && /switchIdentity\(\);\s*setThemeMode\('light'\);/.test(texto));
   }
 
   // 5) Sin duplicados, y Weë Creator entero en los dos.
@@ -2162,9 +2174,11 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
    * marca "ẄC" en vez de un dibujo, el identificador también aparece en el `if`
    * que decide cuál de los dos se pinta, y eso no es una opción repetida.
    */
-  check('M5) Credits aparece una sola vez en cada uno', (limpio(cajon).match(/fila\('credits'/g) || []).length === 1 && (limpio(barra).match(/id="credits"/g) || []).length === 1);
+  check('M5) Credits aparece una sola vez en cada uno', (limpio(cajon).match(/credits: goCredits/g) || []).length === 1 && (limpio(barra).match(/credits: \{ onPress/g) || []).length === 1);
   check('M5) la barra ya no tiene un "Perfil" suelto además de los dos', !/label="Perfil"/.test(limpio(barra)));
-  check('M5) las experiencias salen de su fuente de siempre en los dos', /WEE_EXPERIENCES\.map/.test(cajon) && /WEE_EXPERIENCES\.map/.test(barra));
+  check('M5) las experiencias salen de su fuente de siempre en el centro creativo; los dos menús llevan a él con la misma tarjeta',
+    /WEE_EXPERIENCES/.test(leer3('screens/WeeCreatorScreen.tsx')) && !/WEE_EXPERIENCES/.test(cajon) && !/WEE_EXPERIENCES/.test(barra)
+    && /<TarjetaWeeAi variante="menu"/.test(cajon) && /<TarjetaWeeAi variante="menu"/.test(barra));
   check('M5) y ninguno escribe a mano una experiencia', !/Weë Travel|Weë Design|Weë Chef/.test(limpio(cajon) + limpio(barra)));
 
   // 6) Travel sigue llegando por el mismo sitio, una sola vez.
@@ -2195,8 +2209,8 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
     !/sort\(|reverse\(/.test(limpio(cajon)) && !/sort\(|reverse\(/.test(limpio(barra)));
   check('M6b) ni cambia el orden según el perfil',
     !/isWee[^\n]*WEE_EXPERIENCES|WEE_EXPERIENCES[^\n]*isWee/.test(limpio(cajon) + limpio(barra)));
-  check('M6b) y "Mis proyectos" va después de las experiencias, no dentro',
-    limpio(cajon).indexOf('WEE_EXPERIENCES.map') < limpio(cajon).indexOf("fila('projects'")
+  check('M6b) y «Proyectos» es una fila del menú, no una experiencia',
+    menu.MENU_ORDER.indexOf('projects') === menu.MENU_ORDER.indexOf('communities') + 1
     && !exp3.WEE_EXPERIENCES.some((e) => e.id === 'projects'));
 
   /* CONTROL: si alguien reordenara la lista, la comprobación de arriba caería. */
@@ -2205,14 +2219,14 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
     'si esto pasara, M6b no protegería nada');
 
   // 7) La navegación no cambió: cada uno sigue yendo a donde iba.
-  check('M7) el cajón sigue cerrándose antes de navegar', /const after = \(fn: \(\) => void\)/.test(cajon) && /after\(\(\) => navigateRoot\('CreditStore'\)\)/.test(cajon));
-  check('M7) la barra sigue navegando directamente', /navigation\.navigate\('CreditStore'\)/.test(barra));
+  check('M7) el cajón sigue cerrándose antes de navegar', /const after = \(fn: \(\) => void\)/.test(cajon) && /after\(\(\) => navigateRoot\(pantalla, params\)\)/.test(cajon) && /const goCredits = conCuenta\('CreditStore'\)/.test(cajon));
+  check('M7) la barra sigue navegando directamente', /credits: \{ onPress: conCuenta\('CreditStore'\)/.test(barra) && /\(user \? navigation\.navigate\(pantalla, params\) : requireLogin\(\)\)/.test(barra));
   check('M7) y las dos llevan a la misma pantalla de Credits', /CreditStore/.test(cajon) && /CreditStore/.test(barra));
 
   // 8) Inicio y Buscar son la única diferencia, y está explicada.
-  check('M8) solo la barra tiene Inicio y Buscar',
-    /label=\{t\('nav\.home'\)\}/.test(barra) && /home: 'Inicio'/.test(leer3('i18n/textos/es/nav.ts'))
-    && !/'Inicio'/.test(limpio(cajon)) && !/nav\.home/.test(limpio(cajon)));
+  check('M8) solo la barra tiene Mensajes (Inicio y Explorar ya son filas del catálogo, en los dos)',
+    /label=\{t\('nav\.messages'\)\}/.test(barra) && /messages: 'Mensajes'/.test(leer3('i18n/textos/es/nav.ts'))
+    && !/'Mensajes'/.test(limpio(cajon)) && !/nav\.messages/.test(limpio(cajon)));
   check('M8) porque en el móvil los da la barra inferior', /barra inferior/.test(barra));
 }
 
@@ -2271,7 +2285,7 @@ console.log('\n── W · Weë Writer vive dentro de Weë Studio ──');
   check('W3) la tarjeta abre la pantalla de Weë Writer, no su conversación',
     /opens: 'writer', opensSection: true/.test(studio)
     && /if \(action\.opensSection && action\.opens\) \{\s*navigation\.navigate\('Specialist', \{ id: action\.opens \}\);/.test(pantalla));
-  check('W3) que es la misma ruta a la que llevaba el menú', /navigateRoot\('Specialist', \{ id: category \}\)/.test(cajon));
+  check('W3) que es la misma ruta a la que lleva el centro creativo', /navigation\.navigate\('Specialist', \{ id: cat\.id \}\)/.test(leer4('screens/WeeCreatorScreen.tsx')));
   check('W3) y allí sigue estando "Mis documentos"',
     /\{spec\.id === 'writer' && <WriterDocuments \/>\}/.test(pantalla) && /navigation\.navigate\('WriterEditor'/.test(leer4('components/creator/WriterDocuments.tsx')));
   /* Control: solo Writer usa esa marca; las tres áreas de Studio siguen entrando por la conversación. */
