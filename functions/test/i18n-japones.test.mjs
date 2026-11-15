@@ -604,6 +604,9 @@ console.log('\n── J · Traducciones defectuosas ──');
        coincide en español con composer.location): es el permiso y el servicio de ubicación del aparato (位置情報, como en
        los ajustes del sistema), no el lugar que se añade a una publicación o a una página (場所). */
     'settings.location',
+    /* MyWeës (2026-11-15): «Tu espacio» es el rincón personal de accesos (あなたのスペース), no «Tu espacio» de weeai, que es el sitio
+       del que la persona sube una foto (空間の写真). */
+    'mywees.emptyTitle',
   ]);
   const porFrase = new Map();
   for (const [k, v] of JA) {

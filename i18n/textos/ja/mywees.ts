@@ -5,7 +5,7 @@
  * («Añadir», «Quitar», «Subir», «Bajar», «Experiencias»…) se copiaron de sus claves; el resto es traducción nueva.
  */
 export const mywees: typeof import('../es/mywees').mywees = {
-  emptyTitle: '空間の写真',
+  emptyTitle: 'あなたのスペース',
   emptyHint: 'よく使うものへのショートカットを追加しましょう。体験、ページ、プロジェクトなど。何をどの順番で置くかはあなた次第です。',
   add: '追加',
   remove: '削除: {{nombre}}',
