@@ -75,7 +75,9 @@ const crearCajon = ({ so = 'web', ancho = 390, inferior = 0, usuario = { uid: 'd
     './inicio/SelectorDeIdentidad': { __esModule: true, default: Nada },
     './inicio/TarjetaWeeAi': { __esModule: true, default: Nada },
     './avatars/AvatarDisplay': { __esModule: true, default: Nada },
-    './GradienteDeMarca': { RellenoDeMarca: Nada },
+    /* La tarjeta de MyWeës lleva su lavado en degradado (ARTE_WEEAI) y el cajón lee el sentido de lectura para reflejarlo. */
+    './GradienteDeMarca': { RellenoDeMarca: Nada, RellenoDeDegradado: Nada },
+    '../hooks/useDireccion': { useDireccion: () => ({ esRTL: false }) },
     '../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ formato: { numero: String } }) },
     '../i18n/caja': { sinEspaciadoSiSeUne: () => null },
     '../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: new Proxy({}, { get: () => '#000000' }) }, setThemeMode() {} }) },
