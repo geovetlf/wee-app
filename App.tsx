@@ -50,6 +50,7 @@ import SincronizarIdioma from './components/SincronizarIdioma';
 import EntradaDemo from './components/EntradaDemo';
 import { AuthProvider } from './contexts/AuthContext';
 import { UserProfileProvider } from './contexts/UserProfileContext';
+import TemaDelPerfil from './components/TemaDelPerfil';
 import { ScrollProvider } from './contexts/ScrollContext';
 import { PushNotificationProvider } from './contexts/PushNotificationContext';
 import { LocationProvider } from './contexts/LocationContext';
@@ -447,6 +448,8 @@ export default function App() {
                 por debajo del idioma a propósito.
               */}
               <SincronizarIdioma />
+              {/* El tema sigue al perfil: Real claro, Weë oscuro, venga el cambio de donde venga. */}
+              <TemaDelPerfil />
               <EntradaDemo />
               <ScrollProvider>
                 <TabBarProvider>

@@ -193,6 +193,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       StatusBar.setBackgroundColor(theme.colors.background);
       StatusBar.setBarStyle(theme.dark ? 'light-content' : 'dark-content');
     }
+    /*
+     * En la web se le dice al navegador qué esquema pinta la página. Sin declararlo, algunos navegadores móviles oscurecen
+     * por su cuenta una página clara (modo oscuro forzado): con el Perfil Real la app es clara y así se queda.
+     */
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.documentElement.style.colorScheme = theme.dark ? 'dark' : 'only light';
+    }
   }, [theme]);
 
   /*
