@@ -74,7 +74,7 @@ interface DrawerMenuProps {
  *   quién soy  ›
  *   [ Real | Weë ]                       ← el selector de identidad
  *   ┌ WeëAI · lema                    → ┐ ← abre el centro creativo
- *   Inicio / Wall · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
+ *   Inicio / Wäll · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
  *   ┌ MyWeës · descripción · [Personalizar] ┐
  *   Guardados · Historial · Credits · Configuración
  *   Ayuda y soporte
@@ -750,14 +750,6 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     marginHorizontal: SPACING.sm,
     marginTop: SPACING.md,
-  },
-  sectionLabel: {
-    fontSize: scale(11),
-    fontWeight: FONT_WEIGHT.semibold,
-    letterSpacing: 0.6,
-    paddingHorizontal: SPACING.sm,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.xs,
   },
   row: {
     flexDirection: 'row',

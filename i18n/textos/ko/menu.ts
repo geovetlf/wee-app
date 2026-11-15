@@ -51,7 +51,7 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: '전문가 보기',
   signOutConfirm: 'Weë에서 로그아웃할까요?',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
-  homeWall: '홈 / Wall',
+  homeWall: '홈 / Wäll',
   explore: '더 보기',
   projectsTitle: '프로젝트',
   myWees: 'MyWeës',

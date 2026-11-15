@@ -21,7 +21,7 @@
  *
  * ─── EL ORDEN DEL REDISEÑO (decisión del dueño, 2026-11-15) ──────────────────
  *
- *   Inicio / Wall · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
+ *   Inicio / Wäll · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
  *   MyWeës
  *   Guardados · Historial · Credits · Configuración
  *   Ayuda y soporte
@@ -99,8 +99,8 @@ export interface MenuItem {
  * justo lo que faltaba.
  */
 export const MENU_ITEM: Record<MenuItemId, MenuItem> = {
-  /* Inicio y Wall son el mismo sitio: la portada. La etiqueta lo dice con los dos nombres. */
-  home: { id: 'home', icono: 'casa', clave: 'menu.homeWall', emoji: '🏠', label: 'Inicio / Wall' },
+  /* Inicio y Wäll son el mismo sitio: la portada. La etiqueta lo dice con los dos nombres. */
+  home: { id: 'home', icono: 'casa', clave: 'menu.homeWall', emoji: '🏠', label: 'Inicio / Wäll' },
   /* Explorar es la pantalla de búsqueda de siempre (`Search`), con este nombre. */
   explore: { id: 'explore', icono: 'brujula', clave: 'menu.explore', emoji: '🧭', label: 'Explorar' },
   /* MyWeës: el organizador personal de accesos directos (screens/MyWeesScreen.tsx). Es marca. */
@@ -164,7 +164,7 @@ export interface MenuSection {
 /**
  * El orden del menú: las doce entradas, en cuatro grupos.
  *
- *  1. A dónde ir: Inicio / Wall, Weëls, Explorar, Comunidades, Proyectos, Weë Pages.
+ *  1. A dónde ir: Inicio / Wäll, Weëls, Explorar, Comunidades, Proyectos, Weë Pages.
  *  2. MyWeës, destacada.
  *  3. Lo tuyo: Guardados, Historial, Credits, Configuración.
  *  4. Ayuda y soporte.

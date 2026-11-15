@@ -107,7 +107,7 @@ const LandingScreen: React.FC = () => {
   /*
    * EL HOME ES UNA SOLA LISTA.
    *
-   * Arriba, quietos, la cabecera y los atajos Wall · Weëls · Explorar ·
+   * Arriba, quietos, la cabecera y los atajos Wäll · Weëls · Explorar ·
    * Comunidades; en la lista, la tarjeta de WeëAI, las pastillas y debajo el
    * Wäll con sus publicaciones. No hay páginas ni gesto de lado: los atajos
    * NAVEGAN a pantallas que ya existían (rediseño del 2026-11-15).
@@ -391,7 +391,7 @@ const LandingScreen: React.FC = () => {
   }, [user, navigation, handleRegister]);
 
   /*
-   * LOS ATAJOS DE ARRIBA. «Wall» es esta pantalla: tocarlo sube al principio.
+   * LOS ATAJOS DE ARRIBA. «Wäll» es esta pantalla: tocarlo sube al principio.
    * Los otros tres abren lo de siempre: el visor de Weëls, la búsqueda —que se
    * llama Explorar— y el explorador de comunidades, que vive en esta pila.
    */

@@ -45,7 +45,7 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'Uzmanları göster',
   signOutConfirm: 'Weë\'den çıkış yapmak istiyor musun?',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
-  homeWall: 'Ana sayfa / Wall',
+  homeWall: 'Ana sayfa / Wäll',
   explore: 'Keşfet',
   projectsTitle: 'Projeler',
   myWees: 'MyWeës',

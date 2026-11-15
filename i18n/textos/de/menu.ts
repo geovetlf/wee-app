@@ -40,7 +40,7 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'Spezialisten anzeigen',
   signOutConfirm: 'Willst du Weë verlassen?',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
-  homeWall: 'Start / Wall',
+  homeWall: 'Start / Wäll',
   explore: 'Entdecken',
   projectsTitle: 'Projekte',
   myWees: 'MyWeës',

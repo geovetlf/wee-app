@@ -87,8 +87,8 @@ export const home: typeof import('../es/home').home = {
   likesCount_other: '{{cantidad}}件のいいね',
   commentsCount_one: '{{cantidad}}件のコメント',
   commentsCount_other: '{{cantidad}}件のコメント',
-  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wall es marca. Sin revisión nativa. */
-  tabWall: 'Wall',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wäll es marca. Sin revisión nativa. */
+  tabWall: 'Wäll',
   sectionsNav: 'セクション',
   weeAiTagline: 'アイデアを生み出し、育て、変えていきましょう',
   openBrain: 'Weë Brainを開く',

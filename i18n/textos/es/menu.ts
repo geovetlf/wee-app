@@ -37,7 +37,7 @@ export const menu = {
   showSpecialists: 'Ver especialistas',
   signOutConfirm: '¿Quieres salir de Weë?',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
-  homeWall: 'Inicio / Wall',
+  homeWall: 'Inicio / Wäll',
   explore: 'Explorar',
   projectsTitle: 'Proyectos',
   myWees: 'MyWeës',

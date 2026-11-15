@@ -661,9 +661,12 @@ console.log('\n── J · Fase 2 · los módulos migrados ──');
   check('54) Burger · sin textos escritos a mano', burger.usaT && burger.sinTexto);
   /* Y sus doce opciones y once experiencias, por clave. */
   const menu = leer("constants/weeMenu.ts");
-  /* Trece desde WeëPages (2026-11-02). */
-  check('55) Burger · las trece opciones tienen clave',
-    (menu.match(/clave: 'menu\./g) || []).length === 13);
+  /*
+   * Dieciséis desde el rediseño del 2026-11-15: a las trece se suman Inicio / Wäll, Explorar, MyWeës e Historial, y
+   * WeëAI pasa a tomar su nombre de `nav.weeAi` (era `menu.creator`). Dieciocho entradas en total, todas con clave.
+   */
+  check('55) Burger · las dieciséis opciones del módulo `menu` tienen clave, y las dieciocho del catálogo, alguna',
+    (menu.match(/clave: 'menu\./g) || []).length === 16 && (menu.match(/^  \w+: \{ id: '\w+', icono: '\w+', clave: '[a-z]+\.[A-Za-z]+'/gm) || []).length === 18);
   const exps = leer("constants/weeExperiences.ts");
   check('56) y las once experiencias describen por clave',
     (exps.match(/claveDescripcion: 'creator\./g) || []).length === 11);

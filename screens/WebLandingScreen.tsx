@@ -2,7 +2,7 @@
  * WebLandingScreen — Home de Weë en web (escritorio y móvil web).
  *
  * Estructura (rediseño del 2026-11-15): cabecera (☰ · logo · buscar ·
- * notificaciones · avatar) → atajos Wall · Weëls · Explorar · Comunidades →
+ * notificaciones · avatar) → atajos Wäll · Weëls · Explorar · Comunidades →
  * tarjeta de WeëAI con la puerta a Weë Brain → pastillas del muro → Wäll con
  * sus publicaciones. El muro es el centro; lo de arriba ocupa poco.
  *
@@ -163,7 +163,7 @@ const WebLandingScreen: React.FC = () => {
   }, [route.params?.openWeels]);
 
   /*
-   * LOS ATAJOS DE ARRIBA. «Wall» es esta pantalla: tocarlo estando aquí no
+   * LOS ATAJOS DE ARRIBA. «Wäll» es esta pantalla: tocarlo estando aquí no
    * navega. Los otros tres abren lo de siempre: el feed de Weëls, la búsqueda
    * —que se llama Explorar— y el explorador de comunidades, que vive en la
    * pila del Home.

@@ -53,7 +53,7 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: '查看专家',
   signOutConfirm: '要退出 Weë 吗？',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
-  homeWall: '首页 / Wall',
+  homeWall: '首页 / Wäll',
   explore: '探索',
   projectsTitle: '项目',
   myWees: 'MyWeës',

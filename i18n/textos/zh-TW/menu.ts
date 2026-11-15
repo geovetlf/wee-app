@@ -70,7 +70,7 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: '查看專家',
   signOutConfirm: '要登出 Weë 嗎？',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
-  homeWall: '首頁 / Wall',
+  homeWall: '首頁 / Wäll',
   explore: '探索',
   projectsTitle: '專案',
   myWees: 'MyWeës',

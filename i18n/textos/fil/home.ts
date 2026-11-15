@@ -105,8 +105,8 @@ export const home: typeof import('../es/home').home = {
   likesCount_other: '{{cantidad}} like',
   commentsCount_one: '{{cantidad}} komento',
   commentsCount_other: '{{cantidad}} komento',
-  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wall es marca. Sin revisión nativa. */
-  tabWall: 'Wall',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wäll es marca. Sin revisión nativa. */
+  tabWall: 'Wäll',
   sectionsNav: 'Mga seksyon',
   weeAiTagline: 'Lumikha, paunlarin, at baguhin ang iyong mga ideya',
   openBrain: 'Buksan ang Weë Brain',

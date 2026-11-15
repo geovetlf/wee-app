@@ -385,7 +385,8 @@ console.log('\n── G · El dinero y las marcas ──');
   /* Una marca nunca lleva una terminación pegada sin apóstrofo: «Weëde», «WeeTalkta». */
   const PEGADA = /(?:Weë|WeeTalk|Weëls|Wäll|ËContact|ẄContact|Credits|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Inspira))(?=[a-zçğıöşü])/u;
   /* «Weëls» y su singular «Weël» son la marca entera, no «Weë» con algo pegado. */
-  const pegadas = TR.filter(([, v]) => PEGADA.test(v.replace(/Weëls?/g, '·')));
+  /* «MyWeës» (rediseño del 2026-11-15) también es una marca entera, como «Weëls»: no es «Weë» con una terminación turca. */
+  const pegadas = TR.filter(([, v]) => PEGADA.test(v.replace(/MyWeës|Weëls?/g, '·')));
   check('41) ninguna marca con una terminación pegada sin apóstrofo', pegadas.length === 0,
     pegadas.slice(0, 4).map(([k, v]) => `${k}: «${v.slice(0, 40)}»`).join(' | ') || 'limpio');
   const TRADUCIDA = /Weë (?:Stüdyo|Tasarım|Fotoğraf|Yazar|Müzik|Güzellik|Şef|Ev|İş|Seyahat|Gezi|Beyin|Zihin|Yapay Zek[aâ]|Kredi)(?![\p{L}])/u;

@@ -108,8 +108,8 @@ console.log('\n── B · Los otros textos de la barra ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   const pares = [
-    /* Rediseño del 2026-11-15: los textos propios de la barra son otros. Inicio y Buscar entran por el catálogo (Inicio / Wall, Explorar). */
-    ['7) Inicio / Wall', 'menu.homeWall', 'Inicio / Wall', /clave: 'menu\.homeWall'/, CATALOGO],
+    /* Rediseño del 2026-11-15: los textos propios de la barra son otros. Inicio y Buscar entran por el catálogo (Inicio / Wäll, Explorar). */
+    ['7) Inicio / Wäll', 'menu.homeWall', 'Inicio / Wäll', /clave: 'menu\.homeWall'/, CATALOGO],
     ['8) Explorar', 'menu.explore', 'Explorar', /clave: 'menu\.explore'/, CATALOGO],
     ['9) Mensajes', 'nav.messages', 'Mensajes', /label=\{t\('nav\.messages'\)\}/, LATERAL],
     ['10) Personalizar', 'menu.customize', 'Personalizar', /t\('menu\.customize'\)/, LATERAL],

@@ -338,10 +338,16 @@ console.log('\n── F · La búsqueda iguala lo que el teclado cambia ──')
   check('45c) sin espaciado entre letras para el devanagari y el árabe; el latín, el cirílico y el japonés, igual',
     caja.sinEspaciadoSiSeUne(devanagari)?.letterSpacing === 0 && caja.sinEspaciadoSiSeUne(cp(0x645, 0x644, 0x641))?.letterSpacing === 0
     && ['PERFIL', 'ПРОФИЛЬ', 'プロフィール', '', null].every((t) => caja.sinEspaciadoSiSeUne(t) === undefined));
-  const conEspaciado = ['components/TextoEnMayusculas.tsx', 'components/DrawerMenu.tsx', 'components/Sidebar.tsx',
+  /*
+   * Rediseño del 2026-11-15: el menú y la barra lateral ya no tienen rótulos de grupo (PERFIL, EXPLORA), que eran los
+   * únicos con espaciado entre letras. Se comprueba lo que queda: que no vuelvan a espaciar ningún texto.
+   */
+  const conEspaciado = ['components/TextoEnMayusculas.tsx',
     'components/HowIMadeIt.tsx', 'screens/CreateScreen.tsx'].filter((p) => !/sinEspaciadoSiSeUne\(/.test(leer(p)));
-  check('45d) los rótulos con espaciado (mayúsculas, grupos del menú y de la barra, «Cómo lo hice», «Publicar en») lo quitan en devanagari',
-    conEspaciado.length === 0, conEspaciado.join(' ') || 'los cinco');
+  check('45d) los rótulos con espaciado (mayúsculas, «Cómo lo hice», «Publicar en») lo quitan en devanagari; el menú y la barra ya no espacian ningún texto',
+    conEspaciado.length === 0 && !/letterSpacing/.test(leer('components/DrawerMenu.tsx')) && !/letterSpacing/.test(leer('components/Sidebar.tsx'))
+    && !/letterSpacing|textTransform/.test(leer('components/inicio/SelectorDeIdentidad.tsx') + leer('components/inicio/TarjetaWeeAi.tsx') + leer('components/inicio/PestanasDeInicio.tsx')),
+    conEspaciado.join(' ') || 'los tres');
 }
 
 console.log('\n── G · El dinero y las marcas ──');

@@ -98,8 +98,8 @@ export const home: ConPlurales<typeof import('../es/home').home> = {
   commentsCount_few: '{{cantidad}} Thrácht',
   commentsCount_many: '{{cantidad}} dTrácht',
   commentsCount_other: '{{cantidad}} Trácht',
-  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wall es marca. Sin revisión nativa. */
-  tabWall: 'Wall',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wäll es marca. Sin revisión nativa. */
+  tabWall: 'Wäll',
   sectionsNav: 'Codanna',
   weeAiTagline: 'Cruthaigh, forbair agus athraigh do chuid smaointe',
   openBrain: 'Oscail Weë Brain',

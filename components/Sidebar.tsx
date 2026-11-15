@@ -101,7 +101,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, label, active, onPress
  * Barra lateral de escritorio: el mismo menú que el ☰ en móvil (rediseño del 2026-11-15).
  *
  *   logo · quién soy · [ Real | Weë ] · tarjeta WeëAI
- *   Inicio / Wall · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
+ *   Inicio / Wäll · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
  *   MyWeës
  *   Guardados · Historial · Credits · Configuración
  *   Ayuda y soporte
@@ -390,14 +390,6 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     marginHorizontal: SPACING.md,
     marginTop: SPACING.md,
-  },
-  grupo: {
-    fontSize: 11,
-    fontWeight: FONT_WEIGHT.semibold,
-    letterSpacing: 0.6,
-    paddingHorizontal: SPACING.md,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.xs,
   },
   /** El saldo, como en el cajón: una pastilla dorada al final de la fila. */
   saldo: {

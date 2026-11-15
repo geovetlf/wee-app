@@ -80,8 +80,8 @@ export const home: typeof import('../es/home').home = {
   likesCount_other: '{{cantidad}} лайк',
   commentsCount_one: '{{cantidad}} сэтгэгдэл',
   commentsCount_other: '{{cantidad}} сэтгэгдэл',
-  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wall es marca. Sin revisión nativa. */
-  tabWall: 'Wall',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wäll es marca. Sin revisión nativa. */
+  tabWall: 'Wäll',
   sectionsNav: 'Хэсгүүд',
   weeAiTagline: 'Санаагаа бүтээж, хөгжүүлж, хувиргаарай',
   openBrain: 'Weë Brain нээх',

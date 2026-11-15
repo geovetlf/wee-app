@@ -37,7 +37,7 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'Show specialists',
   signOutConfirm: 'Do you want to leave Weë?',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
-  homeWall: 'Home / Wall',
+  homeWall: 'Home / Wäll',
   explore: 'Explore',
   projectsTitle: 'Projects',
   myWees: 'MyWeës',
