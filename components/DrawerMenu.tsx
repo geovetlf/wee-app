@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -38,10 +38,8 @@ import { Ionicons } from '@expo/vector-icons';
 import IconoDireccional from './IconoDireccional';
 import { IconoWee } from './icons/IconoWee';
 import { MarcaDeCredits } from './CreditsPill';
-import { MarcaDeWeeAi } from './icons/MarcaDeWeeAi';
 import { NombreDeIcono } from './icons/trazosDeWee';
 import { useT } from '../contexts/IdiomaContext';
-import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -52,9 +50,10 @@ import AvatarDisplay from './avatars/AvatarDisplay';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { useWallet } from '../hooks/useWallet';
-import { WEE_EXPERIENCES } from '../constants/weeExperiences';
-import { MENU_ITEM, MenuItemId } from '../constants/weeMenu';
-import { useIdentidadActiva } from '../hooks/useEContact';
+import { Image } from 'expo-image';
+import { MENU_ITEM, MenuItemId, WEE_MENU } from '../constants/weeMenu';
+import SelectorDeIdentidad, { Identidad } from './inicio/SelectorDeIdentidad';
+import TarjetaWeeAi from './inicio/TarjetaWeeAi';
 import { RellenoDeMarca } from './GradienteDeMarca';
 import { ALTO_BARRA } from './BarraInferior';
 import { useResponsive } from '../hooks/useResponsive';
@@ -69,19 +68,27 @@ interface DrawerMenuProps {
 }
 
 /**
- * El único menú ☰ de Weë.
+ * El único menú ☰ de Weë (rediseño del 2026-11-15).
  *
- *   PERFIL        Perfil Real · Perfil Weë · 💳 Credits
- *   EXPLORA       Comunidades · Weëls
- *   WeeTalk
- *   Weë Creator   🎨 Weë Design · 🎬 Weë Studio · … · 🧠 Weë Brain · 📁 Mis proyectos
- *   🔖 Guardados · ⚙️ Configuración · ❓ Ayuda
+ *   logo Weë · ✕
+ *   quién soy  ›
+ *   [ Real | Weë ]                       ← el selector de identidad
+ *   ┌ WeëAI · lema                    → ┐ ← abre el centro creativo
+ *   Inicio / Wall · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
+ *   ┌ MyWeës · descripción · [Personalizar] ┐
+ *   Guardados · Historial · Credits · Configuración
+ *   Ayuda y soporte
+ *   Términos · Privacidad
+ *   Cerrar sesión
  *
- * Notificaciones no está: vive en la barra inferior, que se ve siempre.
+ * El orden de las filas sale de `WEE_MENU` (constants/weeMenu.ts): el cajón y
+ * la barra lateral pintan la misma lista.
  *
- * Credits va con los perfiles porque es información de tu cuenta, no un destino.
- *
- * Lo social no lleva nombre propio: el Home ya es la experiencia social.
+ * Lo que ya no es una fila sigue existiendo: Mensajes (WeeTalk) y Mi Weë están
+ * en la barra inferior; la agenda —ËContact con el Perfil Real, ẄContact con el
+ * Perfil Weë— se abre desde Mi Weë; las experiencias, en el centro creativo de
+ * WeëAI; y Mis creaciones, desde WeëAI, desde Proyectos y desde MyWeës.
+ * Notificaciones es la campana de la cabecera del Home.
  */
 const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const t = useT();
@@ -89,8 +96,6 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const { formato } = useIdioma();
   const { user, logout } = useAuth();
   const { userProfile, activeProfileType, hasWeeProfile, switchIdentity } = useUserProfile();
-  /* Cómo se llama tu agenda ahora mismo: ËContact o ẄContact, según el perfil activo. */
-  const { nombreLista } = useIdentidadActiva();
   const navigation = useNavigation<any>();
   /*
    * ¿Estamos ya en el Home? La misma lectura que hace la barra de escritorio:
@@ -127,8 +132,6 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
    */
   const { isDesktop } = useResponsive();
   const huecoDeLaBarra = isDesktop ? 0 : ALTO_BARRA;
-
-  const [creatorExpanded, setCreatorExpanded] = useState(true);
 
   const activeUid = userProfile?.uid || user?.uid;
   const { balance } = useWallet();
@@ -205,21 +208,32 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
     after(() => navigateRoot('Login'));
   };
 
-  // ── Perfil ──
-  const goRealProfile = () => {
+  /*
+   * ─── EL SELECTOR DE IDENTIDAD ────────────────────────────────────────────
+   *
+   * Es la misma lógica que tenían las filas «Perfil Real» y «Perfil Weë», y la
+   * misma que la píldora de la cabecera: `switchIdentity()` cambia de cara y
+   * `setThemeMode()` viste la app —clara con el Perfil Real, oscura con el
+   * Perfil Weë—. El tema sale del DESTINO, que es lo único seguro en ese
+   * momento. Aquí no se guarda ni se decide ninguna identidad: se pide el
+   * cambio a quien es su dueño, `UserProfileContext`.
+   *
+   *  · sin sesión, pide entrar;
+   *  · sin Perfil Weë todavía, el lado Weë lleva a crearlo;
+   *  · tocar el lado que ya está puesto no hace nada: ya estás ahí.
+   */
+  const elegirIdentidad = (destino: Identidad) => {
     if (!user) return requireLogin();
-    if (activeProfileType === 'real') return after(() => navigateTab('Profile'));
-    switchIdentity();
-    setThemeMode('light');
-    closeDrawer();
-  };
-
-  const goWeeProfile = () => {
-    if (!user) return requireLogin();
-    if (!hasWeeProfile) return after(() => navigateRoot('WeeProfileCreation'));
-    if (activeProfileType === 'hidi') return after(() => navigateTab('Profile'));
-    switchIdentity();
-    setThemeMode('dark');
+    if (destino === 'hidi' && !hasWeeProfile) return after(() => navigateRoot('WeeProfileCreation'));
+    if (activeProfileType === destino) return;
+    /* Las dos ramas, escritas: el tema sale del DESTINO —oscuro con el Perfil Weë, claro con el Perfil Real—. */
+    if (destino === 'hidi') {
+      switchIdentity();
+      setThemeMode('dark');
+    } else {
+      switchIdentity();
+      setThemeMode('light');
+    }
     closeDrawer();
   };
 
@@ -235,36 +249,58 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
    */
   const goHome = () => (enHome ? closeDrawer() : after(() => navigateTab('Home', { screen: 'Landing' })));
 
-  // ── Explora ──
+  // ── A dónde ir ──
   /* Comunidades vive dentro de la pila del Home: se llega por su pestaña, como hace la barra lateral (Sidebar). Navegar a 'ExploreCommunities' a secas desde el cajón no lo resolvía nadie y daba error. */
   const goCommunities = () => after(() => navigateTab('Home', { screen: 'ExploreCommunities' }));
-  // Weëls vive en el Home (pestaña "Weëls" del Landing): abrimos el Home y saltamos a esa pestaña.
+  // Weëls: abrimos el Home con `openWeels`, que abre el visor con los Weëls ya cargados.
   const goWeels = () => after(() => navigateTab('Home', { screen: 'Landing', params: { openWeels: true } }));
-  const goWeeTalk = () => after(() => navigateTab('Inbox'));
+  /* Explorar es la búsqueda de siempre, la misma que abre la lupa de la cabecera. */
+  const goExplore = () => after(() => navigateTab('Search'));
 
-  // ── Weë Creator ──
-  const goCreator = (category?: string) => after(() => (category ? navigateRoot('Specialist', { id: category }) : navigateRoot('WeeCreator')));
+  // ── WeëAI ──
+  const goWeeAi = () => after(() => navigateRoot('WeeCreator'));
 
-  // ── Resto ──
-  const goCredits = () => (user ? after(() => navigateRoot('CreditStore')) : requireLogin());
-  const goEContact = () => (user ? after(() => navigateRoot('EContact')) : requireLogin());
-  const goSaved = () => (user ? after(() => navigateRoot('SavedPosts')) : requireLogin());
-  const goPages = () => (user ? after(() => navigateRoot('WeePages')) : requireLogin());
+  // ── Lo tuyo: todo esto es de una cuenta y pide sesión, como antes ──
+  const conCuenta = (pantalla: string, params?: object) => () => (user ? after(() => navigateRoot(pantalla, params)) : requireLogin());
+  const goProjects = conCuenta('Projects');
+  const goPages = conCuenta('WeePages');
+  const goMyWees = conCuenta('MyWees');
+  const goCustomizeMyWees = conCuenta('MyWees', { personalizar: true });
+  const goSaved = conCuenta('SavedPosts');
+  const goHistory = conCuenta('Historial');
+  const goCredits = conCuenta('CreditStore');
   const goSettings = () => after(() => navigateRoot('Settings'));
   const goHelp = () => after(() => navigateRoot('Help'));
+
+  /* Qué hace cada fila del catálogo. El orden no vive aquí: lo da `WEE_MENU`. */
+  const ACCION: Partial<Record<MenuItemId, () => void>> = {
+    home: goHome,
+    weels: goWeels,
+    explore: goExplore,
+    communities: goCommunities,
+    projects: goProjects,
+    pages: goPages,
+    mywees: goMyWees,
+    saved: goSaved,
+    history: goHistory,
+    credits: goCredits,
+    settings: goSettings,
+    help: goHelp,
+  };
 
   if (!visible) return null;
 
   /* El nombre de la persona NO se traduce. Lo que se traduce es el respaldo. */
   const displayName = userProfile?.displayName || user?.displayName || t('common.guest');
   const isWee = activeProfileType === 'hidi';
+  /* El @usuario, solo si la persona tiene uno. No se inventa a partir del nombre ni del correo. */
+  const usuario = user && typeof userProfile?.username === 'string' && userProfile.username.trim() ? `@${userProfile.username.trim().replace(/^@/, '')}` : '';
 
   /*
    * EL COLOR DE LOS DIBUJOS DEL CAJÓN, DECIDIDO UNA VEZ.
    *
    * Lo leen los dos sitios que pintan un `IconoWee` —las filas corrientes y la
-   * de Weë AI, que tiene forma propia por el desplegable—, así que no pueden
-   * discrepar. Aquí NO entra nada más: los textos, el avatar, las etiquetas y
+   * tarjeta de MyWeës—, así que no pueden discrepar. Aquí NO entra nada más: los textos, el avatar, las etiquetas y
    * los chevrones siguen sacando su color del tema, como siempre.
    */
   const colorDeLosIconos = isWee ? ICONOS_DEL_PERFIL_WEE : ICONOS_DEL_PERFIL_REAL;
@@ -369,7 +405,12 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           </Text>
         </TouchableOpacity>
       </View>
-      {opts.right}
+      {opts.right ?? (
+        /* El cheurón señala que la fila lleva a otro sitio, y abre lo mismo que el nombre. El vacío de en medio sigue sin escuchar. */
+        <TouchableOpacity onPress={onPress} activeOpacity={0.7} hitSlop={MARGEN_DE_TOQUE} accessible={false} importantForAccessibility="no" tabIndex={-1}>
+          <IconoDireccional name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
+      )}
     </View>
   );
 
@@ -386,14 +427,8 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
     opts: { right?: React.ReactNode; active?: boolean; small?: boolean; danger?: boolean; label?: string } = {}
   ) => renderRow(MENU_ITEM[id].icono, opts.label ?? t(MENU_ITEM[id].clave), onPress, opts);
 
-  const renderSectionLabel = (label: string) => (
-    <Text style={[styles.sectionLabel, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(label)]}>{label}</Text>
-  );
-
   /*
-   * La línea que separa un grupo del anterior. Los grupos con nombre se separan
-   * con su rótulo; ËContact no tiene nombre de grupo y necesita la línea, o
-   * quedaría pegado a los Credits como si fuera parte de tu cuenta.
+   * La línea que separa un grupo del anterior (`divisor` en `WEE_MENU`).
    */
   const renderDivisor = () => <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />;
 
@@ -426,11 +461,26 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           contentContainerStyle={[styles.drawerContent, { paddingTop: insets.top + SPACING.md, paddingBottom: insets.bottom + SPACING.xl + huecoDeLaBarra }]}
           showsVerticalScrollIndicator={false}
         >
-          {/* Cabecera: quién soy */}
+          {/* La marca y el cierre. El ✕ cierra el cajón igual que tocar fuera. */}
+          <View style={styles.marcaFila}>
+            <Image
+              source={isWee ? require('../assets/images/weelogo-dark.png') : require('../assets/images/weelogo.png')}
+              style={styles.logo}
+              contentFit="contain"
+              accessible={false}
+            />
+            <TouchableOpacity onPress={closeDrawer} activeOpacity={0.7} style={styles.cerrar} accessibilityRole="button" accessibilityLabel={t('common.close')}>
+              <Ionicons name="close" size={scale(22)} color={theme.colors.text} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Cabecera: quién soy. Abre Mi Weë (el perfil), donde está la agenda del perfil activo. */}
           <TouchableOpacity
-            style={[styles.userHeader, { borderBottomColor: theme.colors.border }]}
+            style={styles.userHeader}
             onPress={() => (user ? after(() => navigateTab('Profile')) : requireLogin())}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={user ? `${displayName}. ${t('nav.myProfile')}` : t('menu.tapToSignIn')}
           >
             {user ? (
               <AvatarDisplay
@@ -450,131 +500,93 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
               <Text style={[styles.userName, { color: theme.colors.text }]} numberOfLines={1}>
                 {displayName}
               </Text>
+              {/*
+                Debajo del nombre: el @usuario si la persona tiene uno; si no, qué
+                perfil está activo. No hay insignia de verificación: hoy ese dato
+                no llega aquí, y no se pinta una que no se puede respaldar.
+              */}
               <Text style={[styles.userMeta, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-                {!user ? t('menu.tapToSignIn') : isWee ? t('menu.activeWee') : t('menu.activeReal')}
+                {!user ? t('menu.tapToSignIn') : usuario ? usuario : isWee ? t('menu.activeWee') : t('menu.activeReal')}
               </Text>
             </View>
             <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
           </TouchableOpacity>
 
           {/*
-            HOME, LA PRIMERA OPCIÓN.
-
-            Va antes de "PERFIL" y sin rótulo de grupo: no pertenece a ninguno,
-            es el sitio al que se vuelve. Se pinta aquí directamente, igual que
-            la barra de escritorio hace con su "Inicio", porque es un destino de
-            navegación y no una de las opciones del catálogo compartido.
-
-            Estando ya en el Home, tocarla solo cierra el cajón: navegar a donde
-            ya estás recarga la pantalla y pierde el sitio del muro.
+            EL SELECTOR DE IDENTIDAD. Sustituye a las filas «Perfil Real» y
+            «Perfil Weë». Solo pinta y avisa: el cambio lo hace `elegirIdentidad`,
+            con el `switchIdentity` y el `setThemeMode` de siempre. Sin sesión
+            no se pinta: no hay identidad entre la que elegir.
           */}
-          {renderRow('casa', t('menu.home'), goHome, { active: enHome })}
-
-          {/* PERFIL */}
-          {renderSectionLabel(t('menu.sectionProfile'))}
-          {fila('realProfile', goRealProfile, { active: !!user && activeProfileType === 'real' })}
-          {renderRow(MENU_ITEM.weeProfile.icono, hasWeeProfile || !user ? t('menu.weeProfile') : t('menu.createWeeProfile'), goWeeProfile, {
-            active: isWee,
-            right: !hasWeeProfile && user ? (
-              <View style={[styles.tag, { backgroundColor: theme.colors.accent }]}>
-                <Text style={styles.tagText}>{t('common.new')}</Text>
-              </View>
-            ) : undefined,
-          })}
-          {/*
-            Credits, pegado a los perfiles y no a "Explora" (fase de UI).
-            Es información de TU CUENTA —lo que tienes—, no un sitio al que ir,
-            así que su sitio está aquí arriba y no en la lista de destinos.
-            Misma fila, mismo saldo y mismo destino que antes: solo cambia el
-            orden en el que se pinta.
-          */}
-          {fila('credits', goCredits, {
-            right: user ? (
-              <View style={[styles.creditsBadge, { backgroundColor: theme.colors.accent }]}>
-                {/* El saldo, con el degradado de marca (amarillo dorado → naranja), como en la referencia del dueño (2026-11-05). */}
-                <RellenoDeMarca radio={BORDER_RADIUS.full} />
-                <Text style={styles.creditsBadgeText}>
-                  {balance === null ? '…' : `${formato.numero(balance)} Credits`}
-                </Text>
-              </View>
-            ) : undefined,
-          })}
-
-          {/*
-            Tu agenda, entre líneas y sola.
-            No es información de tu cuenta —eso son los Credits, justo encima— ni
-            un destino donde explorar. Es tu gente, y por eso va en su propio
-            hueco entre las dos cosas.
-
-            Y se llama como la identidad activa: ËContact con el Perfil Real,
-            ẄContact con el Perfil Weë. El nombre sale de `useIdentidadActiva`,
-            la misma fuente que usa la pantalla; escribirlo aquí a mano haría que
-            el menú y la agenda dijeran cosas distintas.
-          */}
-          {renderDivisor()}
-          {fila('econtact', goEContact, { label: nombreLista })}
-          {/* WeëPages, junto a tu agenda y dentro de lo tuyo: las Páginas son de tu cuenta, no un sitio que explorar. */}
-          {fila('pages', goPages)}
-
-          {/* EXPLORA */}
-          {renderDivisor()}
-          {renderSectionLabel(t('menu.sectionExplore'))}
-          {fila('communities', goCommunities)}
-          {fila('weels', goWeels)}
-          {fila('weetalk', goWeeTalk)}
-
-          {/* Weë Creator */}
-          <View style={styles.creatorBlock}>
-            {/*
-              Weë AI hace lo mismo que hacía —desplegar y plegar la lista—, pero
-              desde los dos sitios donde la persona apunta: el nombre y el
-              chevrón. Antes lo hacía la fila entera, y el chevrón funcionaba de
-              rebote por estar dentro; ahora escucha él, que es lo que parece.
-              El vacío de en medio ya no despliega, ni pliega, ni navega.
-            */}
-            <View style={styles.row}>
-              {/*
-                Weë AI lleva su marca, "ẄAI", y no un dibujo (decisión del
-                usuario, 2026-09-16). El cerebro que llevaba antes es de Weë
-                Brain, que tiene su propia fila justo debajo: el mismo dibujo en
-                dos renglones seguidos decía dos cosas distintas.
-              */}
-              <MarcaDeWeeAi size={scale(13)} color={colorDeLosIconos} style={[styles.rowIcono, styles.marcaDeCredits, styles.marcaAncha]} />
-              <View style={styles.rowHueco}>
-                <TouchableOpacity
-                  style={styles.rowToque}
-                  onPress={() => setCreatorExpanded((v) => !v)}
-                  activeOpacity={0.7}
-                  hitSlop={MARGEN_DE_TOQUE}
-                  accessibilityRole="button"
-                  accessibilityLabel={MENU_ITEM.creator.label}
-                >
-                  <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]}>{MENU_ITEM.creator.label}</Text>
-                </TouchableOpacity>
-              </View>
-              <TouchableOpacity
-                onPress={() => setCreatorExpanded((v) => !v)}
-                activeOpacity={0.7}
-                hitSlop={MARGEN_DE_TOQUE}
-                accessibilityRole="button"
-                accessibilityLabel={t(creatorExpanded ? 'menu.hideSpecialists' : 'menu.showSpecialists')}
-              >
-                <Ionicons name={creatorExpanded ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.textSecondary} />
-              </TouchableOpacity>
+          {user && (
+            <View style={styles.selector}>
+              <SelectorDeIdentidad activa={isWee ? 'hidi' : 'real'} tieneWee={hasWeeProfile} onElegir={elegirIdentidad} />
             </View>
-            {creatorExpanded && (
-              <View style={styles.creatorList}>
-                {/* El nombre es marca y va sin traducir; su descripción sí se traduce. */}
-                {WEE_EXPERIENCES.map((exp) => renderRow(exp.icono, exp.name, () => goCreator(exp.id), { small: true }))}
-                {fila('projects', () => (user ? after(() => navigateRoot('Projects')) : requireLogin()), { small: true })}
-                {fila('creations', () => (user ? after(() => navigateRoot('MisCreaciones')) : requireLogin()), { small: true })}
-              </View>
-            )}
+          )}
+
+          {/* WeëAI: la tarjeta que abre el centro creativo. Ya no despliega una lista: las experiencias están dentro. */}
+          <View style={styles.tarjeta}>
+            <TarjetaWeeAi variante="menu" onOpenWeeAi={goWeeAi} />
           </View>
 
-          {fila('saved', goSaved)}
-          {fila('settings', goSettings)}
-          {fila('help', goHelp)}
+          {/*
+            LAS FILAS, EN EL ORDEN DEL CATÁLOGO. `WEE_MENU` dice qué hay y en
+            qué orden; aquí solo se decide cómo se pinta cada grupo.
+          */}
+          {WEE_MENU.map((grupo, i) => (
+            <View key={grupo.items.join('-')}>
+              {grupo.divisor && renderDivisor()}
+              {grupo.destacado ? (
+                /*
+                  MYWEËS, DESTACADA. Su nombre, una descripción breve y el botón
+                  «Personalizar». Sus accesos NO se despliegan aquí: viven en su
+                  pantalla. El nombre abre MyWeës; el botón la abre lista para
+                  organizar.
+                */
+                <View style={[styles.myWees, { backgroundColor: theme.colors.interactionSoft, borderColor: theme.colors.interactionBorder }]}>
+                  <View style={styles.myWeesFila}>
+                    <IconoWee name={MENU_ITEM.mywees.icono} size={scale(20)} color={colorDeLosIconos} style={styles.rowIcono} />
+                    <View style={styles.rowHueco}>
+                      <TouchableOpacity style={styles.rowToque} onPress={goMyWees} activeOpacity={0.7} hitSlop={MARGEN_DE_TOQUE} accessibilityRole="button" accessibilityLabel={t(MENU_ITEM.mywees.clave)}>
+                        <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]} numberOfLines={1}>{t(MENU_ITEM.mywees.clave)}</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <TouchableOpacity onPress={goMyWees} activeOpacity={0.7} hitSlop={MARGEN_DE_TOQUE} accessible={false} importantForAccessibility="no" tabIndex={-1}>
+                      <IconoDireccional name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={[styles.myWeesTexto, { color: theme.colors.textSecondary }]}>{t('menu.myWeesHint')}</Text>
+                  <TouchableOpacity
+                    onPress={goCustomizeMyWees}
+                    activeOpacity={0.7}
+                    style={[styles.personalizar, { borderColor: theme.colors.interactionBorder, backgroundColor: theme.colors.card }]}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('menu.customize')}
+                  >
+                    <Ionicons name="options-outline" size={scale(15)} color={theme.colors.interaction} />
+                    <Text style={[styles.personalizarTexto, { color: theme.colors.interaction }]} numberOfLines={1}>{t('menu.customize')}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={i === 0 ? styles.primerGrupo : undefined}>
+                  {grupo.items.map((id) =>
+                    fila(id, ACCION[id] ?? closeDrawer, {
+                      active: id === 'home' && enHome,
+                      /* Credits: el saldo, a la derecha, con el degradado de marca. Se lee de `useWallet`; aquí no se toca ningún Credit. */
+                      right: id === 'credits' && user ? (
+                        <View style={[styles.creditsBadge, { backgroundColor: theme.colors.accent }]}>
+                          <RellenoDeMarca radio={BORDER_RADIUS.full} />
+                          <Text style={styles.creditsBadgeText}>
+                            {balance === null ? '…' : `${formato.numero(balance)} Credits`}
+                          </Text>
+                        </View>
+                      ) : undefined,
+                    }),
+                  )}
+                </View>
+              )}
+            </View>
+          ))}
 
           {/* Pie */}
           <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
@@ -640,14 +652,81 @@ const styles = StyleSheet.create({
   drawerContent: {
     paddingHorizontal: SPACING.md,
   },
+  /* La marca arriba a un lado y el cierre al otro. */
+  marcaFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  logo: {
+    height: scale(30),
+    width: scale(86),
+  },
+  cerrar: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginEnd: -SPACING.sm,
+  },
   userHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
     paddingHorizontal: SPACING.sm,
     paddingBottom: SPACING.md,
+  },
+  selector: {
+    paddingHorizontal: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  tarjeta: {
+    paddingHorizontal: SPACING.xs,
+    marginBottom: SPACING.sm,
+  },
+  primerGrupo: {
     marginBottom: SPACING.xs,
-    borderBottomWidth: 1,
+  },
+  /* La tarjeta de MyWeës: el mismo velo y contorno que la de WeëAI, para que se lean como las dos piezas destacadas del menú. */
+  myWees: {
+    marginHorizontal: SPACING.xs,
+    marginVertical: SPACING.sm,
+    paddingHorizontal: SPACING.xs,
+    paddingBottom: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    borderWidth: 1,
+  },
+  myWeesFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    minHeight: scale(44),
+    paddingHorizontal: SPACING.xs,
+  },
+  myWeesTexto: {
+    fontSize: FONT_SIZE.xs,
+    lineHeight: scale(17),
+    paddingHorizontal: SPACING.xs,
+  },
+  personalizar: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(6),
+    minHeight: scale(36),
+    maxWidth: '100%',
+    paddingHorizontal: SPACING.md,
+    marginTop: SPACING.sm,
+    marginHorizontal: SPACING.xs,
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+  },
+  personalizarTexto: {
+    fontSize: FONT_SIZE.sm,
+    fontWeight: FONT_WEIGHT.medium,
+    flexShrink: 1,
   },
   avatarPlaceholder: {
     width: scale(48),

@@ -7,18 +7,16 @@ import { useDireccion } from '../hooks/useDireccion';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma, useT } from '../contexts/IdiomaContext';
-import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import CreateSheet, { CreateKind } from './CreateSheet';
-import { WEE_EXPERIENCES } from '../constants/weeExperiences';
-import { MENU_ITEM, MenuItemId } from '../constants/weeMenu';
+import { MENU_ITEM, MenuItemId, WEE_MENU } from '../constants/weeMenu';
+import SelectorDeIdentidad, { Identidad } from './inicio/SelectorDeIdentidad';
+import TarjetaWeeAi from './inicio/TarjetaWeeAi';
 import { IconoWee } from './icons/IconoWee';
 import { MarcaDeCredits } from './CreditsPill';
-import { MarcaDeWeeAi } from './icons/MarcaDeWeeAi';
 import { NombreDeIcono } from './icons/trazosDeWee';
-import { useIdentidadActiva } from '../hooks/useEContact';
 import { useWallet } from '../hooks/useWallet';
 import { confirmAction } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -27,28 +25,12 @@ import { RellenoDeMarca } from './GradienteDeMarca';
 const isWeb = Platform.OS === 'web';
 
 interface SidebarItemProps {
-  /** El icono dibujado de Weë, de `components/icons/trazosDeWee`. Lo normal. */
-  icono?: NombreDeIcono;
-  /**
-   * El emoji de antes, solo para lo que todavía no tiene dibujo propio.
-   *
-   * Hoy es una sola fila —Buscar, que además solo existe en escritorio porque
-   * en el móvil la da la barra inferior—: `trazosDeWee` no tiene lupa y aquí
-   * no se inventa ninguna. El día que la tenga, este campo se va.
-   */
-  emoji?: string;
+  /** El icono dibujado de Weë, de `components/icons/trazosDeWee`. */
+  icono: NombreDeIcono;
   label: string;
   active?: boolean;
-  nested?: boolean;
   onPress: () => void;
   right?: React.ReactNode;
-  /**
-   * La fila lleva la marca de Weë AI —"ẄAI"— en vez de un dibujo (decisión del
-   * usuario, 2026-09-16). Es lo mismo que hace Credits con su "ẄC", solo que
-   * aquí no se puede deducir del nombre del icono: Weë AI y Weë Brain comparten
-   * el cerebro, y solo la primera cambia.
-   */
-  marcaDeWeeAi?: boolean;
 }
 
 /**
@@ -66,7 +48,6 @@ const Opcion: React.FC<{
   id: MenuItemId;
   onPress: () => void;
   active?: boolean;
-  nested?: boolean;
   right?: React.ReactNode;
   label?: string;
 }> = ({ id, label, ...resto }) => {
@@ -74,7 +55,7 @@ const Opcion: React.FC<{
   return <SidebarItem icono={MENU_ITEM[id].icono} label={label ?? t(MENU_ITEM[id].clave)} {...resto} />;
 };
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, nested, onPress, right, marcaDeWeeAi }) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({ icono, label, active, onPress, right }) => {
   const { theme } = useTheme();
   /* En RTL, un nombre latino (Credits, WeeTalk, Weëls…) se alineaba a la izquierda y los árabes a la derecha: todos al inicio. */
   const dir = useDireccion();
@@ -84,7 +65,8 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, 
    * que la opción donde estás tenga el dibujo del mismo color que su nombre.
    * El emoji no admitía color; el dibujo sí, y por eso ahora se le da.
    */
-  const colorDeLaFila = active ? theme.colors.activeColor : theme.colors.text;
+  /* La opción donde estás va en el acento de interacción (violeta, 2026-11-15), igual que el destino puesto de la barra inferior. */
+  const colorDeLaFila = active ? theme.colors.interaction : theme.colors.text;
   return (
     <TouchableOpacity
       /*
@@ -94,7 +76,6 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, 
        */
       style={[
         styles.item,
-        nested && styles.itemNested,
         isWeb && ({ cursor: 'pointer' } as any),
       ]}
       onPress={onPress}
@@ -102,35 +83,13 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, 
       accessibilityRole="button"
       accessibilityLabel={label}
     >
-      {/*
-        El hueco es el que reservaba el emoji —24 puntos, 20 en las anidadas— y
-        el dibujo ocupa lo que ocupaba el glifo, así que la lista no se mueve ni
-        un punto al cambiar de unos a otros.
-      */}
-      {/* Los Credits llevan su marca, "ẄC"; Weë AI la suya, "ẄAI". Las dos, sin dibujo. */}
-      {marcaDeWeeAi ? (
-        <MarcaDeWeeAi
-          size={nested ? 11 : 13}
-          color={colorDeLaFila}
-          style={[styles.itemIcono, nested && styles.itemIconoNested, styles.marcaDeCredits, styles.marcaAncha]}
-        />
-      ) : icono === 'credits' ? (
-        <MarcaDeCredits
-          size={nested ? 11 : 13}
-          color={colorDeLaFila}
-          style={[styles.itemIcono, nested && styles.itemIconoNested, styles.marcaDeCredits]}
-        />
-      ) : icono ? (
-        <IconoWee
-          name={icono}
-          size={nested ? 14 : 18}
-          color={colorDeLaFila}
-          style={[styles.itemIcono, nested && styles.itemIconoNested]}
-        />
+      {/* Los Credits llevan su marca, "ẄC", sin dibujo; el resto, su icono. El hueco es el mismo: la lista no se mueve. */}
+      {icono === 'credits' ? (
+        <MarcaDeCredits size={13} color={colorDeLaFila} style={[styles.itemIcono, styles.marcaDeCredits]} />
       ) : (
-        <Text style={[styles.itemEmoji, nested && styles.itemEmojiNested]}>{emoji}</Text>
+        <IconoWee name={icono} size={18} color={colorDeLaFila} style={styles.itemIcono} />
       )}
-      <Text style={[styles.itemLabel, nested && styles.itemLabelNested, dir.texto, { color: colorDeLaFila }]} numberOfLines={1}>
+      <Text style={[styles.itemLabel, dir.texto, { color: colorDeLaFila }]} numberOfLines={1}>
         {label}
       </Text>
       {right}
@@ -139,24 +98,26 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, emoji, label, active, 
 };
 
 /**
- * Barra lateral de escritorio: el mismo menú único de docs/UX.md que el ☰ en móvil.
- * Inicio · Buscar · Comunidades · Weëls · WeeTalk · Weë Creator (10 especialistas + Mis proyectos)
- * · Credits · Guardados · Configuración · Ayuda.
+ * Barra lateral de escritorio: el mismo menú que el ☰ en móvil (rediseño del 2026-11-15).
  *
- * Notificaciones no está: vive en la barra inferior, que se ve siempre.
+ *   logo · quién soy · [ Real | Weë ] · tarjeta WeëAI
+ *   Inicio / Wall · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
+ *   MyWeës
+ *   Guardados · Historial · Credits · Configuración
+ *   Ayuda y soporte
+ *   Mensajes (solo aquí: en el móvil lo da la barra inferior) · Crear
+ *
+ * Las filas y su orden salen de `WEE_MENU`, el mismo catálogo que pinta el cajón.
  */
 const Sidebar: React.FC = () => {
   const { formato } = useIdioma();
   const t = useT();
-  const { theme } = useTheme();
+  const { theme, setThemeMode } = useTheme();
   const navigation = useNavigation<any>();
   const { user, logout } = useAuth();
-  const { userProfile, activeProfileType, hasWeeProfile } = useUserProfile();
-  /* Cómo se llama tu agenda ahora mismo: ËContact o ẄContact, según el perfil activo. */
-  const { nombreLista } = useIdentidadActiva();
+  const { userProfile, activeProfileType, hasWeeProfile, switchIdentity } = useUserProfile();
   // El mismo saldo que lee el cajón: una sola fuente, dos sitios donde se ve.
   const { balance } = useWallet();
-  const [creatorOpen, setCreatorOpen] = useState(false);
   const [sheetVisible, setSheetVisible] = useState(false);
 
   // Ruta activa (pestaña de Main o pantalla del stack principal)
@@ -174,6 +135,46 @@ const Sidebar: React.FC = () => {
   const goTab = (screen: string, params?: object) => navigation.navigate('Main', { screen, params });
   const goHome = (screen: string, params?: object) => goTab('Home', { screen, params });
   const requireLogin = () => navigation.navigate('Login');
+
+  /*
+   * EL SELECTOR DE IDENTIDAD, CON LA LÓGICA DE SIEMPRE. En escritorio el cambio
+   * de perfil vivía en la píldora de la cabecera del Home; ahora vive aquí, igual
+   * que en el cajón: `switchIdentity()` cambia de cara y `setThemeMode()` viste
+   * la app —clara con el Perfil Real, oscura con el Perfil Weë—. Aquí no se
+   * guarda ni se decide ninguna identidad.
+   */
+  const elegirIdentidad = (destino: Identidad) => {
+    if (!user) return requireLogin();
+    if (destino === 'hidi' && !hasWeeProfile) return navigation.navigate('WeeProfileCreation');
+    if (activeProfileType === destino) return;
+    /* Las dos ramas, escritas: el tema sale del DESTINO —oscuro con el Perfil Weë, claro con el Perfil Real—. */
+    if (destino === 'hidi') {
+      switchIdentity();
+      setThemeMode('dark');
+    } else {
+      switchIdentity();
+      setThemeMode('light');
+    }
+  };
+
+  /* Lo que es de una cuenta pide sesión, como antes. */
+  const conCuenta = (pantalla: string, params?: object) => () => (user ? navigation.navigate(pantalla, params) : requireLogin());
+
+  /* Qué hace cada fila del catálogo, y cuándo es «donde estás». El orden lo da `WEE_MENU`. */
+  const FILA: Partial<Record<MenuItemId, { onPress: () => void; active?: boolean }>> = {
+    home: { onPress: () => goHome('Landing'), active: isActive('Home') },
+    weels: { onPress: () => goHome('Landing', { openWeels: true }) },
+    explore: { onPress: () => navigation.navigate('Search'), active: isActive('Search') },
+    communities: { onPress: () => goHome('ExploreCommunities') },
+    projects: { onPress: conCuenta('Projects'), active: isActive('Projects') || isActive('Project') },
+    pages: { onPress: conCuenta('WeePages'), active: isActive('WeePages') || isActive('WeePage') },
+    mywees: { onPress: conCuenta('MyWees'), active: isActive('MyWees') },
+    saved: { onPress: conCuenta('SavedPosts'), active: isActive('SavedPosts') },
+    history: { onPress: conCuenta('Historial'), active: isActive('Historial') },
+    credits: { onPress: conCuenta('CreditStore'), active: isActive('CreditStore') },
+    settings: { onPress: () => navigation.navigate('Settings'), active: isActive('Settings') },
+    help: { onPress: () => navigation.navigate('Help'), active: isActive('Help') },
+  };
 
   const handleCreate = () => {
     setSheetVisible(true);
@@ -240,77 +241,49 @@ const Sidebar: React.FC = () => {
           <IconoDireccional name="chevron-forward" size={18} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
-        {/* Menú: mismo orden y mismos grupos que el cajón */}
+        {/* El selector de identidad, como en el cajón. Sin sesión no se pinta. */}
+        {user && <SelectorDeIdentidad activa={activeProfileType === 'hidi' ? 'hidi' : 'real'} tieneWee={hasWeeProfile} onElegir={elegirIdentidad} />}
+
+        {/* WeëAI: la tarjeta que abre el centro creativo, donde están las experiencias. */}
+        <TarjetaWeeAi variante="menu" onOpenWeeAi={() => navigation.navigate('WeeCreator')} />
+
+        {/* Menú: las mismas filas y el mismo orden que el cajón, del mismo catálogo. */}
         <View style={styles.nav}>
-          {/*
-            Inicio y Buscar solo existen aquí, y no es una discrepancia: en el
-            móvil los da la barra inferior. Son la única diferencia real entre
-            las dos plataformas, y viene de que el escritorio no tiene esa barra.
-          */}
-          <SidebarItem icono="casa" label={t('nav.home')} active={isActive('Home')} onPress={() => goHome('Landing')} />
-          <SidebarItem emoji="🔍" label={t('nav.search')} active={isActive('Search')} onPress={() => navigation.navigate('Search')} />
-
-          <Text style={[styles.grupo, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(t('menu.sectionProfile'))]}>{t('menu.sectionProfile')}</Text>
-          <Opcion id="realProfile" active={!!user && activeProfileType === 'real'} onPress={() => (user ? goTab('Profile') : requireLogin())} />
-          <Opcion id="weeProfile" active={activeProfileType === 'hidi'} onPress={() => (user ? (hasWeeProfile ? goTab('Profile') : navigation.navigate('WeeProfileCreation')) : requireLogin())} label={hasWeeProfile || !user ? undefined : t('menu.createWeeProfile')} />
-          <Opcion
-            id="credits"
-            active={isActive('CreditStore')}
-            onPress={() => (user ? navigation.navigate('CreditStore') : requireLogin())}
-            right={user ? (
-              <View style={[styles.saldo, { backgroundColor: theme.colors.accent }]}>
-                <RellenoDeMarca radio={BORDER_RADIUS.full} />
-                <Text style={styles.saldoTexto}>{balance === null ? '…' : `${formato.numero(balance)} Credits`}</Text>
-              </View>
-            ) : undefined}
-          />
-
-          {/*
-            Tu agenda, entre líneas y sola. Ni información de tu cuenta —eso son
-            los Credits, justo encima— ni un destino donde explorar: es tu gente.
-
-            Se llama como la identidad activa: ËContact con el Perfil Real,
-            ẄContact con el Perfil Weë. El nombre sale de `useIdentidadActiva`,
-            la misma fuente que usa la pantalla.
-          */}
-          <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />
-          <Opcion id="econtact" label={nombreLista} active={isActive('EContact')} onPress={() => (user ? navigation.navigate('EContact') : requireLogin())} />
-          <Opcion id="pages" active={isActive('WeePages')} onPress={() => (user ? navigation.navigate('WeePages') : requireLogin())} />
-
-          <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />
-          <Text style={[styles.grupo, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(t('menu.sectionExplore'))]}>{t('menu.sectionExplore')}</Text>
-          <Opcion id="communities" onPress={() => goHome('ExploreCommunities')} />
-          <Opcion id="weels" onPress={() => goHome('Landing', { openWeels: true })} />
-          <Opcion id="weetalk" active={isActive('Inbox')} onPress={() => (user ? goTab('Inbox') : requireLogin())} />
-          <SidebarItem
-            icono={MENU_ITEM.creator.icono}
-            marcaDeWeeAi
-            label={MENU_ITEM.creator.label}
-            active={isActive('WeeCreator') || isActive('Specialist') || isActive('CreatorFlow') || isActive('Projects') || isActive('Project') || isActive('MisCreaciones')}
-            onPress={() => {
-              setCreatorOpen(true);
-              navigation.navigate('WeeCreator');
-            }}
-            right={
-              <TouchableOpacity onPress={() => setCreatorOpen((v) => !v)} hitSlop={8} accessibilityLabel={t(creatorOpen ? 'menu.hideSpecialists' : 'menu.showSpecialists')}>
-                <Ionicons name={creatorOpen ? 'chevron-up' : 'chevron-down'} size={16} color={theme.colors.textSecondary} />
-              </TouchableOpacity>
-            }
-          />
-          {creatorOpen && (
-            <View style={styles.nested}>
-              {WEE_EXPERIENCES.map((exp) => (
-                <SidebarItem key={exp.id} icono={exp.icono} label={exp.name} nested onPress={() => navigation.navigate('Specialist', { id: exp.id })} />
+          {WEE_MENU.map((grupo) => (
+            <View key={grupo.items.join('-')} style={styles.nav}>
+              {grupo.divisor && <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />}
+              {grupo.items.map((id) => (
+                <Opcion
+                  key={id}
+                  id={id}
+                  active={FILA[id]?.active}
+                  onPress={FILA[id]?.onPress ?? (() => {})}
+                  right={
+                    id === 'credits' && user ? (
+                      <View style={[styles.saldo, { backgroundColor: theme.colors.accent }]}>
+                        <RellenoDeMarca radio={BORDER_RADIUS.full} />
+                        <Text style={styles.saldoTexto}>{balance === null ? '…' : `${formato.numero(balance)} Credits`}</Text>
+                      </View>
+                    ) : id === 'mywees' ? (
+                      /* «Personalizar» abre MyWeës lista para organizar. Sus accesos no se despliegan aquí. */
+                      <TouchableOpacity onPress={conCuenta('MyWees', { personalizar: true })} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('menu.customize')}>
+                        <Ionicons name="options-outline" size={16} color={theme.colors.interaction} />
+                      </TouchableOpacity>
+                    ) : undefined
+                  }
+                />
               ))}
-              <Opcion id="projects" nested active={isActive('Projects')} onPress={() => (user ? navigation.navigate('Projects') : requireLogin())} />
-              <Opcion id="creations" nested active={isActive('MisCreaciones')} onPress={() => (user ? navigation.navigate('MisCreaciones') : requireLogin())} />
             </View>
-          )}
-          {/* "Perfil" a secas se fue: arriba ya están Perfil Real y Perfil Weë. */}
-          {/* Notificaciones tampoco está: es el quinto destino de la barra inferior. */}
-          <Opcion id="saved" active={isActive('SavedPosts')} onPress={() => (user ? navigation.navigate('SavedPosts') : requireLogin())} />
-          <Opcion id="settings" active={isActive('Settings')} onPress={() => navigation.navigate('Settings')} />
-          <Opcion id="help" active={isActive('Help')} onPress={() => navigation.navigate('Help')} />
+          ))}
+
+          {/*
+            MENSAJES SOLO EXISTE AQUÍ, y no es una discrepancia: en el móvil lo da
+            la barra inferior, y el escritorio no tiene esa barra. Es WeeTalk, la
+            bandeja de siempre. Mi Weë es la cabecera de cuenta de arriba; WeëAI,
+            su tarjeta; Crear, el botón de abajo.
+          */}
+          <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />
+          <SidebarItem icono={MENU_ITEM.weetalk.icono} label={t('nav.messages')} active={isActive('Inbox')} onPress={() => (user ? goTab('Inbox') : requireLogin())} />
         </View>
 
         {/* Crear: la misma hoja que el botón + */}
@@ -403,7 +376,6 @@ const styles = StyleSheet.create({
   cuentaEstado: {
     fontSize: FONT_SIZE.xs,
   },
-  /** El rótulo de cada grupo: PERFIL, EXPLORA. Igual que en el cajón. */
   pie: {
     marginTop: SPACING.md,
     paddingTop: SPACING.md,
