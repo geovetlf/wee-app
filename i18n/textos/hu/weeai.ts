@@ -234,4 +234,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'útitervet AI-jal',
   travelPlanSub: 'Útiterv, költségkeret és személyre szabott tippek.',
   travelPlanCta: 'Utam megtervezése',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Az alkotásaid itt jelennek meg, a legújabbtól a legrégebbiig.',
+  historyLimitNote: 'Megjelenített legutóbbi munkák: {{cantidad}}',
 };

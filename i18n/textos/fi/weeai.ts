@@ -234,4 +234,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'tekoälyllä',
   travelPlanSub: 'Matkareitti, budjetti ja vinkit juuri sinulle.',
   travelPlanCta: 'Suunnittele matkani',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Luomuksesi näkyvät täällä uusimmasta vanhimpaan.',
+  historyLimitNote: 'Uusimpia töitä näytetään: {{cantidad}}',
 };

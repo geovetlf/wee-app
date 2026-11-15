@@ -248,4 +248,7 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   travelPlanAccent: 'путовања уз AI',
   travelPlanSub: 'План пута, буџет и савети по твојој мери.',
   travelPlanCta: 'Испланирај путовање',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Твоје креације ће се појавити овде, од најновије до најстарије.',
+  historyLimitNote: 'Приказани најновији радови: {{cantidad}}',
 };

@@ -40,5 +40,14 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'Sýna sérfræðinga',
   signOutConfirm: 'Viltu skrá þig út úr Weë?',
   /* Migración de la UI (demo YC) integrada con is/kl, 2026-11-05: traducción de IA, SIN revisión humana nativa. */
-  pages: 'WeëPages',
+  pages: 'Weë Pages',
+  /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
+  homeWall: 'Heim / Wall',
+  explore: 'Kanna',
+  projectsTitle: 'Verkefni',
+  myWees: 'MyWeës',
+  myWeesHint: 'Veldu og raðaðu uppáhaldsflýtileiðunum þínum',
+  customize: 'Sérsníða',
+  history: 'Ferill',
+  helpSupport: 'Hjálp og aðstoð',
 };

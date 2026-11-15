@@ -37,4 +37,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: '告訴 Weë 你想要什麼，AI 的事交給 Weë。',
   brandSlogan: '想像 · 創作 · 連結',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: '訊息',
+  myWee: '我的 Weë',
 };

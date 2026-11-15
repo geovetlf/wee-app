@@ -256,4 +256,7 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   travelPlanAccent: 'متكاملة بالذكاء الاصطناعي',
   travelPlanSub: 'برنامج الرحلة والميزانية ونصائح مصمّمة لك.',
   travelPlanCta: 'خطّط لرحلتي',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'ستظهر إبداعاتك هنا، من الأحدث إلى الأقدم.',
+  historyLimitNote: 'أحدث الأعمال المعروضة: {{cantidad}}',
 };

@@ -53,6 +53,7 @@ import { aiAvatar } from './aiAvatar';
 import { moderation } from './moderation';
 import { filmmaker } from './filmmaker';
 import { travel } from './travel';
+import { mywees } from './mywees';
 import { FormaDelDiccionario } from '../es';
 
 export const en: FormaDelDiccionario = {
@@ -98,4 +99,5 @@ export const en: FormaDelDiccionario = {
   moderation,
   filmmaker,
   travel,
+  mywees,
 };

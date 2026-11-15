@@ -35,5 +35,14 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'Εμφάνιση ειδικών',
   signOutConfirm: 'Θέλεις να βγεις από το Weë;',
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
-  pages: 'WeëPages',
+  pages: 'Weë Pages',
+  /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
+  homeWall: 'Αρχική / Wall',
+  explore: 'Εξερεύνηση',
+  projectsTitle: 'Έργα',
+  myWees: 'MyWeës',
+  myWeesHint: 'Διάλεξε και οργάνωσε τις αγαπημένες σου συντομεύσεις',
+  customize: 'Προσαρμογή',
+  history: 'Ιστορικό',
+  helpSupport: 'Βοήθεια και υποστήριξη',
 };

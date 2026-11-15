@@ -239,4 +239,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'با هوش مصنوعی بسازید',
   travelPlanSub: 'برنامهٔ سفر، بودجه و توصیه‌های متناسب با شما.',
   travelPlanCta: 'برنامه‌ریزی سفر من',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'ساخته‌هایتان اینجا نمایش داده می‌شوند، از جدیدترین تا قدیمی‌ترین.',
+  historyLimitNote: 'تازه‌ترین کارهای نمایش‌داده‌شده: {{cantidad}}',
 };

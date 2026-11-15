@@ -23,4 +23,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Kerro Weë-avustajalle, mitä haluat. Weë hoitaa tekoälyn.',
   brandSlogan: 'Kuvittele · Luo · Yhdistä',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Viestit',
+  myWee: 'Oma Weë',
 };

@@ -20,4 +20,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'أخبر Weë بما تريد، ويتولى Weë أمر الذكاء الاصطناعي.',
   brandSlogan: 'تخيّل · أبدع · تواصل',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'الرسائل',
+  myWee: 'Weë الخاص بي',
 };

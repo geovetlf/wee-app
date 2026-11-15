@@ -237,4 +237,7 @@ export const weeai = {
   travelPlanAccent: 'completo con IA',
   travelPlanSub: 'Itinerario, presupuesto y consejos a tu medida.',
   travelPlanCta: 'Planear mi viaje',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Tus creaciones aparecerán aquí, de la más reciente a la más antigua.',
+  historyLimitNote: 'Trabajos más recientes mostrados: {{cantidad}}',
 };

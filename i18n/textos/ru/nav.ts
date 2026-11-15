@@ -31,4 +31,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Расскажите Weë, что вам нужно. С ИИ Weë разберётся.',
   brandSlogan: 'Воображать · Создавать · Объединяться',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Сообщения',
+  myWee: 'Мой Weë',
 };

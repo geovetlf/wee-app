@@ -251,4 +251,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: '여행 계획을 만들어요',
   travelPlanSub: '일정, 예산, 맞춤 팁까지.',
   travelPlanCta: '내 여행 계획하기',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: '만든 작품이 최신순으로 여기에 표시됩니다.',
+  historyLimitNote: '표시된 최근 작업: {{cantidad}}',
 };

@@ -245,4 +245,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'ferðaáætlun með gervigreind',
   travelPlanSub: 'Ferðaplan, kostnaðaráætlun og ráð sniðin að þér.',
   travelPlanCta: 'Skipuleggja ferðina mína',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Sköpunarverkin þín birtast hér, frá því nýjasta til þess elsta.',
+  historyLimitNote: 'Nýjustu verk sýnd: {{cantidad}}',
 };

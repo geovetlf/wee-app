@@ -241,4 +241,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'lengkap dengan AI',
   travelPlanSub: 'Itinerari, anggaran, dan tips yang disesuaikan untuk Anda.',
   travelPlanCta: 'Rencanakan perjalanan saya',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Karya Anda akan muncul di sini, dari yang terbaru hingga yang terlama.',
+  historyLimitNote: 'Pekerjaan terbaru yang ditampilkan: {{cantidad}}',
 };

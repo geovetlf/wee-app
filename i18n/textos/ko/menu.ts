@@ -25,7 +25,7 @@ export const menu: typeof import('../es/menu').menu = {
   createWeeProfile: '내 Weë 프로필 만들기',
   credits: 'Credits',
   econtact: 'ËContact',
-  pages: 'WeëPages',
+  pages: 'Weë Pages',
   wcontact: 'ËContact',
   communities: '커뮤니티',
   weels: 'Weëls',
@@ -50,4 +50,13 @@ export const menu: typeof import('../es/menu').menu = {
   hideSpecialists: '전문가 숨기기',
   showSpecialists: '전문가 보기',
   signOutConfirm: 'Weë에서 로그아웃할까요?',
+  /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
+  homeWall: '홈 / Wall',
+  explore: '더 보기',
+  projectsTitle: '프로젝트',
+  myWees: 'MyWeës',
+  myWeesHint: '즐겨 쓰는 바로가기를 골라 정리하세요',
+  customize: '맞춤 설정',
+  history: '내역',
+  helpSupport: '도움말 및 지원',
 };

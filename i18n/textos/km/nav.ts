@@ -21,4 +21,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'ប្រាប់ Weë នូវ​អ្វី​ដែល​អ្នក​ចង់បាន។ Weë នឹង​ទទួល​បន្ទុក AI។',
   brandSlogan: 'ស្រមៃ · បង្កើត · តភ្ជាប់',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'សារ',
+  myWee: 'Weë របស់​ខ្ញុំ',
 };

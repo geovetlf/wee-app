@@ -24,4 +24,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Dis à Weë ce que tu veux. Weë s’occupe de l’IA.',
   brandSlogan: 'Imaginez · Créez · Connectez',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Messages',
+  myWee: 'Mon Weë',
 };

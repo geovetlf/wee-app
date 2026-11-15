@@ -231,4 +231,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'Reiseplan mit KI',
   travelPlanSub: 'Reiseroute, Budget und persönliche Tipps.',
   travelPlanCta: 'Meine Reise planen',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Deine Kreationen erscheinen hier, von der neuesten bis zur ältesten.',
+  historyLimitNote: 'Neueste Aufträge angezeigt: {{cantidad}}',
 };

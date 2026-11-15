@@ -42,5 +42,14 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'Prikaži specijaliste',
   signOutConfirm: 'Želiš li da izađeš iz aplikacije Weë?',
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
-  pages: 'WeëPages',
+  pages: 'Weë Pages',
+  /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
+  homeWall: 'Početna / Wall',
+  explore: 'Istraži',
+  projectsTitle: 'Projekti',
+  myWees: 'MyWeës',
+  myWeesHint: 'Izaberi i organizuj omiljene prečice',
+  customize: 'Prilagodi',
+  history: 'Istorija',
+  helpSupport: 'Pomoć i podrška',
 };

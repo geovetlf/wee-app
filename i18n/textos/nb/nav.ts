@@ -21,4 +21,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Fortell Weë hva du vil ha. Weë tar seg av KI-en.',
   brandSlogan: 'Drøm · Skap · Koble sammen',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Meldinger',
+  myWee: 'Mitt Weë',
 };

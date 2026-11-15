@@ -230,4 +230,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'аяллын төлөвлөгөө гарга',
   travelPlanSub: 'Танд тохирсон маршрут, төсөв, зөвлөгөө.',
   travelPlanCta: 'Аяллаа төлөвлөх',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Таны бүтээлүүд энд шинээс хуучин руу харагдана.',
+  historyLimitNote: 'Харуулж буй хамгийн сүүлийн ажлууд: {{cantidad}}',
 };

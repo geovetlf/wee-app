@@ -233,4 +233,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'trọn vẹn với AI',
   travelPlanSub: 'Lịch trình, ngân sách và lời khuyên dành riêng cho bạn.',
   travelPlanCta: 'Lên kế hoạch chuyến đi',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Các sáng tạo của bạn sẽ xuất hiện ở đây, từ mới nhất đến cũ nhất.',
+  historyLimitNote: 'Công việc gần đây nhất đang hiển thị: {{cantidad}}',
 };

@@ -34,4 +34,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Sabihin sa Weë ang gusto mo. Ang Weë na ang bahala sa AI.',
   brandSlogan: 'Mangarap · Lumikha · Kumonekta',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Mga Mensahe',
+  myWee: 'Aking Weë',
 };

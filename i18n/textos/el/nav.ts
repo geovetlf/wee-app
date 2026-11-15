@@ -18,4 +18,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Πες στο Weë τι θέλεις. Το Weë αναλαμβάνει την τεχνητή νοημοσύνη.',
   brandSlogan: 'Φαντάσου · Δημιούργησε · Συνδέσου',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Μηνύματα',
+  myWee: 'Το Weë μου',
 };

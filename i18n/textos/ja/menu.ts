@@ -16,7 +16,7 @@ export const menu: typeof import('../es/menu').menu = {
   createWeeProfile: 'Weëプロフィールを作成',
   credits: 'Credits',
   econtact: 'ËContact',
-  pages: 'WeëPages',
+  pages: 'Weë Pages',
   wcontact: 'ËContact',
   communities: 'コミュニティ',
   weels: 'Weëls',
@@ -41,4 +41,13 @@ export const menu: typeof import('../es/menu').menu = {
   hideSpecialists: 'スペシャリストを非表示',
   showSpecialists: 'スペシャリストを表示',
   signOutConfirm: 'Weëからログアウトしますか？',
+  /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
+  homeWall: 'ホーム / Wall',
+  explore: '発見',
+  projectsTitle: 'プロジェクト',
+  myWees: 'MyWeës',
+  myWeesHint: 'お気に入りのショートカットを選んで整理できます',
+  customize: 'カスタマイズ',
+  history: '履歴',
+  helpSupport: 'ヘルプとサポート',
 };

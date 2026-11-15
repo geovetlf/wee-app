@@ -239,4 +239,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'completo com IA',
   travelPlanSub: 'Roteiro, orçamento e dicas personalizadas.',
   travelPlanCta: 'Planejar minha viagem',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Suas criações aparecerão aqui, da mais recente à mais antiga.',
+  historyLimitNote: 'Trabalhos mais recentes exibidos: {{cantidad}}',
 };

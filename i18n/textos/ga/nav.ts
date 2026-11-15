@@ -20,4 +20,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Inis do Weë cad atá uait. Tugann Weë aire don IS.',
   brandSlogan: 'Samhlaigh · Cruthaigh · Nasc',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Teachtaireachtaí',
+  myWee: 'Mo Weë',
 };

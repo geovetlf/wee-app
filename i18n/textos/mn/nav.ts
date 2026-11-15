@@ -18,4 +18,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Юу хүсэж байгаагаа Weë-д хэлээрэй. Хиймэл оюуныг Weë хариуцна.',
   brandSlogan: 'Төсөөл · Бүтээ · Холбогд',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Мессеж',
+  myWee: 'Миний Weë',
 };

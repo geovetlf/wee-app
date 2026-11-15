@@ -290,4 +290,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'reseplan med AI',
   travelPlanSub: 'Resväg, budget och personliga tips.',
   travelPlanCta: 'Planera min resa',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Dina skapelser visas här, från nyast till äldst.',
+  historyLimitNote: 'Senaste jobb som visas: {{cantidad}}',
 };

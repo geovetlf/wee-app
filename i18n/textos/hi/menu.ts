@@ -23,7 +23,7 @@ export const menu: typeof import('../es/menu').menu = {
   createWeeProfile: 'अपनी Weë प्रोफ़ाइल बनाएँ',
   credits: 'Credits',
   econtact: 'ËContact',
-  pages: 'WeëPages',
+  pages: 'Weë Pages',
   wcontact: 'ËContact',
   communities: 'कम्यूनिटी',
   weels: 'Weëls',
@@ -48,4 +48,13 @@ export const menu: typeof import('../es/menu').menu = {
   hideSpecialists: 'एक्सपर्ट छिपाएँ',
   showSpecialists: 'एक्सपर्ट दिखाएँ',
   signOutConfirm: 'क्या आपको Weë से साइन आउट करना है?',
+  /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
+  homeWall: 'होम / Wall',
+  explore: 'एक्सप्लोर',
+  projectsTitle: 'प्रोजेक्ट',
+  myWees: 'MyWeës',
+  myWeesHint: 'अपने पसंदीदा शॉर्टकट चुनें और व्यवस्थित करें',
+  customize: 'अनुकूलित करें',
+  history: 'लेन-देन का इतिहास',
+  helpSupport: 'सहायता और समर्थन',
 };

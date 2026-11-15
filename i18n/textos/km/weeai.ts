@@ -241,4 +241,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'ពេញលេញ​ជាមួយ AI',
   travelPlanSub: 'កាលវិភាគ ថវិកា និង​គន្លឹះ​ដែល​សម​នឹង​អ្នក។',
   travelPlanCta: 'រៀបចំ​ដំណើរ​របស់ខ្ញុំ',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'ស្នាដៃ​របស់​អ្នក​នឹង​បង្ហាញ​នៅ​ទីនេះ ពី​ថ្មី​បំផុត​ទៅ​ចាស់​បំផុត។',
+  historyLimitNote: 'ការងារ​ថ្មីៗ​បំផុត​ដែល​បាន​បង្ហាញ៖ {{cantidad}}',
 };

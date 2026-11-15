@@ -251,4 +251,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'まるごと作成',
   travelPlanSub: '旅程、予算、あなたに合ったヒント。',
   travelPlanCta: '旅を計画する',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: '作成したものが新しい順にここに表示されます。',
+  historyLimitNote: '表示中の最近の作業: {{cantidad}}',
 };

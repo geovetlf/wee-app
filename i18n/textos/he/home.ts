@@ -102,4 +102,11 @@ export const home: ConPlurales<typeof import('../es/home').home> = {
   commentsCount_one: '{{cantidad}} תגובה',
   commentsCount_two: '{{cantidad}} תגובות',
   commentsCount_other: '{{cantidad}} תגובות',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wall es marca. Sin revisión nativa. */
+  tabWall: 'Wall',
+  sectionsNav: 'חלקים',
+  weeAiTagline: 'ליצור, לפתח ולשנות רעיונות',
+  openBrain: 'פתיחת Weë Brain',
+  feedForYou: 'בשבילך',
+  feedCreativity: 'יצירתיות',
 };

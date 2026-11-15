@@ -251,4 +251,7 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   travelPlanAccent: 'מלאה עם AI',
   travelPlanSub: 'מסלול, תקציב וטיפים מותאמים אישית.',
   travelPlanCta: 'תכנון הטיול שלי',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'היצירות יופיעו כאן, מהחדשה ביותר לישנה ביותר.',
+  historyLimitNote: 'העבודות האחרונות שמוצגות: {{cantidad}}',
 };

@@ -18,4 +18,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Mondd el a Weë-nek, mit szeretnél. Az AI-t a Weë intézi.',
   brandSlogan: 'Képzeld el · Alkoss · Kapcsolódj',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Üzenetek',
+  myWee: 'Saját Weë',
 };

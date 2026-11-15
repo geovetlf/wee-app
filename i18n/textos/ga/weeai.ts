@@ -255,4 +255,7 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   travelPlanAccent: 'iomlán le IS',
   travelPlanSub: 'Cúrsa taistil, buiséad agus leideanna a oireann duitse.',
   travelPlanCta: 'Pleanáil mo thuras',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Beidh do chuid saothar le feiceáil anseo, ón gceann is nua go dtí an ceann is sine.',
+  historyLimitNote: 'Na jabanna is déanaí ar taispeáint: {{cantidad}}',
 };

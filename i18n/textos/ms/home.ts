@@ -92,4 +92,11 @@ export const home: typeof import('../es/home').home = {
   likesCount_other: '{{cantidad}} Suka',
   commentsCount_one: '{{cantidad}} Komen',
   commentsCount_other: '{{cantidad}} Komen',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wall es marca. Sin revisión nativa. */
+  tabWall: 'Wall',
+  sectionsNav: 'Bahagian',
+  weeAiTagline: 'Cipta, bangunkan dan ubah idea anda',
+  openBrain: 'Buka Weë Brain',
+  feedForYou: 'Untuk anda',
+  feedCreativity: 'Kreativiti',
 };

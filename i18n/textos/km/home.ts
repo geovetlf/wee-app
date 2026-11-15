@@ -91,4 +91,11 @@ export const home: typeof import('../es/home').home = {
   likesCount_other: '{{cantidad}} ចូលចិត្ត',
   commentsCount_one: '{{cantidad}} មតិ',
   commentsCount_other: '{{cantidad}} មតិ',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wall es marca. Sin revisión nativa. */
+  tabWall: 'Wall',
+  sectionsNav: 'ផ្នែក',
+  weeAiTagline: 'បង្កើត អភិវឌ្ឍ និង​ផ្លាស់ប្តូរ​គំនិត​របស់​អ្នក',
+  openBrain: 'បើក Weë Brain',
+  feedForYou: 'សម្រាប់​អ្នក',
+  feedCreativity: 'ភាពច្នៃប្រឌិត',
 };

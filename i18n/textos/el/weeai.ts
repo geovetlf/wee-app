@@ -236,4 +236,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'πλάνο ταξιδιού με AI',
   travelPlanSub: 'Πρόγραμμα, προϋπολογισμός και συμβουλές στα μέτρα σου.',
   travelPlanCta: 'Σχεδίασε το ταξίδι μου',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Οι δημιουργίες σου θα εμφανίζονται εδώ, από την πιο πρόσφατη στην πιο παλιά.',
+  historyLimitNote: 'Πιο πρόσφατες εργασίες που εμφανίζονται: {{cantidad}}',
 };

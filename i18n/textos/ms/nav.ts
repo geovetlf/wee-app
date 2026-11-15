@@ -22,4 +22,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Beritahu Weë apa yang anda mahu. Weë yang menguruskan AI.',
   brandSlogan: 'Bayangkan · Cipta · Berhubung',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Mesej',
+  myWee: 'Weë Saya',
 };

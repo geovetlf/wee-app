@@ -35,5 +35,14 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'Hiện chuyên gia',
   signOutConfirm: 'Bạn muốn đăng xuất khỏi Weë?',
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
-  pages: 'WeëPages',
+  pages: 'Weë Pages',
+  /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
+  homeWall: 'Trang chủ / Wall',
+  explore: 'Khám phá',
+  projectsTitle: 'Dự án',
+  myWees: 'MyWeës',
+  myWeesHint: 'Chọn và sắp xếp các lối tắt yêu thích của bạn',
+  customize: 'Tùy chỉnh',
+  history: 'Lịch sử',
+  helpSupport: 'Trợ giúp và hỗ trợ',
 };

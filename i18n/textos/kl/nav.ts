@@ -26,4 +26,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Suna kissaatiginerlugu Weë oqaluttuarfiguk. AI-mik Weë isumaginnissaaq.',
   brandSlogan: 'Takorluuigit · Pilersitsigit · Attaveqarit',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Oqariartuutit',
+  myWee: 'Uanga Weë',
 };

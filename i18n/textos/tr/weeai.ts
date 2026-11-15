@@ -279,4 +279,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'bir seyahat planı oluştur',
   travelPlanSub: 'Rota, bütçe ve sana özel ipuçları.',
   travelPlanCta: 'Seyahatimi planla',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Oluşturdukların burada görünür, en yeniden en eskiye.',
+  historyLimitNote: 'Gösterilen en son işler: {{cantidad}}',
 };

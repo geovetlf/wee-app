@@ -53,6 +53,7 @@ import { aiAvatar } from './aiAvatar';
 import { moderation } from './moderation';
 import { filmmaker } from './filmmaker';
 import { travel } from './travel';
+import { mywees } from './mywees';
 export const es = {
   common,
   help,
@@ -96,6 +97,7 @@ export const es = {
   moderation,
   filmmaker,
   travel,
+  mywees,
 };
 
 /**

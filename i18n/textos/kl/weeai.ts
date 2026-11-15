@@ -250,4 +250,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'AI atorlugu pilersiguk',
   travelPlanSub: 'Angalanissap aqqutaa, aningaasartuutissat siunnersuutillu illinnut naleqquttut.',
   travelPlanCta: 'Angalanissara pilersaarusiuguk',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Pilersitatit maani takuneqarsinnaassapput, nutaanerpaamiit pisoqaanerpaamut.',
+  historyLimitNote: 'Suliat kingulliit takutinneqartut: {{cantidad}}',
 };

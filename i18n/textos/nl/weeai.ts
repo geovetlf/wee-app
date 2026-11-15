@@ -237,4 +237,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'reisplan met AI',
   travelPlanSub: 'Reisschema, budget en tips op maat.',
   travelPlanCta: 'Mijn reis plannen',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Je creaties verschijnen hier, van nieuw naar oud.',
+  historyLimitNote: 'Meest recente opdrachten getoond: {{cantidad}}',
 };

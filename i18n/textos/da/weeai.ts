@@ -283,4 +283,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'rejseplan med AI',
   travelPlanSub: 'Rute, budget og personlige tips.',
   travelPlanCta: 'Planlæg min rejse',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Dine kreationer vises her, fra nyeste til ældste.',
+  historyLimitNote: 'Seneste opgaver vist: {{cantidad}}',
 };

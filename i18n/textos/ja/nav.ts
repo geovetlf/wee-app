@@ -25,4 +25,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: '作りたいものをWeëに伝えるだけです。AIのことはWeëにおまかせください。',
   brandSlogan: '想像する · 創る · つながる',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'メッセージ',
+  myWee: 'マイ Weë',
 };

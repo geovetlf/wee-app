@@ -97,4 +97,11 @@ export const home: typeof import('../es/home').home = {
   likesCount_other: '{{cantidad}} beğeni',
   commentsCount_one: '{{cantidad}} yorum',
   commentsCount_other: '{{cantidad}} yorum',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wall es marca. Sin revisión nativa. */
+  tabWall: 'Wall',
+  sectionsNav: 'Bölümler',
+  weeAiTagline: 'Fikirlerini yarat, geliştir ve dönüştür',
+  openBrain: 'Weë Brain bölümünü aç',
+  feedForYou: 'Sana özel',
+  feedCreativity: 'Yaratıcılık',
 };

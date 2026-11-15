@@ -25,4 +25,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Segðu Weë hvað þú vilt. Weë sér um gervigreindina.',
   brandSlogan: 'Ímyndaðu þér · Skapaðu · Tengstu',
   documentTitle: 'Weë – {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Skilaboð',
+  myWee: 'Mitt Weë',
 };

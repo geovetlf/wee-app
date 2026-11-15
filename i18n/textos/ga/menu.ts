@@ -38,5 +38,14 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'Taispeáin na speisialtóirí',
   signOutConfirm: 'Ar mhaith leat Weë a fhágáil?',
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
-  pages: 'WeëPages',
+  pages: 'Weë Pages',
+  /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
+  homeWall: 'Baile / Wall',
+  explore: 'Fiosraigh',
+  projectsTitle: 'Tionscadail',
+  myWees: 'MyWeës',
+  myWeesHint: 'Roghnaigh agus eagraigh na haicearraí is fearr leat',
+  customize: 'Saincheap',
+  history: 'Stair',
+  helpSupport: 'Cabhair agus tacaíocht',
 };

@@ -27,4 +27,8 @@ export const nav = {
    */
   brandSlogan: 'Imagina · Crea · Conecta',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Mensajes',
+  myWee: 'Mi Weë',
 };

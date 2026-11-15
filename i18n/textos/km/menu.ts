@@ -37,5 +37,14 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'មើល​អ្នកជំនាញ',
   signOutConfirm: 'តើ​អ្នក​ចង់​ចាកចេញ​ពី Weë ទេ?',
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
-  pages: 'WeëPages',
+  pages: 'Weë Pages',
+  /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
+  homeWall: 'ទំព័រដើម / Wall',
+  explore: 'រុករក',
+  projectsTitle: 'គម្រោង',
+  myWees: 'MyWeës',
+  myWeesHint: 'ជ្រើសរើស និង​រៀបចំ​ផ្លូវកាត់​ដែល​អ្នក​ចូលចិត្ត',
+  customize: 'កំណត់តាមបំណង',
+  history: 'ប្រវត្តិ',
+  helpSupport: 'ជំនួយ និង​ការគាំទ្រ',
 };

@@ -37,5 +37,14 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'Lihat pakar',
   signOutConfirm: 'Adakah anda mahu keluar dari Weë?',
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
-  pages: 'WeëPages',
+  pages: 'Weë Pages',
+  /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
+  homeWall: 'Laman Utama / Wall',
+  explore: 'Teroka',
+  projectsTitle: 'Projek',
+  myWees: 'MyWeës',
+  myWeesHint: 'Pilih dan susun pintasan kegemaran anda',
+  customize: 'Sesuaikan',
+  history: 'Sejarah',
+  helpSupport: 'Bantuan dan sokongan',
 };

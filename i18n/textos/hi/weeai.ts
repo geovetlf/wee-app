@@ -291,4 +291,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: 'यात्रा योजना बनाएँ',
   travelPlanSub: 'यात्रा कार्यक्रम, बजट और आपके हिसाब से सुझाव.',
   travelPlanCta: 'मेरी यात्रा प्लान करें',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'आपकी रचनाएँ यहाँ दिखेंगी, सबसे नई से सबसे पुरानी तक.',
+  historyLimitNote: 'दिखाए गए सबसे हाल के काम: {{cantidad}}',
 };

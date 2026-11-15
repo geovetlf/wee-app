@@ -28,4 +28,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: '원하는 것을 Weë에 말해 주세요. AI는 Weë가 알아서 해요.',
   brandSlogan: '상상 · 창작 · 연결',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: '메시지',
+  myWee: '내 Weë',
 };

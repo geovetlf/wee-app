@@ -41,5 +41,14 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'Immikkut ilisimasallit takukkit',
   signOutConfirm: 'Weë qimakkusuppiuk?',
   /* Migración de la UI (demo YC) integrada con is/kl, 2026-11-05: traducción de IA, SIN revisión humana nativa. */
-  pages: 'WeëPages',
+  pages: 'Weë Pages',
+  /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
+  homeWall: 'Aallarnerfik / Wall',
+  explore: 'Misissuigit',
+  projectsTitle: 'Suliniutit',
+  myWees: 'MyWeës',
+  myWeesHint: 'Aqqutissatit nuannarisatit toqqakkit aaqqissukkillu',
+  customize: 'Nammineq aaqqissuguk',
+  history: 'Pisimasut',
+  helpSupport: 'Ikiuineq tapersersuinerlu',
 };

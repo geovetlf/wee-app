@@ -25,7 +25,7 @@ export const menu: typeof import('../es/menu').menu = {
   createWeeProfile: 'Opret min Weë-profil',
   credits: 'Credits',
   econtact: 'ËContact',
-  pages: 'WeëPages',
+  pages: 'Weë Pages',
   wcontact: 'ËContact',
   communities: 'Fællesskaber',
   weels: 'Weëls',
@@ -50,4 +50,13 @@ export const menu: typeof import('../es/menu').menu = {
   hideSpecialists: 'Skjul specialister',
   showSpecialists: 'Vis specialister',
   signOutConfirm: 'Vil du logge ud af Weë?',
+  /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
+  homeWall: 'Hjem / Wall',
+  explore: 'Udforsk',
+  projectsTitle: 'Projekter',
+  myWees: 'MyWeës',
+  myWeesHint: 'Vælg og organiser dine yndlingsgenveje',
+  customize: 'Tilpas',
+  history: 'Historik',
+  helpSupport: 'Hjælp og support',
 };

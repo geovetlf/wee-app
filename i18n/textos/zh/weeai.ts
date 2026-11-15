@@ -256,4 +256,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   travelPlanAccent: '完整的旅行计划',
   travelPlanSub: '行程、预算和个性化建议。',
   travelPlanCta: '规划我的旅行',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: '你的创作会显示在这里，从最新到最早。',
+  historyLimitNote: '已显示的最近作品：{{cantidad}}',
 };

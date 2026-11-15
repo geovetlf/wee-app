@@ -18,4 +18,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Reci Weë što želiš. Za AI se brine Weë.',
   brandSlogan: 'Zamisli · Stvori · Poveži se',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Poruke',
+  myWee: 'Moj Weë',
 };

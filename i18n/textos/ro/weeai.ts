@@ -243,4 +243,7 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   travelPlanAccent: 'complet cu IA',
   travelPlanSub: 'Itinerar, buget și sfaturi pe măsura ta.',
   travelPlanCta: 'Planifică-mi călătoria',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Creațiile tale vor apărea aici, de la cea mai recentă la cea mai veche.',
+  historyLimitNote: 'Cele mai recente lucrări afișate: {{cantidad}}',
 };

@@ -250,4 +250,7 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   travelPlanAccent: 'plan podróży z AI',
   travelPlanSub: 'Plan zwiedzania, budżet i porady dopasowane do ciebie.',
   travelPlanCta: 'Zaplanuj moją podróż',
+  /* Rediseño del 2026-11-15: la pantalla Historial (los trabajos de WeëAI de la cuenta). Sin revisión nativa. */
+  historyEmptyHint: 'Twoje dzieła pojawią się tutaj, od najnowszych do najstarszych.',
+  historyLimitNote: 'Wyświetlane najnowsze prace: {{cantidad}}',
 };

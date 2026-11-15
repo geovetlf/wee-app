@@ -23,4 +23,8 @@ export const nav: typeof import('../es/nav').nav = {
   weeAiPitch: 'Ceritakan kepada Weë apa yang Anda inginkan. Weë yang mengurus AI-nya.',
   brandSlogan: 'Bayangkan · Ciptakan · Terhubung',
   documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Pesan',
+  myWee: 'Weë Saya',
 };
