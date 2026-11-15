@@ -1,6 +1,6 @@
 /*
  * NEERLANDÉS — Weë versión creator: su marco y su navegación. Tipado contra el español.
- * Los nombres de las secciones (Weë Studio, Weë Design…) son marca y no pasan por aquí. «creator» y «app» se quedan
+ * Los nombres de las secciones (WeëStudio, WeëDesign…) son marca y no pasan por aquí. «creator» y «app» se quedan
  * como en el inglés, en compuesto con guion junto a la marca («Weë creator-versie»).
  */
 export const profesional: typeof import('../es/profesional').profesional = {

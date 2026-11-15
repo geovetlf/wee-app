@@ -8,7 +8,7 @@
  * islandés no tiene («Stofa», «Eldhús»). Los valores de ajuste van en neutro, concordando con «útlit»
  * sobrentendido, salvo la iluminación, que concuerda con «lýsing» (femenino).
  *
- * QUÉ NO ESTÁ AQUÍ: "Weë Design", que es marca, ni lo que comparte con Weë Studio (vive en `studio`).
+ * QUÉ NO ESTÁ AQUÍ: "WeëDesign", que es marca, ni lo que comparte con WeëStudio (vive en `studio`).
  *
  * Traducción hecha por agentes de IA, SIN revisión humana nativa (2026-11-03).
  */

@@ -2,7 +2,7 @@
  * FINÉS — El compositor: lo que se escribe y lo que se adjunta antes de
  * publicar. Tipado contra el español.
  *
- * «Wäll» es marca y se conserva; «Weël» también, y cuando hace falta
+ * «Ẅall» es marca y se conserva; «Weël» también, y cuando hace falta
  * declinarlo se compone («Weël-videoosi»), nunca se le pega una terminación.
  * Ningún hueco lleva sufijo de caso: la frase se reescribe para que lo que
  * entre quede en nominativo («Luettelosi {{lista}} on vielä tyhjä»).
@@ -32,7 +32,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Näytä julkaisuvaihtoehdot',
   hideOptions: 'Piilota julkaisuvaihtoehdot',
   currentDestination: '{{destino}}, nykyinen kohde',
-  generalWall: 'Yleinen Wäll',
+  generalWall: 'Yleinen Ẅall',
   placeholderPollExtra: 'Lisää halutessasi jotain muuta (valinnainen)…',
   placeholderQuestion: 'Mitä haluat kysyä yhteisöltä?',
   placeholderWeel: 'Kerro, mitä loit Weël-videoosi ja millä tekoälyllä…',

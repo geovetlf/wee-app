@@ -19,7 +19,7 @@ const isWeb = Platform.OS === 'web';
  * Volver y el nombre, y nada más. Un módulo no es otra pantalla: es un nivel más
  * dentro de Weë Business, así que volver es instantáneo y no se acumula una pila
  * de rutas por pasear entre módulos. Es la misma decisión —y el mismo dibujo—
- * que en los paneles de Weë Studio y Weë Chef.
+ * que en los paneles de WeëStudio y WeëChef.
  */
 export const CabeceraDelModulo: React.FC<{ nombre: string; pista: string; onVolver: () => void }> = ({
   nombre, pista, onVolver,

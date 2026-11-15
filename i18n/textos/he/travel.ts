@@ -1,6 +1,6 @@
 /*
  * HEBREO — WeëTravel, el workspace de viajes (prototipo con datos DEMO). Tipado contra el español.
- * Las marcas (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls), «Travel Safe» y la etiqueta «DEMO» quedan en latino,
+ * Las marcas (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls), «Travel Safe» y la etiqueta «DEMO» quedan en latino,
  * con guion tras un prefijo («ב-Weë»). Como en weeai: botones como sustantivo de acción, instrucciones impersonales
  * para no marcar género, dual `_two` sin cifra («יומיים», «שתי פעילויות»), comillas rectas "…".
  * Lo que la persona le dice a Weë Brain (`brainCtx*`) va en primera persona, con formas que se leen igual en los dos géneros.
@@ -761,9 +761,9 @@ export const travel: ConPlurales<typeof import('../es/travel').travel> = {
   journalPh: 'מה היה הכי טוב היום?',
   saveEntry: 'שמירת הרשומה',
   journalEmpty: 'היומן שלך ריק. אפשר לכתוב את הרשומה הראשונה.',
-  videoMemoriesDemo: 'DEMO: הסרטונים נוצרים ב-Weë Studio, מהתמונות והקליפים שלך.',
+  videoMemoriesDemo: 'DEMO: הסרטונים נוצרים ב-WeëStudio, מהתמונות והקליפים שלך.',
   videoOf: 'הסרטון של {{viaje}}',
-  createInStudio: 'יצירה ב-Weë Studio',
+  createInStudio: 'יצירה ב-WeëStudio',
   countriesVisited_one: 'מדינה אחת שביקרת בה',
   countriesVisited_two: 'שתי מדינות שביקרת בהן',
   countriesVisited_other: '{{contador}} מדינות שביקרת בהן',

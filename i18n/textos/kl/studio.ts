@@ -1,9 +1,9 @@
 /*
- * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — Weë Studio: el sitio donde se crea.
+ * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — WeëStudio: el sitio donde se crea.
  * Traducción hecha por agentes de IA, SIN revisión humana nativa (2026-11-03).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Kalaallisut, NO danés. «Weë», «Weë Studio» y «Credits» son marca, sin sufijo; «Beauty», «Fashion»
+ * Kalaallisut, NO danés. «Weë», «WeëStudio» y «Credits» son marca, sin sufijo; «Beauty», «Fashion»
  * y «3D World» siguen la regla de marca de nombre de puerta (igual que el noruego). Las siglas
  * (PDF, 3D) llevan sufijo con guion («PDF-imik», «3D-silarsuaq»). Botones en imperativo 2sg;
  * «crear un/una …» indefinido = antipasiva + instrumental («Allakkiamik pilersitsigit»).

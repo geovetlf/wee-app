@@ -6,7 +6,7 @@
  * Tratamiento informal (tu). Lo legal va con el término exacto
  * ("Conditions d’utilisation", "Politique de confidentialité"); los nombres de
  * Weë, los especialistas y el símbolo ☰ se copian tal cual. "Cómo lo hice"
- * se dice como en el Wäll: "Comment j’ai fait".
+ * se dice como en el Ẅall: "Comment j’ai fait".
  */
 export const help: typeof import('../es/help').help = {
   title: 'Aide',

@@ -8,12 +8,12 @@
  * Lo que habla la PERSONA (…Goal, chips, placeholders) va en infinitivo de petición («לעצב מוצר») o con «אני רוצה»,
  * que sin niqud sirve para los dos géneros; donde el español dice «necesito» se dice «דרושה לי עזרה», y «no sé» se dice
  * «אין לי מושג» en lo que la persona escribe (una persona no teclea una barra) y «לא יודע/ת» en los títulos de tarjeta,
- * la forma del glosario para el 🤷. Weë/Weë Brain/Weë Chef, cuando son sujeto, van en tercera persona masculina
+ * la forma del glosario para el 🤷. Weë/Weë Brain/WeëChef, cuando son sujeto, van en tercera persona masculina
  * («Weë דואג לכל השאר»), como tratan los asistentes las apps israelíes; donde el español no nombra la marca no se añade.
  *
  * PRÉSTAMOS. Siguiendo el glosario (לייק, פרומפט, צ׳אט), los préstamos se TRANSLITERAN: פופ, רוק, טראפ, רגאטון, ביט, לוק,
  * אאוטפיט, אקססוריז, וינטג׳, קז׳ואל, גלאם, ריטוש, מיקס ומאסטרינג; con geresh (׳) para ג׳/צ׳/ז׳. Quedan en latino «Beauty»
- * y «Writer» (nombres del selector de Weë Studio, atados a sus marcas), «Lomo saltado» (nombre propio del plato), los
+ * y «Writer» (nombres del selector de WeëStudio, atados a sus marcas), «Lomo saltado» (nombre propio del plato), los
  * formatos (JPG, PNG, WEBP, MB), YouTube, APA y MLA. «Volcán de chocolate» es «סופלה שוקולד», el nombre israelí del plato.
  * «IA» junto a un nombre es «AI» (guía § 6); suelta, «בינה מלאכותית». «Videos» en plural es «סרטונים» (lo natural para
  * los cortos); el medio es «וידאו». «Ejemplo:» de los placeholders es «לדוגמה:». Minutos: «20 דק׳». Las duraciones,
@@ -66,7 +66,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'דואג לכל התהליך',
   brainEj3Subtitle: 'מהרעיון ועד לעיצובים, לסרטונים ולמוזיקה',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'לעצב את מה שרק מדמיינים.',
   designIntro: 'הרעיונות שלך הופכים לעיצובים מדהימים בעזרת בינה מלאכותית. מלוגו ועד מכונית, מוצר או עולם שלם.',
   designChip1: 'מהיר וקל',
@@ -165,7 +165,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'ריטוש פנים',
   photoEj6Title: 'טרנספורמציה עם AI',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'ליצור, להאזין ולחיות את המוזיקה שלך עם AI',
   musicIntro: 'הרעיונות שלך הופכים לשירים, לסרטונים ולחוויות ייחודיות. בלי גבולות ליצירתיות שלך.',
   musicChip1: 'מהיר ופשוט',
@@ -227,7 +227,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'המוזיקה שלך הופכת לסרטון מדהים: מגוון סגנונות, סנכרון אוטומטי, פורמטים לרשתות החברתיות, סצנות ודמויות.',
   musicClosingButton: 'ליצור סרטון עכשיו',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'ליצור תמונות וסרטונים עם AI',
   studioIntro: 'אפשר לספר מה רוצים ליצור ולקבל ליווי צעד אחר צעד.',
   studioChip1: 'קל לשימוש',
@@ -320,7 +320,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'הודעות שהתקבלו',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'השף שלך, תמיד איתך',
   chefIntro: 'לגלות מתכונים, להרכיב תפריטים, לנצל את מה שיש בבית ולאכול טוב יותר, קל יותר וטעים יותר.',
   chefChip1: 'מתכונים קלים',
@@ -350,7 +350,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'לא יודע/ת מה לבשל',
   chefAcIdkSubtitle: 'הצעה למשהו טעים',
   chefAcIdkGoal: 'אין לי מושג מה לבשל היום',
-  chefIdeaTitle: 'היי! אני Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'היי! אני WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'אז מה מתחשק לך לבשל היום?',
   chefIdeaPlaceholder: 'כאן כותבים את הרעיון…',
   chefIdeaChip1: 'אני רוצה ארוחת ערב מהירה',
@@ -562,7 +562,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'קורות חיים מקצועיים',
   writerEj6Subtitle: 'מודרני ונקי',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'לתכנן את הטיול שלך עם מישהו שכבר היה שם.',
   travelIntro: 'אפשר לספר לאן נוסעים —או שעדיין לא ידוע— והטיול יתוכנן בשבילך: מה לראות, איפה לאכול ואיך להתנייד.',
   travelChip1: 'בלי הזמנות',

@@ -1,5 +1,5 @@
 /*
- * SUECO — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * SUECO — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -92,9 +92,9 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: 'Kopierat!',
   demoBadge: 'Demo',
   demoBadgeLabel: 'Demoinnehåll',
-  /* ── El Wäll inmersivo: una publicación a la vez ── */
-  immersiveEmpty: 'Det finns inga inlägg på Wäll än',
-  immersiveError: 'Vi kunde inte läsa in Wäll',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Det finns inga inlägg på Ẅall än',
+  immersiveError: 'Vi kunde inte läsa in Ẅall',
   immersiveEnd: 'Du har sett allt',
   agreePost: 'Håller med',
   disagreePost: 'Håller inte med',

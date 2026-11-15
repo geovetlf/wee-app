@@ -2,7 +2,7 @@
  * RUMANO — el catálogo de las once experiencias, en palabras. Tipado contra el
  * español: si allí hay una clave que aquí falta, no compila.
  *
- * Decisiones: los nombres de Weë (Weë Brain, Weë Chef…), «Beauty», «Writer»,
+ * Decisiones: los nombres de Weë (Weë Brain, WeëChef…), «Beauty», «Writer»,
  * los identificadores, los emojis, los números y las duraciones van tal cual.
  * Los géneros musicales se dejan en su forma internacional (Pop, Rock,
  * Reggaeton); «Comercial» como género se traduce «Reclamă». Los títulos de las
@@ -57,7 +57,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Se ocupă de tot procesul',
   brainEj3Subtitle: 'De la idee la designuri, videoclipuri și muzică',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Proiectează ce îți imaginezi.',
   designIntro: 'Transformă-ți ideile în designuri incredibile cu inteligență artificială. De la un logo la o mașină, un produs sau o lume întreagă.',
   designChip1: 'Rapid și ușor',
@@ -156,7 +156,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Retuș facial',
   photoEj6Title: 'Transformă cu IA',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Creează, ascultă și trăiește-ți muzica cu IA',
   musicIntro: 'Transformă-ți ideile în cântece, videoclipuri și experiențe unice. Fără limite pentru creativitatea ta.',
   musicChip1: 'Rapid și simplu',
@@ -218,7 +218,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Transformă-ți muzica într-un videoclip incredibil: mai multe stiluri, sincronizare automată, formate pentru rețele, scene și personaje.',
   musicClosingButton: 'Creează videoclipul acum',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Creează fotografii și videoclipuri cu IA',
   studioIntro: 'Spune-mi ce vrei să creezi și te ajut pas cu pas.',
   studioChip1: 'Ușor de folosit',
@@ -311,7 +311,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Mesaje primite',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Bucătarul tău, mereu cu tine',
   chefIntro: 'Descoperă rețete, creează meniuri, folosește ce ai în casă și mănâncă mai bine, mai ușor și mai gustos.',
   chefChip1: 'Rețete ușoare',
@@ -341,7 +341,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Nu știu ce să gătesc',
   chefAcIdkSubtitle: 'Îți propun ceva gustos',
   chefAcIdkGoal: 'Nu știu ce să gătesc azi',
-  chefIdeaTitle: 'Bună! Sunt Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Bună! Sunt WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Spune-mi, ce ți-ar plăcea să gătești azi?',
   chefIdeaPlaceholder: 'Scrie ideea ta aici…',
   chefIdeaChip1: 'Vreau o cină rapidă',
@@ -553,7 +553,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'CV profesional',
   writerEj6Subtitle: 'Modern și curat',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Pregătește-ți călătoria cu cineva care a mai călătorit.',
   travelIntro: 'Spune-mi unde mergi —sau că nu știi încă— și îți pregătesc călătoria: ce să vezi, unde să mănânci și cum să te deplasezi.',
   travelChip1: 'Fără rezervări',

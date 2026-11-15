@@ -1,5 +1,5 @@
 /*
- * RUSO — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * RUSO — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign, WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -55,10 +55,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Не знаю, с чего начать',
   brainEx2: 'Объяснить это простыми словами',
   brainEx3: 'Перевести этот текст',
-  areaStudioPhotos: 'Weë Studio · Фото',
-  areaStudioVideos: 'Weë Studio · Видео',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Дом и дизайн',
+  areaStudioPhotos: 'WeëStudio · Фото',
+  areaStudioVideos: 'WeëStudio · Видео',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Дом и дизайн',
   areaHomeName: 'Дом и дизайн',
   tellTheSpecialist: 'Расскажите {{especialista}}, что вы хотите получить: он задаст два-три простых вопроса и сделает остальное. Потом сразу опубликуете результат в своём сообществе.',
   exampleQuoted: '«{{ejemplo}}»',

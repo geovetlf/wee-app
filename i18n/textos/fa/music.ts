@@ -1,8 +1,8 @@
 /*
- * PERSA — Weë Music: portada, Composer, workstation y herramientas. Tipado contra el español.
+ * PERSA — WeëMusic: portada, Composer, workstation y herramientas. Tipado contra el español.
  *
  * Tratamiento «شما» con verbos de cortesía; botones como sustantivo de acción o infinitivo corto («ذخیره», «پخش», «خروجی گرفتن»).
- * «Weë Music», «Weë Brain», «Credits», «WeeTalk», «iPhone» y los formatos (MP3, WAV, M4A, MIDI) quedan en latino. Las cifras
+ * «WeëMusic», «Weë Brain», «Credits», «WeeTalk», «iPhone» y los formatos (MP3, WAV, M4A, MIDI) quedan en latino. Las cifras
  * heredadas del español se escriben con dígitos latinos, como en studio.ts; los demás números los pone Intl. Secciones de la
  * canción: بند (verso), ترجیع‌بند (coro), پل (puente), میان‌پرده (interludio). «Pistas separadas» = ترک‌های جداگانه.
  * Sin plurales: el español no declara ninguno. Traducción hecha por agentes y SIN revisión humana nativa (L1, 2026-11-03).
@@ -13,7 +13,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'ایده‌تان را بگویید یا ملودی‌ای زمزمه کنید و آهنگتان را قدم‌به‌قدم آماده کنید.',
   ctaCreate: 'ساختن موسیقی',
   chooseTitle: 'انتخاب کنید چطور شروع کنید',
-  skillsTitle: 'Weë Music چه کارهایی می‌کند',
+  skillsTitle: 'WeëMusic چه کارهایی می‌کند',
   recentTitle: 'آهنگ‌های اخیر',
   viewExample: 'دیدن یک نمونهٔ طراحی',
   honestyNote: 'امروز می‌توانید آهنگتان را آماده کنید، یک ملودی مرجع ضبط کنید و از Weë Brain راهنمایی بگیرید. ساختن خود آهنگ وقتی متصل و تأیید شد فعال می‌شود.',
@@ -21,7 +21,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'صداها و آهنگ‌های ذخیره‌شدهٔ شما.',
   openProjects: 'پروژه‌های من',
   openProjectsHelp: 'آهنگ‌هایتان را در پروژه‌ها مرتب کنید.',
-  backToMusic: 'بازگشت به Weë Music',
+  backToMusic: 'بازگشت به WeëMusic',
   composerTitle: 'ساختن موسیقی',
   modesLabel: 'حالت',
   modeSimple: 'ساده',
@@ -307,7 +307,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'پردازش صدا قابلیتی است که هنوز در انتظار است: اینجا فقط قرارداد آن آماده می‌شود.',
 
   voiceInterpretation: 'سبک اجرا',
-  voiceNoClone: 'Weë Music صدای افراد را شبیه‌سازی یا تقلید نمی‌کند: فقط ویژگی‌های کلی صدا را انتخاب می‌کند.',
+  voiceNoClone: 'WeëMusic صدای افراد را شبیه‌سازی یا تقلید نمی‌کند: فقط ویژگی‌های کلی صدا را انتخاب می‌کند.',
   voiceStylePending: 'سبک اجرا به موتور بستگی دارد و هنوز در دسترس نیست.',
   styleTitle: 'ژانر و سبک',
   transformTitle: 'دگرگونی‌ها',

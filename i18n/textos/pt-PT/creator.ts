@@ -1,6 +1,6 @@
 /*
  * PORTUGUÉS DE PORTUGAL (pt-PT) — lo que describe cada experiencia de WEË AI.
- * Los nombres —Weë Design, Weë Studio…— son marca y viven en
+ * Los nombres —WeëDesign, WeëStudio…— son marca y viven en
  * constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
@@ -21,7 +21,7 @@
  *   remodelação (no reforma) · deslocar-se (no se locomover) · negócio (no
  *   empreendimento, que en Portugal es una promoción inmobiliaria)
  *
- * NO SE TRADUCE: "Weë Studio", "Weë Design", "Beauty", "Weël", "Instagram", los
+ * NO SE TRADUCE: "WeëStudio", "WeëDesign", "Beauty", "Weël", "Instagram", los
  * separadores `·` y `&`, ni el hueco `{{especialista}}`, que trae un nombre de
  * marca ya escrito.
  */
@@ -70,10 +70,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Não sei por onde começar',
   brainEx2: 'Explica-me isto de forma simples',
   brainEx3: 'Traduz este texto',
-  areaStudioPhotos: 'Weë Studio · Fotos',
-  areaStudioVideos: 'Weë Studio · Vídeos',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Casa & Design',
+  areaStudioPhotos: 'WeëStudio · Fotos',
+  areaStudioVideos: 'WeëStudio · Vídeos',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Casa & Design',
   areaHomeName: 'Casa & Design',
   tellTheSpecialist: 'Conta a {{especialista}} o que queres conseguir: faz-te duas ou três perguntas simples e trata do resto. Depois publicas diretamente na tua comunidade.',
   exampleQuoted: '«{{ejemplo}}»',

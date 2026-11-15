@@ -78,7 +78,7 @@ const HelpScreen: React.FC = () => {
   const { t, formato } = useIdioma();
   /*
    * CUÁNTOS ESPECIALISTAS HAY, Y CUÁLES: los que enseña el menú (`WEE_EXPERIENCES`, la única fuente). La Ayuda decía
-   * «diez» y nombraba secciones que ya son áreas de Weë Studio; ahora no puede volver a separarse del menú.
+   * «diez» y nombraba secciones que ya son áreas de WeëStudio; ahora no puede volver a separarse del menú.
    */
   const especialistas = { contador: WEE_EXPERIENCES.length, lista: formato.lista(WEE_EXPERIENCES.map((e) => e.name)) };
   const { theme } = useTheme();

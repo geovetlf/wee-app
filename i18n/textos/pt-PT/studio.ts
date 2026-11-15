@@ -21,7 +21,7 @@
  *   rever (no revisar) · informação (no informações) · ligar (no conectar)
  *   as minhas criações (con artículo, no "minhas criações")
  *
- * MARCA: "Weë Studio" y "Writer" no se traducen. Los formatos —PDF, MP4, 16:9—
+ * MARCA: "WeëStudio" y "Writer" no se traducen. Los formatos —PDF, MP4, 16:9—
  * y los segundos tampoco cambian de idioma.
  *
  * CUIDADO con los falsos amigos del español: "pronto" no es soon (va "Em
@@ -262,7 +262,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Em breve',
   soonHint: 'Esta ferramenta já tem o seu lugar. Falta ligá-la.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Texto',
   textHint: 'Escreve qualquer conteúdo',
   exploreTitle: 'Explorar',

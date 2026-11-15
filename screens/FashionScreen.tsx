@@ -21,13 +21,13 @@ import { scale } from '../utils/scale';
  *
  * Dos vistas en la misma pantalla, sin ruta nueva: la ENTRADA (cabecera, dos accesos y las seis experiencias) y el
  * COMPOSER del modo elegido. Se entra por el menú ☰, por el portal de Weë AI, por Brain, y desde las puertas «Beauty»
- * y «Fashion» de Weë Studio (que conservan su lugar para descubrir, pero abren aquí, en el modo que toca).
+ * y «Fashion» de WeëStudio (que conservan su lugar para descubrir, pero abren aquí, en el modo que toca).
  *
  * Parámetros de la ruta (`Specialist { id: 'fashion' }`): `modo` (un `FashionModoId`), `goal` (lo que la persona ya
  * había escrito) e `imageUri` (la foto con la que venía). Un id antiguo `business` llega aquí por el alias de
  * `getExperienceById`.
  *
- * Los textos son claves de i18n; «Weë Fashion» es marca y se escribe igual en todos los idiomas. La galería de looks llega por de
+ * Los textos son claves de i18n; «WeëFashion» es marca y se escribe igual en todos los idiomas. La galería de looks llega por de
  * moda en los recursos de la app, la portada lleva un bloque con el vestido dibujado de Weë (placeholder elegante,
  * sin imágenes remotas ni dependencias nuevas).
  */
@@ -51,7 +51,7 @@ const FashionScreen: React.FC = () => {
   const [verTodo, setVerTodo] = useState(false);
 
   return (
-    <CreatorShell activeId="business" title="Weë Fashion" breadcrumb="Weë AI" sinFranjaSuperior>
+    <CreatorShell activeId="business" title="WeëFashion" breadcrumb="Weë AI" sinFranjaSuperior>
       {modo || pro || verTodo ? <CabeceraDeSeccion nombre="Fashion" lema={t('fashion.tagline')} descripcion={t('fashion.intro')} onVolver={!modo && verTodo && !pro ? () => setVerTodo(false) : undefined} /> : null}
 
       {modo ? (

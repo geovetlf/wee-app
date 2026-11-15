@@ -9,7 +9,7 @@ import { scale } from '../utils/scale';
 /**
  * De dónde viene una publicación, dicho en pequeño.
  *
- * En Weë el muro es uno solo. Una publicación hecha desde Weë Travel, desde Weë
+ * En Weë el muro es uno solo. Una publicación hecha desde WeëTravel, desde Weë
  * Studio o dentro de una comunidad no se va a vivir a otro sitio: sigue en el
  * muro general, junto a todas las demás, y lo único que cambia es que lleva al
  * lado una etiqueta que dice de dónde salió. Publicar en un sitio no es
@@ -24,7 +24,7 @@ import { scale } from '../utils/scale';
  */
 
 export interface WeeTagProps {
-  /** El nombre que se lee: "Weë Travel", "Fotografía nocturna"… */
+  /** El nombre que se lee: "WeëTravel", "Fotografía nocturna"… */
   nombre: string;
   /** El icono, si el contexto tiene uno propio. */
   icono?: string;

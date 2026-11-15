@@ -1,7 +1,7 @@
 /*
  * CATALÁN — WeëTravel, el workspace de viajes (prototipo navegable con datos DEMO). Tuteo (tu), l·l con punt volat y
  * apóstrofo recto escapado. Tipado contra el español: si allí hay una clave que aquí falta, no compila. Weë, WeëTravel,
- * Weë Brain, Weë Studio, Weëls, Travel Safe y DEMO no se traducen.
+ * Weë Brain, WeëStudio, Weëls, Travel Safe y DEMO no se traducen.
  */
 export const travel: typeof import('../es/travel').travel = {
   // Portada
@@ -739,9 +739,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Què ha estat el millor d\'avui?',
   saveEntry: 'Desa l\'entrada',
   journalEmpty: 'El teu diari és buit. Escriu-hi la primera entrada.',
-  videoMemoriesDemo: 'DEMO: els vídeos es creen a Weë Studio, amb les teves pròpies fotos i clips.',
+  videoMemoriesDemo: 'DEMO: els vídeos es creen a WeëStudio, amb les teves pròpies fotos i clips.',
   videoOf: 'El vídeo de {{viaje}}',
-  createInStudio: 'Crea a Weë Studio',
+  createInStudio: 'Crea a WeëStudio',
   countriesVisited_one: '{{contador}} país visitat',
   countriesVisited_other: '{{contador}} països visitats',
   recapTitle: 'El teu viatge a {{viaje}}',

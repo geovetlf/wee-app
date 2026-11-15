@@ -1,5 +1,5 @@
 /*
- * VIETNAMITA — Weë Studio, el sitio donde se crea. Tipado contra el español.
+ * VIETNAMITA — WeëStudio, el sitio donde se crea. Tipado contra el español.
  *
  * Beauty, Fashion, 3D World, Writer, Drone, Macro, Timelapse y Outfit quedan
  * en inglés como en en/de. Sin plural: `_one` = `_other`.
@@ -222,7 +222,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Sắp ra mắt',
   soonHint: 'Công cụ này đã có chỗ của nó. Chỉ còn thiếu bước kết nối.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Văn bản',
   textHint: 'Viết bất kỳ nội dung nào',
   exploreTitle: 'Khám phá',

@@ -51,7 +51,7 @@ interface ComposerEntryProps {
   onCompose: (kind: ComposerKind) => void;
   /**
    * Una sola fila (fase 2E-70). El atajo de foto se queda al lado del campo y
-   * lo demás baja dentro de la pantalla de crear. Lo pide Weë Travel, donde el
+   * lo demás baja dentro de la pantalla de crear. Lo pide WeëTravel, donde el
    * muro es el producto y cada píxel de arriba es media foto.
    */
   compact?: boolean;
@@ -127,7 +127,7 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
   const { theme } = useTheme();
   const t = useT();
   /*
-   * Los nombres de sección son marca —"Weë Chef" se escribe igual en todos los
+   * Los nombres de sección son marca —"WeëChef" se escribe igual en todos los
    * idiomas— y llegan tal cual. El muro general no: es una descripción y trae
    * su clave.
    */

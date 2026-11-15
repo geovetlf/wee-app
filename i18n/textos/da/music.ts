@@ -1,4 +1,4 @@
-/* da — Weë Music: forside, Composer, workstation og værktøjer. «Weë Music» og udbydernes navne er varemærker og oversættes ikke. Tipet mod spansk. Afventer gennemsyn af en modersmålstaler. */
+/* da — WeëMusic: forside, Composer, workstation og værktøjer. «WeëMusic» og udbydernes navne er varemærker og oversættes ikke. Tipet mod spansk. Afventer gennemsyn af en modersmålstaler. */
 export const music: typeof import('../es/music').music = {
   tagline: 'Din idé. Din lyd. Uden grænser.',
   intro: 'Lav sange ud fra en idé, en tekst eller en melodi, og rediger dem afsnit for afsnit.',
@@ -6,7 +6,7 @@ export const music: typeof import('../es/music').music = {
   ctaCreate: 'Lav musik',
   demoPrompt: 'Hvilken musik vil du lave?',
   chooseTitle: 'Vælg, hvordan du vil starte',
-  skillsTitle: 'Hvad Weë Music kan',
+  skillsTitle: 'Hvad WeëMusic kan',
   recentTitle: 'Seneste sange',
   viewExample: 'Se et designeksempel',
   honestyNote: 'I dag kan du forberede din sang, optage en referencemelodi og få vejledning af Weë Brain. Selve oprettelsen af sangen aktiveres, når den er tilsluttet og valideret.',
@@ -14,7 +14,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Dine gemte lydfiler og sange.',
   openProjects: 'Mine projekter',
   openProjectsHelp: 'Organiser dine sange i projekter.',
-  backToMusic: 'Tilbage til Weë Music',
+  backToMusic: 'Tilbage til WeëMusic',
   composerTitle: 'Lav musik',
   modesLabel: 'Tilstand',
   modeSimple: 'Enkel',
@@ -300,7 +300,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Lydbehandling er en funktion, der afventer: her forberedes kun kontrakten.',
 
   voiceInterpretation: 'Fortolkningsstil',
-  voiceNoClone: 'Weë Music kloner eller efterligner ikke menneskers stemmer: du vælger kun generelle stemmeegenskaber.',
+  voiceNoClone: 'WeëMusic kloner eller efterligner ikke menneskers stemmer: du vælger kun generelle stemmeegenskaber.',
   voiceStylePending: 'Fortolkningsstilen afhænger af motoren og er endnu ikke tilgængelig.',
   styleTitle: 'Genre og stil',
   transformTitle: 'Forvandlinger',

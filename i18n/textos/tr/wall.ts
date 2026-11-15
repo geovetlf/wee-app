@@ -1,5 +1,5 @@
 /*
- * TURCO — El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * TURCO — El Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -90,9 +90,9 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: 'Kopyalandı',
   demoBadge: 'Demo',
   demoBadgeLabel: 'Demo içeriği',
-  /* ── El Wäll inmersivo: una publicación a la vez ── */
-  immersiveEmpty: 'Wäll’da henüz gönderi yok',
-  immersiveError: 'Wäll yüklenemedi',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Ẅall’da henüz gönderi yok',
+  immersiveError: 'Ẅall yüklenemedi',
   immersiveEnd: 'Hepsini gördün',
   agreePost: 'Katılıyorum',
   disagreePost: 'Katılmıyorum',

@@ -1,8 +1,8 @@
 /*
  * WEË CHEF — el sitio donde se cocina.
  *
- * Montenegrino (ijekaviano, latino). Mismas claves que el español; «Weë Chef»
- * es marca y no está aquí. Lo compartido con Weë Studio se lee de `studio`, y
+ * Montenegrino (ijekaviano, latino). Mismas claves que el español; «WeëChef»
+ * es marca y no está aquí. Lo compartido con WeëStudio se lee de `studio`, y
  * las siete funciones heredadas siguen en `weeai`.
  */
 export const chef: typeof import('../es/chef').chef = {

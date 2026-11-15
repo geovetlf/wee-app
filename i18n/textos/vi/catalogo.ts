@@ -51,7 +51,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Lo toàn bộ quá trình',
   brainEj3Subtitle: 'Từ ý tưởng đến thiết kế, video và âm nhạc',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Thiết kế mọi điều bạn tưởng tượng.',
   designIntro: 'Biến ý tưởng của bạn thành những thiết kế tuyệt vời bằng trí tuệ nhân tạo. Từ một logo đến một chiếc xe, một sản phẩm hay cả một thế giới.',
   designChip1: 'Nhanh và dễ',
@@ -150,7 +150,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Chỉnh sửa khuôn mặt',
   photoEj6Title: 'Biến đổi bằng AI',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Sáng tạo, lắng nghe và sống cùng âm nhạc của bạn với AI',
   musicIntro: 'Biến ý tưởng của bạn thành bài hát, video và trải nghiệm độc đáo. Không giới hạn cho sự sáng tạo của bạn.',
   musicChip1: 'Nhanh và đơn giản',
@@ -212,7 +212,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Biến âm nhạc của bạn thành một video tuyệt vời: nhiều phong cách, đồng bộ tự động, định dạng cho mạng xã hội, cảnh quay và nhân vật.',
   musicClosingButton: 'Tạo video ngay',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Tạo ảnh và video bằng AI',
   studioIntro: 'Hãy kể cho tôi bạn muốn tạo gì và tôi sẽ giúp bạn từng bước.',
   studioChip1: 'Dễ sử dụng',
@@ -304,7 +304,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Tin nhắn nhận được',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Đầu bếp của bạn, luôn bên bạn',
   chefIntro: 'Khám phá công thức, lên thực đơn, tận dụng những gì bạn có và ăn ngon hơn, dễ hơn, lành mạnh hơn.',
   chefChip1: 'Công thức dễ làm',
@@ -334,7 +334,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Tôi không biết nấu gì',
   chefAcIdkSubtitle: 'Tôi gợi ý một món ngon',
   chefAcIdkGoal: 'Tôi không biết hôm nay nấu gì',
-  chefIdeaTitle: 'Xin chào! Tôi là Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Xin chào! Tôi là WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Kể cho tôi nghe, hôm nay bạn muốn nấu gì?',
   chefIdeaPlaceholder: 'Viết ý tưởng của bạn ở đây…',
   chefIdeaChip1: 'Tôi muốn một bữa tối nhanh gọn',
@@ -546,7 +546,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'CV chuyên nghiệp',
   writerEj6Subtitle: 'Hiện đại và gọn gàng',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Chuẩn bị chuyến đi cùng người đã từng đi.',
   travelIntro: 'Hãy cho tôi biết bạn đi đâu (hoặc bạn vẫn chưa biết) và tôi sẽ chuẩn bị chuyến đi: xem gì, ăn ở đâu và di chuyển thế nào.',
   travelChip1: 'Không đặt chỗ',

@@ -1,5 +1,5 @@
 /*
- * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — Weë Writer, dentro de Weë Studio. El texto que escribe la persona
+ * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — Weë Writer, dentro de WeëStudio. El texto que escribe la persona
  * NUNCA pasa por aquí: solo las herramientas que lo trabajan.
  * Traducción hecha por agentes de IA, SIN revisión humana nativa (2026-11-03).
  *

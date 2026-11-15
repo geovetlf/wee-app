@@ -1,6 +1,6 @@
 /*
- * FINÉS — Lo que describe cada experiencia de WEË AI. Los nombres —Weë Design,
- * Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * FINÉS — Lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign,
+ * WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * El especialista entra por `{{especialista}}` como SUJETO de su propia frase
@@ -53,10 +53,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'En tiedä, mistä aloittaa',
   brainEx2: 'Selitä tämä minulle helposti',
   brainEx3: 'Käännä tämä teksti',
-  areaStudioPhotos: 'Weë Studio · Kuvat',
-  areaStudioVideos: 'Weë Studio · Videot',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Koti & sisustus',
+  areaStudioPhotos: 'WeëStudio · Kuvat',
+  areaStudioVideos: 'WeëStudio · Videot',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Koti & sisustus',
   areaHomeName: 'Koti & design',
   tellTheSpecialist: 'Kerro, mitä haluat saada aikaan: {{especialista}} kysyy sinulta kaksi tai kolme yksinkertaista kysymystä ja hoitaa loput. Sen jälkeen julkaiset suoraan yhteisössäsi.',
   exampleQuoted: '”{{ejemplo}}”',

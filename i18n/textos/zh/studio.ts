@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * MARCA: "Weë Studio", "Writer" y el resto de los nombres de Weë van en
+ * MARCA: "WeëStudio", "Writer" y el resto de los nombres de Weë van en
  * alfabeto latino dentro del hanzi, nunca traducidos ni transliterados
  * («工作室» no es Studio y «积分» no es Credits). Los formatos técnicos —PDF,
  * MP4, 16:9— tampoco cambian de idioma.
@@ -253,7 +253,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: '即将上线',
   soonHint: '这个工具的位置已经留好了，还差接入。',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: '文本',
   textHint: '写任何内容',
   exploreTitle: '探索',

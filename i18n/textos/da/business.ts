@@ -184,11 +184,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Del',
   shareHint: 'Telefonens delingsmenu åbnes: Vælg den app, du vil bruge.',
   shareToWee: 'Del på Weë',
-  shareWall: 'Min Wäll',
+  shareWall: 'Min Ẅall',
   shareCommunities: 'Fællesskaber',
   shareProfile: 'Business Profile',
   shareNothing: 'Lav noget først, så kan du dele det herfra.',
-  shareText: 'Lavet med Weë Fashion',
+  shareText: 'Lavet med WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Upload mine data',

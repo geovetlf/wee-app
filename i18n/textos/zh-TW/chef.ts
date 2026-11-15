@@ -2,7 +2,7 @@
  * CHINO TRADICIONAL (TAIWÁN) — WEË CHEF: el sitio donde se cocina.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * "Weë Chef" es marca y no está aquí; nunca 廚師. Lo que Chef comparte con Weë
+ * "WeëChef" es marca y no está aquí; nunca 廚師. Lo que Chef comparte con Weë
  * Studio —"Ver todos", "Ajustes", "Listo"— vive en `studio`, y las siete
  * funciones que ya existían siguen en `weeai.chefAc…`.
  *

@@ -10,7 +10,7 @@
  * («Amhrán a chruthú», «Biachlár a chruthú»), la forma natural de una etiqueta de menú en irlandés, así que título y
  * objetivo no siempre son la misma cadena. Las tarjetas de «No sé…» dicen «Níl a fhios agam…», la respuesta 🤷 de Weë.
  *
- * MARCAS (guía § 3). Ni se traducen ni se mutan: «le Weë», «Inis do Weë…», «na Weë eile». En el selector de Weë Studio,
+ * MARCAS (guía § 3). Ni se traducen ni se mutan: «le Weë», «Inis do Weë…», «na Weë eile». En el selector de WeëStudio,
  * «Beauty» y «Writer» se quedan en inglés, como hacen el español y el inglés. «Chef» (la marca) no se toca; el cocinero
  * es «cócaire» («Do chócaire»).
  *
@@ -29,7 +29,7 @@
  * CIFRAS. Intl en ga-IE escribe «40%» sin espacio y «125.4K» con punto, así que las métricas de Weë Business no cambian;
  * las duraciones (3:12, 0:15, 20 min) tampoco. El límite de subida es «10 MB ar a mhéad».
  *
- * LO QUE NO SE PUEDE ROMPER. Los chips de Weë Travel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
+ * LO QUE NO SE PUEDE ROMPER. Los chips de WeëTravel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
  * solo quita el emoji si lo sigue un espacio. `CreatorFlowScreen` todavía mira /foto|imagen/ en el objetivo de Weë
  * Studio para pedir la foto: en irlandés «grianghraf» no casa, igual que no casan el japonés ni el turco; es una deuda
  * del código (debería mirar el optionId), no de esta traducción.
@@ -81,7 +81,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Tugann sé aire don phróiseas ar fad',
   brainEj3Subtitle: 'Ón smaoineamh go dtí na dearaí, na físeáin agus an ceol',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Dear cibé rud a shamhlaíonn tú.',
   designIntro: 'Déan dearaí iontacha de do chuid smaointe leis an intleacht shaorga. Ó lógó go carr, go táirge nó go domhan iomlán.',
   designChip1: 'Tapa agus éasca',
@@ -180,7 +180,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Mionchóiriú aghaidhe',
   photoEj6Title: 'Athrú leis an IS',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Cruthaigh, éist agus bain sult as do cheol leis an IS',
   musicIntro: 'Déan amhráin, físeáin agus eispéiris uathúla de do chuid smaointe. Gan teorainn le do chruthaitheacht.',
   musicChip1: 'Tapa agus simplí',
@@ -242,7 +242,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Déan físeán iontach de do cheol: stíleanna éagsúla, sioncrónú uathoibríoch, formáidí do na meáin shóisialta, radhairc agus carachtair.',
   musicClosingButton: 'Cruthaigh físeán anois',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Cruthaigh grianghraif agus físeáin leis an IS',
   studioIntro: 'Inis dom cad ba mhaith leat a chruthú agus cabhróidh mé leat céim ar chéim.',
   studioChip1: 'Éasca le húsáid',
@@ -335,7 +335,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Teachtaireachtaí a fuarthas',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Do chócaire, leat i gcónaí',
   chefIntro: 'Aimsigh oidis, cruthaigh biachláir, bain úsáid as a bhfuil agat agus ith níos fearr, níos éasca agus níos blasta.',
   chefChip1: 'Oidis éasca',
@@ -365,7 +365,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Níl a fhios agam cad a chócarálfaidh mé',
   chefAcIdkSubtitle: 'Molfaidh mé rud éigin blasta duit',
   chefAcIdkGoal: 'Níl a fhios agam cad a chócarálfaidh mé inniu',
-  chefIdeaTitle: 'Dia duit! Is mise Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Dia duit! Is mise WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Inis dom, cad ba mhaith leat a chócaráil inniu?',
   chefIdeaPlaceholder: 'Scríobh do smaoineamh anseo…',
   chefIdeaChip1: 'Ba mhaith liom dinnéar tapa',
@@ -577,7 +577,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'CV gairmiúil',
   writerEj6Subtitle: 'Nua-aimseartha agus glan',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Ullmhaigh do thuras le duine a thaistil cheana.',
   travelIntro: 'Inis dom cá bhfuil tú ag dul —nó nach bhfuil a fhios agat fós— agus ullmhóidh mé an turas duit: cad le feiceáil, cá háit le hithe agus conas dul thart.',
   travelChip1: 'Gan áirithintí',

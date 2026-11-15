@@ -7,7 +7,7 @@ import { LIMITES_DE_REFERENCIA, nivelDeDecibelios, validarAudioDeReferencia, Res
  * WEË MUSIC — AUDIO REAL DEL DISPOSITIVO: GRABAR Y REPRODUCIR.
  *
  * Usa `expo-av`, que el proyecto ya tiene (lo usan los mensajes de voz de WeeTalk y los Weëls). `expo-av` está en
- * deuda de migración a `expo-audio`: este archivo es el ÚNICO sitio de Weë Music que lo toca, así que migrarlo
+ * deuda de migración a `expo-audio`: este archivo es el ÚNICO sitio de WeëMusic que lo toca, así que migrarlo
  * será cambiar un archivo. No se añade ninguna dependencia nueva.
  *
  * Todo lo que sale de aquí es AUDIO REAL: la grabación es lo que captó el micrófono y los niveles de la forma de onda

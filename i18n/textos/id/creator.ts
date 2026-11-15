@@ -1,7 +1,7 @@
 /*
  * INDONESIO — lo que describe cada experiencia de WEË AI. Los nombres —Weë
- * Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts sin
- * traducir; aquí aparecen solo en las áreas («Weë Studio · Foto»), byte a byte.
+ * Design, WeëStudio…— son marca y viven en constants/weeExperiences.ts sin
+ * traducir; aquí aparecen solo en las áreas («WeëStudio · Foto»), byte a byte.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -54,10 +54,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Tidak tahu harus mulai dari mana',
   brainEx2: 'Jelaskan ini dengan mudah',
   brainEx3: 'Terjemahkan teks ini',
-  areaStudioPhotos: 'Weë Studio · Foto',
-  areaStudioVideos: 'Weë Studio · Video',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Rumah & Desain',
+  areaStudioPhotos: 'WeëStudio · Foto',
+  areaStudioVideos: 'WeëStudio · Video',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Rumah & Desain',
   areaHomeName: 'Rumah & Desain',
   tellTheSpecialist: 'Ceritakan kepada {{especialista}} apa yang ingin Anda capai: ia akan mengajukan dua atau tiga pertanyaan sederhana dan mengurus sisanya. Setelah itu Anda langsung menerbitkannya di komunitas Anda.',
   exampleQuoted: '“{{ejemplo}}”',

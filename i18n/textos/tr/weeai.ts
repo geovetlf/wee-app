@@ -18,8 +18,8 @@
  * Las marcas solo llevan las terminaciones de la tabla del § 9: Weë'de,
  * Weë'ye, Weë'nin, Weë'yle, Weë AI'da, Weë AI'dan, Weë AI'daki, Weë Brain'e.
  * Cualquier otro caso de «Weë AI» se reescribe («Weë AI ile bağlantı
- * kuramadım», «Weë AI'dan yararlanmak için»); Weë Travel y Credits no llevan
- * ninguna («Weë Travel bölümünü aç», «Credits bakiyen»).
+ * kuramadım», «Weë AI'dan yararlanmak için»); WeëTravel y Credits no llevan
+ * ninguna («WeëTravel bölümünü aç», «Credits bakiyen»).
  *
  * El dinero: «Tus Credits» es «Credits bakiyen» y «no tienes suficientes
  * Credits», «Credits bakiyen yetersiz». «Costo» es «maliyet» mientras se
@@ -179,10 +179,10 @@ export const weeai: typeof import('../es/weeai').weeai = {
   couldNotCalculateRetry: 'Maliyeti hesaplayamadık. Yeniden dene.',
   expandSection: '{{titulo}}. {{contenido}} bölümünü göster',
   collapseSection: '{{titulo}}. {{contenido}} bölümünü gizle',
-  openTravel_one: '{{titulo}}. Weë Travel bölümünü aç: seyahatini yazacağın alan ve bir başlangıç seçeneği',
-  openTravel_other: '{{titulo}}. Weë Travel bölümünü aç: seyahatini yazacağın alan ve {{contador}} başlangıç seçeneği',
-  closeTravel_one: '{{titulo}}. Weë Travel bölümünü gizle: seyahatini yazacağın alan ve bir başlangıç seçeneği',
-  closeTravel_other: '{{titulo}}. Weë Travel bölümünü gizle: seyahatini yazacağın alan ve {{contador}} başlangıç seçeneği',
+  openTravel_one: '{{titulo}}. WeëTravel bölümünü aç: seyahatini yazacağın alan ve bir başlangıç seçeneği',
+  openTravel_other: '{{titulo}}. WeëTravel bölümünü aç: seyahatini yazacağın alan ve {{contador}} başlangıç seçeneği',
+  closeTravel_one: '{{titulo}}. WeëTravel bölümünü gizle: seyahatini yazacağın alan ve bir başlangıç seçeneği',
+  closeTravel_other: '{{titulo}}. WeëTravel bölümünü gizle: seyahatini yazacağın alan ve {{contador}} başlangıç seçeneği',
   tellWeeTheTrip: 'Seyahatini Weë\'ye anlat',
   theMotto: 'Sonucu sen seçersin. Yapay zekâyı Weë seçer.',
   trySearchWords: 'Logo, video, fotoğraf, metin, şarkı, stil, tarif, ev ya da işletme gibi kelimeler dene. Ya da Weë Brain\'e sor.',
@@ -260,7 +260,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   durationSeconds: '{{segundos}} sn.',
   volumeDiscount: '%{{descuento}} toplu alım indirimi',
   createWork: 'Oluştur',
-  /* ── Weë Travel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
+  /* ── WeëTravel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
   travelHeroLine1: 'Seyahatini',
   travelHeroLine2: 'orayı bilen biriyle',
   travelHeroAccent: 'planla.',

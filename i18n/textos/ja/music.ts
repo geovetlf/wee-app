@@ -1,5 +1,5 @@
 /*
- * ja — Weë Music: トップ画面、Composer、ワークステーション、ツール。「Weë Music」とプロバイダー名はブランドのため翻訳しません。
+ * ja — WeëMusic: トップ画面、Composer、ワークステーション、ツール。「WeëMusic」とプロバイダー名はブランドのため翻訳しません。
  * スペイン語に対して型付けされています。ネイティブスピーカーによる確認待ちです。
  */
 export const music: typeof import('../es/music').music = {
@@ -9,7 +9,7 @@ export const music: typeof import('../es/music').music = {
   ctaCreate: '音楽を作る',
   demoPrompt: 'どんな音楽を作りたいですか？',
   chooseTitle: '始め方を選んでください',
-  skillsTitle: 'Weë Musicでできること',
+  skillsTitle: 'WeëMusicでできること',
   recentTitle: '最近の曲',
   viewExample: 'デザイン例を見る',
   honestyNote: '今は、曲の準備、リファレンス用メロディの録音、Weë Brainへのアドバイスの相談ができます。曲の作成は、接続と検証が済み次第、使えるようになります。',
@@ -17,7 +17,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: '保存した音声と曲です。',
   openProjects: 'マイプロジェクト',
   openProjectsHelp: '曲をプロジェクトにまとめましょう。',
-  backToMusic: 'Weë Musicに戻る',
+  backToMusic: 'WeëMusicに戻る',
   composerTitle: '音楽を作る',
   modesLabel: 'モード',
   modeSimple: 'シンプル',
@@ -303,7 +303,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: '音声処理は未対応の機能で、ここでは仕様を準備するだけです。',
 
   voiceInterpretation: '歌唱スタイル',
-  voiceNoClone: 'Weë Musicは実在の人物の声をクローンしたり真似したりしません。選べるのは一般的なボーカルの特徴だけです。',
+  voiceNoClone: 'WeëMusicは実在の人物の声をクローンしたり真似したりしません。選べるのは一般的なボーカルの特徴だけです。',
   voiceStylePending: '歌唱スタイルはエンジンに依存するため、まだ使えません。',
   styleTitle: 'ジャンルとスタイル',
   transformTitle: 'アレンジ',

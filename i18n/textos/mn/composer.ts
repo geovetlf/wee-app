@@ -2,7 +2,7 @@
  * MONGOL — el compositor: lo que se escribe y lo que se adjunta antes de publicar.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * «Wäll» es marca y se conserva; «face swap» se deja en inglés como en el
+ * «Ẅall» es marca y se conserva; «face swap» se deja en inglés como en el
  * español. Ningún sufijo de caso va pegado a un hueco: se reescribe la frase.
  */
 export const composer: typeof import('../es/composer').composer = {
@@ -28,7 +28,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Нийтлэх сонголтуудыг харуулах',
   hideOptions: 'Нийтлэх сонголтуудыг нуух',
   currentDestination: '{{destino}}, одоо сонгосон газар',
-  generalWall: 'Ерөнхий Wäll',
+  generalWall: 'Ерөнхий Ẅall',
   placeholderPollExtra: 'Хүсвэл өөр зүйл нэмнэ үү (заавал биш)…',
   placeholderQuestion: 'Та нийгэмлэгээс юу асуухыг хүсэж байна вэ?',
   placeholderWeel: 'Энэ Weël дээр юу бүтээснээ, ямар хиймэл оюун ашигласнаа бичнэ үү…',

@@ -5,7 +5,7 @@ import { Bloque, HeroDeSector, RejillaDeAccesos, TarjetaDestacada, TarjetasDescr
 
 /*
  * LA PORTADA DE WEË DESIGN, COMO EN LA DEMO YC. Las acciones son las que la demo daba a sus zonas táctiles: abrir una
- * categoría de Weë Design (`abrir`), ver todas, o ir a Weë Fashion. «Fashion» es marca (Weë Fashion).
+ * categoría de WeëDesign (`abrir`), ver todas, o ir a WeëFashion. «Fashion» es marca (WeëFashion).
  */
 
 const MASCOTA = require('../../assets/images/sectores/design-mascota.jpg');

@@ -9,19 +9,19 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
 /**
- * LA NAVEGACIÓN SECUNDARIA DEL HOME: Wäll · Weëls · Explorar · Comunidades.
+ * LA NAVEGACIÓN SECUNDARIA DEL HOME: Ẅall · Weëls · Explorar · Comunidades.
  *
  * Cuatro ATAJOS a pantallas que ya existen, no cuatro páginas dentro del Home.
- * «Wäll» es donde estás —la portada—; las otras tres abren la pantalla de
+ * «Ẅall» es donde estás —la portada—; las otras tres abren la pantalla de
  * siempre: el feed de Weëls, la búsqueda (que aquí se llama Explorar) y el
  * explorador de comunidades. Por eso para un lector de pantalla no son pestañas
  * (no cambian un panel): son botones de navegación, y el puesto se anuncia como
  * la sección actual.
  *
- * No es la antigua píldora Wäll ↔ Weëls: aquella partía el Home en dos páginas
+ * No es la antigua píldora Ẅall ↔ Weëls: aquella partía el Home en dos páginas
  * con gesto de lado. Esto no cambia de página ni mueve el muro: navega.
  *
- * Wäll y Weëls son marca y se escriben igual en todos los idiomas; aun así
+ * Ẅall y Weëls son marca y se escriben igual en todos los idiomas; aun así
  * salen de su clave, como todo lo que se pinta.
  */
 export type AtajoDeInicio = 'wall' | 'weels' | 'explore' | 'communities';

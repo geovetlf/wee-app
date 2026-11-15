@@ -1,6 +1,6 @@
 /*
- * POLACO — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design,
- * Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * POLACO — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign,
+ * WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -52,10 +52,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Nie wiem, od czego zacząć',
   brainEx2: 'Wyjaśnij mi to prosto',
   brainEx3: 'Przetłumacz ten tekst',
-  areaStudioPhotos: 'Weë Studio · Zdjęcia',
-  areaStudioVideos: 'Weë Studio · Filmy',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Dom & Wnętrza',
+  areaStudioPhotos: 'WeëStudio · Zdjęcia',
+  areaStudioVideos: 'WeëStudio · Filmy',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Dom & Wnętrza',
   areaHomeName: 'Dom & Wnętrza',
   tellTheSpecialist: 'Opowiedz {{especialista}}, co chcesz osiągnąć: zada ci dwa lub trzy proste pytania i zajmie się resztą. Potem publikujesz od razu w swojej społeczności.',
   exampleQuoted: '„{{ejemplo}}”',

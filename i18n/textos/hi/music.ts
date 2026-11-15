@@ -1,4 +1,4 @@
-/* hi — Weë Music: मुखपृष्ठ, Composer, वर्कस्टेशन और टूल. «Weë Music» और प्रदाताओं के नाम ब्रांड हैं और इनका अनुवाद नहीं किया जाता. Tipado contra el español. Pendiente de revisión por un hablante nativo. */
+/* hi — WeëMusic: मुखपृष्ठ, Composer, वर्कस्टेशन और टूल. «WeëMusic» और प्रदाताओं के नाम ब्रांड हैं और इनका अनुवाद नहीं किया जाता. Tipado contra el español. Pendiente de revisión por un hablante nativo. */
 export const music: typeof import('../es/music').music = {
   tagline: 'आपका आइडिया. आपकी धुन. कोई सीमा नहीं.',
   intro: 'किसी आइडिया, बोल या धुन से गाने बनाइए, और उन्हें हिस्सों में बाँटकर एडिट कीजिए.',
@@ -6,7 +6,7 @@ export const music: typeof import('../es/music').music = {
   ctaCreate: 'संगीत बनाएँ',
   demoPrompt: 'आप कौन-सा संगीत बनाना चाहते हैं?',
   chooseTitle: 'चुनिए कि शुरुआत कैसे करनी है',
-  skillsTitle: 'Weë Music क्या कर सकता है',
+  skillsTitle: 'WeëMusic क्या कर सकता है',
   recentTitle: 'हाल के गाने',
   viewExample: 'डिज़ाइन का उदाहरण देखें',
   honestyNote: 'आज आप अपना गाना तैयार कर सकते हैं, एक संदर्भ धुन रिकॉर्ड कर सकते हैं और Weë Brain से सलाह ले सकते हैं. गाने का निर्माण तब चालू होगा जब वह जुड़ जाएगा और जाँचा जा चुका होगा.',
@@ -14,7 +14,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'आपके सहेजे हुए ऑडियो और गाने.',
   openProjects: 'मेरे प्रोजेक्ट',
   openProjectsHelp: 'अपने गानों को प्रोजेक्ट में व्यवस्थित कीजिए.',
-  backToMusic: 'Weë Music पर वापस जाएँ',
+  backToMusic: 'WeëMusic पर वापस जाएँ',
   composerTitle: 'संगीत बनाएँ',
   modesLabel: 'मोड',
   modeSimple: 'सरल',
@@ -300,7 +300,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'ऑडियो प्रोसेसिंग अभी बाकी है: यहाँ केवल उसका अनुबंध तैयार किया जाता है.',
 
   voiceInterpretation: 'गायन की शैली',
-  voiceNoClone: 'Weë Music लोगों की आवाज़ की नकल या क्लोनिंग नहीं करता: आप केवल आवाज़ की सामान्य विशेषताएँ चुनते हैं.',
+  voiceNoClone: 'WeëMusic लोगों की आवाज़ की नकल या क्लोनिंग नहीं करता: आप केवल आवाज़ की सामान्य विशेषताएँ चुनते हैं.',
   voiceStylePending: 'गायन की शैली इंजन पर निर्भर है और अभी उपलब्ध नहीं है.',
   styleTitle: 'जॉनर और शैली',
   transformTitle: 'बदलाव',

@@ -160,11 +160,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Deila',
   shareHint: 'Deilingarvalmynd símans opnast: veldu forritið sem þú vilt.',
   shareToWee: 'Deila í Weë',
-  shareWall: 'Wäll-veggurinn minn',
+  shareWall: 'Ẅall-veggurinn minn',
   shareCommunities: 'Samfélög',
   shareProfile: 'Business Profile',
   shareNothing: 'Búðu fyrst til eitthvað og deildu því svo héðan.',
-  shareText: 'Gert með Weë Fashion',
+  shareText: 'Gert með WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Hlaða upp gögnunum mínum',

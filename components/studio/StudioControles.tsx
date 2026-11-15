@@ -35,7 +35,7 @@ interface Props {
  *
  * Porque juntos son más de cincuenta opciones. Puestas de golpe no son potencia:
  * son un panel técnico, y un panel técnico obliga a aprender la herramienta
- * antes de poder usarla. Weë Studio hace lo contrario —la herramienta aprende a
+ * antes de poder usarla. WeëStudio hace lo contrario —la herramienta aprende a
  * ayudar—, así que cada control espera a que haya una razón para verlo.
  *
  * ── Los alias se ven, y para eso están ──────────────────────────────────────

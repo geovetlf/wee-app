@@ -1,7 +1,7 @@
 /*
  * NEERLANDÉS — El compositor: lo que se escribe y lo que se adjunta antes de publicar. Tipado contra el español.
  *
- * «Publicar» es «Plaatsen» y «publicación» es «bericht» (glosario § 4). «Wäll general» queda «Algemene Wäll».
+ * «Publicar» es «Plaatsen» y «publicación» es «bericht» (glosario § 4). «Ẅall general» queda «Algemene Ẅall».
  * «Face swap» se deja como préstamo, igual que el español; «watermark» es «watermerk».
  */
 export const composer: typeof import('../es/composer').composer = {
@@ -27,7 +27,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Opties om te plaatsen tonen',
   hideOptions: 'Opties om te plaatsen verbergen',
   currentDestination: '{{destino}}, huidige bestemming',
-  generalWall: 'Algemene Wäll',
+  generalWall: 'Algemene Ẅall',
   placeholderPollExtra: 'Voeg nog iets toe als je wilt (optioneel)…',
   placeholderQuestion: 'Wat wil je de community vragen?',
   placeholderWeel: 'Vertel wat je voor je Weël hebt gemaakt en met welke AI…',

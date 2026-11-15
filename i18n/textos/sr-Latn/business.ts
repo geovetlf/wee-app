@@ -68,7 +68,7 @@ export const business: ConPlurales<typeof import('../es/business').business> = {
    *
    * Los NOMBRES de los módulos —My Business, Products & Catalog, Create,
    * Social, Analyze, Grow, Business Profile, Promote— no están aquí: son
-   * nombres de producto y se escriben igual en los dos idiomas, como Weë Studio
+   * nombres de producto y se escriben igual en los dos idiomas, como WeëStudio
    * o Weë Writer. Viven en `constants/businessModules.ts`. Lo que sí se traduce
    * es todo lo demás: lo que hace cada uno, sus acciones y sus avisos.
    */
@@ -181,11 +181,11 @@ export const business: ConPlurales<typeof import('../es/business').business> = {
   share: 'Podeli',
   shareHint: 'Otvara se deljenje na tvom telefonu: izaberi aplikaciju koju želiš.',
   shareToWee: 'Podeli na Weë',
-  shareWall: 'Moj Wäll',
+  shareWall: 'Moj Ẅall',
   shareCommunities: 'Zajednice',
   shareProfile: 'Business Profile',
   shareNothing: 'Prvo nešto kreiraj, pa to podeli odavde.',
-  shareText: 'Kreirano uz Weë Fashion',
+  shareText: 'Kreirano uz WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Otpremi moje podatke',

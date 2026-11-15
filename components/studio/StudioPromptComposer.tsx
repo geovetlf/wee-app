@@ -16,7 +16,7 @@ interface Props {
   /** Mientras se está "creando", el botón no acepta otro toque. */
   ocupado?: boolean;
   /**
-   * La pregunta de la caja. Studio pregunta qué quieres crear; Weë Design, qué
+   * La pregunta de la caja. Studio pregunta qué quieres crear; WeëDesign, qué
    * quieres diseñar. Es la única diferencia, así que es la única que se pasa.
    */
   placeholder?: string;

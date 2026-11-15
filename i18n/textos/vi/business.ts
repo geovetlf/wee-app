@@ -151,11 +151,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Chia sẻ',
   shareHint: 'Bảng chia sẻ của điện thoại sẽ mở ra: chọn ứng dụng bạn muốn.',
   shareToWee: 'Chia sẻ lên Weë',
-  shareWall: 'Wäll của tôi',
+  shareWall: 'Ẅall của tôi',
   shareCommunities: 'Cộng đồng',
   shareProfile: 'Business Profile',
   shareNothing: 'Hãy tạo một thứ gì đó trước, rồi chia sẻ từ đây.',
-  shareText: 'Tạo bằng Weë Fashion',
+  shareText: 'Tạo bằng WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Tải lên dữ liệu của tôi',

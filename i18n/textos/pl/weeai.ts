@@ -4,7 +4,7 @@ import { ConPlurales } from '../ru/plurales';
  * WEË AI en polaco: el armazón, la conversación guiada y Weë Brain. Tipado contra el español con `ConPlurales`:
  * las claves que cuentan (openTravel, closeTravel, tripDays, tripNights, imageCount) añaden `_few` y `_many`, y su
  * `_other` es la forma de las fracciones (1,5 dnia). Tuteo; las frases que en español llevan un pasado con género
- * («usaste», «lo viste») se reformulan en impersonal. Las marcas (Weë, Weë AI, Weë Brain, Weë Travel, Credits)
+ * («usaste», «lo viste») se reformulan en impersonal. Las marcas (Weë, Weë AI, Weë Brain, WeëTravel, Credits)
  * van en latino y sin declinar; el vídeo es «film».
  */
 export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
@@ -140,14 +140,14 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   couldNotCalculateRetry: 'Nie udało się obliczyć kosztu. Spróbuj ponownie.',
   expandSection: '{{titulo}}. Pokaż {{contenido}}',
   collapseSection: '{{titulo}}. Ukryj {{contenido}}',
-  openTravel_one: '{{titulo}}. Otwórz Weë Travel: opisz swoją podróż i sposób na rozpoczęcie',
-  openTravel_few: '{{titulo}}. Otwórz Weë Travel: opisz swoją podróż i {{contador}} sposoby na rozpoczęcie',
-  openTravel_many: '{{titulo}}. Otwórz Weë Travel: opisz swoją podróż i {{contador}} sposobów na rozpoczęcie',
-  openTravel_other: '{{titulo}}. Otwórz Weë Travel: opisz swoją podróż i {{contador}} sposobu na rozpoczęcie',
-  closeTravel_one: '{{titulo}}. Ukryj Weë Travel: opisz swoją podróż i sposób na rozpoczęcie',
-  closeTravel_few: '{{titulo}}. Ukryj Weë Travel: opisz swoją podróż i {{contador}} sposoby na rozpoczęcie',
-  closeTravel_many: '{{titulo}}. Ukryj Weë Travel: opisz swoją podróż i {{contador}} sposobów na rozpoczęcie',
-  closeTravel_other: '{{titulo}}. Ukryj Weë Travel: opisz swoją podróż i {{contador}} sposobu na rozpoczęcie',
+  openTravel_one: '{{titulo}}. Otwórz WeëTravel: opisz swoją podróż i sposób na rozpoczęcie',
+  openTravel_few: '{{titulo}}. Otwórz WeëTravel: opisz swoją podróż i {{contador}} sposoby na rozpoczęcie',
+  openTravel_many: '{{titulo}}. Otwórz WeëTravel: opisz swoją podróż i {{contador}} sposobów na rozpoczęcie',
+  openTravel_other: '{{titulo}}. Otwórz WeëTravel: opisz swoją podróż i {{contador}} sposobu na rozpoczęcie',
+  closeTravel_one: '{{titulo}}. Ukryj WeëTravel: opisz swoją podróż i sposób na rozpoczęcie',
+  closeTravel_few: '{{titulo}}. Ukryj WeëTravel: opisz swoją podróż i {{contador}} sposoby na rozpoczęcie',
+  closeTravel_many: '{{titulo}}. Ukryj WeëTravel: opisz swoją podróż i {{contador}} sposobów na rozpoczęcie',
+  closeTravel_other: '{{titulo}}. Ukryj WeëTravel: opisz swoją podróż i {{contador}} sposobu na rozpoczęcie',
   tellWeeTheTrip: 'Opowiedz Weë o podróży',
   theMotto: 'Ty wybierasz rezultat. Weë wybiera AI.',
   trySearchWords: 'Spróbuj wpisać: logo, film, zdjęcie, tekst, piosenka, stylizacja, przepis, dom lub biznes. Albo zapytaj Weë Brain.',

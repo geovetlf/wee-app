@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * «Weë Chef» es marca y no aparece aquí; lo compartido con Weë Studio se lee
+ * «WeëChef» es marca y no aparece aquí; lo compartido con WeëStudio se lee
  * de `studio`, y las siete funciones heredadas siguen en `weeai`. La receta es
  * «resipi» (guía § 4), los ingredientes, «bahan», y cocinar, «masak». «Dictar»
  * es «Imlak» (DBP). Los ajustes se leen como frases cortas, igual que en

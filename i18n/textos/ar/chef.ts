@@ -1,11 +1,11 @@
 /*
- * ÁRABE — Weë Chef: el sitio donde se cocina.
+ * ÁRABE — WeëChef: el sitio donde se cocina.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * Los ajustes y los botones van como sustantivos de acción («طهي», «إملاء»)
  * o como frases cortas en primera persona cuando el español también lo hace
- * («لي وحدي», «بما لديّ»). Lo que Chef comparte con Weë Studio vive en
+ * («لي وحدي», «بما لديّ»). Lo que Chef comparte con WeëStudio vive en
  * `studio`, como en español.
  */
 export const chef: typeof import('../es/chef').chef = {

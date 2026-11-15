@@ -1,5 +1,5 @@
 /*
- * TURCO — Weë Studio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
+ * TURCO — WeëStudio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -21,7 +21,7 @@
  * «Güzellik» y «Moda». «Timelapse» es «Hızlandırılmış çekim», como en la cámara del teléfono. «Narración» y
  * «Locución» no caben en la misma palabra: «Sesli anlatım» y «Dış ses», el término del cine y la televisión.
  *
- * QUÉ NO ESTÁ AQUÍ: «Weë Studio» y «Writer», que son marca, ni los formatos —PDF, MP4, 16:9—, que no cambian.
+ * QUÉ NO ESTÁ AQUÍ: «WeëStudio» y «Writer», que son marca, ni los formatos —PDF, MP4, 16:9—, que no cambian.
  */
 export const studio: typeof import('../es/studio').studio = {
   /* ── La cabecera ──────────────────────────────────────────────────────── */
@@ -244,7 +244,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Yakında',
   soonHint: 'Bu aracın yeri hazır. Yalnızca bağlanması gerekiyor.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Metin',
   textHint: 'Her türlü içeriği yaz',
   exploreTitle: 'Keşfet',

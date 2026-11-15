@@ -303,7 +303,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
    * conservando paredes, ventanas y proporciones. Es la única pregunta que
    * distingue este contenido, y de ella cuelgan las tres decisiones visuales que
    * NO valen para el resto: marco apaisado, comparación con el original y orden
-   * del resultado. Un retrato de Weë Beauty o un plato de Weë Chef no pasan por
+   * del resultado. Un retrato de Weë Beauty o un plato de WeëChef no pasan por
    * aquí y siguen exactamente igual que antes (fases 2E-59 y 2E-63).
    */
   const esEspacio = (stepId: string): boolean =>
@@ -325,7 +325,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
    */
   /*
    * EL VÍDEO TAMBIÉN SE PUBLICA. Este filtro decía `r.kind !== 'video'`, así
-   * que un trabajo de Weë Studio cuyo único resultado era un vídeo mandaba al
+   * que un trabajo de WeëStudio cuyo único resultado era un vídeo mandaba al
    * compositor un texto suelto y el vídeo se quedaba atrás — aunque estuviera
    * reproduciéndose en esta misma tarjeta. Ahora viaja con su tipo y, si el
    * servidor ya lo convirtió en material, con su id: el compositor no vuelve a

@@ -13,7 +13,7 @@
  * «Gawing mas makatotohanan», «Mas kapansin-pansin», «Dati» / «Pagkatapos» («bago» es también «nuevo»), y
  * `brainBetterFit` es la del § 12.
  *
- * PALABRAS. Una creación es «likha» y «Mis creaciones», «Mga likha ko», igual que en el menú y en Weë Studio; los
+ * PALABRAS. Una creación es «likha» y «Mis creaciones», «Mga likha ko», igual que en el menú y en WeëStudio; los
  * especialistas son «mga espesyalista ng Weë» y el «otro Weë» del saludo de Weë Brain, «ibang espesyalista ng Weë»
  * (como el catálogo). «Crear» es «Gumawa» en los botones (el de crear un proyecto y el del plan); la pregunta
  * grande, «Ano ang gusto mong likhain?» (§ 11.10). Una propuesta (de diseño) es «mungkahi»: «Mungkahi {{numero}}».
@@ -182,10 +182,10 @@ export const weeai: typeof import('../es/weeai').weeai = {
   couldNotCalculateRetry: 'Hindi namin makalkula ang halaga. Subukan ulit.',
   expandSection: '{{titulo}}. Ipakita ang {{contenido}}',
   collapseSection: '{{titulo}}. Itago ang {{contenido}}',
-  openTravel_one: '{{titulo}}. Buksan ang Weë Travel: ang pagsulat ng biyahe mo at ang {{contador}} paraan para magsimula',
-  openTravel_other: '{{titulo}}. Buksan ang Weë Travel: ang pagsulat ng biyahe mo at ang {{contador}} na paraan para magsimula',
-  closeTravel_one: '{{titulo}}. Itago ang Weë Travel: ang pagsulat ng biyahe mo at ang {{contador}} paraan para magsimula',
-  closeTravel_other: '{{titulo}}. Itago ang Weë Travel: ang pagsulat ng biyahe mo at ang {{contador}} na paraan para magsimula',
+  openTravel_one: '{{titulo}}. Buksan ang WeëTravel: ang pagsulat ng biyahe mo at ang {{contador}} paraan para magsimula',
+  openTravel_other: '{{titulo}}. Buksan ang WeëTravel: ang pagsulat ng biyahe mo at ang {{contador}} na paraan para magsimula',
+  closeTravel_one: '{{titulo}}. Itago ang WeëTravel: ang pagsulat ng biyahe mo at ang {{contador}} paraan para magsimula',
+  closeTravel_other: '{{titulo}}. Itago ang WeëTravel: ang pagsulat ng biyahe mo at ang {{contador}} na paraan para magsimula',
   tellWeeTheTrip: 'Ikuwento ang biyahe sa Weë',
   theMotto: 'Ikaw ang pipili ng resulta. Ang Weë ang pipili ng AI.',
   trySearchWords: 'Subukan ang mga salitang tulad ng logo, video, larawan, text, kanta, look, recipe, bahay o negosyo. O magtanong sa Weë Brain.',

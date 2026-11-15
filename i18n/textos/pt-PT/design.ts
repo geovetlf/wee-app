@@ -3,7 +3,7 @@
  * física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Weë Design comparte con Weë Studio —"Mis creaciones", "Ver todas",
+ * Lo que WeëDesign comparte con WeëStudio —"Mis creaciones", "Ver todas",
  * "Creando...", "Creación lista"— vive en `studio` y se lee de allí.
  *
  * NO ES EL BRASILEÑO CON PALABRAS CAMBIADAS. Se tutea con «tu»: «podes»,

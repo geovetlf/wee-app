@@ -5,8 +5,8 @@
  *
  * Tuteo («sen») como el resto del diccionario. Ningún sufijo detrás de un hueco: la frase se reescribe
  * («{{lugar}} için yeni gezi», «Gezim: {{viaje}}»). Tras una cifra, singular. Las marcas solo llevan las
- * terminaciones del cuadro (Weë'de, Weë'ye, Weë Brain'e, Weë Brain'in, Weë Studio'da). Weë, WeëTravel,
- * Weë Brain, Weë Studio, Weëls, Travel Safe y «DEMO» no se traducen; los lugares van con su nombre turco
+ * terminaciones del cuadro (Weë'de, Weë'ye, Weë Brain'e, Weë Brain'in, WeëStudio'da). Weë, WeëTravel,
+ * Weë Brain, WeëStudio, Weëls, Travel Safe y «DEMO» no se traducen; los lugares van con su nombre turco
  * donde lo hay (Lizbon, Marakeş, Kyoto, Paris…).
  */
 export const travel: typeof import('../es/travel').travel = {
@@ -745,9 +745,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Bugünün en güzel anı neydi?',
   saveEntry: 'Kaydı kaydet',
   journalEmpty: 'Günlüğün boş. İlk kaydı yaz.',
-  videoMemoriesDemo: 'DEMO: videolar kendi fotoğraf ve kliplerinle Weë Studio\'da oluşturulur.',
+  videoMemoriesDemo: 'DEMO: videolar kendi fotoğraf ve kliplerinle WeëStudio\'da oluşturulur.',
   videoOf: '{{viaje}} gezisinin videosu',
-  createInStudio: 'Weë Studio\'da oluştur',
+  createInStudio: 'WeëStudio\'da oluştur',
   countriesVisited_one: '{{contador}} ülke gezildi',
   countriesVisited_other: '{{contador}} ülke gezildi',
   recapTitle: '{{viaje}} gezin',

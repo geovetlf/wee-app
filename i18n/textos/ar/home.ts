@@ -103,8 +103,8 @@ export const home: ConPlurales<typeof import('../es/home').home> = {
   commentsCount_few: '{{cantidad}} تعليقات',
   commentsCount_many: '{{cantidad}} تعليقًا',
   commentsCount_other: '{{cantidad}} تعليق',
-  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wäll es marca. Sin revisión nativa. */
-  tabWall: 'Wäll',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Ẅall es marca. Sin revisión nativa. */
+  tabWall: 'Ẅall',
   sectionsNav: 'المقاطع',
   weeAiTagline: 'أنشئ أفكارك وطوّرها وحوّلها',
   openBrain: 'فتح Weë Brain',

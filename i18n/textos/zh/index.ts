@@ -6,8 +6,8 @@
  * que falte o sobre en chino no compila.
  *
  * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS:
- *   · los nombres de Weë —Weë, Wäll, Weëls, WeeTalk, ËContact, Credits, Weë AI,
- *     Weë Studio…—, que son marca. En chino eso significa tres cosas a la vez:
+ *   · los nombres de Weë —Weë, Ẅall, Weëls, WeeTalk, ËContact, Credits, Weë AI,
+ *     WeëStudio…—, que son marca. En chino eso significa tres cosas a la vez:
  *     no se traducen (Credits no es 积分), no se transliteran (Weë no es 微),
  *     y no se pasan a hanzi de ninguna otra forma. Dentro de la frase en
  *     caracteres chinos, la marca se queda en alfabeto latino;
@@ -28,7 +28,7 @@
  *     `other`, igual que el coreano. La forma `_one` no se lee nunca, así que
  *     lleva el mismo texto que su `_other`.
  *
- * 2 · UN ESPACIO ENTRE HANZI Y LATÍN. «打开 Weë Studio», «剩余 10 MB». Aquí no
+ * 2 · UN ESPACIO ENTRE HANZI Y LATÍN. «打开 WeëStudio», «剩余 10 MB». Aquí no
  *     es cosmética: las marcas van en alfabeto latino dentro de frases chinas, y
  *     sin ese espacio se pegan a los caracteres y se leen mal.
  *

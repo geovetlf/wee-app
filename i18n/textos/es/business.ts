@@ -60,7 +60,7 @@ export const business = {
    *
    * Los NOMBRES de los módulos —My Business, Products & Catalog, Create,
    * Social, Analyze, Grow, Business Profile, Promote— no están aquí: son
-   * nombres de producto y se escriben igual en los dos idiomas, como Weë Studio
+   * nombres de producto y se escriben igual en los dos idiomas, como WeëStudio
    * o Weë Writer. Viven en `constants/businessModules.ts`. Lo que sí se traduce
    * es todo lo demás: lo que hace cada uno, sus acciones y sus avisos.
    */
@@ -171,11 +171,11 @@ export const business = {
   share: 'Compartir',
   shareHint: 'Se abre el compartir de tu teléfono: elige la app que quieras.',
   shareToWee: 'Compartir en Weë',
-  shareWall: 'Mi Wäll',
+  shareWall: 'Mi Ẅall',
   shareCommunities: 'Comunidades',
   shareProfile: 'Business Profile',
   shareNothing: 'Primero crea algo y luego lo compartes desde aquí.',
-  shareText: 'Creado con Weë Fashion',
+  shareText: 'Creado con WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Subir mis datos',

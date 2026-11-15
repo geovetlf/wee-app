@@ -91,7 +91,7 @@ export type MainStackParamList = {
   /* WeëPages: crear y gestionar las Páginas de la cuenta; editPageId abre una para editar. */
   WeePages: { editPageId?: string } | undefined;
   WeePage: { pageId: string };
-  /** El Wäll inmersivo: una publicación a la vez (screens/WallScreen.tsx). */
+  /** El Ẅall inmersivo: una publicación a la vez (screens/WallScreen.tsx). */
   Wall: undefined;
   /** Impulsar una publicación propia (screens/BoostScreen.tsx, docs/BOOST.md). `id: 'elegir'` abre el selector; las páginas todavía no. */
   Boost: { tipo: 'page' | 'post'; id: string };
@@ -119,22 +119,22 @@ export type MainStackParamList = {
   Specialist: { id: string };
   /* WeëTravel: las pantallas de sus seis módulos (screens/travel/TravelScreen.tsx), apiladas con push. */
   Travel: ParametrosDeTravel;
-  /* Weë Studio tiene ruta propia: es un sitio, no una ficha de especialista. */
+  /* WeëStudio tiene ruta propia: es un sitio, no una ficha de especialista. */
   Studio: undefined;
   /* Weë versión creator: el trabajo, sin muro, sin Weëls y solo con el Perfil Real. */
   EspacioProfesional: { screen?: string; params?: object } | undefined;
   /**
    * «Varias escenas» (Weë Filmmaker, F1-C): una producción abierta con `productionId`; sin él, tus producciones y,
-   * si se llega desde la caja de Weë Studio, la producción a punto de nacer con lo escrito (`intencion`) y los
+   * si se llega desde la caja de WeëStudio, la producción a punto de nacer con lo escrito (`intencion`) y los
    * controles de cámara elegidos (`creativo`, por ruta del lenguaje creativo).
    */
   Production: { productionId?: string; intencion?: string; creativo?: Record<string, string> } | undefined;
   /**
-   * «Crear mundo 3D» (Weë Studio → 3D World): lo escrito en la caja del Studio (`descripcion`) y la foto adjunta
+   * «Crear mundo 3D» (WeëStudio → 3D World): lo escrito en la caja del Studio (`descripcion`) y la foto adjunta
    * (`imageUri`, local: la pantalla la sube a la carpeta de la cuenta). Sin su puerta abierta, la pantalla no hace nada.
    */
   Mundo3D: { descripcion?: string; imageUri?: string } | undefined;
-  /* Weë Design, igual que Studio: un sitio con pantalla propia. */
+  /* WeëDesign, igual que Studio: un sitio con pantalla propia. */
   Design: undefined;
   WriterEditor: { docId?: string; text?: string; title?: string; replaceText?: string } | undefined;
   Projects: undefined;
@@ -273,7 +273,7 @@ const MainStackNavigator: React.FC = () => {
    *
    * Aquí, al nivel de la pila principal, porque es el único sitio desde el que
    * se ven todas las pantallas. Dentro del navegador de pestañas solo se veían
-   * las cinco pestañas, y por eso la barra desaparecía al entrar en Weë Travel,
+   * las cinco pestañas, y por eso la barra desaparecía al entrar en WeëTravel,
    * en una publicación o en una comunidad —que son hermanas de `Main`, no hijas
    * suyas—.
    *
@@ -288,7 +288,7 @@ const MainStackNavigator: React.FC = () => {
 
         Las pantallas de las pestañas —Home, Buscar, WeeTalk, Perfil— ya dejaban
         hueco abajo desde siempre, porque la barra vivía dentro de ellas. Las
-        demás —Weë Travel, una publicación, una comunidad, Mis proyectos— nunca
+        demás —WeëTravel, una publicación, una comunidad, Mis proyectos— nunca
         tuvieron ninguna: si no se les reserva, la barra les tapa la última fila.
 
         Se reserva aquí, en un solo sitio, en vez de ir pantalla por pantalla
@@ -416,10 +416,10 @@ const MainStackNavigator: React.FC = () => {
 
         El `cardStyle` de una pantalla SUSTITUYE al de `screenOptions` —React
         Navigation los junta con `Object.assign`, no los suma—, y con solo el
-        fondo negro el Wäll perdía el `flex: 1`. En la web, una pantalla no modal
+        fondo negro el Ẅall perdía el `flex: 1`. En la web, una pantalla no modal
         que ocupa la ventana entera se pinta en «modo página» (`minHeight: 100%`),
         así que la tarjeta crecía con la lista entera: la lista ya no se
-        desplazaba, el Wäll se abría siempre en la primera publicación y ni la
+        desplazaba, el Ẅall se abría siempre en la primera publicación y ni la
         rueda ni las flechas lo movían. Los Weëls no lo sufren porque son modal.
         Lo vigila functions/test/wall-inmersivo.test.mjs (sección F).
       */}

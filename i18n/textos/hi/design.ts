@@ -2,7 +2,7 @@
  * HINDI — WEË DESIGN: diseñar y visualizar casi cualquier cosa física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Weë Design comparte con Weë Studio —"Mis creaciones", "Ver todas",
+ * Lo que WeëDesign comparte con WeëStudio —"Mis creaciones", "Ver todas",
  * "Creando...", "Creación lista"— vive en `studio` y se lee de allí.
  *
  * «Diseñar» es डिज़ाइन करें, como en Canva, y «espacio» es जगह (f; pl. जगहें), la
@@ -24,7 +24,7 @@
  * también se oyen sueltas en la etiqueta del lector de pantalla. También de
  * `studio`: «Minimalista» es मिनिमलिस्ट, «una vista aérea», एरियल व्यू, y «un antes y
  * después», पहले और बाद. Los materiales son मटीरियल, como en `business`, y no
- * सामग्री, que en Weë Chef son los ingredientes. Los títulos de los grupos de
+ * सामग्री, que en WeëChef son los ingredientes. Los títulos de los grupos de
  * ajustes y «Empieza por» se pintan con `textTransform`, que no cambia el
  * devanagari.
  */

@@ -244,7 +244,7 @@ const PostCard: React.FC<PostCardProps> = ({
    *
    * Weë no guarda la sección dentro del post: se lee de lo que la publicación ya
    * trae —la herramienta que quedó apuntada al publicar desde una sección— y solo
-   * cuando es explícito. Una publicación de Weë Studio sigue estando en el muro
+   * cuando es explícito. Una publicación de WeëStudio sigue estando en el muro
    * general como todas; esto solo cuenta de dónde salió.
    */
   const seccion = useMemo(() => seccionDe(post), [post]);
@@ -1402,7 +1402,7 @@ const PostCard: React.FC<PostCardProps> = ({
               {/*
                 El lugar del que habla la publicación, con las palabras de quien la
                 escribió. Va aparte del WeeTag a propósito: una cosa es de dónde
-                salió la publicación —Weë Travel— y otra de qué sitio habla —París—,
+                salió la publicación —WeëTravel— y otra de qué sitio habla —París—,
                 y pueden no tener nada que ver.
 
                 Es texto, no una posición: no lleva a ningún mapa porque Weë no

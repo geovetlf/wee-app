@@ -160,11 +160,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Siammarteruk',
   shareHint: 'Oqarasuaatit siammarterfia ammassaaq: programmi kissaatigisat toqqaruk.',
   shareToWee: 'Siammarteruk: Weë',
-  shareWall: 'Wäll, nammineq pigisara',
+  shareWall: 'Ẅall, nammineq pigisara',
   shareCommunities: 'Peqatigiiffiit',
   shareProfile: 'Business Profile',
   shareNothing: 'Siullermik arlaannik pilersitsigit, taava maanngaanniit siammartissavat.',
-  shareText: 'Weë Fashion atorlugu pilersitaq',
+  shareText: 'WeëFashion atorlugu pilersitaq',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Paasissutissakka ikkukkit',

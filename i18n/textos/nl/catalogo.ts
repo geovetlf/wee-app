@@ -52,7 +52,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Regelt het hele proces',
   brainEj3Subtitle: 'Van het idee tot de ontwerpen, video\'s en muziek',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Ontwerp wat je maar kunt bedenken.',
   designIntro: 'Maak van je ideeën geweldige ontwerpen met kunstmatige intelligentie. Van een logo tot een auto, een product of een hele wereld.',
   designChip1: 'Snel en makkelijk',
@@ -151,7 +151,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Gezichtsretouche',
   photoEj6Title: 'Transformeren met AI',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Maak, beluister en beleef je muziek met AI',
   musicIntro: 'Maak van je ideeën nummers, video\'s en unieke ervaringen. Geen grenzen voor je creativiteit.',
   musicChip1: 'Snel en eenvoudig',
@@ -213,7 +213,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Maak van je muziek een geweldige video: verschillende stijlen, automatische synchronisatie, formaten voor social media, scènes en personages.',
   musicClosingButton: 'Nu een video maken',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Maak foto\'s en video\'s met AI',
   studioIntro: 'Vertel me wat je wilt maken en ik help je stap voor stap.',
   studioChip1: 'Makkelijk te gebruiken',
@@ -305,7 +305,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Ontvangen berichten',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Je eigen chef, altijd bij je',
   chefIntro: 'Ontdek recepten, stel menu\'s samen, gebruik wat je in huis hebt en eet beter, makkelijker en lekkerder.',
   chefChip1: 'Makkelijke recepten',
@@ -335,7 +335,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Ik weet niet wat ik moet koken',
   chefAcIdkSubtitle: 'Ik stel iets lekkers voor',
   chefAcIdkGoal: 'Ik weet niet wat ik vandaag moet koken',
-  chefIdeaTitle: 'Hoi! Ik ben Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Hoi! Ik ben WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Vertel eens, wat wil je vandaag koken?',
   chefIdeaPlaceholder: 'Schrijf hier je idee…',
   chefIdeaChip1: 'Ik wil een snel avondeten',
@@ -547,7 +547,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'Professioneel cv',
   writerEj6Subtitle: 'Modern en strak',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Bereid je reis voor met iemand die er al geweest is.',
   travelIntro: 'Vertel me waar je heen gaat (of dat je het nog niet weet) en ik bereid je reis voor: wat je moet zien, waar je kunt eten en hoe je je verplaatst.',
   travelChip1: 'Zonder boekingen',

@@ -1,10 +1,10 @@
 /*
- * FINÉS — Weë Chef: el sitio donde se cocina. Tipado contra el español.
+ * FINÉS — WeëChef: el sitio donde se cocina. Tipado contra el español.
  *
- * «Weë Chef» es marca y no aparece aquí. Las opciones de los paneles son
+ * «WeëChef» es marca y no aparece aquí. Las opciones de los paneles son
  * frases empezadas o etiquetas cortas, así que van en nominativo o en el
  * caso que pide el sentido («Kahdelle», «Viikoksi», «Reseptistä»). Lo
- * compartido con Weë Studio se lee de `studio`, como en el molde. El
+ * compartido con WeëStudio se lee de `studio`, como en el molde. El
  * espacio final de `panelStart` se conserva.
  */
 export const chef: typeof import('../es/chef').chef = {

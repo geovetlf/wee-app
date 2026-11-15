@@ -1,7 +1,7 @@
 /*
- * ca — Weë Fashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * ca — WeëFashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa.
- * Las marcas (Weë, Credits, ËContact, Boost, Weë Fashion, WeëPages…) no se traducen.
+ * Las marcas (Weë, Credits, ËContact, Boost, WeëFashion, WeëPages…) no se traducen.
  */
 export const fashion: typeof import('../es/fashion').fashion = {
   tagline: 'El teu estil. La teva visió. El teu món.',
@@ -95,7 +95,7 @@ export const fashion: typeof import('../es/fashion').fashion = {
   briefIdea: 'La meva idea: {{texto}}.',
   briefIdk: 'Ajuda\'m a triar.',
   heroTags: 'Moda · Bellesa · Estil · Col·leccions',
-  toolsTitle: 'Eines de Weë Fashion',
+  toolsTitle: 'Eines de WeëFashion',
   inspirationTitle: 'Inspiració',
   galleryTitle: 'Emprova\'t el look',
   galClothes: 'Roba',

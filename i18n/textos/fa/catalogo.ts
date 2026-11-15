@@ -14,7 +14,7 @@
  * tratan a la persona de «شما» con el sufijo «-تان» («عکستان», «ایده‌تان»).
  *
  * MARCAS Y PRÉSTAMOS. Las marcas quedan en latino con espacio alrededor («یکی از Weë های دیگر»). En el selector de
- * Weë Studio, «Beauty» y «Writer» se quedan tal cual, como en español y en inglés. «Hogar & Diseño» es «خانه و
+ * WeëStudio, «Beauty» y «Writer» se quedan tal cual, como en español y en inglés. «Hogar & Diseño» es «خانه و
  * دکوراسیون», que es como se nombra el diseño de interiores en Irán. Los géneros musicales van en su forma persa
  * corriente («پاپ», «راک», «رگتون», «بالاد», «الکترونیک»), como hace el hindi; «Lomo saltado» se queda, como en
  * inglés. «Look» es «استایل» y «outfit» es «ست», que son los préstamos que usan las apps de moda en persa.
@@ -77,7 +77,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'کل فرایند را به عهده می‌گیرد',
   brainEj3Subtitle: 'از ایده تا طرح‌ها، ویدیوها و موسیقی',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'هرچه تصور می‌کنید طراحی کنید.',
   designIntro: 'ایده‌هایتان را با هوش مصنوعی به طرح‌هایی شگفت‌انگیز تبدیل کنید. از یک لوگو تا یک خودرو، یک محصول یا یک دنیای کامل.',
   designChip1: 'سریع و آسان',
@@ -176,7 +176,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'روتوش چهره',
   photoEj6Title: 'دگرگونی با هوش مصنوعی',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'موسیقی‌تان را با هوش مصنوعی بسازید، بشنوید و با آن زندگی کنید',
   musicIntro: 'ایده‌هایتان را به آهنگ، ویدیو و تجربه‌هایی بی‌همتا تبدیل کنید. خلاقیت شما حد و مرزی ندارد.',
   musicChip1: 'سریع و ساده',
@@ -238,7 +238,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'موسیقی‌تان را به یک ویدیوی شگفت‌انگیز تبدیل کنید: سبک‌های گوناگون، همگام‌سازی خودکار، قالب‌های مناسب شبکه‌های اجتماعی، صحنه‌ها و شخصیت‌ها.',
   musicClosingButton: 'ساخت ویدیو همین حالا',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'با هوش مصنوعی عکس و ویدیو بسازید',
   studioIntro: 'تعریف کنید می‌خواهید چه بسازید تا قدم به قدم کمکتان کنم.',
   studioChip1: 'کار با آن آسان است',
@@ -331,7 +331,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'پیام دریافتی',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'سرآشپز شما، همیشه همراهتان',
   chefIntro: 'دستور پخت کشف کنید، منو بسازید، از آنچه دارید بهره ببرید و بهتر، آسان‌تر و خوشمزه‌تر غذا بخورید.',
   chefChip1: 'دستورهای آسان',
@@ -361,7 +361,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'نمی‌دانم چه بپزم',
   chefAcIdkSubtitle: 'چیز خوشمزه‌ای پیشنهاد می‌دهم',
   chefAcIdkGoal: 'نمی‌دانم امروز چه بپزم',
-  chefIdeaTitle: 'سلام! من Weë Chef هستم 👨‍🍳',
+  chefIdeaTitle: 'سلام! من WeëChef هستم 👨‍🍳',
   chefIdeaSubtitle: 'خب، امروز دوست دارید چه بپزید؟',
   chefIdeaPlaceholder: 'ایده‌تان را اینجا بنویسید…',
   chefIdeaChip1: 'یک شام سریع می‌خواهم',
@@ -573,7 +573,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'رزومهٔ حرفه‌ای',
   writerEj6Subtitle: 'مدرن و تمیز',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'سفرتان را با کسی برنامه‌ریزی کنید که قبلاً آنجا بوده.',
   travelIntro: 'تعریف کنید کجا می‌روید —یا اینکه هنوز نمی‌دانید— تا سفرتان را آماده کنم: چه ببینید، کجا غذا بخورید و چطور جابه‌جا شوید.',
   travelChip1: 'بدون رزرو',

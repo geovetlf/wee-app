@@ -1,5 +1,5 @@
 /*
- * COREANO — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * COREANO — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -92,9 +92,9 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: '복사됨',
   demoBadge: '데모',
   demoBadgeLabel: '데모 콘텐츠',
-  /* ── El Wäll inmersivo: una publicación a la vez ── */
-  immersiveEmpty: '아직 Wäll에 게시물이 없어요',
-  immersiveError: 'Wäll을 불러오지 못했어요',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: '아직 Ẅall에 게시물이 없어요',
+  immersiveError: 'Ẅall을 불러오지 못했어요',
   immersiveEnd: '모두 다 봤어요',
   agreePost: '동의',
   disagreePost: '반대',

@@ -1,5 +1,5 @@
 /*
- * ÁRABE — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * ÁRABE — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  * Tipado contra el español.
  *
  * Aquí aparecen los SEIS plurales del árabe: votos, días y horas cambian de
@@ -98,8 +98,8 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'تجريبي',
   demoBadgeLabel: 'محتوى تجريبي',
-  immersiveEmpty: 'لا توجد منشورات في Wäll بعد',
-  immersiveError: 'تعذّر علينا تحميل Wäll',
+  immersiveEmpty: 'لا توجد منشورات في Ẅall بعد',
+  immersiveError: 'تعذّر علينا تحميل Ẅall',
   immersiveEnd: 'لقد شاهدت كل شيء',
   agreePost: 'أوافق',
   disagreePost: 'لا أوافق',

@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Portugués de BRASIL: «você», «salvar», «compartilhar», «celular», «tela», «arquivo».
- * Los nombres de Weë (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls) y «Travel Safe» no se traducen.
+ * Los nombres de Weë (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls) y «Travel Safe» no se traducen.
  */
 export const travel: typeof import('../es/travel').travel = {
   // Portada
@@ -741,9 +741,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Qual foi a melhor parte de hoje?',
   saveEntry: 'Salvar entrada',
   journalEmpty: 'Seu diário está vazio. Escreva a primeira entrada.',
-  videoMemoriesDemo: 'DEMO: os vídeos são criados no Weë Studio, com suas próprias fotos e clipes.',
+  videoMemoriesDemo: 'DEMO: os vídeos são criados no WeëStudio, com suas próprias fotos e clipes.',
   videoOf: 'O vídeo de {{viaje}}',
-  createInStudio: 'Criar no Weë Studio',
+  createInStudio: 'Criar no WeëStudio',
   countriesVisited_one: '{{contador}} país visitado',
   countriesVisited_other: '{{contador}} países visitados',
   recapTitle: 'Sua viagem para {{viaje}}',

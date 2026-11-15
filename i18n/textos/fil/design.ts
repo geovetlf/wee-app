@@ -2,7 +2,7 @@
  * FILIPINO — WEË DESIGN: diseñar y visualizar casi cualquier cosa física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Weë Design comparte con Weë Studio —"Mis creaciones", "Ver todas", "Creando...", "Creación lista"— vive en
+ * Lo que WeëDesign comparte con WeëStudio —"Mis creaciones", "Ver todas", "Creando...", "Creación lista"— vive en
  * `studio` y se lee de allí.
  *
  * «Diseñar» es «disenyo» / «idisenyo» / «magdisenyo», la palabra adaptada que ya usa `catalogo` (nunca
@@ -24,7 +24,7 @@
  * «Un envase», «Packaging ng produkto»; «Un recorrido», «Isang virtual tour»; «Un antes y después», «Dati at
  * pagkatapos» (glosario 11.10, como `studio.xpBeforeAfter`).
  *
- * Las tres luces dicen que son luz, como en Weë Studio: «Natural na ilaw» y «Ilaw ng studio» son `studio.ltNatural`
+ * Las tres luces dicen que son luz, como en WeëStudio: «Natural na ilaw» y «Ilaw ng studio» son `studio.ltNatural`
  * y `studio.ltStudio`, y la cálida, «Mainit na ilaw» (las «maiinit na kulay» de `studio.sampleWarmRoom`); el grupo es
  * «Ilaw» (`studio.ctlLighting`). «Minimalista» es «Minimalist» (`studio.valMinimal`); «Mixtos», «Pinaghalo».
  * «Moderno» se queda «Moderno», la palabra filipina que ya dicen «Isang modernong bahay» (`arHouse`), `catalogo` y

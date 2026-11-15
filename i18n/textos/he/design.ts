@@ -9,7 +9,7 @@
  * («Un salón», «Una silla»…) van sin artículo, como sustantivo escueto, porque el
  * hebreo no tiene artículo indefinido. Los valores de tono concuerdan con su
  * ajuste: la iluminación («תאורה», f.) es «טבעית / חמה / אולפן». «3D» queda en
- * latino con guion («רנדרים ו-3D»). «Weë Design» no aparece aquí: es marca y
+ * latino con guion («רנדרים ו-3D»). «WeëDesign» no aparece aquí: es marca y
  * la pantalla la pinta aparte.
  */
 export const design: typeof import('../es/design').design = {

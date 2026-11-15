@@ -1,4 +1,4 @@
-/* pt — Weë Music: capa, Composer, workstation e ferramentas, em português do Brasil (tratamento «você»). «Weë Music» e os nomes dos provedores são marcas e não se traduzem. Tipado contra o espanhol. Pendente de revisão por um falante nativo. */
+/* pt — WeëMusic: capa, Composer, workstation e ferramentas, em português do Brasil (tratamento «você»). «WeëMusic» e os nomes dos provedores são marcas e não se traduzem. Tipado contra o espanhol. Pendente de revisão por um falante nativo. */
 export const music: typeof import('../es/music').music = {
   tagline: 'Sua ideia. Seu som. Sem limites.',
   intro: 'Crie músicas a partir de uma ideia, de uma letra ou de uma melodia, e edite-as por seções.',
@@ -6,7 +6,7 @@ export const music: typeof import('../es/music').music = {
   ctaCreate: 'Criar música',
   demoPrompt: 'Que música você quer criar?',
   chooseTitle: 'Escolha como começar',
-  skillsTitle: 'O que o Weë Music pode fazer',
+  skillsTitle: 'O que o WeëMusic pode fazer',
   recentTitle: 'Músicas recentes',
   viewExample: 'Ver um exemplo de design',
   honestyNote: 'Hoje você pode preparar sua música, gravar uma melodia de referência e pedir orientação ao Weë Brain. A criação da música será ativada quando estiver conectada e validada.',
@@ -14,7 +14,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Seus áudios e músicas salvos.',
   openProjects: 'Meus projetos',
   openProjectsHelp: 'Organize suas músicas em projetos.',
-  backToMusic: 'Voltar ao Weë Music',
+  backToMusic: 'Voltar ao WeëMusic',
   composerTitle: 'Criar música',
   modesLabel: 'Modo',
   modeSimple: 'Simples',
@@ -300,7 +300,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'O processamento de áudio é uma capacidade pendente: aqui só o contrato é preparado.',
 
   voiceInterpretation: 'Estilo de interpretação',
-  voiceNoClone: 'O Weë Music não clona nem imita vozes de pessoas: apenas escolhe características vocais gerais.',
+  voiceNoClone: 'O WeëMusic não clona nem imita vozes de pessoas: apenas escolhe características vocais gerais.',
   voiceStylePending: 'O estilo de interpretação depende do motor e ainda não está disponível.',
   styleTitle: 'Gênero e estilo',
   transformTitle: 'Transformações',

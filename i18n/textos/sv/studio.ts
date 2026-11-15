@@ -1,5 +1,5 @@
 /*
- * SUECO — Weë Studio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
+ * SUECO — WeëStudio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -17,7 +17,7 @@
  * esos adjetivos van en neutro —«Mjukt», «Normalt», «Långsamt», «Snabbt», «Dramatiskt»— y una sola forma sirve en
  * todas; en «Rörelse» se leen como adverbio («se mueve suave»). La composición («komposition», común) concuerda en
  * común: «Centrerad», «Symmetrisk», «Luftig». «Natural» se separa A PROPÓSITO: la luz es «Naturligt ljus», como en
- * Weë Design (`design.valNatural`), y el ritmo, «Naturligt», porque ahí es un movimiento y no una luz.
+ * WeëDesign (`design.valNatural`), y el ritmo, «Naturligt», porque ahí es un movimiento y no una luz.
  *
  * «Formato» es «Format», con «Kvadrat», «Stående» y «Liggande», como la cámara y la impresora en sueco. «Estándar»
  * es «Normal», como la calidad de Spotify. La longitud es «Kort», «Halvlång» y «Lång», las mismas palabras que el
@@ -30,7 +30,7 @@
  * Se escriben igual que en español o en inglés porque ES la palabra sueca: «Format», «Text», «Video», «Neutral»,
  * «Accent», «Timelapse», «Outfit» y «Styling».
  *
- * QUÉ NO ESTÁ AQUÍ: «Weë Studio» y «Writer», que son marca, ni los formatos —PDF, MP4, 16:9—, que no cambian.
+ * QUÉ NO ESTÁ AQUÍ: «WeëStudio» y «Writer», que son marca, ni los formatos —PDF, MP4, 16:9—, que no cambian.
  */
 export const studio: typeof import('../es/studio').studio = {
   /* ── La cabecera ──────────────────────────────────────────────────────── */
@@ -253,7 +253,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Snart',
   soonHint: 'Det här verktyget har redan sin plats. Det behöver bara kopplas in.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Text',
   textHint: 'Skriv vad du vill',
   exploreTitle: 'Utforska',

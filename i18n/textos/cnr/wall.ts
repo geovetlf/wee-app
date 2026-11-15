@@ -1,5 +1,5 @@
 /*
- * MONTENEGRINO — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * MONTENEGRINO — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Ijekaviano, latino. Tipado contra el español CON PLURALES: `ConPlurales`
  * deja añadir la forma `_few` (2-4, 22-24…) a `pollVotes`, `pollDaysLeft` y
@@ -84,8 +84,8 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demo',
   demoBadgeLabel: 'Demo sadržaj',
-  immersiveEmpty: 'Wäll još nema objava',
-  immersiveError: 'Nijesmo mogli da učitamo Wäll',
+  immersiveEmpty: 'Ẅall još nema objava',
+  immersiveError: 'Nijesmo mogli da učitamo Ẅall',
   immersiveEnd: 'To je sve za sada',
   agreePost: 'Slažem se',
   disagreePost: 'Ne slažem se',

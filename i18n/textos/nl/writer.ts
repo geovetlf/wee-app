@@ -1,5 +1,5 @@
 /*
- * NEERLANDÉS — Weë Writer, dentro de Weë Studio. El texto de la persona no pasa por aquí. Tipado contra el español.
+ * NEERLANDÉS — Weë Writer, dentro de WeëStudio. El texto de la persona no pasa por aquí. Tipado contra el español.
  * Las metas (`*Goal`) van a Weë Brain como frase natural; botones en infinitivo.
  */
 export const writer: typeof import('../es/writer').writer = {

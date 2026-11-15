@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * Se tutea («du») y las comillas son ”…” (guía § 5). Los nombres de Weë (Weë, WeëTravel, Weë Brain, Weë Studio,
+ * Se tutea («du») y las comillas son ”…” (guía § 5). Los nombres de Weë (Weë, WeëTravel, Weë Brain, WeëStudio,
  * Weëls), «Travel Safe» y la etiqueta «DEMO» no se traducen. Los lugares van con su nombre danés («Lissabon»,
  * «Reykjavik»); los platos, con su nombre local. «Presupuesto» es «budget» (DDO), como en el resto de la app.
  */
@@ -743,9 +743,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Hvad var det bedste i dag?',
   saveEntry: 'Gem indlæg',
   journalEmpty: 'Din dagbog er tom. Skriv det første indlæg.',
-  videoMemoriesDemo: 'DEMO: videoerne laves i Weë Studio med dine egne billeder og klip.',
+  videoMemoriesDemo: 'DEMO: videoerne laves i WeëStudio med dine egne billeder og klip.',
   videoOf: 'Videoen fra {{viaje}}',
-  createInStudio: 'Lav i Weë Studio',
+  createInStudio: 'Lav i WeëStudio',
   countriesVisited_one: '{{contador}} land besøgt',
   countriesVisited_other: '{{contador}} lande besøgt',
   recapTitle: 'Din rejse til {{viaje}}',

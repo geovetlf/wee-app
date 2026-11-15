@@ -33,7 +33,7 @@
  *
  * LOS FORMATOS se dicen como los dice quien publica en Filipinas: el sustantivo y la red con «sa» —«Story sa
  * Instagram», «Post sa Facebook», «Video sa Instagram»— (guía § 6, «request sa ËContact»); y nunca «Reel», porque en
- * Weë los videos cortos son Weëls. El vídeo horizontal es «Pahigang video» (glosario, Weë Studio).
+ * Weë los videos cortos son Weëls. El vídeo horizontal es «Pahigang video» (glosario, WeëStudio).
  *
  * EJEMPLOS, A LA FILIPINA, como en el catálogo: los postres que se venden desde casa son «gawang-bahay na leche
  * flan» y la torta del Día de la Madre, un «cake» para el «Mother’s Day», que es como lo dice la gente. El inciso con
@@ -197,11 +197,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Ibahagi',
   shareHint: 'Bubukas ang mga opsyon sa pagbabahagi ng phone mo: piliin ang app na gusto mo.',
   shareToWee: 'Ibahagi sa Weë',
-  shareWall: 'Wäll ko',
+  shareWall: 'Ẅall ko',
   shareCommunities: 'Mga komunidad',
   shareProfile: 'Business Profile',
   shareNothing: 'Gumawa ka muna ng kahit ano, saka mo ito ibahagi mula dito.',
-  shareText: 'Ginawa gamit ang Weë Fashion',
+  shareText: 'Ginawa gamit ang WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'I-upload ang data ko',

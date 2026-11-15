@@ -4,7 +4,7 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Registro 해요체 para la interfaz y forma nominal corta en los botones
  * (만들기, 완료, 추가). Los formatos —PDF, MP4, 16:9— no cambian de idioma, y
- * "Weë Studio" y "Writer" son marca: van en alfabeto latino dentro de la frase
+ * "WeëStudio" y "Writer" son marca: van en alfabeto latino dentro de la frase
  * en hangul, nunca transliterados. Lo que sí es coreano son las unidades: los
  * segundos van con 초 pegado al número, sin espacio.
  *
@@ -244,7 +244,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: '준비 중',
   soonHint: '이 도구는 자리를 잡았어요. 연결만 남았어요.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: '텍스트',
   textHint: '어떤 글이든 써요',
   exploreTitle: '더 보기',

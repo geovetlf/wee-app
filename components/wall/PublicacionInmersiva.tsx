@@ -46,7 +46,7 @@ import { RellenoDeMarca } from '../GradienteDeMarca';
  */
 
 const isWeb = Platform.OS === 'web';
-/* El acento del Wäll sale del token de marca (constants/marca.ts, 2026-11-05). */
+/* El acento del Ẅall sale del token de marca (constants/marca.ts, 2026-11-05). */
 const DORADO = MARCA.primario;
 
 interface Props {

@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Trato de «вы» en minúscula, con imperativo directo donde el ruso lo pide.
- * Los formatos —PDF, MP4— no cambian de idioma y "Weë Studio" y "Writer" son
+ * Los formatos —PDF, MP4— no cambian de idioma y "WeëStudio" y "Writer" son
  * marca: se escriben en alfabeto latino dentro de la frase cirílica, nunca
  * transliterados. Lo que sí es ruso son las unidades: los segundos van en «с».
  *
@@ -242,7 +242,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   soon: 'Скоро',
   soonHint: 'У этого инструмента уже есть своё место. Осталось его подключить.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Текст',
   textHint: 'Напишите любой текст',
   exploreTitle: 'Ещё',

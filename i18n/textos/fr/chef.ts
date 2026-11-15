@@ -2,7 +2,7 @@
  * FRANCÉS — WEË CHEF: el sitio donde se cocina.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Chef comparte con Weë Studio —"Ver todos", "Ajustes", "Listo"— vive en
+ * Lo que Chef comparte con WeëStudio —"Ver todos", "Ajustes", "Listo"— vive en
  * `studio`, y las siete funciones que ya existían siguen en `weeai.chefAc…`.
  */
 export const chef: typeof import('../es/chef').chef = {

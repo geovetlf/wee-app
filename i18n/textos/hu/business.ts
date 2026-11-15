@@ -153,11 +153,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Megosztás',
   shareHint: 'Megnyílik a telefonod megosztási menüje: válaszd ki a kívánt alkalmazást.',
   shareToWee: 'Megosztás a Weë-n',
-  shareWall: 'Saját Wäll',
+  shareWall: 'Saját Ẅall',
   shareCommunities: 'Közösségek',
   shareProfile: 'Business Profile',
   shareNothing: 'Előbb hozz létre valamit, aztán innen megoszthatod.',
-  shareText: 'Készült a Weë Fashion segítségével',
+  shareText: 'Készült a WeëFashion segítségével',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Adataim feltöltése',

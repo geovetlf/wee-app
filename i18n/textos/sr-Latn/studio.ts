@@ -7,7 +7,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tuteo («ti») e imperativo de 2.ª singular en los botones. Los formatos —PDF,
- * MP4— y las marcas —Weë Studio, Writer, Beauty, Fashion, 3D World— se escriben
+ * MP4— y las marcas —WeëStudio, Writer, Beauty, Fashion, 3D World— se escriben
  * en latino dentro de la frase cirílica. Los segundos van en «s».
  *
  * PLURALES: el serbio tiene one / few / other donde el español tiene dos, así
@@ -242,7 +242,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   soon: 'Uskoro',
   soonHint: 'Ovaj alat već ima svoje mesto. Ostalo je da se poveže.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Tekst',
   textHint: 'Napiši bilo kakav sadržaj',
   exploreTitle: 'Istraži',

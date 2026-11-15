@@ -1,5 +1,5 @@
 /*
- * CHINO SIMPLIFICADO — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * CHINO SIMPLIFICADO — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign, WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -12,7 +12,7 @@
  * e Instagram se quedan igual, con un espacio entre el hanzi y el latín.
  *
  * En `tellTheSpecialist` el hueco es un nombre de marca en alfabeto latino, así que
- * va suelto entre espacios: «告诉 Weë Design 你想做什么».
+ * va suelto entre espacios: «告诉 WeëDesign 你想做什么».
  */
 export const creator: typeof import('../es/creator').creator = {
   design: 'Logo、海报、插画，还有社交媒体素材',
@@ -59,10 +59,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: '不知道从哪里开始',
   brainEx2: '用简单的话讲给我听',
   brainEx3: '翻译这段文字',
-  areaStudioPhotos: 'Weë Studio · 照片',
-  areaStudioVideos: 'Weë Studio · 视频',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · 家居与设计',
+  areaStudioPhotos: 'WeëStudio · 照片',
+  areaStudioVideos: 'WeëStudio · 视频',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · 家居与设计',
   areaHomeName: '家居与设计',
   tellTheSpecialist: '告诉 {{especialista}} 你想做什么：它会问你两三个简单的问题，剩下的交给它。做好之后可以直接发到你的社区。',
   exampleQuoted: '“{{ejemplo}}”',

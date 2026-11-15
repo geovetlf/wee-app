@@ -1,5 +1,5 @@
 /*
- * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — El Ẅall: la publicación y todo lo que se puede hacer con ella.
  * Traducción hecha por agentes de IA, SIN revisión humana nativa (2026-11-03).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
@@ -83,8 +83,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada con is/kl, 2026-11-05: traducción de IA, SIN revisión humana nativa. */
   demoBadge: 'Misiligut',
   demoBadgeLabel: 'Misiligutitut imaq',
-  immersiveEmpty: 'Wäll suli saqqummiussaqanngilaq',
-  immersiveError: 'Ammaanneq iluatsinngilaq: Wäll',
+  immersiveEmpty: 'Ẅall suli saqqummiussaqanngilaq',
+  immersiveError: 'Ammaanneq iluatsinngilaq: Ẅall',
   immersiveEnd: 'Tamaasa takusimavatit',
   agreePost: 'Isumaqatigaara',
   disagreePost: 'Isumaqatiginngilara',

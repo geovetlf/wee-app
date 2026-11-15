@@ -1,5 +1,5 @@
 /*
- * ko — Weë Music: 첫 화면, Composer, 워크스테이션, 도구. «Weë Music»과 제공업체 이름은 브랜드이므로 번역하지 않습니다.
+ * ko — WeëMusic: 첫 화면, Composer, 워크스테이션, 도구. «WeëMusic»과 제공업체 이름은 브랜드이므로 번역하지 않습니다.
  * 스페인어 기준으로 타입이 지정됩니다. 원어민 검수 대기 중입니다.
  */
 export const music: typeof import('../es/music').music = {
@@ -9,7 +9,7 @@ export const music: typeof import('../es/music').music = {
   ctaCreate: '음악 만들기',
   demoPrompt: '어떤 음악을 만들고 싶나요?',
   chooseTitle: '시작 방법을 골라 주세요',
-  skillsTitle: 'Weë Music으로 할 수 있는 것',
+  skillsTitle: 'WeëMusic으로 할 수 있는 것',
   recentTitle: '최근 노래',
   viewExample: '디자인 예시 보기',
   honestyNote: '지금은 노래를 준비하고, 참고용 멜로디를 녹음하고, Weë Brain에게 조언을 구할 수 있어요. 노래 만들기는 연결과 검증이 끝나면 활성화돼요.',
@@ -17,7 +17,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: '저장한 오디오와 노래예요.',
   openProjects: '내 프로젝트',
   openProjectsHelp: '노래를 프로젝트로 정리해 보세요.',
-  backToMusic: 'Weë Music으로 돌아가기',
+  backToMusic: 'WeëMusic으로 돌아가기',
   composerTitle: '음악 만들기',
   modesLabel: '모드',
   modeSimple: '간단',
@@ -303,7 +303,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: '오디오 처리는 아직 준비 중인 기능이에요. 여기서는 규격만 준비해 둬요.',
 
   voiceInterpretation: '가창 스타일',
-  voiceNoClone: 'Weë Music은 실제 사람의 목소리를 복제하거나 흉내 내지 않아요. 일반적인 보컬 특성만 고를 수 있어요.',
+  voiceNoClone: 'WeëMusic은 실제 사람의 목소리를 복제하거나 흉내 내지 않아요. 일반적인 보컬 특성만 고를 수 있어요.',
   voiceStylePending: '가창 스타일은 엔진에 따라 달라서 아직 사용할 수 없어요.',
   styleTitle: '장르와 스타일',
   transformTitle: '변형',

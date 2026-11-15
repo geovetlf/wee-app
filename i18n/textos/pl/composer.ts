@@ -34,7 +34,7 @@ export const composer: ConPlurales<typeof import('../es/composer').composer> = {
   showOptions: 'Pokaż opcje publikowania',
   hideOptions: 'Ukryj opcje publikowania',
   currentDestination: '{{destino}}, bieżące miejsce publikacji',
-  generalWall: 'Ogólny Wäll',
+  generalWall: 'Ogólny Ẅall',
   placeholderPollExtra: 'Dodaj coś jeszcze, jeśli chcesz (opcjonalnie)…',
   placeholderQuestion: 'O co chcesz zapytać społeczność?',
   placeholderWeel: 'Opowiedz, jak powstał ten Weël i z pomocą jakiej AI…',

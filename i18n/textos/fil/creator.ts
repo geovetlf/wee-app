@@ -1,13 +1,13 @@
 /*
  * FILIPINO — lo que describe cada experiencia de Weë AI y los ejemplos que se tocan para empezar. Los nombres
- * —Weë Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * —WeëDesign, WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * LAS DESCRIPCIONES son listas cortas con las palabras del glosario y del catálogo (`catalogo.ts`): «larawan»,
  * «content», «social media», «script», «recipe», «resume» (el CV en Filipinas), «presentation», «makeup»,
  * «makeover», «outfit», «interior design», «narasyon». Las de verbos coordinados comparten foco (§ 3.1 y cabecera del
- * catálogo): «Likhain at baguhin ang…», «Pagandahin, i-restore at baguhin ang…». La de Weë Travel repite el arranque
+ * catálogo): «Likhain at baguhin ang…», «Pagandahin, i-restore at baguhin ang…». La de WeëTravel repite el arranque
  * del catálogo, «Ihanda ang biyahe mo», y «cómo moverte» es «paano lumibot».
  *
  * LOS EJEMPLOS hablan con la voz de la persona, como se escribiría en una caja de Weë AI, y dicen lo mismo que sus
@@ -16,9 +16,9 @@
  * ko». Se adapta lo que el calco no serviría: el patio es la «bakuran», la música de fondo «background music» y «Mi CV
  * actualizado», «I-update ang resume ko». Un Weël es «Weël», sin nada pegado.
  *
- * LAS ÁREAS se traducen porque se leen; la marca de delante no: «Weë Studio · Mga larawan», «Weë Studio · Mga
- * video», «Weë Studio · Pagpapaganda» (el «Beauty» del español es el nombre del área, no la marca Weë Beauty, igual
- * que en el catálogo) y «Weë Design · Bahay at disenyo», el nombre que el catálogo da a «Hogar & Diseño», con «at» en
+ * LAS ÁREAS se traducen porque se leen; la marca de delante no: «WeëStudio · Mga larawan», «WeëStudio · Mga
+ * video», «WeëStudio · Pagpapaganda» (el «Beauty» del español es el nombre del área, no la marca Weë Beauty, igual
+ * que en el catálogo) y «WeëDesign · Bahay at disenyo», el nombre que el catálogo da a «Hogar & Diseño», con «at» en
  * vez de «&».
  *
  * `tellTheSpecialist` nombra al especialista con su marcador de cosa («Sabihin sa {{especialista}}…», § 6) y luego lo
@@ -69,10 +69,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Hindi ko alam kung saan magsisimula',
   brainEx2: 'Ipaliwanag ito sa akin nang simple',
   brainEx3: 'Isalin ang text na ito',
-  areaStudioPhotos: 'Weë Studio · Mga larawan',
-  areaStudioVideos: 'Weë Studio · Mga video',
-  areaStudioBeauty: 'Weë Studio · Pagpapaganda',
-  areaDesignHome: 'Weë Design · Bahay at disenyo',
+  areaStudioPhotos: 'WeëStudio · Mga larawan',
+  areaStudioVideos: 'WeëStudio · Mga video',
+  areaStudioBeauty: 'WeëStudio · Pagpapaganda',
+  areaDesignHome: 'WeëDesign · Bahay at disenyo',
   areaHomeName: 'Bahay at disenyo',
   tellTheSpecialist: 'Sabihin sa {{especialista}} kung ano ang gusto mong gawin: magtatanong ito ng dalawa o tatlong simpleng tanong at ito na ang bahala sa iba pa. Pagkatapos, puwede mo itong i-post agad sa komunidad mo.',
   exampleQuoted: '“{{ejemplo}}”',

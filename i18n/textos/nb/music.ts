@@ -1,7 +1,7 @@
 /*
- * NORSK (BOKMÅL) — Weë Music: forside, Composer, workstation og verktøy. Tipado contra el español.
+ * NORSK (BOKMÅL) — WeëMusic: forside, Composer, workstation og verktøy. Tipado contra el español.
  *
- * «Weë Music» es marca y no se traduce; tampoco los nombres de los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs).
+ * «WeëMusic» es marca y no se traduce; tampoco los nombres de los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs).
  * Se tutea («du»); botones en imperativo. Sin artículo ni genitivo pegado a la marca. Términos: canción = sang,
  * letra = sangtekst, pista separada = separat spor, motor = motor, borrador = utkast, IA = KI. «MIDI», «Pop», «Rock»,
  * «Jazz», «R&B», «Hiphop», «Remix», «Intro», «Outro», «Solo» y «Tempo» se dejan como los usa la música en noruego.
@@ -13,7 +13,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Fortell meg ideen din eller nynn en melodi, og forbered sangen din steg for steg.',
   ctaCreate: 'Lag musikk',
   chooseTitle: 'Velg hvordan du vil starte',
-  skillsTitle: 'Hva Weë Music kan gjøre',
+  skillsTitle: 'Hva WeëMusic kan gjøre',
   recentTitle: 'Nylige sanger',
   viewExample: 'Se et designeksempel',
   honestyNote: 'I dag kan du forberede sangen din, ta opp en referansemelodi og be Weë Brain om veiledning. Å lage selve sangen blir slått på når det er koblet til og validert.',
@@ -21,7 +21,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Lydene og sangene du har lagret.',
   openProjects: 'Mine prosjekter',
   openProjectsHelp: 'Organiser sangene dine i prosjekter.',
-  backToMusic: 'Tilbake til Weë Music',
+  backToMusic: 'Tilbake til WeëMusic',
   composerTitle: 'Lag musikk',
   modesLabel: 'Modus',
   modeSimple: 'Enkel',
@@ -307,7 +307,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Lydbehandling er en funksjon som venter: her forberedes bare kontrakten.',
 
   voiceInterpretation: 'Framføringsstil',
-  voiceNoClone: 'Weë Music kloner eller etterligner ikke stemmene til ekte personer: den velger bare generelle vokale egenskaper.',
+  voiceNoClone: 'WeëMusic kloner eller etterligner ikke stemmene til ekte personer: den velger bare generelle vokale egenskaper.',
   voiceStylePending: 'Framføringsstilen avhenger av motoren og er ikke tilgjengelig ennå.',
   styleTitle: 'Sjanger og stil',
   transformTitle: 'Forvandlinger',

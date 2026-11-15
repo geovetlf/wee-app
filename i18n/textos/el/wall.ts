@@ -1,5 +1,5 @@
 /*
- * GRIEGO — El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * GRIEGO — El Ẅall: la publicación y todo lo que se puede hacer con ella.
  * Tipado contra el español.
  *
  * «CÓMO LO HICE» va en mayúsculas sostenidas como en el español, sin tildes
@@ -78,8 +78,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demo',
   demoBadgeLabel: 'Περιεχόμενο επίδειξης',
-  immersiveEmpty: 'Δεν υπάρχουν ακόμα αναρτήσεις στο Wäll',
-  immersiveError: 'Δεν μπορέσαμε να φορτώσουμε το Wäll',
+  immersiveEmpty: 'Δεν υπάρχουν ακόμα αναρτήσεις στο Ẅall',
+  immersiveError: 'Δεν μπορέσαμε να φορτώσουμε το Ẅall',
   immersiveEnd: 'Τα είδες όλα',
   agreePost: 'Συμφωνώ',
   disagreePost: 'Διαφωνώ',

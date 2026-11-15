@@ -183,10 +183,10 @@ export const weeai: typeof import('../es/weeai').weeai = {
   couldNotCalculateRetry: 'Vi kunne ikke beregne prisen. Prøv igen.',
   expandSection: '{{titulo}}. Vis {{contenido}}',
   collapseSection: '{{titulo}}. Skjul {{contenido}}',
-  openTravel_one: '{{titulo}}. Åbn Weë Travel: feltet til din rejse og måden at komme i gang på',
-  openTravel_other: '{{titulo}}. Åbn Weë Travel: feltet til din rejse og de {{contador}} måder at komme i gang på',
-  closeTravel_one: '{{titulo}}. Skjul Weë Travel: feltet til din rejse og måden at komme i gang på',
-  closeTravel_other: '{{titulo}}. Skjul Weë Travel: feltet til din rejse og de {{contador}} måder at komme i gang på',
+  openTravel_one: '{{titulo}}. Åbn WeëTravel: feltet til din rejse og måden at komme i gang på',
+  openTravel_other: '{{titulo}}. Åbn WeëTravel: feltet til din rejse og de {{contador}} måder at komme i gang på',
+  closeTravel_one: '{{titulo}}. Skjul WeëTravel: feltet til din rejse og måden at komme i gang på',
+  closeTravel_other: '{{titulo}}. Skjul WeëTravel: feltet til din rejse og de {{contador}} måder at komme i gang på',
   tellWeeTheTrip: 'Fortæl Weë om rejsen',
   theMotto: 'Du vælger resultatet. Weë vælger den rette AI.',
   trySearchWords: 'Prøv med ord som logo, video, foto, blog, podcast, look, menu, hotel eller marketing. Eller spørg Weë Brain.',
@@ -264,7 +264,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   durationSeconds: '{{segundos}} s',
   volumeDiscount: '−{{descuento}} % mængderabat',
   createWork: 'Lav det',
-  /* ── Weë Travel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
+  /* ── WeëTravel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
   travelHeroLine1: 'Planlæg din rejse',
   travelHeroLine2: 'med en,',
   travelHeroAccent: 'der har været der.',

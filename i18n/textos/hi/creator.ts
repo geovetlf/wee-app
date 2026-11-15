@@ -1,6 +1,6 @@
 /*
  * HINDI — lo que describe cada experiencia de WEË AI y los ejemplos que se tocan
- * para empezar. Los nombres —Weë Design, Weë Studio…— son marca y viven en
+ * para empezar. Los nombres —WeëDesign, WeëStudio…— son marca y viven en
  * constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
@@ -17,9 +17,9 @@
  * se queda en sigla latina («CV», guía § 3 c), como en studio, business y catalogo; la «sala» es el «लिविंग रूम», el «patio», el «आँगन»,
  * y «Quitar algo que sobra en la foto» es «फ़ोटो से कोई अनचाही चीज़ हटाएँ».
  *
- * Las áreas se traducen porque se leen; la marca de delante no: «Weë Studio ·
- * फ़ोटो», «Weë Studio · ब्यूटी» (el «Beauty» del español es el nombre del área,
- * no la marca Weë Beauty) y «Weë Design · घर और डिज़ाइन», con «और» en lugar de
+ * Las áreas se traducen porque se leen; la marca de delante no: «WeëStudio ·
+ * फ़ोटो», «WeëStudio · ब्यूटी» (el «Beauty» del español es el nombre del área,
+ * no la marca Weë Beauty) y «WeëDesign · घर और डिज़ाइन», con «और» en lugar de
  * «&» (guía § 7). `areaHomeName` firma también las burbujas de la conversación.
  * En `tellTheSpecialist` el especialista es una marca, así que la posposición va
  * separada («{{especialista}} को बताएँ») y, cuando actúa, concuerda en masculino
@@ -71,10 +71,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'पता नहीं कहाँ से शुरू करें',
   brainEx2: 'मुझे यह आसान भाषा में समझाएँ',
   brainEx3: 'इस टेक्स्ट का अनुवाद करें',
-  areaStudioPhotos: 'Weë Studio · फ़ोटो',
-  areaStudioVideos: 'Weë Studio · वीडियो',
-  areaStudioBeauty: 'Weë Studio · ब्यूटी',
-  areaDesignHome: 'Weë Design · घर और डिज़ाइन',
+  areaStudioPhotos: 'WeëStudio · फ़ोटो',
+  areaStudioVideos: 'WeëStudio · वीडियो',
+  areaStudioBeauty: 'WeëStudio · ब्यूटी',
+  areaDesignHome: 'WeëDesign · घर और डिज़ाइन',
   areaHomeName: 'घर और डिज़ाइन',
   tellTheSpecialist: '{{especialista}} को बताएँ कि आपको क्या चाहिए: वह आपसे दो-तीन आसान सवाल पूछेगा और बाकी सब खुद संभाल लेगा. फिर सीधे अपनी कम्यूनिटी में पोस्ट करें.',
   exampleQuoted: '“{{ejemplo}}”',

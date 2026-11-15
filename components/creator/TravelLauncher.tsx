@@ -14,7 +14,7 @@ import TravelMark from './TravelMark';
 import CajaDePrompt from './CajaDePrompt';
 
 /*
- * ─── Weë Travel, plegado en una fila ────────────────────────────────────────
+ * ─── WeëTravel, plegado en una fila ────────────────────────────────────────
  *
  * Todo lo que Travel sabe hacer cabe detrás de una sola fila: el nombre de la
  * sección, la frase para contarle un viaje a Weë, los ejemplos y las cuatro
@@ -150,7 +150,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
           ]}
         >
           {/*
-            La misma caja que Weë Studio y Weë Design (decisión del usuario,
+            La misma caja que WeëStudio y WeëDesign (decisión del usuario,
             2026-09-15). Antes era una píldora de una línea con el botón al lado;
             un viaje se cuenta en varias líneas, y ahora la caja crece con ellas.
           */}

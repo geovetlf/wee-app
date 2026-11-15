@@ -1,5 +1,5 @@
 /*
- * NORUEGO BOKMÅL — el Wäll: la publicación y todo lo que se puede hacer con
+ * NORUEGO BOKMÅL — el Ẅall: la publicación y todo lo que se puede hacer con
  * ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
@@ -82,8 +82,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demo',
   demoBadgeLabel: 'Demoinnhold',
-  immersiveEmpty: 'Det er ingen innlegg på Wäll ennå',
-  immersiveError: 'Vi kunne ikke laste Wäll',
+  immersiveEmpty: 'Det er ingen innlegg på Ẅall ennå',
+  immersiveError: 'Vi kunne ikke laste Ẅall',
   immersiveEnd: 'Du har sett alt',
   agreePost: 'Enig',
   disagreePost: 'Uenig',

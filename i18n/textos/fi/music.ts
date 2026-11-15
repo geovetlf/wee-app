@@ -1,9 +1,9 @@
 /*
- * SUOMI — Weë Music: etusivu, Composer, workstation ja työkalut. Tipado contra el español.
+ * SUOMI — WeëMusic: etusivu, Composer, workstation ja työkalut. Tipado contra el español.
  *
- * «Weë Music» es marca y no se traduce; tampoco los nombres de los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs).
+ * «WeëMusic» es marca y no se traduce; tampoco los nombres de los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs).
  * Se tutea («sinä», casi siempre omitido). Ninguna terminación de caso se pega a un {{hueco}} ni a una marca: la marca va
- * con un sustantivo finés con guion («Weë Brain -avustajalta», «Weë Music -etusivulle») o en forma de etiqueta
+ * con un sustantivo finés con guion («Weë Brain -avustajalta», «WeëMusic -etusivulle») o en forma de etiqueta
  * («Äänenvoimakkuus: {{instrumento}}»). Términos: canción = kappale, letra = sanoitus, pista separada = erillinen raita,
  * motor = moottori, borrador = luonnos, IA = tekoäly. «MIDI», «Pop», «Rock», «Jazz», «R&B», «Hip hop», «Remix» y
  * «Folk» se dejan como los usa la música en finés. Hecho por agentes, SIN revisión humana nativa.
@@ -14,7 +14,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Kerro ideasi tai hyräile melodia, ja valmistele kappaleesi vaihe vaiheelta.',
   ctaCreate: 'Luo musiikkia',
   chooseTitle: 'Valitse, miten aloitat',
-  skillsTitle: 'Mitä Weë Music osaa',
+  skillsTitle: 'Mitä WeëMusic osaa',
   recentTitle: 'Viimeisimmät kappaleet',
   viewExample: 'Katso suunnitteluesimerkki',
   honestyNote: 'Tänään voit valmistella kappaleesi, äänittää referenssimelodian ja kysyä neuvoa Weë Brain -avustajalta. Kappaleen luonti otetaan käyttöön, kun se on yhdistetty ja varmennettu.',
@@ -22,7 +22,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Tallentamasi äänet ja kappaleet.',
   openProjects: 'Omat projektit',
   openProjectsHelp: 'Järjestä kappaleesi projekteiksi.',
-  backToMusic: 'Takaisin Weë Music -etusivulle',
+  backToMusic: 'Takaisin WeëMusic -etusivulle',
   composerTitle: 'Luo musiikkia',
   modesLabel: 'Tila',
   modeSimple: 'Yksinkertainen',
@@ -308,7 +308,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Äänenkäsittely on odottava ominaisuus: tässä valmistellaan vain sopimus.',
 
   voiceInterpretation: 'Tulkintatyyli',
-  voiceNoClone: 'Weë Music ei kloonaa eikä jäljittele ihmisten ääniä: se valitsee vain yleisiä äänen ominaisuuksia.',
+  voiceNoClone: 'WeëMusic ei kloonaa eikä jäljittele ihmisten ääniä: se valitsee vain yleisiä äänen ominaisuuksia.',
   voiceStylePending: 'Tulkintatyyli riippuu moottorista, eikä se ole vielä käytettävissä.',
   styleTitle: 'Tyylilaji ja tyyli',
   transformTitle: 'Muunnokset',

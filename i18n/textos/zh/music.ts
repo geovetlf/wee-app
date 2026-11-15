@@ -1,5 +1,5 @@
 /*
- * zh — Weë Music：首页、Composer、工作站和工具。«Weë Music» 和服务商名称都是品牌，不翻译。
+ * zh — WeëMusic：首页、Composer、工作站和工具。«WeëMusic» 和服务商名称都是品牌，不翻译。
  * 以西班牙语为类型基准。等待母语者审校。
  */
 export const music: typeof import('../es/music').music = {
@@ -9,7 +9,7 @@ export const music: typeof import('../es/music').music = {
   ctaCreate: '创作音乐',
   demoPrompt: '你想创作什么音乐？',
   chooseTitle: '选择开始方式',
-  skillsTitle: 'Weë Music 能做什么',
+  skillsTitle: 'WeëMusic 能做什么',
   recentTitle: '最近的歌曲',
   viewExample: '查看设计示例',
   honestyNote: '现在你可以准备歌曲、录制一段参考旋律，并向 Weë Brain 寻求建议。歌曲的生成功能将在接入并验证后开启。',
@@ -17,7 +17,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: '你保存的音频和歌曲。',
   openProjects: '我的项目',
   openProjectsHelp: '把你的歌曲整理到项目中。',
-  backToMusic: '返回 Weë Music',
+  backToMusic: '返回 WeëMusic',
   composerTitle: '创作音乐',
   modesLabel: '模式',
   modeSimple: '简单',
@@ -303,7 +303,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: '音频处理是尚未开放的功能：这里只准备了接口约定。',
 
   voiceInterpretation: '演绎风格',
-  voiceNoClone: 'Weë Music 不会克隆或模仿真人的声音，只会选择通用的人声特征。',
+  voiceNoClone: 'WeëMusic 不会克隆或模仿真人的声音，只会选择通用的人声特征。',
   voiceStylePending: '演绎风格取决于引擎，目前尚不可用。',
   styleTitle: '曲风与风格',
   transformTitle: '变换',

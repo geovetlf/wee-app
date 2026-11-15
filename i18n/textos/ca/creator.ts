@@ -1,6 +1,6 @@
 /*
  * CATALÁN — lo que describe cada experiencia de WEË AI. Los nombres —Weë
- * Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts sin
+ * Design, WeëStudio…— son marca y viven en constants/weeExperiences.ts sin
  * traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
@@ -50,10 +50,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'No sé per on començar',
   brainEx2: 'Explica-m\'ho fàcil',
   brainEx3: 'Tradueix aquest text',
-  areaStudioPhotos: 'Weë Studio · Fotos',
-  areaStudioVideos: 'Weë Studio · Vídeos',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Llar & Disseny',
+  areaStudioPhotos: 'WeëStudio · Fotos',
+  areaStudioVideos: 'WeëStudio · Vídeos',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Llar & Disseny',
   areaHomeName: 'Llar & Disseny',
   tellTheSpecialist: 'Explica a {{especialista}} què vols aconseguir: et fa dues o tres preguntes senzilles i s\'encarrega de la resta. Després publiques directament a la teva comunitat.',
   exampleQuoted: '«{{ejemplo}}»',

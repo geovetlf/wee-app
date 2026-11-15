@@ -83,8 +83,8 @@ export const home = {
   likesCount_other: '{{cantidad}} Likes',
   commentsCount_one: '{{cantidad}} Comentario',
   commentsCount_other: '{{cantidad}} Comentarios',
-  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wäll es marca. Sin revisión nativa. */
-  tabWall: 'Wäll',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Ẅall es marca. Sin revisión nativa. */
+  tabWall: 'Ẅall',
   sectionsNav: 'Secciones',
   weeAiTagline: 'Crea, desarrolla y transforma tus ideas',
   openBrain: 'Abrir Weë Brain',

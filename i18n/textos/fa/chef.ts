@@ -2,7 +2,7 @@
  * PERSA — WEË CHEF: el sitio donde se cocina. Tipado contra el español: si
  * allí hay una clave que aquí falta, no compila.
  *
- * «Weë Chef» es marca y no aparece aquí. Lo que comparte con Weë Studio
+ * «WeëChef» es marca y no aparece aquí. Lo que comparte con WeëStudio
  * («Ajustes», «Listo») vive en `studio`. «Receta» es «دستور پخت» y «cocinar»
  * como botón, «پختن». «15 دقیقه» va en dígitos latinos: los persas los pone
  * Intl. «De chef» se lee como nivel: «در حد سرآشپز».

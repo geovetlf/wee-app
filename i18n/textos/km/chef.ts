@@ -4,8 +4,8 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * Entre palabras va el ZWSP (U+200B); el espacio normal separa frases y rodea
- * marcas, huecos y cifras. «Weë Chef» es marca y no está aquí; lo que se
- * comparte con Weë Studio vive en `studio`. La receta es «រូបមន្ត», cocinar
+ * marcas, huecos y cifras. «WeëChef» es marca y no está aquí; lo que se
+ * comparte con WeëStudio vive en `studio`. La receta es «រូបមន្ត», cocinar
  * «ចម្អិន», los ingredientes «គ្រឿងផ្សំ»; vegetariano «បួស» y vegano «បួស​សុទ្ធ».
  * `panelStart` conserva el «: » final del español como «៖ ».
  */

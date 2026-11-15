@@ -1,7 +1,7 @@
 /*
- * fi — Weë Fashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * fi — WeëFashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa.
- * Las marcas (Weë, Credits, ËContact, Boost, Weë Fashion, WeëPages…) no se traducen.
+ * Las marcas (Weë, Credits, ËContact, Boost, WeëFashion, WeëPages…) no se traducen.
  */
 export const fashion: typeof import('../es/fashion').fashion = {
   tagline: 'Tyylisi. Visiosi. Maailmasi.',
@@ -95,7 +95,7 @@ export const fashion: typeof import('../es/fashion').fashion = {
   briefIdea: 'Ideani: {{texto}}.',
   briefIdk: 'Auta minua valitsemaan.',
   heroTags: 'Muoti · Kauneus · Tyyli · Mallistot',
-  toolsTitle: 'Weë Fashion -työkalut',
+  toolsTitle: 'WeëFashion -työkalut',
   inspirationTitle: 'Inspiraatio',
   galleryTitle: 'Kokeile lookia',
   galClothes: 'Vaatteet',

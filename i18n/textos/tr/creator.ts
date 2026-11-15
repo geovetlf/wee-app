@@ -1,6 +1,6 @@
 /*
  * TURCO — Lo que describe cada experiencia de WEË AI y los ejemplos que se tocan
- * para empezar. Los nombres —Weë Design, Weë Studio…— son marca y viven en
+ * para empezar. Los nombres —WeëDesign, WeëStudio…— son marca y viven en
  * constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
@@ -13,9 +13,9 @@
  * fondo» es «fon müziği» y el CV, «özgeçmiş». Los meses van en minúscula y sin
  * apóstrofo («Ekim ayında Japonya»). Un Weël es «Weëls videosu» (guía § 10.2).
  *
- * Las áreas se traducen porque se leen; la marca de delante no: «Weë Studio ·
- * Fotoğraflar», «Weë Studio · Güzellik» (el «Beauty» del español es el nombre del
- * área, no la marca Weë Beauty) y «Weë Design · Ev ve tasarım», con «ve» en lugar
+ * Las áreas se traducen porque se leen; la marca de delante no: «WeëStudio ·
+ * Fotoğraflar», «WeëStudio · Güzellik» (el «Beauty» del español es el nombre del
+ * área, no la marca Weë Beauty) y «WeëDesign · Ev ve tasarım», con «ve» en lugar
  * de «&» (guía § 5). `tellTheSpecialist` no puede decir «cuéntale a {{especialista}}»
  * sin pegarle un sufijo al hueco, así que el especialista pasa a ser el sujeto de la
  * frase siguiente (guía § 4).
@@ -65,10 +65,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Nereden başlayacağımı bilmiyorum',
   brainEx2: 'Bunu bana basitçe anlat',
   brainEx3: 'Bu metni çevir',
-  areaStudioPhotos: 'Weë Studio · Fotoğraflar',
-  areaStudioVideos: 'Weë Studio · Videolar',
-  areaStudioBeauty: 'Weë Studio · Güzellik',
-  areaDesignHome: 'Weë Design · Ev ve tasarım',
+  areaStudioPhotos: 'WeëStudio · Fotoğraflar',
+  areaStudioVideos: 'WeëStudio · Videolar',
+  areaStudioBeauty: 'WeëStudio · Güzellik',
+  areaDesignHome: 'WeëDesign · Ev ve tasarım',
   areaHomeName: 'Ev ve tasarım',
   tellTheSpecialist: 'Ne istediğini anlat: {{especialista}} sana iki üç basit soru sorar ve gerisini halleder. Sonra doğrudan topluluğunda paylaşırsın.',
   exampleQuoted: '“{{ejemplo}}”',

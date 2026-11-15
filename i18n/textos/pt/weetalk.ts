@@ -5,7 +5,7 @@
  *
  * Tratamiento informal (você). El mensaje de la otra persona llega por
  * `{{mensaje}}` y sale sin tocar. El emoji 🤝 se copia tal cual y "Privado"
- * es el botón del Wäll, citado con las mismas palabras. Apóstrofo tipográfico ’
+ * es el botón del Ẅall, citado con las mismas palabras. Apóstrofo tipográfico ’
  * siempre.
  */
 export const weetalk: typeof import('../es/weetalk').weetalk = {

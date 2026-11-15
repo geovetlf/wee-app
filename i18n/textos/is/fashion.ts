@@ -1,7 +1,7 @@
 /*
- * ISLANDÉS (is · is-IS) — Weë Fashion. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * ISLANDÉS (is · is-IS) — WeëFashion. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Migración de la UI (demo YC) integrada con is/kl, 2026-11-05: traducción de IA, SIN revisión humana nativa.
- * Las marcas (Weë, Credits, ËContact, Boost, Weë Fashion, WeëPages…) no se traducen. þú; marcas sin declinar (docs/I18N-ISLANDES.md).
+ * Las marcas (Weë, Credits, ËContact, Boost, WeëFashion, WeëPages…) no se traducen. þú; marcas sin declinar (docs/I18N-ISLANDES.md).
  */
 export const fashion: typeof import('../es/fashion').fashion = {
   tagline: 'Þinn stíll. Þín sýn. Þinn heimur.',
@@ -95,7 +95,7 @@ export const fashion: typeof import('../es/fashion').fashion = {
   briefIdea: 'Hugmyndin mín: {{texto}}.',
   briefIdk: 'Hjálpaðu mér að velja.',
   heroTags: 'Tíska · Fegurð · Stíll · Fatalínur',
-  toolsTitle: 'Verkfæri í Weë Fashion',
+  toolsTitle: 'Verkfæri í WeëFashion',
   inspirationTitle: 'Innblástur',
   galleryTitle: 'Mátaðu útlitið',
   galClothes: 'Föt',

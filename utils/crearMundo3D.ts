@@ -490,7 +490,7 @@ export type EscenaDelMundo =
   | { readonly ok: false; readonly motivo: 'sin_material' | 'sin_cuenta' | 'escena_no_valida' };
 
 /**
- * LA ESCENA DEL MUNDO PARA SU PROYECTO: el núcleo 3D único, perfil `world` (Weë Studio), con el mundo como entorno,
+ * LA ESCENA DEL MUNDO PARA SU PROYECTO: el núcleo 3D único, perfil `world` (WeëStudio), con el mundo como entorno,
  * por id. La construye el mismo código que el servidor (`crearEscena3D`, del espejo), así que nunca sale una escena
  * que el servidor rechazaría. Dónde se guarda es una decisión pendiente del dueño: aquí solo se construye.
  */

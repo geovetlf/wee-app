@@ -1,5 +1,5 @@
 /*
- * MALAYO — Weë Studio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
+ * MALAYO — WeëStudio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -229,7 +229,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Akan datang',
   soonHint: 'Alat ini sudah ada tempatnya. Cuma belum disambungkan.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Teks',
   textHint: 'Tulis apa sahaja kandungan',
   exploreTitle: 'Teroka',

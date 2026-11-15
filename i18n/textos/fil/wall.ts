@@ -1,5 +1,5 @@
 /*
- * FILIPINO — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * FILIPINO — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -103,8 +103,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demo',
   demoBadgeLabel: 'Demo na content',
-  immersiveEmpty: 'Wala pang post sa Wäll',
-  immersiveError: 'Hindi ma-load ang Wäll',
+  immersiveEmpty: 'Wala pang post sa Ẅall',
+  immersiveError: 'Hindi ma-load ang Ẅall',
   immersiveEnd: 'Nakita mo na lahat',
   agreePost: 'Sang-ayon',
   disagreePost: 'Hindi sang-ayon',

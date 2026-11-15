@@ -6,7 +6,7 @@
  * hasta que exista también aquí.
  *
  * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS:
- *   · los nombres de Weë —Weë, Wäll, Weëls, WeeTalk, ËContact, ẄContact, Credits, Weë AI, Weë Studio…—, que son marca:
+ *   · los nombres de Weë —Weë, Ẅall, Weëls, WeeTalk, ËContact, ẄContact, Credits, Weë AI, WeëStudio…—, que son marca:
  *     en alfabeto latino, sin transliterar («Κρέντιτς» está mal) ni traducir («Weë Μουσική» está mal), con artículo
  *     griego neutro cuando la frase lo pide («στο Weë», «τα Credits»);
  *   · nada que escriba una persona: publicaciones, comentarios, nombres de comunidades, proyectos o prompts.

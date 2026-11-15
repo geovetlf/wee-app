@@ -4,7 +4,7 @@
  * Tipado contra el español CON PLURALES: además de `_one`/`_other` lleva `_few` (2-4, 22-24…), y las tres formas
  * llevan `{{contador}}` porque `_one` cubre también 21, 31… (por eso `inDays_one` no dice «сутра»).
  * Tuteo, como el resto del diccionario serbio. Los lugares van con su exónimo serbio en cirílico.
- * Weë, WeëTravel, Weë Brain, Weë Studio, Weëls, WEË BRAIN, Travel Safe y DEMO son marca/etiqueta y no se tocan.
+ * Weë, WeëTravel, Weë Brain, WeëStudio, Weëls, WEË BRAIN, Travel Safe y DEMO son marca/etiqueta y no se tocan.
  */
 import { ConPlurales } from '../ru/plurales';
 
@@ -762,9 +762,9 @@ export const travel: ConPlurales<typeof import('../es/travel').travel> = {
   journalPh: 'Шта је данас било најлепше?',
   saveEntry: 'Сачувај унос',
   journalEmpty: 'Твој дневник је празан. Напиши први унос.',
-  videoMemoriesDemo: 'DEMO: видео-снимци се праве у Weë Studio, од твојих фотографија и снимака.',
+  videoMemoriesDemo: 'DEMO: видео-снимци се праве у WeëStudio, од твојих фотографија и снимака.',
   videoOf: 'Видео путовања: {{viaje}}',
-  createInStudio: 'Направи у Weë Studio',
+  createInStudio: 'Направи у WeëStudio',
   countriesVisited_one: '{{contador}} посећена земља',
   countriesVisited_few: '{{contador}} посећене земље',
   countriesVisited_other: '{{contador}} посећених земаља',

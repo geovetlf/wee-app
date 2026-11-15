@@ -3,7 +3,7 @@
  * (i18n/textos/sr/). Cualquier corrección se hace en el cirílico y se vuelve a generar.
  */
 /*
- * SERBIO (ćirilica) — Weë Writer, dentro de Weë Studio. El texto de la persona NUNCA
+ * SERBIO (ćirilica) — Weë Writer, dentro de WeëStudio. El texto de la persona NUNCA
  * pasa por aquí: solo las herramientas que lo trabajan.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.

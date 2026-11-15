@@ -2,11 +2,11 @@
  * RUSO — WEË DESIGN: diseñar y visualizar casi cualquier cosa física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Weë Design comparte con Weë Studio —"Mis creaciones", "Ver todas",
+ * Lo que WeëDesign comparte con WeëStudio —"Mis creaciones", "Ver todas",
  * "Creando...", "Creación lista"— vive en `studio` y se lee de allí.
  *
  * "3D" se escribe igual en ruso; "render" es «рендер», que es la palabra rusa
- * de siempre y no una transliteración de la marca. "Weë Design" no aparece
+ * de siempre y no una transliteración de la marca. "WeëDesign" no aparece
  * aquí: es marca y vive fuera del diccionario.
  */
 export const design: typeof import('../es/design').design = {

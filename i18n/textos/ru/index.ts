@@ -6,8 +6,8 @@
  * que falte en ruso no compila.
  *
  * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS:
- *   · los nombres de Weë —Weë, Wäll, Weëls, WeeTalk, ËContact, Credits, Weë AI,
- *     Weë Studio…—, que son marca y se escriben igual en todos los idiomas. En
+ *   · los nombres de Weë —Weë, Ẅall, Weëls, WeeTalk, ËContact, Credits, Weë AI,
+ *     WeëStudio…—, que son marca y se escriben igual en todos los idiomas. En
  *     ruso eso significa algo más que «no traducir»: significa NO TRANSLITERAR.
  *     Dentro de una frase en cirílico, la marca se queda en alfabeto latino.
  *     «Credits» no es «Кредиты» y «Weë Brain» no es «Weë Мозг»;

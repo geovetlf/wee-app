@@ -42,7 +42,7 @@ export const composer: ConPlurales<typeof import('../es/composer').composer> = {
   showOptions: 'הצגת אפשרויות הפרסום',
   hideOptions: 'הסתרת אפשרויות הפרסום',
   currentDestination: '{{destino}}, היעד הנוכחי',
-  generalWall: 'Wäll כללי',
+  generalWall: 'Ẅall כללי',
   placeholderPollExtra: 'אפשר להוסיף עוד משהו (לא חובה)…',
   placeholderQuestion: 'מה תרצו לשאול את הקהילה?',
   placeholderWeel: 'ספרו מה יצרתם ל-Weël שלכם ועם איזו בינה מלאכותית…',

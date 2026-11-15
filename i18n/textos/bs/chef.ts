@@ -2,8 +2,8 @@
  * WEË CHEF — el sitio donde se cocina, en bosnio (bs-BA, ijekaviano, latino).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tuteo («ti»). "Weë Chef" es marca y no se traduce. Lo que Chef comparte con
- * Weë Studio vive en `studio` y se lee de allí; las siete funciones que ya
+ * Tuteo («ti»). "WeëChef" es marca y no se traduce. Lo que Chef comparte con
+ * WeëStudio vive en `studio` y se lee de allí; las siete funciones que ya
  * existían siguen en `weeai`. Los valores de los ajustes concuerdan con su
  * etiqueta: «Ishrana» (f.), «Težina» (f.).
  */

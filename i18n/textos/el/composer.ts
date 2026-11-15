@@ -2,7 +2,7 @@
  * GRIEGO — El compositor: lo que se escribe y lo que se adjunta antes de
  * publicar. Tipado contra el español.
  *
- * «Wäll» es marca y lleva artículo neutro («Γενικό Wäll»). «Face swap» y
+ * «Ẅall» es marca y lleva artículo neutro («Γενικό Ẅall»). «Face swap» y
  * «watermark» se dejan en latino, como en inglés, porque así los conocen los
  * creadores. «PUBLICAR EN» va en mayúsculas sin tildes («ΔΗΜΟΣΙΕΥΣΗ ΣΕ»).
  */
@@ -29,7 +29,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Εμφάνιση των επιλογών δημοσίευσης',
   hideOptions: 'Απόκρυψη των επιλογών δημοσίευσης',
   currentDestination: '{{destino}}, τρέχων προορισμός',
-  generalWall: 'Γενικό Wäll',
+  generalWall: 'Γενικό Ẅall',
   placeholderPollExtra: 'Πρόσθεσε κάτι ακόμα αν θέλεις (προαιρετικό)…',
   placeholderQuestion: 'Τι θέλεις να ρωτήσεις την κοινότητα;',
   placeholderWeel: 'Πες τι δημιούργησες για το Weël σου και με ποια τεχνητή νοημοσύνη…',

@@ -130,7 +130,7 @@ export interface Post {
   /*
    * DÓNDE QUIERE APARECER ESTA PUBLICACIÓN. Lo decide quien publica.
    *
-   * `['general']` solo el muro general. `['travel']` solo Weë Travel, y entonces
+   * `['general']` solo el muro general. `['travel']` solo WeëTravel, y entonces
    * NO sale en el muro general. `['general', 'travel', 'design']` en los tres.
    * Sin límite de cuántos.
    *
@@ -604,7 +604,7 @@ export const postsService = {
 
   /*
    * No hay método para el muro de una SECCIÓN porque ya no hay muros de
-   * sección: Weë tiene uno solo, el Wäll, y de qué experiencia viene cada
+   * sección: Weë tiene uno solo, el Ẅall, y de qué experiencia viene cada
    * publicación lo dice su WeeTag. Lo que sí queda es `paginaDeLaSeccion` en
    * `utils/sectionFeed`, que sigue sirviendo para acotar por sección sobre esta
    * misma colección general.

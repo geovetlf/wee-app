@@ -1,7 +1,7 @@
 /*
- * ga — Weë Fashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * ga — WeëFashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa.
- * Las marcas (Weë, Credits, ËContact, Boost, Weë Fashion, WeëPages…) no se traducen.
+ * Las marcas (Weë, Credits, ËContact, Boost, WeëFashion, WeëPages…) no se traducen.
  */
 export const fashion: typeof import('../es/fashion').fashion = {
   tagline: 'Do stíl. Do fhís. Do shaol.',
@@ -95,7 +95,7 @@ export const fashion: typeof import('../es/fashion').fashion = {
   briefIdea: 'Mo smaoineamh: {{texto}}.',
   briefIdk: 'Cabhraigh liom roghnú.',
   heroTags: 'Faisean · Áilleacht · Stíl · Bailiúcháin',
-  toolsTitle: 'Uirlisí Weë Fashion',
+  toolsTitle: 'Uirlisí WeëFashion',
   inspirationTitle: 'Inspioráid',
   galleryTitle: 'Triail an chuma',
   galClothes: 'Éadaí',

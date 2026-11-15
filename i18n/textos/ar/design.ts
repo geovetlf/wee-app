@@ -1,11 +1,11 @@
 /*
- * ÁRABE — Weë Design: diseñar y visualizar casi cualquier cosa física.
+ * ÁRABE — WeëDesign: diseñar y visualizar casi cualquier cosa física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * «Render» se escribe «رندر», que es como lo llama la comunidad de diseño en
  * árabe (el término académico «تصيير» apenas se usa en interfaces). Lo que
- * Weë Design comparte con Weë Studio vive en `studio`, como en español.
+ * WeëDesign comparte con WeëStudio vive en `studio`, como en español.
  */
 export const design: typeof import('../es/design').design = {
   /* ── La cabecera ──────────────────────────────────────────────────────── */

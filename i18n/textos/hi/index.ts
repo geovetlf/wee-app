@@ -7,8 +7,8 @@
  * no compila hasta que exista también aquí.
  *
  * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS:
- *   · los nombres de Weë —Weë, Wäll, Weëls, WeeTalk, ËContact, ẄContact,
- *     Credits, Weë AI, Weë Studio…—, que son marca y se escriben igual en todos
+ *   · los nombres de Weë —Weë, Ẅall, Weëls, WeeTalk, ËContact, ẄContact,
+ *     Credits, Weë AI, WeëStudio…—, que son marca y se escriben igual en todos
  *     los idiomas. En hindi eso significa escribirlas en LATINO dentro de la
  *     frase, nunca transliteradas al devanagari («क्रेडिट्स», «वीटॉक» están
  *     mal), y con la posposición separada por un espacio: «Weë पर»,

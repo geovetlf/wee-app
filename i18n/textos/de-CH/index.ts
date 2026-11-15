@@ -4,8 +4,8 @@
  * Variante del alemán (`textos/de/`): misma lengua, ortografía suiza (ss en vez de ß), comillas «…» y el léxico que de
  * verdad cambia en Suiza. El tipo `FormaDelDiccionario` sale del español, así que una clave que falte o sobre no compila.
  *
- * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS: las marcas de Weë traducidas (Weë, Wäll, Weëls —nunca «Reels»—, WeeTalk, ËContact,
- * ẄContact, Credits, Weë AI, Weë Studio…) ni lo que escribe una persona.
+ * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS: las marcas de Weë traducidas (Weë, Ẅall, Weëls —nunca «Reels»—, WeeTalk, ËContact,
+ * ẄContact, Credits, Weë AI, WeëStudio…) ni lo que escribe una persona.
  *
  * Adaptación hecha por agentes y SIN revisión humana nativa (2026-10-30). Guía en `docs/I18N-ALEMAN-SUIZO.md`.
  */

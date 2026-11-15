@@ -4,7 +4,7 @@
  * Tipado contra el español CON PLURALES RUSOS: cada plural lleva `_one`, `_few`, `_many` y `_other`, todas con
  * `{{contador}}` porque `_one` cubre también 21, 31… (por eso `inDays_one` no dice «завтра»).
  * Trato de «вы», como el resto del diccionario ruso. «Itinerario» es «маршрут»; IA es «ИИ».
- * Weë, WeëTravel, Weë Brain, Weë Studio, Weëls, WEË BRAIN, Travel Safe y DEMO son marca/etiqueta y no se tocan.
+ * Weë, WeëTravel, Weë Brain, WeëStudio, Weëls, WEË BRAIN, Travel Safe y DEMO son marca/etiqueta y no se tocan.
  */
 import { ConPlurales } from './plurales';
 
@@ -780,9 +780,9 @@ export const travel: ConPlurales<typeof import('../es/travel').travel> = {
   journalPh: 'Что сегодня было лучше всего?',
   saveEntry: 'Сохранить запись',
   journalEmpty: 'Ваш дневник пуст. Напишите первую запись.',
-  videoMemoriesDemo: 'DEMO: видео создаются в Weë Studio из ваших собственных фото и клипов.',
+  videoMemoriesDemo: 'DEMO: видео создаются в WeëStudio из ваших собственных фото и клипов.',
   videoOf: 'Видео о поездке: {{viaje}}',
-  createInStudio: 'Создать в Weë Studio',
+  createInStudio: 'Создать в WeëStudio',
   countriesVisited_one: '{{contador}} страна посещена',
   countriesVisited_few: '{{contador}} страны посещено',
   countriesVisited_many: '{{contador}} стран посещено',

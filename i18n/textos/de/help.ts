@@ -6,7 +6,7 @@
  * Tratamiento informal (du). Lo legal va con el término exacto
  * ("Nutzungsbedingungen", "Datenschutzerklärung"); los nombres de Weë y los
  * emojis de cada pregunta se copian tal cual. "Cómo lo hice" se dice como en
- * el Wäll: "So ist es entstanden".
+ * el Ẅall: "So ist es entstanden".
  */
 export const help: typeof import('../es/help').help = {
   title: 'Hilfe',

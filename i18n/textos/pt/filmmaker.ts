@@ -1,7 +1,7 @@
 /*
  * WEË FILMMAKER — «Várias cenas» (F1-C), en portugués de Brasil (pt-BR): la producción, el storyboard, el panel de
  * Direção y lo que el dominio dice con códigos (claves val*, op*, rec*, req* y per*). Tipado contra el español: si
- * allí hay una clave que aquí falta, no compila. Trato de «você»; Weë y Weë Studio son marca y no se traducen.
+ * allí hay una clave que aquí falta, no compila. Trato de «você»; Weë y WeëStudio son marca y no se traducen.
  */
 export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   sectionName: 'Várias cenas',
@@ -13,20 +13,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'Criar produção',
   creatingProduction: 'Criando a produção…',
   openProduction: 'Abrir {{titulo}}',
-  goToStudio: 'Ir para o Weë Studio',
+  goToStudio: 'Ir para o WeëStudio',
   loadMore: 'Ver mais',
   backToList: 'Voltar para suas produções',
   updatedAgo: 'Atualizada {{cuando}}',
 
   emptyListTitle: 'Você ainda não tem produções',
-  emptyListText: 'Comece no Weë Studio: abra Vídeos, escolha “Várias cenas” e conte ao Weë o que você quer contar.',
+  emptyListText: 'Comece no WeëStudio: abra Vídeos, escolha “Várias cenas” e conte ao Weë o que você quer contar.',
   emptyArchived: 'Você não tem produções arquivadas.',
   emptyStoryboardTitle: 'Esta produção ainda não tem cenas',
   emptyStoryboardText: 'Adicione a primeira e construa sua história plano a plano.',
   addFirstScene: 'Adicionar a primeira cena',
 
   yourIdea: 'Sua ideia',
-  ideaFromStudio: 'A ideia é escrita no Weë Studio. Para mudá-la, volte lá.',
+  ideaFromStudio: 'A ideia é escrita no WeëStudio. Para mudá-la, volte lá.',
   whereWillItPlay: 'Onde vai ser exibido?',
   otherFormat: 'Outro formato',
   continueOne: 'Ou continue uma das suas produções',

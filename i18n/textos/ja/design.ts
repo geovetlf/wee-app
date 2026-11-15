@@ -1,5 +1,5 @@
 /*
- * JAPONÉS — Weë Design: la cabecera, la caja, las categorías con sus puntos de partida, los ajustes y de qué es cada creación.
+ * JAPONÉS — WeëDesign: la cabecera, la caja, las categorías con sus puntos de partida, los ajustes y de qué es cada creación.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *

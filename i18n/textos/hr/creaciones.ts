@@ -3,8 +3,8 @@
  * progreso de un trabajo de Weë AI mientras se hace.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tuteo («ti»). El nombre de una creación y el de una experiencia (Weë Design,
- * Weë Studio…) entran por hueco y no se traducen. «Creación» es «kreacija».
+ * Tuteo («ti»). El nombre de una creación y el de una experiencia (WeëDesign,
+ * WeëStudio…) entran por hueco y no se traducen. «Creación» es «kreacija».
  *
  * PLURALES: el croata tiene tres categorías (one / few / other), así que este
  * archivo se declara con `ConPlurales` para añadir `_few` a `count`.

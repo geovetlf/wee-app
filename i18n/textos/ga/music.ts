@@ -1,7 +1,7 @@
 /*
- * GAEILGE — Weë Music: an leathanach baile, Composer, an stáisiún oibre agus na huirlisí. Tipado contra el español.
+ * GAEILGE — WeëMusic: an leathanach baile, Composer, an stáisiún oibre agus na huirlisí. Tipado contra el español.
  *
- * «Weë Music» es marca y no se traduce ni se muta; tampoco los nombres de los proveedores (Mureka, MiniMax, Yinchao,
+ * «WeëMusic» es marca y no se traduce ni se muta; tampoco los nombres de los proveedores (Mureka, MiniMax, Yinchao,
  * ElevenLabs). Tuteo («tú», «do») e imperativo de 2.ª singular en los botones. Términos: canción = amhrán,
  * letra = liricí, sección = cuid (pl. codanna; «roinn» es «compartir» en esta app), pista separada = rian ar leith,
  * motor = inneall, proveedor = soláthraí, borrador = dréacht, IA = IS. «MIDI», «R&B», «Remix», «Jazz», «Pop» y «Rock»
@@ -14,7 +14,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Inis dom do smaoineamh nó déan crónán ar fhonn, agus ullmhaigh d’amhrán céim ar chéim.',
   ctaCreate: 'Cruthaigh ceol',
   chooseTitle: 'Roghnaigh conas tosú',
-  skillsTitle: 'Cad is féidir le Weë Music a dhéanamh',
+  skillsTitle: 'Cad is féidir le WeëMusic a dhéanamh',
   recentTitle: 'Amhráin le déanaí',
   viewExample: 'Féach ar shampla dearaidh',
   honestyNote: 'Inniu is féidir leat d’amhrán a ullmhú, fonn tagartha a thaifeadadh agus treoir a iarraidh ar Weë Brain. Cuirfear cruthú an amhráin ar siúl nuair a bheidh sé nasctha agus bailíochtaithe.',
@@ -22,7 +22,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Na fuaimeanna agus na hamhráin atá sábháilte agat.',
   openProjects: 'Mo thionscadail',
   openProjectsHelp: 'Eagraigh d’amhráin i dtionscadail.',
-  backToMusic: 'Ar ais go Weë Music',
+  backToMusic: 'Ar ais go WeëMusic',
   composerTitle: 'Cruthaigh ceol',
   modesLabel: 'Mód',
   modeSimple: 'Simplí',
@@ -308,7 +308,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Cumas ar feitheamh is ea próiseáil fuaime: níl ach an conradh á ullmhú anseo.',
 
   voiceInterpretation: 'Stíl léirithe',
-  voiceNoClone: 'Ní chlónálann Weë Music guthanna daoine ná ní dhéanann sé aithris orthu: ní roghnaíonn sé ach tréithe gutha ginearálta.',
+  voiceNoClone: 'Ní chlónálann WeëMusic guthanna daoine ná ní dhéanann sé aithris orthu: ní roghnaíonn sé ach tréithe gutha ginearálta.',
   voiceStylePending: 'Braitheann an stíl léirithe ar an inneall agus níl sí ar fáil fós.',
   styleTitle: 'Seánra agus stíl',
   transformTitle: 'Claochluithe',

@@ -28,7 +28,7 @@ interface Props {
  * Icono a la izquierda, nombre y debajo qué hay dentro en dos palabras. El icono
  * va del color del texto: ocho iconos de ocho colores convertirían la rejilla en
  * un semáforo y harían que el amarillo de Weë —que significa crear— dejara de
- * significar nada. Es la misma tarjeta de Weë Chef y Weë Studio.
+ * significar nada. Es la misma tarjeta de WeëChef y WeëStudio.
  */
 const BusinessModulos: React.FC<Props> = ({ onAbrir, porFila }) => {
   const { theme } = useTheme();

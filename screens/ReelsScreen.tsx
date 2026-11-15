@@ -41,7 +41,7 @@ import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 /* Solo para el gesto de volver (umbral y recorrido); el tamaño de cada Weël NO sale de aquí. */
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-/** Ancho máximo del visor en la web: el mismo que el Wäll (ANCHO_MAXIMO de screens/WallScreen.tsx). */
+/** Ancho máximo del visor en la web: el mismo que el Ẅall (ANCHO_MAXIMO de screens/WallScreen.tsx). */
 const ANCHO_MAXIMO_WEB = 520;
 
 type ReelsRouteProp = RouteProp<MainStackParamList, 'Reels'>;
@@ -399,7 +399,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, precarga
               una publicación con `isWeel`, así que se abre en `PostDetail` como
               cualquier otra— y la tarjeta la arma la app de destino con las
               etiquetas Open Graph de la página pública. Mismo camino que el
-              vídeo del Wäll, y el mismo código: `compartirFueraDeWee`.
+              vídeo del Ẅall, y el mismo código: `compartirFueraDeWee`.
             */}
             <TouchableOpacity
               style={styles.sidebarBtn}
@@ -724,7 +724,7 @@ const ReelsScreen: React.FC<ReelsScreenProps> = (props) => {
 
   /*
    * En tableta y escritorio (web), el visor es una columna centrada con la proporción de un teléfono sobre fondo negro,
-   * igual que el Wäll (screens/WallScreen.tsx): un vídeo vertical no se recorta para llenar 1440 de ancho.
+   * igual que el Ẅall (screens/WallScreen.tsx): un vídeo vertical no se recorta para llenar 1440 de ancho.
    * El viewport se sigue midiendo en el contenedor, así que cada Weël nace del ancho de la columna.
    */
   return isWeb ? <View style={styles.pantallaWeb}>{visor}</View> : visor;

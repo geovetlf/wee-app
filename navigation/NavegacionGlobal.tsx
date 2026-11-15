@@ -147,7 +147,7 @@ const DURACION_MOSTRAR = 110;
  * Lo segundo importa para el sitio: las pantallas de las pestañas ya dejaban
  * hueco abajo desde siempre —la barra vivía dentro de ellas—, mientras que las
  * demás nunca tuvieron ninguna y hay que reservárselo. Sin esta distinción, o el
- * Home queda con un hueco muerto o Weë Travel acaba con el último vídeo tapado.
+ * Home queda con un hueco muerto o WeëTravel acaba con el último vídeo tapado.
  */
 export const useBarraInferior = () => {
   const estado = useEstadoNavegacion();

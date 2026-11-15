@@ -10,8 +10,8 @@ import { GrupoDeAjustes } from './ajustesContextuales';
  *
  * Los iconos son de Ionicons en su variante `-outline`, como el resto del
  * taller, y se pintan con el color del texto: un solo trazo, una sola familia,
- * sin emojis y sin fotografías. Weë Chef no es una app de recetas con banners;
- * es el mismo sitio de trabajo que Weë Studio, con la cocina dentro.
+ * sin emojis y sin fotografías. WeëChef no es una app de recetas con banners;
+ * es el mismo sitio de trabajo que WeëStudio, con la cocina dentro.
  */
 
 /**
@@ -112,7 +112,7 @@ const e = (id: string, clave: string, icono: string): EntradaDeChef => ({ id, cl
  * LO QUE HAY DENTRO DE CADA PANEL.
  *
  * No son ajustes ni formularios: son maneras de empezar la frase. Se elige una y
- * se vuelve a la caja con la idea empezada, igual que en Weë Studio. Lo que
+ * se vuelve a la caja con la idea empezada, igual que en WeëStudio. Lo que
  * decide de verdad —el plato, los ingredientes— lo pone la persona con sus
  * palabras, porque es lo único que Weë no puede adivinar.
  */
@@ -160,7 +160,7 @@ export const CLAVE_DEL_PANEL: Record<PanelDeChef, string> = {
 /**
  * LOS AJUSTES DE LA RECETA.
  *
- * La misma mecánica de Weë Studio (`constants/ajustesContextuales.ts`) con el
+ * La misma mecánica de WeëStudio (`constants/ajustesContextuales.ts`) con el
  * catálogo propio que esa mecánica ya sabe recibir: a una creación se le
  * pregunta formato y duración; a una comida, para cuántos, cuánto tiempo hay y
  * si algo no se puede comer. Todo se decide aquí, en el teléfono: abrir los

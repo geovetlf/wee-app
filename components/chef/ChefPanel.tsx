@@ -29,7 +29,7 @@ interface Props {
  *
  * ── No es otra pantalla ──────────────────────────────────────────────────────
  *
- * Tocar una función no navega: cambia lo que enseña la pantalla de Weë Chef. Así
+ * Tocar una función no navega: cambia lo que enseña la pantalla de WeëChef. Así
  * volver es instantáneo, no se acumula una pila de rutas por pasear entre
  * funciones y lo escrito sigue donde estaba. Es la misma decisión que en Weë
  * Studio, y el gesto de atrás de Android vuelve aquí antes de salir.

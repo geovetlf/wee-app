@@ -1,5 +1,5 @@
 /*
- * Weë Writer en croata, dentro de Weë Studio. El texto que escribe la persona NUNCA pasa por aquí: solo las herramientas que lo trabajan.
+ * Weë Writer en croata, dentro de WeëStudio. El texto que escribe la persona NUNCA pasa por aquí: solo las herramientas que lo trabajan.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tuteo («ti»), imperativo de segunda persona en los botones. «Pídele a Weë»

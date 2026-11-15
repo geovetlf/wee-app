@@ -16,7 +16,7 @@ import { RellenoDeMarca } from './GradienteDeMarca';
  * (rediseño del 2026-11-15). Todos llevan a rutas que ya existían; lo que hay es
  * UNA instancia para toda la experiencia —el Home, las experiencias de Weë, los
  * perfiles, las búsquedas— en vez de una barra que solo vivía dentro de las
- * pestañas y desaparecía en cuanto entrabas en Weë Travel o en una publicación.
+ * pestañas y desaparecía en cuanto entrabas en WeëTravel o en una publicación.
  *
  * Este componente NO navega. Recibe cuál está puesto y avisa de lo que se toca;
  * quien decide a dónde se va es quien lo monta, que es quien conoce el árbol de

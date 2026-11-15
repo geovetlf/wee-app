@@ -10,8 +10,8 @@
  * neutros («Laktosefritt», «Glutenfritt», «Sukkerfritt») porque califican a
  * «det» (lo que se cocina). «Dificultad» es «vanskelighetsgrad».
  *
- * QUÉ NO ESTÁ AQUÍ: "Weë Chef", que es marca. Tampoco lo que Chef comparte con
- * Weë Studio y significa exactamente lo mismo —"Ver todos", "Ajustes",
+ * QUÉ NO ESTÁ AQUÍ: "WeëChef", que es marca. Tampoco lo que Chef comparte con
+ * WeëStudio y significa exactamente lo mismo —"Ver todos", "Ajustes",
  * "Listo"—: eso vive en `studio` y se lee de allí. Y tampoco las siete
  * funciones que ya existían (`weeai.chefAc…`), que siguen donde estaban.
  */

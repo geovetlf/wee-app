@@ -1,4 +1,4 @@
-/* de — Weë Music: Startseite, Composer, Workstation und Werkzeuge. «Weë Music» und die Namen der Anbieter sind Marken und werden nicht übersetzt. Tipado contra el español. Pendiente de revisión por un hablante nativo. */
+/* de — WeëMusic: Startseite, Composer, Workstation und Werkzeuge. «WeëMusic» und die Namen der Anbieter sind Marken und werden nicht übersetzt. Tipado contra el español. Pendiente de revisión por un hablante nativo. */
 export const music: typeof import('../es/music').music = {
   tagline: 'Deine Idee. Dein Sound. Ohne Grenzen.',
   intro: 'Erstelle Songs aus einer Idee, einem Text oder einer Melodie und bearbeite sie Abschnitt für Abschnitt.',
@@ -6,7 +6,7 @@ export const music: typeof import('../es/music').music = {
   ctaCreate: 'Musik erstellen',
   demoPrompt: 'Welche Musik möchtest du erstellen?',
   chooseTitle: 'Wähle, wie du starten möchtest',
-  skillsTitle: 'Was Weë Music kann',
+  skillsTitle: 'Was WeëMusic kann',
   recentTitle: 'Zuletzt erstellte Songs',
   viewExample: 'Designbeispiel ansehen',
   honestyNote: 'Heute kannst du deinen Song vorbereiten, eine Referenzmelodie aufnehmen und dich von Weë Brain beraten lassen. Das Erstellen des Songs wird aktiviert, sobald es angebunden und geprüft ist.',
@@ -14,7 +14,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Deine gespeicherten Audios und Songs.',
   openProjects: 'Meine Projekte',
   openProjectsHelp: 'Ordne deine Songs in Projekten.',
-  backToMusic: 'Zurück zu Weë Music',
+  backToMusic: 'Zurück zu WeëMusic',
   composerTitle: 'Musik erstellen',
   modesLabel: 'Modus',
   modeSimple: 'Einfach',
@@ -300,7 +300,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Die Audiobearbeitung ist noch ausstehend: Hier wird nur der Vertrag vorbereitet.',
 
   voiceInterpretation: 'Vortragsstil',
-  voiceNoClone: 'Weë Music klont oder imitiert keine Stimmen von Personen: Du wählst nur allgemeine Stimmmerkmale.',
+  voiceNoClone: 'WeëMusic klont oder imitiert keine Stimmen von Personen: Du wählst nur allgemeine Stimmmerkmale.',
   voiceStylePending: 'Der Vortragsstil hängt von der Engine ab und ist noch nicht verfügbar.',
   styleTitle: 'Genre und Stil',
   transformTitle: 'Umwandlungen',

@@ -1,5 +1,5 @@
 /*
- * JEMER — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * JEMER — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -82,8 +82,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'សាកល្បង',
   demoBadgeLabel: 'មាតិកា​សាកល្បង',
-  immersiveEmpty: 'មិនទាន់​មាន​សារបង្ហោះ​នៅ​លើ Wäll នៅឡើយ​ទេ',
-  immersiveError: 'យើង​មិនអាច​ផ្ទុក Wäll បានទេ',
+  immersiveEmpty: 'មិនទាន់​មាន​សារបង្ហោះ​នៅ​លើ Ẅall នៅឡើយ​ទេ',
+  immersiveError: 'យើង​មិនអាច​ផ្ទុក Ẅall បានទេ',
   immersiveEnd: 'អ្នក​បាន​មើល​អស់​ហើយ',
   agreePost: 'យល់ស្រប',
   disagreePost: 'មិន​យល់ស្រប',

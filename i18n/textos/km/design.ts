@@ -4,8 +4,8 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * Entre palabras va el ZWSP (U+200B); el espacio normal separa frases y rodea
- * marcas, huecos y cifras. «Weë Design» es marca y no está aquí; lo que se
- * comparte con Weë Studio vive en `studio`. «3D» se deja en latino; el render
+ * marcas, huecos y cifras. «WeëDesign» es marca y no está aquí; lo que se
+ * comparte con WeëStudio vive en `studio`. «3D» se deja en latino; el render
  * se dice «រូប​បង្ហាញ» (imagen de presentación), la forma corriente en jemer.
  */
 export const design: typeof import('../es/design').design = {

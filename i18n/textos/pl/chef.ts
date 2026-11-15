@@ -4,8 +4,8 @@
  * Traducción al polaco, tipada contra el molde español. Los valores de dieta y
  * de dificultad concuerdan en femenino con «dieta» y «trudność».
  *
- * QUÉ NO ESTÁ AQUÍ: "Weë Chef", que es marca. Tampoco lo que Chef comparte con
- * Weë Studio y significa exactamente lo mismo —"Ver todos", "Ajustes",
+ * QUÉ NO ESTÁ AQUÍ: "WeëChef", que es marca. Tampoco lo que Chef comparte con
+ * WeëStudio y significa exactamente lo mismo —"Ver todos", "Ajustes",
  * "Listo"—: eso vive en `studio` y se lee de allí, para que dos pantallas de la
  * misma familia no puedan acabar diciendo cosas distintas. Y tampoco las siete
  * funciones que ya existían (`weeai.chefAc…`), que siguen donde estaban porque

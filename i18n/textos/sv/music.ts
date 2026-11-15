@@ -1,5 +1,5 @@
 /*
- * sv — Weë Music: startsida, Composer, workstation och verktyg. «Weë Music» och leverantörsnamnen är varumärken och översätts inte.
+ * sv — WeëMusic: startsida, Composer, workstation och verktyg. «WeëMusic» och leverantörsnamnen är varumärken och översätts inte.
  * Typad mot spanskan. Väntar på granskning av en person med svenska som modersmål.
  */
 export const music: typeof import('../es/music').music = {
@@ -9,7 +9,7 @@ export const music: typeof import('../es/music').music = {
   ctaCreate: 'Skapa musik',
   demoPrompt: 'Vilken musik vill du skapa?',
   chooseTitle: 'Välj hur du vill börja',
-  skillsTitle: 'Vad Weë Music kan göra',
+  skillsTitle: 'Vad WeëMusic kan göra',
   recentTitle: 'Senaste låtar',
   viewExample: 'Se ett designexempel',
   honestyNote: 'Idag kan du förbereda din låt, spela in en referensmelodi och be Weë Brain om vägledning. Själva skapandet av låten aktiveras när det är anslutet och validerat.',
@@ -17,7 +17,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Dina sparade ljudfiler och låtar.',
   openProjects: 'Mina projekt',
   openProjectsHelp: 'Organisera dina låtar i projekt.',
-  backToMusic: 'Tillbaka till Weë Music',
+  backToMusic: 'Tillbaka till WeëMusic',
   composerTitle: 'Skapa musik',
   modesLabel: 'Läge',
   modeSimple: 'Enkel',
@@ -303,7 +303,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Ljudbearbetning är en kommande funktion: här förbereds bara kontraktet.',
 
   voiceInterpretation: 'Framförandestil',
-  voiceNoClone: 'Weë Music klonar eller imiterar inte verkliga personers röster: det väljer bara allmänna röstegenskaper.',
+  voiceNoClone: 'WeëMusic klonar eller imiterar inte verkliga personers röster: det väljer bara allmänna röstegenskaper.',
   voiceStylePending: 'Framförandestilen beror på motorn och är inte tillgänglig än.',
   styleTitle: 'Genre och stil',
   transformTitle: 'Förvandlingar',

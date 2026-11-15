@@ -2,7 +2,7 @@
  * PERSA — WEË DESIGN: diseñar y visualizar casi cualquier cosa física.
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * «Weë Design» es marca y no aparece aquí. Lo que comparte con Weë Studio
+ * «WeëDesign» es marca y no aparece aquí. Lo que comparte con WeëStudio
  * («Mis creaciones», «Ver todas», «Creando…») vive en `studio`. Las puertas
  * de entrada («یک آشپزخانه») son sintagmas nominales con «یک», como los «Un/Una»
  * del español. «15 متری» va en dígitos latinos: los persas los pone Intl.

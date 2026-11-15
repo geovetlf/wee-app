@@ -151,10 +151,10 @@ export const weeai: typeof import('../es/weeai').weeai = {
   couldNotCalculateRetry: '必要なCreditsを計算できませんでした。もう一度お試しください。',
   expandSection: '{{titulo}}　{{contenido}}を表示',
   collapseSection: '{{titulo}}　{{contenido}}を隠す',
-  openTravel_one: '{{titulo}}　Weë Travelを開く：旅の入力欄と{{contador}}通りの始め方',
-  openTravel_other: '{{titulo}}　Weë Travelを開く：旅の入力欄と{{contador}}通りの始め方',
-  closeTravel_one: '{{titulo}}　Weë Travelを閉じる：旅の入力欄と{{contador}}通りの始め方',
-  closeTravel_other: '{{titulo}}　Weë Travelを閉じる：旅の入力欄と{{contador}}通りの始め方',
+  openTravel_one: '{{titulo}}　WeëTravelを開く：旅の入力欄と{{contador}}通りの始め方',
+  openTravel_other: '{{titulo}}　WeëTravelを開く：旅の入力欄と{{contador}}通りの始め方',
+  closeTravel_one: '{{titulo}}　WeëTravelを閉じる：旅の入力欄と{{contador}}通りの始め方',
+  closeTravel_other: '{{titulo}}　WeëTravelを閉じる：旅の入力欄と{{contador}}通りの始め方',
   tellWeeTheTrip: '旅の内容をWeëに伝える',
   theMotto: '結果を選ぶのはあなた。AIを選ぶのはWeë。',
   trySearchWords: 'ロゴ、動画、写真、文章、曲、メイク、レシピ、インテリア、ビジネスなどの言葉で試してみてください。Weë Brainに聞くこともできます。',
@@ -232,7 +232,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   durationSeconds: '{{segundos}}秒',
   volumeDiscount: 'まとめ割{{descuento}}%オフ',
   createWork: '作成',
-  /* ── Weë Travel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
+  /* ── WeëTravel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
   travelHeroLine1: '旅の計画を、',
   travelHeroLine2: '行ったことのある人と',
   travelHeroAccent: '一緒に。',

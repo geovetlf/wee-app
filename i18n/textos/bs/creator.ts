@@ -1,6 +1,6 @@
 /*
  * BOSNIO (bs-BA, ijekaviano, latino) — lo que describe cada experiencia de
- * WEË AI. Los nombres —Weë Design, Weë Studio…— son marca y no se traducen;
+ * WEË AI. Los nombres —WeëDesign, WeëStudio…— son marca y no se traducen;
  * «Beauty» tampoco, porque así lo deja el español.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
@@ -52,10 +52,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Ne znam odakle početi',
   brainEx2: 'Objasni mi ovo jednostavno',
   brainEx3: 'Prevedi ovaj tekst',
-  areaStudioPhotos: 'Weë Studio · Fotografije',
-  areaStudioVideos: 'Weë Studio · Videi',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Dom & Dizajn',
+  areaStudioPhotos: 'WeëStudio · Fotografije',
+  areaStudioVideos: 'WeëStudio · Videi',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Dom & Dizajn',
   areaHomeName: 'Dom & Dizajn',
   tellTheSpecialist: 'Reci asistentu {{especialista}} šta želiš postići: postavit će ti dva-tri jednostavna pitanja i pobrinuti se za ostalo. Poslije objavljuješ direktno u svojoj zajednici.',
   exampleQuoted: '„{{ejemplo}}“',

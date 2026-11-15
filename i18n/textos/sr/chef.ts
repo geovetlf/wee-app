@@ -1,8 +1,8 @@
 /*
  * WEË CHEF — el sitio donde se cocina.
  *
- * Serbio (ekaviano, cirílico). Mismas claves que el español. "Weë Chef" es
- * marca y no entra; lo compartido con Weë Studio se lee de `studio` y las siete
+ * Serbio (ekaviano, cirílico). Mismas claves que el español. "WeëChef" es
+ * marca y no entra; lo compartido con WeëStudio se lee de `studio` y las siete
  * funciones que ya existían siguen en `weeai`.
  */
 export const chef: typeof import('../es/chef').chef = {

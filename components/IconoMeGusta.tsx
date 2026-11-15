@@ -6,13 +6,13 @@ import { Image } from 'expo-image';
  * EL ICONO DE «ME GUSTA» DE LAS PUBLICACIONES: LA MANO OK (2026-11-05, decisión del dueño).
  *
  * Sustituye a la manito con el pulgar arriba (`thumbs-up` de Ionicons) en la acción de estar de acuerdo con
- * una publicación —Wäll, tarjeta del muro, Weëls, detalle, contador del Home e imagen para compartir—. Los
+ * una publicación —Ẅall, tarjeta del muro, Weëls, detalle, contador del Home e imagen para compartir—. Los
  * comentarios conservan su pulgar: votan el comentario, no la publicación. Solo cambia el dibujo: quien lo
  * usa sigue decidiendo el tamaño, el color y si está puesto.
  *
  * El dibujo sale de la referencia del dueño, vectorizado en `assets/icons/me-gusta/` (`contorno.svg`,
  * `lleno.svg`, fuente de diseño) y pasado a PNG transparente a 1x/2x/3x, monocromo: el color lo pone
- * `tintColor`, así que se adapta al fondo (blanco sobre el vídeo del Wäll, gris en el muro) en iOS,
+ * `tintColor`, así que se adapta al fondo (blanco sobre el vídeo del Ẅall, gris en el muro) en iOS,
  * Android y web sin dependencias nuevas.
  *
  *   sin «me gusta»  el contorno, en `color`.

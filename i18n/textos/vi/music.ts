@@ -1,7 +1,7 @@
 /*
- * TIẾNG VIỆT — Weë Music: trang chính, Composer, workstation và công cụ. Tipado contra el español.
+ * TIẾNG VIỆT — WeëMusic: trang chính, Composer, workstation và công cụ. Tipado contra el español.
  *
- * «Weë Music» es marca y no se traduce; tampoco los nombres de los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs).
+ * «WeëMusic» es marca y no se traduce; tampoco los nombres de los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs).
  * Se trata de «bạn»; los botones son verbo corto o verbo + objeto. Términos: canción = bài hát, letra = lời bài hát,
  * pista separada = track riêng, motor = công cụ (công cụ tạo nhạc), borrador = bản nháp, IA = AI. «MIDI», «Pop», «Rock»,
  * «Jazz», «R&B», «Hip hop», «Reggaeton», «Remix», «Solo» (el botón del mezclador) se dejan como los usa la
@@ -13,7 +13,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Kể cho tôi ý tưởng của bạn hoặc ngân nga một giai điệu, rồi chuẩn bị bài hát của bạn từng bước.',
   ctaCreate: 'Tạo nhạc',
   chooseTitle: 'Chọn cách bắt đầu',
-  skillsTitle: 'Weë Music có thể làm gì',
+  skillsTitle: 'WeëMusic có thể làm gì',
   recentTitle: 'Bài hát gần đây',
   viewExample: 'Xem một ví dụ thiết kế',
   honestyNote: 'Hôm nay bạn có thể chuẩn bị bài hát, ghi âm một giai điệu tham khảo và nhờ Weë Brain định hướng. Tính năng tạo bài hát sẽ được bật khi đã kết nối và kiểm chứng.',
@@ -21,7 +21,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Các bản âm thanh và bài hát bạn đã lưu.',
   openProjects: 'Dự án của tôi',
   openProjectsHelp: 'Sắp xếp bài hát của bạn vào các dự án.',
-  backToMusic: 'Quay lại Weë Music',
+  backToMusic: 'Quay lại WeëMusic',
   composerTitle: 'Tạo nhạc',
   modesLabel: 'Chế độ',
   modeSimple: 'Đơn giản',
@@ -307,7 +307,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Xử lý âm thanh là tính năng đang chờ: ở đây mới chỉ chuẩn bị phần hợp đồng.',
 
   voiceInterpretation: 'Phong cách trình bày',
-  voiceNoClone: 'Weë Music không nhân bản hay bắt chước giọng của người thật: chỉ chọn các đặc điểm giọng hát chung.',
+  voiceNoClone: 'WeëMusic không nhân bản hay bắt chước giọng của người thật: chỉ chọn các đặc điểm giọng hát chung.',
   voiceStylePending: 'Phong cách trình bày phụ thuộc vào công cụ và hiện chưa khả dụng.',
   styleTitle: 'Thể loại và phong cách',
   transformTitle: 'Biến đổi',

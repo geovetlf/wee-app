@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tuteo («tú», «do») e imperativo de segunda persona en los botones. Los formatos
- * —PDF, MP4— no cambian de idioma y "Weë Studio", "Writer", "Beauty", "Fashion"
+ * —PDF, MP4— no cambian de idioma y "WeëStudio", "Writer", "Beauty", "Fashion"
  * y "3D World" son marca: se escriben igual, sin mutación. Cine: plano = seat,
  * toma = glacadh, escena = radharc, guion = script.
  *
@@ -237,7 +237,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   soon: 'Go luath',
   soonHint: 'Tá a háit ag an uirlis seo cheana. Níl le déanamh ach í a nascadh.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Téacs',
   textHint: 'Scríobh ábhar ar bith',
   exploreTitle: 'Fiosraigh',

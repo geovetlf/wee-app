@@ -1,5 +1,5 @@
 /*
- * HEBREO — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * HEBREO — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Traducido del español, con el inglés como segunda referencia (docs/I18N-HEBREO.md).
@@ -93,8 +93,8 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'הדגמה',
   demoBadgeLabel: 'תוכן להדגמה',
-  immersiveEmpty: 'עדיין אין פוסטים ב-Wäll',
-  immersiveError: 'לא הצלחנו לטעון את ה-Wäll',
+  immersiveEmpty: 'עדיין אין פוסטים ב-Ẅall',
+  immersiveError: 'לא הצלחנו לטעון את ה-Ẅall',
   immersiveEnd: 'ראית הכול',
   agreePost: 'בעד',
   disagreePost: 'נגד',

@@ -2,7 +2,7 @@
  * WeëTravel — el workspace de viajes (prototipo navegable con datos DEMO, 2026-11-06).
  *
  * Este archivo es el MOLDE: de él sale el tipo que tiene que cumplir el resto de los idiomas. Añadir una clave aquí y
- * olvidarla en inglés no compila. Los nombres de Weë (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls) no se traducen.
+ * olvidarla en inglés no compila. Los nombres de Weë (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls) no se traducen.
  * Los destinos, lugares y frases de ejemplo son DEMO y la interfaz lo dice donde podrían tomarse por reales.
  */
 export const travel = {
@@ -741,9 +741,9 @@ export const travel = {
   journalPh: '¿Qué fue lo mejor de hoy?',
   saveEntry: 'Guardar entrada',
   journalEmpty: 'Tu diario está vacío. Escribe la primera entrada.',
-  videoMemoriesDemo: 'DEMO: los vídeos se crean en Weë Studio, con tus propias fotos y clips.',
+  videoMemoriesDemo: 'DEMO: los vídeos se crean en WeëStudio, con tus propias fotos y clips.',
   videoOf: 'El vídeo de {{viaje}}',
-  createInStudio: 'Crear en Weë Studio',
+  createInStudio: 'Crear en WeëStudio',
   countriesVisited_one: '{{contador}} país visitado',
   countriesVisited_other: '{{contador}} países visitados',
   recapTitle: 'Tu viaje a {{viaje}}',

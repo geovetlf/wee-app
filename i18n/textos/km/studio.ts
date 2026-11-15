@@ -1,5 +1,5 @@
 /*
- * JEMER — Weë Studio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
+ * JEMER — WeëStudio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -10,7 +10,7 @@
  * ស្នាដៃរបស់ខ្ញុំ (glosario). «Beauty», «Fashion» y «3D World» se dejan como el español. `xpMultiScene` = ឈុតច្រើន,
  * la misma cadena que usa el módulo filmmaker en `sectionName`.
  *
- * QUÉ NO ESTÁ AQUÍ: «Weë Studio» y «Writer», que son marca, ni los formatos —PDF, MP4, 16:9—, que no cambian.
+ * QUÉ NO ESTÁ AQUÍ: «WeëStudio» y «Writer», que son marca, ni los formatos —PDF, MP4, 16:9—, que no cambian.
  */
 export const studio: typeof import('../es/studio').studio = {
   /* ── La cabecera ──────────────────────────────────────────────────────── */
@@ -233,7 +233,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'ឆាប់ៗ​នេះ',
   soonHint: 'ឧបករណ៍​នេះ​មាន​កន្លែង​រួចហើយ។ នៅសល់​តែ​ការភ្ជាប់​ប៉ុណ្ណោះ។',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'អត្ថបទ',
   textHint: 'សរសេរ​មាតិកា​អ្វី​ក៏បាន',
   exploreTitle: 'រុករក',

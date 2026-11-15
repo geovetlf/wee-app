@@ -92,7 +92,7 @@ interface Props {
  * POR DÓNDE SE EMPIEZA, Y CUÁNTO PESA CADA COSA.
  *
  * Cuatro entradas grandes y cinco pequeñas, y esa diferencia de tamaño ES la
- * jerarquía: casi todo lo que alguien quiere hacer en Weë Studio es una imagen,
+ * jerarquía: casi todo lo que alguien quiere hacer en WeëStudio es una imagen,
  * un vídeo, un texto o una voz. Lo demás existe, se llega, y no compite.
  *
  * ── Por qué Explorar no son tarjetas ────────────────────────────────────────
@@ -108,7 +108,7 @@ interface Props {
  *
  * ── Y lo que NO está aquí ───────────────────────────────────────────────────
  *
- * Weë Travel, Weë Chef, Weë Design, Weë Business y Weë Music. No porque no
+ * WeëTravel, WeëChef, WeëDesign, Weë Business y WeëMusic. No porque no
  * quepan: porque son otros lugares de trabajo. Ponerlos en la portada del
  * Studio diría que el Studio los contiene, y lo que haría de verdad es que
  * nadie supiera dónde está.

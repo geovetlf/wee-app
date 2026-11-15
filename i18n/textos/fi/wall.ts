@@ -1,5 +1,5 @@
 /*
- * FINÉS — El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * FINÉS — El Ẅall: la publicación y todo lo que se puede hacer con ella.
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * «Republicar» es «Jaa uudelleen» (la forma de las redes en finés); el que
@@ -81,8 +81,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demo',
   demoBadgeLabel: 'Esittelysisältöä',
-  immersiveEmpty: 'Wäll-seinällä ei ole vielä julkaisuja',
-  immersiveError: 'Wäll-seinää ei voitu ladata',
+  immersiveEmpty: 'Ẅall-seinällä ei ole vielä julkaisuja',
+  immersiveError: 'Ẅall-seinää ei voitu ladata',
   immersiveEnd: 'Olet nähnyt kaiken',
   agreePost: 'Samaa mieltä',
   disagreePost: 'Eri mieltä',

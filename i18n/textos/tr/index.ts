@@ -7,10 +7,10 @@
  * no compila hasta que exista también aquí.
  *
  * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS:
- *   · los nombres de Weë —Weë, Wäll, Weëls, WeeTalk, ËContact, ẄContact,
- *     Credits, Weë AI, Weë Studio…—, que son marca y se escriben igual en todos
+ *   · los nombres de Weë —Weë, Ẅall, Weëls, WeeTalk, ËContact, ẄContact,
+ *     Credits, Weë AI, WeëStudio…—, que son marca y se escriben igual en todos
  *     los idiomas. En turco la tentación es adaptarlos, porque se escriben casi
- *     igual: «Credits» no es «Kredi» y «Weë Studio» no es «Weë Stüdyo». Si una
+ *     igual: «Credits» no es «Kredi» y «WeëStudio» no es «Weë Stüdyo». Si una
  *     marca lleva sufijo, va con apóstrofo y solo con las terminaciones de la
  *     tabla de `docs/I18N-TURCO.md` § 9 («Weë'de», «WeeTalk'ta»); en los demás
  *     casos la frase lleva un sustantivo detrás («ËContact listen»);

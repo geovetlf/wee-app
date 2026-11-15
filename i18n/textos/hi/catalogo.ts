@@ -13,14 +13,14 @@
  * tarjetas de «No sé…» dudan en voz alta con el subjuntivo del glosario («पता नहीं आज क्या पकाएँ»), que tampoco tiene
  * género: «पता नहीं क्या करें», «पता नहीं कहाँ जाएँ», «पता नहीं कैसे करें».
  *
- * LA VOZ DE WEË. Weë Brain, Weë Chef y los demás hablan en primera persona, como en español, pero con formas sin
+ * LA VOZ DE WEË. Weë Brain, WeëChef y los demás hablan en primera persona, como en español, pero con formas sin
  * género (guía § 5.3): «आपको वहाँ ले जाना मेरा काम है» (como weeai.brainGreeting), «कुछ स्वादिष्ट सुझाऊँ?», «अपना आइडिया बताएँ और सुझाव पाएँ»,
  * «…सब मेरा काम है», «पूरी तैयारी मुझ पर छोड़ दें». En tercera persona Weë y sus productos van en masculino («Weë
  * आपकी मदद करेगा», «Weë Brain … करता है»). A quien usa la app no se le concuerda ningún verbo: «जितना ज़्यादा बताएँ,
  * उतने कम सवाल», y no «आप जितना बताएँगे».
  *
  * MARCAS. Intactas y en latino. «Los otros Weë» son «दूसरे Weë एक्सपर्ट» (el especialista es «एक्सपर्ट», glosario
- * § 11.7). En el selector de Weë Studio, «Beauty» es el nombre del área y no la marca: «ब्यूटी», el préstamo que se
+ * § 11.7). En el selector de WeëStudio, «Beauty» es el nombre del área y no la marca: «ब्यूटी», el préstamo que se
  * usa en la India (la misma frase española que studio.beautyTitle). «Writer» abre la pantalla de Weë Writer y va con
  * su marca entera: suelto sería inglés sin traducir. «Hogar & Diseño» es «घर और डिज़ाइन» (& → और, § 7), la misma
  * frase española que creator.areaHomeName; «होम» no, porque en Weë «होम» es la pestaña de inicio. En «Design, Studio,
@@ -32,7 +32,7 @@
  * creator.chefEx2; «postre», «डेज़र्ट»; «plato», «डिश» (f); «canción», «गाना», y la letra, «बोल»; el videoclip, «गाने
  * का वीडियो» (así no hace falta «म्यूज़िक», que el glosario descarta); la narración, «नैरेशन», como studio.ts; el
  * «espacio» de Weë Home, «जगह»; el guion, «स्क्रिप्ट»; «Corrección», «गलतियाँ सुधारना», como studio.wrProofread; el CV,
- * «CV», como studio.ts y business.ts, y la hoja de vida, «रिज़्यूमे»; las fuentes de Weë Travel, «स्रोत»; el
+ * «CV», como studio.ts y business.ts, y la hoja de vida, «रिज़्यूमे»; las fuentes de WeëTravel, «स्रोत»; el
  * personaje, se diseñe o se escriba, «किरदार», como studio.ts y home.ts; «formato», «फ़ॉर्मैट» (ै por la /æ/, § 4.4),
  * como studio.ts y business.ts; un jingle «pegajoso», «यादगार» (no «कैची», que además se lee como «कैंची»). Los
  * géneros musicales van en devanagari (पॉप, रॉक, रेगेटन, बैलेड).
@@ -51,13 +51,13 @@
  * reguetón. Los demás platos llevan el nombre con el que se piden en la India: «कार्बोनारा पास्ता», «चिकन सलाद»,
  * «चॉकलेट लावा केक».
  *
- * LO QUE NO SE PUEDE ROMPER. Los chips de Weë Travel conservan el emoji y el espacio ASCII detrás: `objetivoDe`
+ * LO QUE NO SE PUEDE ROMPER. Los chips de WeëTravel conservan el emoji y el espacio ASCII detrás: `objetivoDe`
  * (IdeaBox) solo quita el emoji si lo sigue un espacio, y `TravelLauncher` quita lo que va delante de la primera letra
- * del título «✈️ …». El saludo de Weë Chef lleva el emoji del cocinero del español tal cual (U+1F468 U+200D U+1F373):
+ * del título «✈️ …». El saludo de WeëChef lleva el emoji del cocinero del español tal cual (U+1F468 U+200D U+1F373):
  * ese ZWJ es parte del emoji, el único sitio donde lo admite la prueba 34 de i18n-hindi.test.mjs, y la 34b pide los
  * mismos emojis que el español, byte a byte. `CreatorFlowScreen` busca «foto», «imagen» o «ingredientes» en el
  * objetivo para pedir una foto: en devanagari no casa nunca, y aquí no hace falta, porque cada función con foto la
- * pide por su `preset`. Las tarjetas de Weë Beauty, los ejemplos y la fila de Weë Travel enseñan una sola línea: ahí va
+ * pide por su `preset`. Las tarjetas de Weë Beauty, los ejemplos y la fila de WeëTravel enseñan una sola línea: ahí va
  * la forma más corta que se dice de verdad. `CabeceraDeSeccion` pinta el lema (…Headline) partido en su primer espacio,
  * la primera palabra oscura y el resto en amarillo: el lema no empieza por la mitad de un verbo compuesto
  * («एक्सप्लोर | करें»), y por eso el de Weë Beauty abre con «आज़माएँ,». Las invitaciones (…IdeaSubtitle) se leen solas
@@ -110,7 +110,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'पूरा काम खुद संभालता है',
   brainEj3Subtitle: 'आइडिया से लेकर डिज़ाइन, वीडियो और संगीत तक',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'जो सोचें, उसे डिज़ाइन करें.',
   designIntro: 'AI की मदद से अपने आइडिया को शानदार डिज़ाइन में बदलें. लोगो से लेकर कार, प्रोडक्ट या पूरी दुनिया तक.',
   designChip1: 'तेज़ और आसान',
@@ -209,7 +209,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'चेहरे की रीटचिंग',
   photoEj6Title: 'AI से नया रूप दें',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'AI के साथ अपना संगीत बनाएँ, सुनें और महसूस करें',
   musicIntro: 'अपने आइडिया को गानों, वीडियो और अनोखे अनुभवों में बदलें. आपकी क्रिएटिविटी की कोई सीमा नहीं.',
   musicChip1: 'तेज़ और आसान',
@@ -271,7 +271,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'अपने संगीत को एक शानदार वीडियो में बदलें: कई स्टाइल, अपने-आप सिंक, सोशल मीडिया के लिए फ़ॉर्मैट, सीन और किरदार.',
   musicClosingButton: 'अभी वीडियो बनाएँ',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'AI से फ़ोटो और वीडियो बनाएँ',
   studioIntro: 'बताएँ कि आपको क्या बनाना है और कदम-दर-कदम मदद पाएँ.',
   studioChip1: 'इस्तेमाल में आसान',
@@ -364,7 +364,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'मिले मैसेज',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'आपका शेफ़, हमेशा आपके साथ',
   chefIntro: 'नई रेसिपी खोजें, मेन्यू बनाएँ, घर में जो है उसका पूरा इस्तेमाल करें और आसानी से बेहतर और ज़्यादा स्वादिष्ट खाना खाएँ.',
   chefChip1: 'आसान रेसिपी',
@@ -394,7 +394,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'पता नहीं क्या पकाएँ',
   chefAcIdkSubtitle: 'कुछ स्वादिष्ट सुझाऊँ?',
   chefAcIdkGoal: 'पता नहीं आज क्या पकाएँ',
-  chefIdeaTitle: 'नमस्ते! मैं Weë Chef हूँ 👨‍🍳',
+  chefIdeaTitle: 'नमस्ते! मैं WeëChef हूँ 👨‍🍳',
   chefIdeaSubtitle: 'बताएँ, आज क्या पकाने का मन है?',
   chefIdeaPlaceholder: 'अपना आइडिया यहाँ लिखें…',
   chefIdeaChip1: 'मुझे झटपट डिनर चाहिए',
@@ -606,7 +606,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'प्रोफ़ेशनल CV',
   writerEj6Subtitle: 'मॉडर्न और साफ़-सुथरा',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'अपनी यात्रा उसके साथ प्लान करें, जिसने दुनिया देखी है.',
   travelIntro: 'बताएँ कि आपको कहाँ जाना है (या यह भी कि अभी पता नहीं), फिर पूरी तैयारी मुझ पर छोड़ दें: क्या देखें, कहाँ खाएँ और कैसे घूमें-फिरें.',
   travelChip1: 'कोई बुकिंग नहीं',

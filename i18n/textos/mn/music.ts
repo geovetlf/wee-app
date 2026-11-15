@@ -1,8 +1,8 @@
 /*
- * MONGOL — Weë Music: portada, Composer, workstation y herramientas. Tipado contra el español.
+ * MONGOL — WeëMusic: portada, Composer, workstation y herramientas. Tipado contra el español.
  *
  * Tratamiento «та»/«таны»; instrucciones con «-на уу / -нэ үү»; botones en forma nominal corta («Хадгалах», «Тоглуулах»).
- * «Weë Music», «Weë Brain», «Credits», «WeeTalk», «iPhone» y los formatos (MP3, WAV, M4A, MIDI) quedan en latino; ningún
+ * «WeëMusic», «Weë Brain», «Credits», «WeeTalk», «iPhone» y los formatos (MP3, WAV, M4A, MIDI) quedan en latino; ningún
  * sufijo se pega a un {{hueco}} ni a una marca sin guion. Secciones de la canción: бадаг (verso), дахилт (coro), гүүр (puente),
  * завсрын хөг (interludio). «Pistas separadas» = тусгаарласан замууд. Sin plurales: el español no declara ninguno.
  * Traducción hecha por agentes y SIN revisión humana nativa (L1, 2026-11-03).
@@ -13,7 +13,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Санаагаа хэлэх эсвэл аялгуу аялаад, дуугаа алхам алхмаар бэлдээрэй.',
   ctaCreate: 'Хөгжим бүтээх',
   chooseTitle: 'Хэрхэн эхлэхээ сонгоно уу',
-  skillsTitle: 'Weë Music юу хийж чадах вэ',
+  skillsTitle: 'WeëMusic юу хийж чадах вэ',
   recentTitle: 'Сүүлийн дуунууд',
   viewExample: 'Загварын жишээ үзэх',
   honestyNote: 'Өнөөдөр та дуугаа бэлдэж, жишиг аялгуу бичүүлж, Weë Brain-ээс зөвлөгөө авах боломжтой. Дуу бүтээх функц холбогдож, баталгаажсаны дараа идэвхжинэ.',
@@ -21,7 +21,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Таны хадгалсан аудио болон дуунууд.',
   openProjects: 'Миний төслүүд',
   openProjectsHelp: 'Дуунуудаа төслөөр цэгцлээрэй.',
-  backToMusic: 'Weë Music руу буцах',
+  backToMusic: 'WeëMusic руу буцах',
   composerTitle: 'Хөгжим бүтээх',
   modesLabel: 'Горим',
   modeSimple: 'Энгийн',
@@ -307,7 +307,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Аудио боловсруулалт хүлээгдэж буй боломж: энд зөвхөн гэрээг бэлддэг.',
 
   voiceInterpretation: 'Гүйцэтгэлийн хэв маяг',
-  voiceNoClone: 'Weë Music хүний хоолойг хуулбарлахгүй, дуурайхгүй: зөвхөн хоолойн ерөнхий шинжийг сонгоно.',
+  voiceNoClone: 'WeëMusic хүний хоолойг хуулбарлахгүй, дуурайхгүй: зөвхөн хоолойн ерөнхий шинжийг сонгоно.',
   voiceStylePending: 'Гүйцэтгэлийн хэв маяг хөдөлгүүрээс хамаардаг бөгөөд одоохондоо боломжгүй.',
   styleTitle: 'Төрөл ба хэв маяг',
   transformTitle: 'Хувиргалтууд',

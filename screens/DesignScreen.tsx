@@ -32,7 +32,7 @@ const LO_QUE_TARDA_LA_DEMO = 1600;
 const SITIO_DE_LA_BARRA = scale(96);
 
 /**
- * Sus ajustes se preguntan siempre: en Weë Design siempre se está diseñando
+ * Sus ajustes se preguntan siempre: en WeëDesign siempre se está diseñando
  * algo que se ve, así que no hay contexto del que dependan. Se pone la forma
  * del panel común una sola vez, fuera del componente: es una tabla, no cambia.
  */
@@ -45,17 +45,17 @@ const AJUSTES = siempreSePregunta(AJUSTES_DE_DESIGN);
  *
  * El sitio de Weë para diseñar y visualizar lo físico: una sala, una casa, un
  * yate de quince metros, un avión privado, una silla. El orden es el mismo que
- * en Weë Studio —nombre, caja, puertas, lo ya hecho— porque es la misma
+ * en WeëStudio —nombre, caja, puertas, lo ya hecho— porque es la misma
  * familia y quien viene de uno tiene que reconocer el otro sin pensar.
  *
- * ── Lo que comparte con Weë Studio, y lo que no ──────────────────────────────
+ * ── Lo que comparte con WeëStudio, y lo que no ──────────────────────────────
  *
  * Comparte las piezas que son iguales DE VERDAD: la cabecera, la caja donde se
  * escribe y el panel de ajustes. Si esas cambian, cambian en los dos sitios a
  * la vez y no pueden separarse.
  *
  * Tiene suyo lo que es suyo: sus categorías —que son puertas de entrada, no
- * límites—, sus ajustes —estilo, materiales, luz— y su galería. Así Weë Design
+ * límites—, sus ajustes —estilo, materiales, luz— y su galería. Así WeëDesign
  * puede crecer hacia donde necesite sin arrastrar la estructura del Studio.
  *
  * ── Lo que todavía no hay ────────────────────────────────────────────────────
@@ -84,7 +84,7 @@ const DesignScreen: React.FC = () => {
   const [camino, setCamino] = useState<(CategoriaDeDesign | 'todas')[]>([]);
   const vista = camino.length > 0 ? camino[camino.length - 1] : null;
   const abrir = useCallback((paso: CategoriaDeDesign | 'todas') => setCamino((antes) => [...antes, paso]), []);
-  /* Weë Fashion vive en la ficha de especialista `business` (screens/SpecialistScreen.tsx). */
+  /* WeëFashion vive en la ficha de especialista `business` (screens/SpecialistScreen.tsx). */
   const irAFashion = useCallback(() => navigation.navigate('Specialist', { id: 'business' }), [navigation]);
   const volver = useCallback(() => setCamino((antes) => antes.slice(0, -1)), []);
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false);
@@ -171,7 +171,7 @@ const DesignScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      {/* Como en Weë Studio: la caja crece hasta llenar lo que se ve y sus botones no se salen de la vista. */}
+      {/* Como en WeëStudio: la caja crece hasta llenar lo que se ve y sus botones no se salen de la vista. */}
       <EspacioDeEscritura style={styles.scroll} descuento={isDesktop ? 0 : ALTO_BARRA}>
         <PaginaDeCajas
           style={styles.scroll}
@@ -192,7 +192,7 @@ const DesignScreen: React.FC = () => {
 
             {/*
               LA CAJA, MÁS CERCA DE LA PRESENTACIÓN (decisión del usuario,
-              2026-09-16, solo en Weë Design; el mismo ajuste que ya lleva Weë
+              2026-09-16, solo en WeëDesign; el mismo ajuste que ya lleva Weë
               Studio).
 
               Entre el último renglón de la cabecera y la caja había 48 puntos:
@@ -223,7 +223,7 @@ const DesignScreen: React.FC = () => {
               />
             </View>
 
-{/* La misma ficha que en Weë Studio: lo que ya se sabe, a la vista. */}
+{/* La misma ficha que en WeëStudio: lo que ya se sabe, a la vista. */}
             {referencias.length > 0 && (
               <View style={[styles.referencias, pro && styles.referenciasPro]}>
                 {referencias.map((r, i) => (
@@ -239,7 +239,7 @@ const DesignScreen: React.FC = () => {
             )}
 
             {/*
-              La misma fila que la de Weë Studio —es la misma fila— con lo que
+              La misma fila que la de WeëStudio —es la misma fila— con lo que
               se hace aquí: un interior, una casa, un barco, una silla. La
               etiqueta dice qué CLASE de diseño es, que es por lo que se busca en
               esta galería, no si es imagen o video.
@@ -250,7 +250,7 @@ const DesignScreen: React.FC = () => {
             {pro ? (
               <EnlaceDeCreaciones />
             ) : (
-              /* Como en la demo YC: la portada termina en Explorar; Mis proyectos sigue en el menú y en Weë Studio. */
+              /* Como en la demo YC: la portada termina en Explorar; Mis proyectos sigue en el menú y en WeëStudio. */
               null
             )}
           </View>
@@ -265,9 +265,9 @@ const DesignScreen: React.FC = () => {
       />
 
       {/*
-        El panel de ajustes es el común de Weë AI, con el catálogo de Weë Design
+        El panel de ajustes es el común de Weë AI, con el catálogo de WeëDesign
         dentro. Antes había una segunda copia del panel solo para poder pasarle
-        otra lista, y para usarla Weë Design tenía que decir que estaba en el
+        otra lista, y para usarla WeëDesign tenía que decir que estaba en el
         área "imágenes" del Studio, que no es verdad y no lleva a ninguna parte.
 
         La pista de debajo del título es la suya: aquí los ajustes NO cambian con
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
 });
 
 /*
- * Weë Design es de la CUENTA, como el resto del taller: se ve claro lleves
+ * WeëDesign es de la CUENTA, como el resto del taller: se ve claro lleves
  * puesto el Perfil Real o el Perfil Weë.
  */
 export default enTemaClaro(DesignScreen);

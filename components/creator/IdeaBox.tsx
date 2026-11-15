@@ -31,7 +31,7 @@ export const objetivoDe = (chip: string): string => chip.replace(EMOJI_AL_PRINCI
  * La persona lo cuenta con sus palabras y Weë empieza. Debajo, unos ejemplos
  * para quien prefiera empezar por uno ya escrito.
  *
- * La caja es `CajaDePrompt`, la misma de Weë Studio y Weë Design (decisión del
+ * La caja es `CajaDePrompt`, la misma de WeëStudio y WeëDesign (decisión del
  * usuario, 2026-09-15: una sola caja para todo Weë AI). Antes era una píldora
  * estrecha de una línea con el botón al lado, dentro de una tarjeta con borde
  * amarillo y un emoji. De aquel saludo se queda la invitación —"Cuéntame, ¿qué

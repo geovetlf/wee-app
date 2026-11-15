@@ -1,7 +1,7 @@
 /*
  * ca — Boost — promocionar una publicación propia dentro de Weë. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa.
- * Las marcas (Weë, Credits, ËContact, Boost, Weë Fashion, WeëPages…) no se traducen.
+ * Las marcas (Weë, Credits, ËContact, Boost, WeëFashion, WeëPages…) no se traducen.
  */
 export const boost: typeof import('../es/boost').boost = {
   title: 'Impulsar',

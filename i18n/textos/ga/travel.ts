@@ -3,7 +3,7 @@ import { ConPlurales } from './plurales';
 /*
  * IRLANDÉS — WeëTravel: el workspace de viajes (prototipo con datos DEMO). Tipado contra el español con `ConPlurales`:
  * cada clave que cuenta añade `_two`, `_few` y `_many` con la mutación en la palabra (lenición 2-6, eclipsis 7-10).
- * Tuteo. Las marcas (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls, Travel Safe) y la etiqueta «DEMO» no se traducen.
+ * Tuteo. Las marcas (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls, Travel Safe) y la etiqueta «DEMO» no se traducen.
  * Traducción de IA, pendiente de revisión nativa.
  */
 export const travel: ConPlurales<typeof import('../es/travel').travel> = {
@@ -796,9 +796,9 @@ export const travel: ConPlurales<typeof import('../es/travel').travel> = {
   journalPh: 'Cad ab fhearr inniu?',
   saveEntry: 'Sábháil an iontráil',
   journalEmpty: 'Tá do dhialann folamh. Scríobh an chéad iontráil.',
-  videoMemoriesDemo: 'DEMO: cruthaítear na físeáin in Weë Studio, le do ghrianghraif agus do ghearrthóga féin.',
+  videoMemoriesDemo: 'DEMO: cruthaítear na físeáin in WeëStudio, le do ghrianghraif agus do ghearrthóga féin.',
   videoOf: 'Físeán {{viaje}}',
-  createInStudio: 'Cruthaigh in Weë Studio',
+  createInStudio: 'Cruthaigh in WeëStudio',
   countriesVisited_one: '{{contador}} tír feicthe',
   countriesVisited_two: '{{contador}} thír feicthe',
   countriesVisited_few: '{{contador}} thír feicthe',

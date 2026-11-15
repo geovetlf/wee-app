@@ -2,7 +2,7 @@
  * WEË STUDIO — el sitio donde se crea, en montenegrino (ijekaviano, latino).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tuteo («ti») e imperativo de 2.ª singular. "Weë Studio", "Writer", "Beauty",
+ * Tuteo («ti») e imperativo de 2.ª singular. "WeëStudio", "Writer", "Beauty",
  * "Fashion" y "3D World" son marca y los formatos —PDF, MP4— no cambian de
  * idioma. Cine: plano = kadar, toma = snimak, escena = scena, guion = scenario.
  *
@@ -233,7 +233,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   soon: 'Uskoro',
   soonHint: 'Ovaj alat već ima svoje mjesto. Još treba da se poveže.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Tekst',
   textHint: 'Piši bilo kakav sadržaj',
   exploreTitle: 'Istraži',

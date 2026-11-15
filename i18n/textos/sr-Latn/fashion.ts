@@ -3,9 +3,9 @@
  * (i18n/textos/sr/). Cualquier corrección se hace en el cirílico y se vuelve a generar.
  */
 /*
- * sr — Weë Fashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * sr — WeëFashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa.
- * Las marcas (Weë, Credits, ËContact, Boost, Weë Fashion, WeëPages…) no se traducen.
+ * Las marcas (Weë, Credits, ËContact, Boost, WeëFashion, WeëPages…) no se traducen.
  */
 export const fashion: typeof import('../es/fashion').fashion = {
   tagline: 'Tvoj stil. Tvoja vizija. Tvoj svet.',
@@ -99,7 +99,7 @@ export const fashion: typeof import('../es/fashion').fashion = {
   briefIdea: 'Moja ideja: {{texto}}.',
   briefIdk: 'Pomozi mi da izaberem.',
   heroTags: 'Moda · Lepota · Stil · Kolekcije',
-  toolsTitle: 'Weë Fashion alati',
+  toolsTitle: 'WeëFashion alati',
   inspirationTitle: 'Inspiracija',
   galleryTitle: 'Isprobaj izgled',
   galClothes: 'Odeća',

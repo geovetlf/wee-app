@@ -1,10 +1,10 @@
 /*
- * POLACO — Weë Music: portada, Composer, workstation y herramientas.
+ * POLACO — WeëMusic: portada, Composer, workstation y herramientas.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * «Canción» es «utwór» (vale también para lo instrumental), las secciones son «sekcje», las pistas separadas
- * «osobne ścieżki», el motor «silnik» y el proveedor «dostawca», como en el resto de los módulos polacos. «Weë Music»,
+ * «osobne ścieżki», el motor «silnik» y el proveedor «dostawca», como en el resto de los módulos polacos. «WeëMusic»,
  * «Weë Brain», «Weë AI» y «Credits» son marca y no se declinan. Los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs)
  * tampoco se traducen. `trackVolume` y `addInstrument` llevan el instrumento tras dos puntos para no declinar lo que
  * llega por {{instrumento}}. `section_other` e `instr_other` son la categoría «otro», no plurales. «Contrato»
@@ -18,7 +18,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Opowiedz mi o swoim pomyśle albo zaśpiewaj melodię i przygotuj utwór krok po kroku.',
   ctaCreate: 'Utwórz muzykę',
   chooseTitle: 'Wybierz, jak zacząć',
-  skillsTitle: 'Co potrafi Weë Music',
+  skillsTitle: 'Co potrafi WeëMusic',
   recentTitle: 'Ostatnie utwory',
   viewExample: 'Zobacz przykładowy projekt',
   honestyNote: 'Już dziś możesz przygotować utwór, nagrać melodię referencyjną i poprosić Weë Brain o wskazówki. Tworzenie utworu zostanie włączone, gdy będzie podłączone i sprawdzone.',
@@ -26,7 +26,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Twoje zapisane nagrania i utwory.',
   openProjects: 'Moje projekty',
   openProjectsHelp: 'Porządkuj swoje utwory w projektach.',
-  backToMusic: 'Wróć do Weë Music',
+  backToMusic: 'Wróć do WeëMusic',
   composerTitle: 'Utwórz muzykę',
   modesLabel: 'Tryb',
   modeSimple: 'Prosty',
@@ -312,7 +312,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Przetwarzanie dźwięku to funkcja, która dopiero powstaje: tutaj przygotowujemy tylko specyfikację.',
 
   voiceInterpretation: 'Styl wykonania',
-  voiceNoClone: 'Weë Music nie klonuje ani nie naśladuje głosów prawdziwych osób: wybiera tylko ogólne cechy wokalu.',
+  voiceNoClone: 'WeëMusic nie klonuje ani nie naśladuje głosów prawdziwych osób: wybiera tylko ogólne cechy wokalu.',
   voiceStylePending: 'Styl wykonania zależy od silnika i nie jest jeszcze dostępny.',
   styleTitle: 'Gatunek i styl',
   transformTitle: 'Przekształcenia',

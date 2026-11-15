@@ -6,8 +6,8 @@
  * falte o sobre en alemán no compila.
  *
  * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS:
- *   · los nombres de Weë —Weë, Wäll, Weëls, WeeTalk, ËContact, Credits, Weë AI,
- *     Weë Studio…—, que son marca y se escriben igual en todos los idiomas;
+ *   · los nombres de Weë —Weë, Ẅall, Weëls, WeeTalk, ËContact, Credits, Weë AI,
+ *     WeëStudio…—, que son marca y se escriben igual en todos los idiomas;
  *   · nada que escriba una persona: publicaciones, comentarios, nombres de
  *     comunidades, proyectos o prompts. Eso es contenido, no interfaz.
  *

@@ -1,5 +1,5 @@
 /*
- * GRIEGO — Weë Chef: el sitio donde se cocina. Tipado contra el español.
+ * GRIEGO — WeëChef: el sitio donde se cocina. Tipado contra el español.
  *
  * Los valores de ajuste concuerdan con su opción: dieta (δίαιτα) y dificultad
  * (δυσκολία) en femenino. «Vegano» es «βίγκαν» (invariable). «Macros» se

@@ -10,12 +10,12 @@
  * objeto es concreto («I-mix at i-master ang kanta ko», «Palitan ang background ng isang larawan»). Donde pone
  * «Quiero…», «Gusto kong…» / «Gusto ko ng…», la forma filipina natural de pedir. Cuando la misma frase es título y
  * objetivo («Crear una canción», «Crear un menú»), las dos dicen lo mismo. Las tarjetas «No sé…» empiezan por «Hindi
- * ko alam…», y el chip con 🤷 de Weë Travel empieza por «🤷 Hindi ko alam», como pide la guía (§ 15.30). Los verbos
+ * ko alam…», y el chip con 🤷 de WeëTravel empieza por «🤷 Hindi ko alam», como pide la guía (§ 15.30). Los verbos
  * coordinados comparten foco («Isulat, likhain, pagandahin at bigyang-buhay ang mga ideya mo»): mezclar «gumawa» con
  * «pagandahin» sobre el mismo objeto es agramatical.
  *
  * MARCAS (guía § 6). Ni se traducen ni llevan afijos; marcadores de cosa: «sa Weë», «kasama ang Weë», «Kausapin ang
- * Weë», «Kumusta! Ako ang Weë Chef». «Los otros Weë» son «ibang espesyalista ng Weë». En el selector de Weë Studio,
+ * Weë», «Kumusta! Ako ang WeëChef». «Los otros Weë» son «ibang espesyalista ng Weë». En el selector de WeëStudio,
  * «Beauty» y «Writer» son el nombre de un ÁREA, no la marca: «Pagpapaganda» y «Pagsusulat», dos sustantivos del mismo
  * molde (como «Skønhed» en danés); «Fotos» y «Videos», «Mga larawan» y «Mga video». En «Design, Studio, Chef…» de Weë
  * Brain son nombres cortos de las experiencias y se quedan como están.
@@ -37,7 +37,7 @@
  * alguien en Filipinas: el «Lomo saltado · Clásico peruano» es «Adobong manok · Klasikong Pinoy»; la canción «Sabor
  * peruano» es «Lasang Pinoy»; el rock, «Pinoy rock»; el drama del cortometraje, «Dramang pampamilya»; la hamburguesa
  * «Como en casa», «Parang luto ni Nanay»; la ciencia ficción, «Sci-fi»; la pasta, «Carbonara»; el reggaetón del
- * placeholder de Weë Music, un «pop na kanta». Japón se queda: es el destino que más sueña un viajero filipino. Los
+ * placeholder de WeëMusic, un «pop na kanta». Japón se queda: es el destino que más sueña un viajero filipino. Los
  * platos que en Filipinas se piden por su nombre inglés se quedan así («Chocolate lava cake», como en cualquier menú
  * de Manila); los que tienen molde filipino, en filipino («Ensaladang manok», «Gawang-bahay na burger»).
  *
@@ -47,14 +47,14 @@
  * CIFRAS (guía § 8). Las duraciones (3:12, 0:15), las métricas («125.4K», «2.8K») y las subidas («↑ 40%») ya están
  * en la convención filipina, que es la inglesa: no cambian. Los minutos tras una cifra van con la forma corta de
  * `Intl`, «20 min.», con su punto (como «seg.»). El límite de subida es «hanggang
- * 10 MB», sin abreviatura. La fecha del ejemplo de Weë Travel se dice «mula Oktubre 12 hanggang 22», con el mes con
+ * 10 MB», sin abreviatura. La fecha del ejemplo de WeëTravel se dice «mula Oktubre 12 hanggang 22», con el mes con
  * mayúscula y sin guion de intervalo. «Tres destinos» va en palabra («tatlong destinasyon») porque el español lo
  * escribe así.
  *
- * LO QUE NO SE PUEDE ROMPER. Los chips de Weë Travel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
+ * LO QUE NO SE PUEDE ROMPER. Los chips de WeëTravel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
  * solo quita el emoji si lo sigue un espacio. `CreatorFlowScreen` todavía busca /foto|imagen/ en el objetivo de Weë
  * Studio para pedir una foto, y «larawan» no coincide (tampoco «photo» en inglés); hoy no tiene efecto porque la
- * tarjeta de fotos de Weë Studio abre Weë Photo y Weë Chef decide por `optionId`, pero el día que esa regla dependa del
+ * tarjeta de fotos de WeëStudio abre Weë Photo y WeëChef decide por `optionId`, pero el día que esa regla dependa del
  * texto, hay que pasarla a identificadores.
  */
 export const catalogo: typeof import('../es/catalogo').catalogo = {
@@ -104,7 +104,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Inaasikaso ang buong proseso',
   brainEj3Subtitle: 'Mula sa ideya hanggang sa disenyo, video at musika',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Idisenyo ang kahit anong maisip mo.',
   designIntro: 'Gawing kahanga-hangang disenyo ang mga ideya mo gamit ang AI. Mula sa logo hanggang sa kotse, produkto o buong mundo.',
   designChip1: 'Mabilis at madali',
@@ -203,7 +203,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Retouch ng mukha',
   photoEj6Title: 'Ibahin ang itsura gamit ang AI',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Likhain, pakinggan at damhin ang musika mo gamit ang AI',
   musicIntro: 'Gawing kanta, video at kakaibang karanasan ang mga ideya mo. Walang limitasyon ang pagkamalikhain mo.',
   musicChip1: 'Mabilis at simple',
@@ -265,7 +265,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Gawing kahanga-hangang video ang musika mo: iba’t ibang istilo, awtomatikong sync, mga format para sa social media, mga eksena at karakter.',
   musicClosingButton: 'Gumawa ng video ngayon',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Gumawa ng mga larawan at video gamit ang AI',
   studioIntro: 'Sabihin mo kung ano ang gusto mong gawin at tutulungan kita, hakbang-hakbang.',
   studioChip1: 'Madaling gamitin',
@@ -358,7 +358,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Mga natanggap na mensahe',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Ang chef mo, laging kasama mo',
   chefIntro: 'Tumuklas ng mga recipe, gumawa ng menu, sulitin ang mayroon ka at kumain nang mas masustansya, mas madali at mas masarap.',
   chefChip1: 'Madadaling recipe',
@@ -388,7 +388,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Hindi ko alam ang lulutuin',
   chefAcIdkSubtitle: 'Magmumungkahi ako ng masarap na lutuin',
   chefAcIdkGoal: 'Hindi ko alam ang lulutuin ko ngayon',
-  chefIdeaTitle: 'Kumusta! Ako ang Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Kumusta! Ako ang WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Sabihin mo, ano ang gusto mong lutuin ngayon?',
   chefIdeaPlaceholder: 'Isulat dito ang ideya mo…',
   chefIdeaChip1: 'Gusto ko ng mabilisang hapunan',
@@ -600,7 +600,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'Propesyonal na resume',
   writerEj6Subtitle: 'Moderno at malinis',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Ihanda ang biyahe mo kasama ang taong nakapagbiyahe na.',
   travelIntro: 'Sabihin mo kung saan ka pupunta (o kung hindi mo pa alam) at ihahanda ko ang biyahe mo: ano ang makikita, saan kakain at paano lumibot.',
   travelChip1: 'Walang booking',

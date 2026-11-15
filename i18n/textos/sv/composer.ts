@@ -27,7 +27,7 @@
  * `multimedia` es «Galleri»: el botón abre la galería de fotos y vídeos, y
  * «Media» sería la misma cadena que en inglés. `currentDestination` es
  * «aktuellt val» («aktuell» es «actual» en sueco, no «real»). El muro general
- * es «Allmänna Wäll», adjetivo en forma débil delante del nombre, como
+ * es «Allmänna Ẅall», adjetivo en forma débil delante del nombre, como
  * «Gamla stan».
  *
  * Los títulos de error son sintagmas («Fel vid publicering») y los cuerpos,
@@ -69,7 +69,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Visa publiceringsalternativen',
   hideOptions: 'Dölj publiceringsalternativen',
   currentDestination: '{{destino}}, aktuellt val',
-  generalWall: 'Allmänna Wäll',
+  generalWall: 'Allmänna Ẅall',
   placeholderPollExtra: 'Lägg till något mer om du vill (valfritt)…',
   placeholderQuestion: 'Vad vill du fråga communityn?',
   placeholderWeel: 'Berätta vad du skapat i din Weël och med vilken AI…',

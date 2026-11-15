@@ -190,10 +190,10 @@ export const weeai: typeof import('../es/weeai').weeai = {
   couldNotCalculateRetry: 'Det gick inte att beräkna kostnaden. Försök igen.',
   expandSection: '{{titulo}}. Visa {{contenido}}',
   collapseSection: '{{titulo}}. Dölj {{contenido}}',
-  openTravel_one: '{{titulo}}. Öppna Weë Travel: rutan där du beskriver resan och ett sätt att börja',
-  openTravel_other: '{{titulo}}. Öppna Weë Travel: rutan där du beskriver resan och {{contador}} sätt att börja',
-  closeTravel_one: '{{titulo}}. Dölj Weë Travel: rutan där du beskriver resan och ett sätt att börja',
-  closeTravel_other: '{{titulo}}. Dölj Weë Travel: rutan där du beskriver resan och {{contador}} sätt att börja',
+  openTravel_one: '{{titulo}}. Öppna WeëTravel: rutan där du beskriver resan och ett sätt att börja',
+  openTravel_other: '{{titulo}}. Öppna WeëTravel: rutan där du beskriver resan och {{contador}} sätt att börja',
+  closeTravel_one: '{{titulo}}. Dölj WeëTravel: rutan där du beskriver resan och ett sätt att börja',
+  closeTravel_other: '{{titulo}}. Dölj WeëTravel: rutan där du beskriver resan och {{contador}} sätt att börja',
   tellWeeTheTrip: 'Berätta om resan för Weë',
   theMotto: 'Du väljer resultatet. Weë väljer rätt AI.',
   trySearchWords: 'Prova ord som logo, video, foto, text, låt, look, recept, hem eller företag. Eller fråga Weë Brain.',
@@ -271,7 +271,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   durationSeconds: '{{segundos}} s',
   volumeDiscount: '−{{descuento}} % mängdrabatt',
   createWork: 'Skapa',
-  /* ── Weë Travel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
+  /* ── WeëTravel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
   travelHeroLine1: 'Planera din resa',
   travelHeroLine2: 'med någon',
   travelHeroAccent: 'som har varit där.',

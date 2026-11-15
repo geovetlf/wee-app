@@ -12,7 +12,7 @@
  * tres puntos, es aquí «…», un carácter.
  *
  * «PUBLICAR EN» va en mayúsculas porque así lo escribe el español (diseño, § 5.5): «I-POST SA», el ejemplo de la guía.
- * El muro general es «Pangkalahatang Wäll»: el enlace lo lleva el adjetivo, delante, y la marca queda intacta. El
+ * El muro general es «Pangkalahatang Ẅall»: el enlace lo lleva el adjetivo, delante, y la marca queda intacta. El
  * Perfil Real y el Perfil Weë son «Tunay na profile» y «Weë profile» (§ 6); `profileNoAgenda` habla de «profile na
  * ito», sin nombrar una cara que ya no existe, y la agenda es la «listahan ng contact» de `econtact.noAgenda`. Donde
  * el español dice «tus ËContact» se dice «ang mga contact mo sa ËContact»: la marca no lleva `mga` delante. Los
@@ -59,7 +59,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Ipakita ang mga opsyon sa pag-post',
   hideOptions: 'Itago ang mga opsyon sa pag-post',
   currentDestination: '{{destino}}, napili',
-  generalWall: 'Pangkalahatang Wäll',
+  generalWall: 'Pangkalahatang Ẅall',
   placeholderPollExtra: 'Magdagdag pa ng iba kung gusto mo (opsyonal)…',
   placeholderQuestion: 'Ano ang gusto mong itanong sa komunidad?',
   placeholderWeel: 'Ikuwento ang ginawa mo para sa Weël mo at kung anong AI ang ginamit mo…',

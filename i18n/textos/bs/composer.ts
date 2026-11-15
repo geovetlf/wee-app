@@ -7,7 +7,7 @@
  * bosnio necesita (1, 21 → one; 2-4, 22-24 → few; el resto → other). Aquí la
  * llevan `removeMentions`, `pollDays`, `pollMaxPhotos`, `seconds` y `minutes`.
  *
- * Tuteo («ti»), imperativo de 2.ª singular en los botones. Weë, Weël, Wäll,
+ * Tuteo («ti»), imperativo de 2.ª singular en los botones. Weë, Weël, Ẅall,
  * ËContact y «face swap» no se traducen.
  */
 import { ConPlurales } from '../ru/plurales';
@@ -35,7 +35,7 @@ export const composer: ConPlurales<typeof import('../es/composer').composer> = {
   showOptions: 'Prikaži opcije objavljivanja',
   hideOptions: 'Sakrij opcije objavljivanja',
   currentDestination: '{{destino}}, trenutno odredište',
-  generalWall: 'Opći Wäll',
+  generalWall: 'Opći Ẅall',
   placeholderPollExtra: 'Dodaj još nešto ako želiš (nije obavezno)…',
   placeholderQuestion: 'Šta želiš pitati zajednicu?',
   placeholderWeel: 'Ispričaj šta je nastalo za tvoj Weël i uz koji AI alat…',

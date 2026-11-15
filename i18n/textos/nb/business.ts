@@ -170,11 +170,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Del',
   shareHint: 'Delingsmenyen på telefonen din åpnes: velg appen du vil.',
   shareToWee: 'Del på Weë',
-  shareWall: 'Min Wäll',
+  shareWall: 'Min Ẅall',
   shareCommunities: 'Fellesskap',
   shareProfile: 'Business Profile',
   shareNothing: 'Lag noe først, så kan du dele det herfra.',
-  shareText: 'Laget med Weë Fashion',
+  shareText: 'Laget med WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Last opp dataene mine',

@@ -6,7 +6,7 @@
  * representa al negocio de la persona —sus arrobas, sus publicaciones, los
  * mensajes de sus clientes— nunca pasa por el traductor.
  *
- * MARCA Y MÓDULOS: Weë, Weë Business, Wäll y Credits van en alfabeto latino
+ * MARCA Y MÓDULOS: Weë, Weë Business, Ẅall y Credits van en alfabeto latino
  * dentro del hanzi, nunca traducidos ni transliterados —«积分» o «点数» por
  * Credits rompe la moneda del producto, igual que «工作室» por Studio—. Los
  * nombres de los módulos —Business Plan, Business Coach, Pricing Assistant,
@@ -181,11 +181,11 @@ export const business: typeof import('../es/business').business = {
   share: '分享',
   shareHint: '会打开手机的分享面板，你想发到哪个应用都行。',
   shareToWee: '分享到 Weë',
-  shareWall: '我的 Wäll',
+  shareWall: '我的 Ẅall',
   shareCommunities: '社区',
   shareProfile: 'Business Profile',
   shareNothing: '先创作点什么，再从这里分享出去。',
-  shareText: '用 Weë Fashion 创作',
+  shareText: '用 WeëFashion 创作',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: '上传我的数据',

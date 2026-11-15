@@ -1,3 +1,4 @@
+import { nombreDeHoyDeHerramienta } from '../utils/sectionFeed';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,7 +25,8 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
   const [promptOpen, setPromptOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const tools = (post.aiTools || []).filter(Boolean);
+  /* Lo guardado no se toca; el nombre de una sección de Weë se pinta con su grafía de hoy (utils/sectionFeed.ts). */
+  const tools = (post.aiTools || []).filter(Boolean).map(nombreDeHoyDeHerramienta);
   const prompt = (post.aiPrompt || '').trim();
   const process = (post.aiProcess || '').trim();
 

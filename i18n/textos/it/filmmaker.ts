@@ -3,7 +3,7 @@
  * «Regia»— y lo que el dominio dice con códigos (las claves val*, op*, rec*, req* y per*).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tratamiento informal (tu) y apóstrofo tipográfico ’. El «plano» es la «inquadratura» de Weë Studio (femenino).
+ * Tratamiento informal (tu) y apóstrofo tipográfico ’. El «plano» es la «inquadratura» de WeëStudio (femenino).
  */
 export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   sectionName: 'Più scene',
@@ -15,20 +15,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'Crea la produzione',
   creatingProduction: 'Creazione della produzione…',
   openProduction: 'Apri {{titulo}}',
-  goToStudio: 'Vai a Weë Studio',
+  goToStudio: 'Vai a WeëStudio',
   loadMore: 'Mostra altre',
   backToList: 'Torna alle tue produzioni',
   updatedAgo: 'Aggiornata {{cuando}}',
 
   emptyListTitle: 'Non hai ancora produzioni',
-  emptyListText: 'Inizia da Weë Studio: apri Video, scegli «Più scene» e di’ a Weë cosa vuoi raccontare.',
+  emptyListText: 'Inizia da WeëStudio: apri Video, scegli «Più scene» e di’ a Weë cosa vuoi raccontare.',
   emptyArchived: 'Non hai produzioni archiviate.',
   emptyStoryboardTitle: 'Questa produzione non ha ancora scene',
   emptyStoryboardText: 'Aggiungi la prima e costruisci la tua storia un’inquadratura alla volta.',
   addFirstScene: 'Aggiungi la prima scena',
 
   yourIdea: 'La tua idea',
-  ideaFromStudio: 'L’idea si scrive in Weë Studio. Per cambiarla, torna lì.',
+  ideaFromStudio: 'L’idea si scrive in WeëStudio. Per cambiarla, torna lì.',
   whereWillItPlay: 'Dove si vedrà?',
   otherFormat: 'Altro formato',
   continueOne: 'Oppure continua una delle tue produzioni',

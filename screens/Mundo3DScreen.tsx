@@ -273,7 +273,7 @@ const Mundo3DScreen: React.FC = () => {
   /* ── Con la puerta cerrada: ni una llamada. ───────────────────────────── */
   if (!MUNDO_3D_EN_LA_APP) {
     return (
-      <CreatorShell activeId="studio" overline={t('studio.world3dTitle')} title={t('studio.xpCreateWorld')} breadcrumb="Weë Studio" onBack={volver}>
+      <CreatorShell activeId="studio" overline={t('studio.world3dTitle')} title={t('studio.xpCreateWorld')} breadcrumb="WeëStudio" onBack={volver}>
         <View style={[styles.box, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <Text style={[styles.boxTitle, { color: theme.colors.text }]}>{t('common.notAvailable')}</Text>
           <Text style={[styles.boxText, { color: theme.colors.textSecondary }]}>{t('studio.pendWorld')}</Text>
@@ -292,7 +292,7 @@ const Mundo3DScreen: React.FC = () => {
   const ocupado = presentacion.ocupado || subiendo;
 
   return (
-    <CreatorShell activeId="studio" overline={t('studio.world3dTitle')} title={t('studio.xpCreateWorld')} breadcrumb="Weë Studio" onBack={volver}>
+    <CreatorShell activeId="studio" overline={t('studio.world3dTitle')} title={t('studio.xpCreateWorld')} breadcrumb="WeëStudio" onBack={volver}>
       <Text style={[styles.intro, { color: theme.colors.textSecondary }]}>{t('studio.worldIntro')}</Text>
 
       {estado.fase === 'completado' && estado.mundo ? (

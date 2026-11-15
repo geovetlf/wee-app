@@ -4,7 +4,7 @@ import { ConPlurales } from '../ru/plurales';
  * WeëTravel en croata (prototipo con datos DEMO). Tipado contra el español con `ConPlurales`: las claves que cuentan
  * añaden `_few` (2-4, 22-24…) y las tres formas llevan {{contador}} (por eso «inDays» no dice «Sutra»: 21 también es
  * `one`). Tuteo, léxico croata (spremi, tjedan, vlak, kolodvor, povijest). Las marcas (Weë, WeëTravel, Weë Brain,
- * Weë Studio, Weëls, Travel Safe) y «DEMO» no se traducen ni se declinan.
+ * WeëStudio, Weëls, Travel Safe) y «DEMO» no se traducen ni se declinan.
  */
 export const travel: ConPlurales<typeof import('../es/travel').travel> = {
   // Portada
@@ -760,9 +760,9 @@ export const travel: ConPlurales<typeof import('../es/travel').travel> = {
   journalPh: 'Što je danas bilo najbolje?',
   saveEntry: 'Spremi zapis',
   journalEmpty: 'Tvoj je dnevnik prazan. Napiši prvi zapis.',
-  videoMemoriesDemo: 'DEMO: videozapisi se stvaraju u alatu Weë Studio, s tvojim vlastitim fotografijama i isječcima.',
+  videoMemoriesDemo: 'DEMO: videozapisi se stvaraju u alatu WeëStudio, s tvojim vlastitim fotografijama i isječcima.',
   videoOf: 'Video putovanja: {{viaje}}',
-  createInStudio: 'Stvori u alatu Weë Studio',
+  createInStudio: 'Stvori u alatu WeëStudio',
   countriesVisited_one: '{{contador}} posjećena zemlja',
   countriesVisited_few: '{{contador}} posjećene zemlje',
   countriesVisited_other: '{{contador}} posjećenih zemalja',

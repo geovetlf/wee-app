@@ -1,6 +1,6 @@
 /*
  * NEERLANDÉS — WeëTravel: el workspace de viajes (prototipo navegable con datos DEMO). Tipado contra el español.
- * Tuteo («je/jij», nunca «u»), comillas “…”. Weë, WeëTravel, Weë Brain, Weë Studio, Weëls, «Travel Safe» y «DEMO»
+ * Tuteo («je/jij», nunca «u»), comillas “…”. Weë, WeëTravel, Weë Brain, WeëStudio, Weëls, «Travel Safe» y «DEMO»
  * no se traducen; los lugares van con su nombre neerlandés habitual (Lissabon, Marrakesh, Santorini…).
  */
 export const travel: typeof import('../es/travel').travel = {
@@ -739,9 +739,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Wat was vandaag het mooiste?',
   saveEntry: 'Aantekening opslaan',
   journalEmpty: 'Je dagboek is leeg. Schrijf de eerste aantekening.',
-  videoMemoriesDemo: 'DEMO: de video’s worden gemaakt in Weë Studio, met je eigen foto’s en clips.',
+  videoMemoriesDemo: 'DEMO: de video’s worden gemaakt in WeëStudio, met je eigen foto’s en clips.',
   videoOf: 'De video van {{viaje}}',
-  createInStudio: 'Maken in Weë Studio',
+  createInStudio: 'Maken in WeëStudio',
   countriesVisited_one: '{{contador}} land bezocht',
   countriesVisited_other: '{{contador}} landen bezocht',
   recapTitle: 'Je reis naar {{viaje}}',

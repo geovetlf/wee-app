@@ -2,7 +2,7 @@
  * HÚNGARO — WeëTravel: el workspace de viajes (prototipo con datos DEMO). Tipado contra el español.
  *
  * Tuteo. Detrás de un número el sustantivo va en singular, así que `_one` y `_other` suelen coincidir. Nunca se pega
- * un sufijo de caso a un {{hueco}} ni dentro de una marca (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls, Travel Safe):
+ * un sufijo de caso a un {{hueco}} ni dentro de una marca (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls, Travel Safe):
  * se usa guion o una construcción sin sufijo. La etiqueta «DEMO» no se traduce. Traducción de IA, pendiente de
  * revisión nativa.
  */
@@ -742,9 +742,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Mi volt ma a legjobb?',
   saveEntry: 'Bejegyzés mentése',
   journalEmpty: 'A naplód üres. Írd meg az első bejegyzést.',
-  videoMemoriesDemo: 'DEMO: a videók a Weë Studio felületén készülnek, a saját fotóidból és klipjeidből.',
+  videoMemoriesDemo: 'DEMO: a videók a WeëStudio felületén készülnek, a saját fotóidból és klipjeidből.',
   videoOf: 'Videó az utazásról: {{viaje}}',
-  createInStudio: 'Készítés a Weë Studio felületén',
+  createInStudio: 'Készítés a WeëStudio felületén',
   countriesVisited_one: '{{contador}} meglátogatott ország',
   countriesVisited_other: '{{contador}} meglátogatott ország',
   recapTitle: 'Az utazásod: {{viaje}}',

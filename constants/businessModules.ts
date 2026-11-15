@@ -10,7 +10,7 @@
  *
  * "My Business", "Products & Catalog", "Create", "Social", "Analyze", "Grow",
  * "Business Profile" y "Promote" son nombres de producto y se escriben igual en
- * los dos idiomas, como Weë Studio o Weë Writer (decisión del usuario,
+ * los dos idiomas, como WeëStudio o Weë Writer (decisión del usuario,
  * 2026-09-16). Lo que sí se traduce es lo que hace cada uno, y eso sí es una
  * clave.
  *

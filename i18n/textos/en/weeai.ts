@@ -132,10 +132,10 @@ export const weeai: typeof import('../es/weeai').weeai = {
   couldNotCalculateRetry: 'We couldn’t work out the cost. Please try again.',
   expandSection: '{{titulo}}. Show {{contenido}}',
   collapseSection: '{{titulo}}. Hide {{contenido}}',
-  openTravel_one: '{{titulo}}. Open Weë Travel: write your trip and the way to start',
-  openTravel_other: '{{titulo}}. Open Weë Travel: write your trip and the {{contador}} ways to start',
-  closeTravel_one: '{{titulo}}. Hide Weë Travel: write your trip and the way to start',
-  closeTravel_other: '{{titulo}}. Hide Weë Travel: write your trip and the {{contador}} ways to start',
+  openTravel_one: '{{titulo}}. Open WeëTravel: write your trip and the way to start',
+  openTravel_other: '{{titulo}}. Open WeëTravel: write your trip and the {{contador}} ways to start',
+  closeTravel_one: '{{titulo}}. Hide WeëTravel: write your trip and the way to start',
+  closeTravel_other: '{{titulo}}. Hide WeëTravel: write your trip and the {{contador}} ways to start',
   tellWeeTheTrip: 'Tell Weë about the trip',
   theMotto: 'You choose the result. Weë chooses the AI.',
   trySearchWords: 'Try words like logo, video, photo, text, song, look, recipe, home or business. Or ask Weë Brain.',
@@ -213,7 +213,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   durationSeconds: '{{segundos}} s',
   volumeDiscount: '−{{descuento}}% volume discount',
   createWork: 'Create',
-  /* ── Weë Travel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
+  /* ── WeëTravel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
   travelHeroLine1: 'Plan your trip',
   travelHeroLine2: 'with someone',
   travelHeroAccent: 'who’s been there.',

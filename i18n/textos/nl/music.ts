@@ -1,7 +1,7 @@
 /*
- * NEERLANDÉS — Weë Music: portada, Composer, workstation y herramientas. Tipado contra el español.
+ * NEERLANDÉS — WeëMusic: portada, Composer, workstation y herramientas. Tipado contra el español.
  *
- * «Weë Music» es marca y no se traduce; tampoco los nombres de los proveedores. Los géneros que en NL se dicen en inglés
+ * «WeëMusic» es marca y no se traduce; tampoco los nombres de los proveedores. Los géneros que en NL se dicen en inglés
  * (pop, rock, hiphop, R&B, jazz, folk, reggaeton) y los términos del oficio (intro, outro, jingle, loop, cover, remix,
  * tempo, MIDI, solo) se quedan como los usa la industria musical neerlandesa. «Stems» → «sporen» (losse sporen).
  * Traducción hecha por agentes y SIN revisión humana nativa.
@@ -12,7 +12,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Vertel me je idee of zing een melodie, en bereid je nummer stap voor stap voor.',
   ctaCreate: 'Muziek maken',
   chooseTitle: 'Kies hoe je begint',
-  skillsTitle: 'Wat Weë Music kan',
+  skillsTitle: 'Wat WeëMusic kan',
   recentTitle: 'Recente nummers',
   viewExample: 'Een ontwerpvoorbeeld bekijken',
   honestyNote: 'Vandaag kun je je nummer voorbereiden, een referentiemelodie opnemen en Weë Brain om advies vragen. Het maken van het nummer wordt ingeschakeld zodra het gekoppeld en gevalideerd is.',
@@ -20,7 +20,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Je opgeslagen audio en nummers.',
   openProjects: 'Mijn projecten',
   openProjectsHelp: 'Orden je nummers in projecten.',
-  backToMusic: 'Terug naar Weë Music',
+  backToMusic: 'Terug naar WeëMusic',
   composerTitle: 'Muziek maken',
   modesLabel: 'Modus',
   modeSimple: 'Eenvoudig',
@@ -306,7 +306,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Audiobewerking is een functie die nog komt: hier wordt alleen het contract voorbereid.',
 
   voiceInterpretation: 'Vertolkingsstijl',
-  voiceNoClone: 'Weë Music kloont of imiteert geen stemmen van mensen: het kiest alleen algemene stemkenmerken.',
+  voiceNoClone: 'WeëMusic kloont of imiteert geen stemmen van mensen: het kiest alleen algemene stemkenmerken.',
   voiceStylePending: 'De vertolkingsstijl hangt af van de engine en is nog niet beschikbaar.',
   styleTitle: 'Genre en stijl',
   transformTitle: 'Omvormingen',

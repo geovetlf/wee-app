@@ -11,7 +11,7 @@
  * dejan como préstamos.
  *
  * «PUBLICAR EN» va en mayúsculas porque así lo escribe el español: «TERBITKAN
- * DI». El muro general es «Wäll umum»: adjetivo detrás de la marca, sin tocarla.
+ * DI». El muro general es «Ẅall umum»: adjetivo detrás de la marca, sin tocarla.
  *
  * Plural: Intl solo tiene «other» en indonesio, así que `_one` y `_other` son
  * idénticas y llevan {{contador}}. El trato es «Anda» (guía § 2).
@@ -43,7 +43,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Tampilkan opsi penerbitan',
   hideOptions: 'Sembunyikan opsi penerbitan',
   currentDestination: '{{destino}}, tujuan saat ini',
-  generalWall: 'Wäll umum',
+  generalWall: 'Ẅall umum',
   placeholderPollExtra: 'Tambahkan sesuatu jika Anda mau (opsional)…',
   placeholderQuestion: 'Apa yang ingin Anda tanyakan kepada komunitas?',
   placeholderWeel: 'Ceritakan apa yang Anda buat untuk Weël Anda dan dengan AI apa…',

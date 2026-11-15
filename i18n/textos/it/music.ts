@@ -1,5 +1,5 @@
 /*
- * it — Weë Music: copertina, Composer, workstation e strumenti. «Weë Music» e i nomi dei provider sono marchi e non si traducono.
+ * it — WeëMusic: copertina, Composer, workstation e strumenti. «WeëMusic» e i nomi dei provider sono marchi e non si traducono.
  * Tipato contro lo spagnolo. In attesa di revisione da parte di un madrelingua.
  */
 export const music: typeof import('../es/music').music = {
@@ -9,7 +9,7 @@ export const music: typeof import('../es/music').music = {
   ctaCreate: 'Crea musica',
   demoPrompt: 'Che musica vuoi creare?',
   chooseTitle: 'Scegli come iniziare',
-  skillsTitle: 'Cosa può fare Weë Music',
+  skillsTitle: 'Cosa può fare WeëMusic',
   recentTitle: 'Canzoni recenti',
   viewExample: 'Vedi un esempio di design',
   honestyNote: 'Oggi puoi preparare la tua canzone, registrare una melodia di riferimento e chiedere consigli a Weë Brain. La creazione della canzone si attiverà quando sarà collegata e convalidata.',
@@ -17,7 +17,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'I tuoi audio e le tue canzoni salvati.',
   openProjects: 'I miei progetti',
   openProjectsHelp: 'Organizza le tue canzoni in progetti.',
-  backToMusic: 'Torna a Weë Music',
+  backToMusic: 'Torna a WeëMusic',
   composerTitle: 'Crea musica',
   modesLabel: 'Modalità',
   modeSimple: 'Semplice',
@@ -303,7 +303,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'L\'elaborazione audio è una funzione in sospeso: qui si prepara solo il contratto.',
 
   voiceInterpretation: 'Stile di interpretazione',
-  voiceNoClone: 'Weë Music non clona né imita le voci di persone reali: sceglie solo caratteristiche vocali generiche.',
+  voiceNoClone: 'WeëMusic non clona né imita le voci di persone reali: sceglie solo caratteristiche vocali generiche.',
   voiceStylePending: 'Lo stile di interpretazione dipende dal motore e non è ancora disponibile.',
   styleTitle: 'Genere e stile',
   transformTitle: 'Trasformazioni',

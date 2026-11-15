@@ -187,11 +187,11 @@ export const business: ConPlurales<typeof import('../es/business').business> = {
   share: 'Поделиться',
   shareHint: 'Откроется меню «Поделиться» на телефоне: выберите любое приложение.',
   shareToWee: 'Поделиться в Weë',
-  shareWall: 'Мой Wäll',
+  shareWall: 'Мой Ẅall',
   shareCommunities: 'Сообщества',
   shareProfile: 'Business Profile',
   shareNothing: 'Сначала создайте что-нибудь, а потом поделитесь этим отсюда.',
-  shareText: 'Создано с помощью Weë Fashion',
+  shareText: 'Создано с помощью WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Загрузить мои данные',

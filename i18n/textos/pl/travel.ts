@@ -3,7 +3,7 @@ import { ConPlurales } from '../ru/plurales';
 /*
  * POLACO — WeëTravel: el workspace de viajes (prototipo con datos DEMO). Tipado contra el español con `ConPlurales`:
  * las claves que cuentan añaden `_few` y `_many`, y su `_other` es la forma de las fracciones (1,5 dnia). Tuteo; los
- * pasados con género se reformulan en presente o impersonal. Las marcas (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls,
+ * pasados con género se reformulan en presente o impersonal. Las marcas (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls,
  * Travel Safe) y la etiqueta «DEMO» no se traducen. Traducción de IA, pendiente de revisión nativa.
  */
 export const travel: ConPlurales<typeof import('../es/travel').travel> = {
@@ -778,9 +778,9 @@ export const travel: ConPlurales<typeof import('../es/travel').travel> = {
   journalPh: 'Co było dziś najlepsze?',
   saveEntry: 'Zapisz wpis',
   journalEmpty: 'Twój dziennik jest pusty. Napisz pierwszy wpis.',
-  videoMemoriesDemo: 'DEMO: filmy powstają w Weë Studio, z twoich własnych zdjęć i klipów.',
+  videoMemoriesDemo: 'DEMO: filmy powstają w WeëStudio, z twoich własnych zdjęć i klipów.',
   videoOf: 'Film z podróży: {{viaje}}',
-  createInStudio: 'Utwórz w Weë Studio',
+  createInStudio: 'Utwórz w WeëStudio',
   countriesVisited_one: '{{contador}} odwiedzony kraj',
   countriesVisited_few: '{{contador}} odwiedzone kraje',
   countriesVisited_many: '{{contador}} odwiedzonych krajów',

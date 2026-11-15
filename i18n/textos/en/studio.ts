@@ -222,7 +222,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Soon',
   soonHint: 'This tool already has its place. It just needs connecting.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Text',
   textHint: 'Write any content',
   exploreTitle: 'Explore',

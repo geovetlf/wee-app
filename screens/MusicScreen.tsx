@@ -26,7 +26,7 @@ import { scale } from '../utils/scale';
  *
  * Parámetros de la ruta (`Specialist { id: 'music' }`): `punto` (un PuntoDePartidaId) y `goal` (lo que la persona ya
  * había escrito); con cualquiera de los dos se entra directamente al composer. Esta pantalla NO conecta ninguna API
- * musical (CLAUDE.md §5). «Weë Music» es marca y se escribe igual en todos los idiomas.
+ * musical (CLAUDE.md §5). «WeëMusic» es marca y se escribe igual en todos los idiomas.
  */
 const MusicScreen: React.FC = () => {
   const t = useT();
@@ -50,7 +50,7 @@ const MusicScreen: React.FC = () => {
 
   if (cancion) {
     return (
-      <CreatorShell activeId="music" overline="🤖 Weë AI" title="🎵 Weë Music" breadcrumb="Weë AI" sinFranjaSuperior>
+      <CreatorShell activeId="music" overline="🤖 Weë AI" title="🎵 WeëMusic" breadcrumb="Weë AI" sinFranjaSuperior>
         <CabeceraDeSeccion nombre="Music" lema={t('music.tagline')} descripcion={t('music.intro')} />
         <Workstation cancion={cancion} onCancion={setCancion} onVolver={volver} />
       </CreatorShell>
@@ -59,7 +59,7 @@ const MusicScreen: React.FC = () => {
 
   if (enComposer) {
     return (
-      <CreatorShell activeId="music" overline="🤖 Weë AI" title="🎵 Weë Music" breadcrumb="Weë AI" sinFranjaSuperior>
+      <CreatorShell activeId="music" overline="🤖 Weë AI" title="🎵 WeëMusic" breadcrumb="Weë AI" sinFranjaSuperior>
         {/* Desde la portada, el volver de la cabecera regresa a ella; en creator, lo de siempre. */}
         <CabeceraDeSeccion nombre="Music" lema={t('music.tagline')} descripcion={t('music.intro')} onVolver={pro ? undefined : () => setEnComposer(false)} />
         <MusicComposer key={`${punto}-${modo ?? ''}`} puntoInicial={punto} modoInicial={modo} onVerEjemplo={verEjemplo} inicial={{ texto: texto || route.params?.goal }} />
@@ -69,7 +69,7 @@ const MusicScreen: React.FC = () => {
   }
 
   return (
-    <CreatorShell activeId="music" overline="🤖 Weë AI" title="🎵 Weë Music" breadcrumb="Weë AI" sinFranjaSuperior>
+    <CreatorShell activeId="music" overline="🤖 Weë AI" title="🎵 WeëMusic" breadcrumb="Weë AI" sinFranjaSuperior>
       {/* La portada de la demo YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3). */}
       <CabeceraDeSeccion soloIdentidad nombre="Music" lema={t('music.tagline')} />
       <View style={s.portada}>

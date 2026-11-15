@@ -34,7 +34,7 @@ type Ruta = RouteProp<MainStackParamList, 'Production'>;
  *
  *   · con `productionId`, la producción abierta: su cabecera, el storyboard
  *     —escenas y planos—, la línea de tiempo y el panel Director;
- *   · sin él, lo que se escribió en Weë Studio a punto de convertirse en
+ *   · sin él, lo que se escribió en WeëStudio a punto de convertirse en
  *     producción (si se escribió algo) y tus producciones de verdad.
  *
  * Todo pasa por el servicio (`services/filmmakerService.ts`) y el estado
@@ -59,7 +59,7 @@ const InicioDeProducciones: React.FC<{ idea?: string; creativo?: Readonly<Record
   const hayIdea = !!idea?.trim();
   const volver = useCallback(() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Studio')), [navigation]);
   return (
-    <CreatorShell activeId="studio" overline={t('filmmaker.sectionName')} title={hayIdea ? t('filmmaker.newProduction') : t('filmmaker.myProductions')} breadcrumb="Weë Studio" onBack={volver}>
+    <CreatorShell activeId="studio" overline={t('filmmaker.sectionName')} title={hayIdea ? t('filmmaker.newProduction') : t('filmmaker.myProductions')} breadcrumb="WeëStudio" onBack={volver}>
       <View style={styles.columna}>
         {hayIdea && (
           <ProductionNewCard
@@ -214,7 +214,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   }
 
   return (
-    <CreatorShell activeId="studio" overline={t('filmmaker.sectionName')} title={titulo} breadcrumb="Weë Studio" onBack={volver}>
+    <CreatorShell activeId="studio" overline={t('filmmaker.sectionName')} title={titulo} breadcrumb="WeëStudio" onBack={volver}>
       {contenido}
     </CreatorShell>
   );

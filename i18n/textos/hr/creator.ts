@@ -1,6 +1,6 @@
 /*
- * CROATA — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design,
- * Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * CROATA — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign,
+ * WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tuteo («ti»). Los ejemplos van en primera persona, como en el molde, y se
@@ -52,10 +52,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Ne znam odakle početi',
   brainEx2: 'Objasni mi ovo jednostavno',
   brainEx3: 'Prevedi ovaj tekst',
-  areaStudioPhotos: 'Weë Studio · Fotografije',
-  areaStudioVideos: 'Weë Studio · Videozapisi',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Dom & Dizajn',
+  areaStudioPhotos: 'WeëStudio · Fotografije',
+  areaStudioVideos: 'WeëStudio · Videozapisi',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Dom & Dizajn',
   areaHomeName: 'Dom & Dizajn',
   tellTheSpecialist: 'Reci specijalistu {{especialista}} što želiš postići: postavit će ti dva-tri jednostavna pitanja i pobrinuti se za ostalo. Poslije objavljuješ izravno u svojoj zajednici.',
   exampleQuoted: '„{{ejemplo}}“',

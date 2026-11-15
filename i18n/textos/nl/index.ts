@@ -4,8 +4,8 @@
  * Mismo reparto que los demás idiomas: el tipo `FormaDelDiccionario` sale del español, así que una clave que falte o
  * sobre no compila, y un módulo nuevo del español no compila hasta que exista aquí.
  *
- * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS: las marcas de Weë traducidas (Weë, Wäll, Weëls —nunca «Reels»—, WeeTalk, ËContact, ẄContact,
- * Credits, Weë AI, Weë Studio…) ni lo que escribe una persona.
+ * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS: las marcas de Weë traducidas (Weë, Ẅall, Weëls —nunca «Reels»—, WeeTalk, ËContact, ẄContact,
+ * Credits, Weë AI, WeëStudio…) ni lo que escribe una persona.
  *
  * LO DEL NEERLANDÉS: «je/jij»; botones en infinitivo; compuestos juntos y con guion junto a una marca; «foto's» con
  * apóstrofo; el cero es `other`; el «IJ» inicial lo resuelve `caja.ts`.

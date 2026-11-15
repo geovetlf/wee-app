@@ -34,7 +34,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'បង្ហាញ​ជម្រើស​នៃ​ការបង្ហោះ',
   hideOptions: 'លាក់​ជម្រើស​នៃ​ការបង្ហោះ',
   currentDestination: '{{destino}}, គោលដៅ​បច្ចុប្បន្ន',
-  generalWall: 'Wäll ទូទៅ',
+  generalWall: 'Ẅall ទូទៅ',
   placeholderPollExtra: 'បន្ថែម​អ្វី​ផ្សេងទៀត​បើ​ចង់ (ជា​ជម្រើស)…',
   placeholderQuestion: 'អ្នក​ចង់​សួរ​សហគមន៍​អំពី​អ្វី?',
   placeholderWeel: 'ប្រាប់​ថា​អ្នក​បាន​បង្កើត​អ្វី​សម្រាប់ Weël របស់អ្នក និង​ដោយ AI មួយណា…',

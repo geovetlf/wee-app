@@ -8,7 +8,7 @@
  * Weë Brain y acaban siendo el título del trabajo: forma de diccionario y sin 。, como en writer (投稿を予約する);
  * los que en español son un sustantivo o una pregunta se quedan así. Los NOMBRES de las funciones —Business Plan,
  * Business Coach, Pricing Assistant, Brand Kit, Customer Insights, Business Ideas y Business Profile— son nombres de
- * producto y se escriben igual en todos los idiomas, como Weë Studio (decisión del usuario, 2026-09-16; así los
+ * producto y se escriben igual en todos los idiomas, como WeëStudio (decisión del usuario, 2026-09-16; así los
  * tienen el alemán, el francés, el coreano, el chino y el ruso). Lo que hacen sí se traduce, en sus pistas. «SWOT»
  * se queda como sigla y lleva detrás 分析. Las métricas usan los nombres de Meta en japonés (リーチした人数, エンゲージメント).
  * La fecha del calendario se escribe a la japonesa: {{fecha}}（{{dia}}） → 9月30日（月）. El gasto «Servicios» es
@@ -153,11 +153,11 @@ export const business: typeof import('../es/business').business = {
   share: '共有',
   shareHint: 'スマートフォンの共有メニューが開きます。好きなアプリを選んでください。',
   shareToWee: 'Weëに共有',
-  shareWall: 'マイWäll',
+  shareWall: 'マイẄall',
   shareCommunities: 'コミュニティ',
   shareProfile: 'Business Profile',
   shareNothing: 'まずは何かを作成してから、ここで共有しましょう。',
-  shareText: 'Weë Fashionで作成',
+  shareText: 'WeëFashionで作成',
 
   analyzeUpload: 'データをアップロード',
   analyzeUploadHint: '売上や経費をまとめたExcel、CSV、PDFに対応しています。',

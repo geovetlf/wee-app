@@ -42,7 +42,7 @@ const MarcoDeTravel: React.FC<{
   const { modulo, tono } = useTonoDelModulo();
   const datosModulo = MODULOS.find((x) => x.id === modulo);
   return (
-    <CreatorShell activeId="travel" title="Weë Travel" mark={<TravelMark size={30} plain />} breadcrumb="Weë AI" sinFranjaSuperior onBack={volver}>
+    <CreatorShell activeId="travel" title="WeëTravel" mark={<TravelMark size={30} plain />} breadcrumb="Weë AI" sinFranjaSuperior onBack={volver}>
       <CabeceraDeSeccion soloIdentidad nombre="Travel" lema="" onVolver={volver} />
       <View style={[m.banda, { borderColor: tono.medio }]}>
         <LinearGradient colors={[tono.suave, '#FFFFFF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />

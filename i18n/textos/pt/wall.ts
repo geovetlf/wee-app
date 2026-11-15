@@ -1,5 +1,5 @@
 /*
- * PORTUGUÉS (pt-BR) — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * PORTUGUÉS (pt-BR) — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -80,9 +80,9 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: 'Copiado',
   demoBadge: 'Demo',
   demoBadgeLabel: 'Conteúdo de demonstração',
-  /* ── El Wäll inmersivo: una publicación a la vez ── */
-  immersiveEmpty: 'Ainda não há publicações no Wäll',
-  immersiveError: 'Não conseguimos carregar o Wäll',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Ainda não há publicações no Ẅall',
+  immersiveError: 'Não conseguimos carregar o Ẅall',
   immersiveEnd: 'Você já viu tudo',
   agreePost: 'Concordo',
   disagreePost: 'Discordo',

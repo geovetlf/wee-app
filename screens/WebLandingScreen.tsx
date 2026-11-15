@@ -2,8 +2,8 @@
  * WebLandingScreen — Home de Weë en web (escritorio y móvil web).
  *
  * Estructura (rediseño del 2026-11-15): cabecera (☰ · logo · buscar ·
- * notificaciones · avatar) → atajos Wäll · Weëls · Explorar · Comunidades →
- * tarjeta de WeëAI con la puerta a Weë Brain → pastillas del muro → Wäll con
+ * notificaciones · avatar) → atajos Ẅall · Weëls · Explorar · Comunidades →
+ * tarjeta de WeëAI con la puerta a Weë Brain → pastillas del muro → Ẅall con
  * sus publicaciones. El muro es el centro; lo de arriba ocupa poco.
  *
  * Lo que salió de aquí sigue existiendo y se alcanza por otro sitio: publicar,
@@ -47,7 +47,7 @@ const WebLandingScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [drawerVisible, setDrawerVisible] = useState(false);
   /*
-   * El filtro del Wäll: «Para ti» (el muro entero, que es como se entra) o
+   * El filtro del Ẅall: «Para ti» (el muro entero, que es como se entra) o
    * «Creatividad» (lo que viene de las secciones creativas). Solo acota el muro:
    * no navega ni abre Weëls. La lógica vive en `feedFilters`, compartida con el
    * móvil.
@@ -67,7 +67,7 @@ const WebLandingScreen: React.FC = () => {
    * EL HOME ES UN SOLO MURO.
    *
    * Arriba, los atajos y la tarjeta de WeëAI; después las pastillas, y debajo
-   * el Wäll con sus publicaciones y sus WeeTags. No hay páginas, ni gesto de
+   * el Ẅall con sus publicaciones y sus WeeTags. No hay páginas, ni gesto de
    * lado: los atajos de arriba NAVEGAN a pantallas que ya existían, no cambian
    * de página dentro del Home.
    */
@@ -163,7 +163,7 @@ const WebLandingScreen: React.FC = () => {
   }, [route.params?.openWeels]);
 
   /*
-   * LOS ATAJOS DE ARRIBA. «Wäll» es esta pantalla: tocarlo estando aquí no
+   * LOS ATAJOS DE ARRIBA. «Ẅall» es esta pantalla: tocarlo estando aquí no
    * navega. Los otros tres abren lo de siempre: el feed de Weëls, la búsqueda
    * —que se llama Explorar— y el explorador de comunidades, que vive en la
    * pila del Home.
@@ -178,7 +178,7 @@ const WebLandingScreen: React.FC = () => {
   const abrirBrain = () => navigation.navigate('Specialist', { id: 'brain' });
 
   // ── Feed ──
-  /* Tocar una publicación abre el Wäll inmersivo en ella, con lo que el muro ya tiene cargado (utils/semillaDelMuro.ts). */
+  /* Tocar una publicación abre el Ẅall inmersivo en ella, con lo que el muro ya tiene cargado (utils/semillaDelMuro.ts). */
   const handlePostPress = (post: Post) => {
     sembrarMuro({ posts: filteredPosts, indice: Math.max(0, filteredPosts.findIndex((p) => p.id === post.id)), cursor: lastDoc, hayMas });
     navigation.navigate('Wall');
@@ -227,7 +227,7 @@ const WebLandingScreen: React.FC = () => {
         {/* Las pastillas del muro: Para ti · Creatividad. Un filtro; no navegan. */}
         <PastillasDelFeed puesto={feedFilter} onSelect={setFeedFilter} />
 
-        {/* Creado por la comunidad: el Wäll, el centro del Home. */}
+        {/* Creado por la comunidad: el Ẅall, el centro del Home. */}
         <div style={{ padding: '4px 16px 100px' }}>
           {/* Boost: UNA publicación promocionada de otra cuenta, si el servidor tiene alguna para ti (docs/BOOST.md). */}
           <PromotedSlot pintar={(p, abrir) => <PostCard post={p} onPress={abrir} onComment={handleComment} onPrivateMessage={handlePrivateMessage} isVisible={true} variante="muro" />} />
@@ -257,7 +257,7 @@ const WebLandingScreen: React.FC = () => {
           ) : (
             filteredPosts.map((post) => (
               <div key={post.id} style={{ marginBottom: 16 }}>
-                {/* El Wäll es un muro: sin tarjeta alrededor de cada publicación, y cada una con su WeeTag. */}
+                {/* El Ẅall es un muro: sin tarjeta alrededor de cada publicación, y cada una con su WeeTag. */}
                 <PostCard post={post} onPress={() => handlePostPress(post)} onComment={handleComment} onPrivateMessage={handlePrivateMessage} isVisible={true} variante="muro" />
               </div>
             ))

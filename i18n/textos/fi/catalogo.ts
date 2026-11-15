@@ -13,7 +13,7 @@
  *   un rodeo que alargara cada subtítulo.
  * · «Look» se mantiene como préstamo en Weë Beauty («iltalook», «lookisi»),
  *   que es el uso real de la prensa de belleza finlandesa; «design» igual
- *   en Weë Design («designeja»). «Prompt» no aparece en este módulo.
+ *   en WeëDesign («designeja»). «Prompt» no aparece en este módulo.
  * · «MB» se escribe «Mt» (megatavu), la abreviatura finlandesa habitual.
  * · Títulos de canciones y platos de ejemplo se traducen como hizo el
  *   inglés («Unelmia», «Valuva suklaakakku»); «Lomo saltado» y «Pasta
@@ -67,7 +67,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Hoitaa koko prosessin',
   brainEj3Subtitle: 'Ideasta designeihin, videoihin ja musiikkiin',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Suunnittele, mitä ikinä kuvittelet.',
   designIntro: 'Muuta ideasi upeiksi designeiksi tekoälyn avulla. Logosta autoon, tuotteeseen tai kokonaiseen maailmaan.',
   designChip1: 'Nopeaa ja helppoa',
@@ -166,7 +166,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Kasvojen retusointi',
   photoEj6Title: 'Muunna tekoälyllä',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Luo, kuuntele ja koe musiikkisi tekoälyn avulla',
   musicIntro: 'Muuta ideasi kappaleiksi, videoiksi ja ainutlaatuisiksi kokemuksiksi. Luovuudellasi ei ole rajoja.',
   musicChip1: 'Nopeaa ja yksinkertaista',
@@ -228,7 +228,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Muuta musiikkisi upeaksi videoksi: eri tyylejä, automaattinen synkronointi, someen sopivat formaatit, kohtauksia ja hahmoja.',
   musicClosingButton: 'Luo video nyt',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Luo valokuvia ja videoita tekoälyllä',
   studioIntro: 'Kerro, mitä haluat luoda, niin autan sinua askel askeleelta.',
   studioChip1: 'Helppokäyttöinen',
@@ -321,7 +321,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Saatua viestiä',
   businessEj4Meta: '↑ 70 %',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Oma kokkisi, aina mukanasi',
   chefIntro: 'Löydä reseptejä, luo ruokalistoja, hyödynnä se, mitä sinulla on, ja syö paremmin, helpommin ja herkullisemmin.',
   chefChip1: 'Helppoja reseptejä',
@@ -351,7 +351,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'En tiedä, mitä kokata',
   chefAcIdkSubtitle: 'Ehdotan jotain herkullista',
   chefAcIdkGoal: 'En tiedä, mitä kokata tänään',
-  chefIdeaTitle: 'Hei! Olen Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Hei! Olen WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Mitä haluaisit kokata tänään?',
   chefIdeaPlaceholder: 'Kirjoita ideasi tähän…',
   chefIdeaChip1: 'Haluan nopean illallisen',
@@ -563,7 +563,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'Ammattimainen CV',
   writerEj6Subtitle: 'Moderni ja selkeä',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Suunnittele matkasi jonkun kanssa, joka on jo käynyt siellä.',
   travelIntro: 'Kerro, minne olet menossa – tai ettet vielä tiedä – niin suunnittelen matkan: mitä nähdä, missä syödä ja miten liikkua.',
   travelChip1: 'Ei varauksia',

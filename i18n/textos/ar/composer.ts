@@ -8,7 +8,7 @@
  * formas extra que el español no tiene: en `_one` y `_two` el número va en la
  * palabra (singular y dual: «يوم واحد», «يومان») y no se escribe la cifra.
  *
- * Marcas en latino dentro del árabe: Weë, Weël, Wäll, ËContact y Weë AI se
+ * Marcas en latino dentro del árabe: Weë, Weël, Ẅall, ËContact y Weë AI se
  * escriben igual que en español. «face swap» se queda en inglés porque el
  * español y el inglés también lo dejan.
  */
@@ -37,7 +37,7 @@ export const composer: ConPlurales<typeof import('../es/composer').composer> = {
   showOptions: 'إظهار خيارات النشر',
   hideOptions: 'إخفاء خيارات النشر',
   currentDestination: '{{destino}}، الوجهة الحالية',
-  generalWall: 'Wäll العام',
+  generalWall: 'Ẅall العام',
   placeholderPollExtra: 'أضف شيئًا آخر إن أردت (اختياري)…',
   placeholderQuestion: 'ماذا تريد أن تسأل المجتمع؟',
   placeholderWeel: 'احكِ ما صنعته لمقطع Weël وبأي ذكاء اصطناعي…',

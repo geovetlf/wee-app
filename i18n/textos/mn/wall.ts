@@ -1,5 +1,5 @@
 /*
- * MONGOL — El Wäll: la publicación y todo lo que se puede hacer con ella. Tipado contra el español.
+ * MONGOL — El Ẅall: la publicación y todo lo que se puede hacer con ella. Tipado contra el español.
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} дахин нийтэллээ',
@@ -74,8 +74,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Демо',
   demoBadgeLabel: 'Демо контент',
-  immersiveEmpty: 'Wäll дээр одоогоор нийтлэл алга',
-  immersiveError: 'Wäll-ийг ачаалж чадсангүй',
+  immersiveEmpty: 'Ẅall дээр одоогоор нийтлэл алга',
+  immersiveError: 'Ẅall-ийг ачаалж чадсангүй',
   immersiveEnd: 'Та бүгдийг үзэж дууслаа',
   agreePost: 'Санал нийлж байна',
   disagreePost: 'Санал нийлэхгүй',

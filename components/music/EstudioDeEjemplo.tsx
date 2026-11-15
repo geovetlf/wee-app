@@ -11,7 +11,7 @@ import { MARCA } from '../../constants/marca';
 import { RellenoDeMarca } from '../GradienteDeMarca';
 
 /*
- * El estudio de Weë Music en la demo: la canción, su avance, las pistas y las secciones. Desde el 2026-11-04 se pinta
+ * El estudio de WeëMusic en la demo: la canción, su avance, las pistas y las secciones. Desde el 2026-11-04 se pinta
  * como la referencia del dueño (la imagen ref-music de demo-medios): fondo violeta de noche, cada pista con su icono y su color, y el
  * avance en dorado. Los colores son de dibujo, no de estado: el estado de cada pista sigue siendo su nombre. Solo lo monta el
  * modo demo y es un EJEMPLO dibujado: no suena nada ni llama a ninguna API musical (CLAUDE.md §5). Tocar el nombre de

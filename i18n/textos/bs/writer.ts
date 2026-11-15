@@ -1,5 +1,5 @@
 /*
- * BOSNIO — Weë Writer, dentro de Weë Studio. El texto que escribe la persona NUNCA pasa por aquí: solo las herramientas que lo trabajan.
+ * BOSNIO — Weë Writer, dentro de WeëStudio. El texto que escribe la persona NUNCA pasa por aquí: solo las herramientas que lo trabajan.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Los botones van en imperativo («Poboljšaj») y la meta que viaja a Weë Brain

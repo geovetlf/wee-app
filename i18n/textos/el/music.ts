@@ -1,7 +1,7 @@
 /*
- * ΕΛΛΗΝΙΚΑ — Weë Music: αρχική, Composer, workstation και εργαλεία. Tipado contra el español.
+ * ΕΛΛΗΝΙΚΑ — WeëMusic: αρχική, Composer, workstation και εργαλεία. Tipado contra el español.
  *
- * «Weë Music» es marca y no se traduce; tampoco los nombres de los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs).
+ * «WeëMusic» es marca y no se traduce; tampoco los nombres de los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs).
  * Se tutea («εσύ»); los botones van como sustantivo de acción o imperativo corto. Términos: canción = τραγούδι,
  * letra = στίχοι, pista separada = ξεχωριστό κανάλι, motor = μηχανή, borrador = πρόχειρο. «MIDI», «R&B», «Remix»,
  * «Remaster» y «AI» se dejan como se usan en griego (los géneros van en griego). Lo que escribe la persona nunca pasa
@@ -13,7 +13,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Πες μου την ιδέα σου ή τραγούδησε μια μελωδία, και ετοίμασε το τραγούδι σου βήμα βήμα.',
   ctaCreate: 'Δημιουργία μουσικής',
   chooseTitle: 'Διάλεξε πώς θα ξεκινήσεις',
-  skillsTitle: 'Τι μπορεί να κάνει το Weë Music',
+  skillsTitle: 'Τι μπορεί να κάνει το WeëMusic',
   recentTitle: 'Πρόσφατα τραγούδια',
   viewExample: 'Δες ένα παράδειγμα σχεδίασης',
   honestyNote: 'Σήμερα μπορείς να ετοιμάσεις το τραγούδι σου, να ηχογραφήσεις μια μελωδία αναφοράς και να ζητήσεις καθοδήγηση από το Weë Brain. Η δημιουργία του τραγουδιού θα ενεργοποιηθεί όταν συνδεθεί και επικυρωθεί.',
@@ -21,7 +21,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Τα αποθηκευμένα ηχητικά και τραγούδια σου.',
   openProjects: 'Τα έργα μου',
   openProjectsHelp: 'Οργάνωσε τα τραγούδια σου σε έργα.',
-  backToMusic: 'Επιστροφή στο Weë Music',
+  backToMusic: 'Επιστροφή στο WeëMusic',
   composerTitle: 'Δημιουργία μουσικής',
   modesLabel: 'Λειτουργία',
   modeSimple: 'Απλή',
@@ -307,7 +307,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Η επεξεργασία ήχου είναι δυνατότητα σε εκκρεμότητα: εδώ προετοιμάζεται μόνο το συμβόλαιο.',
 
   voiceInterpretation: 'Ύφος ερμηνείας',
-  voiceNoClone: 'Το Weë Music δεν κλωνοποιεί ούτε μιμείται φωνές προσώπων: διαλέγει μόνο γενικά φωνητικά χαρακτηριστικά.',
+  voiceNoClone: 'Το WeëMusic δεν κλωνοποιεί ούτε μιμείται φωνές προσώπων: διαλέγει μόνο γενικά φωνητικά χαρακτηριστικά.',
   voiceStylePending: 'Το ύφος ερμηνείας εξαρτάται από τη μηχανή και δεν είναι ακόμη διαθέσιμο.',
   styleTitle: 'Είδος και ύφος',
   transformTitle: 'Μετασχηματισμοί',

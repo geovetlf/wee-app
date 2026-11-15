@@ -1,6 +1,6 @@
 /*
- * MALAYO — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design,
- * Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * MALAYO — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign,
+ * WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -8,7 +8,7 @@
  * es «perjalanan», «negocio» es «perniagaan» y «guion» es «skrip» (glosario de
  * docs/I18N-MALAYO.md). Los ejemplos hablan como habla la persona, en primera
  * persona y sin «nak» coloquial. «Beauty» en el área del Studio es marca
- * (`Weë Studio · Beauty`) y no se traduce; «outfit», «jingle» y «CV» se quedan.
+ * (`WeëStudio · Beauty`) y no se traduce; «outfit», «jingle» y «CV» se quedan.
  */
 export const creator: typeof import('../es/creator').creator = {
   design: 'Logo, poster, ilustrasi dan bahan untuk media sosial anda',
@@ -55,10 +55,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Tidak tahu hendak mula dari mana',
   brainEx2: 'Terangkan ini dengan mudah',
   brainEx3: 'Terjemahkan teks ini',
-  areaStudioPhotos: 'Weë Studio · Foto',
-  areaStudioVideos: 'Weë Studio · Video',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Rumah & Reka Bentuk',
+  areaStudioPhotos: 'WeëStudio · Foto',
+  areaStudioVideos: 'WeëStudio · Video',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Rumah & Reka Bentuk',
   areaHomeName: 'Rumah & Reka Bentuk',
   tellTheSpecialist: 'Beritahu {{especialista}} apa yang anda ingin capai: ia akan bertanya dua atau tiga soalan mudah dan menguruskan selebihnya. Selepas itu anda boleh terus menyiarkannya dalam komuniti anda.',
   exampleQuoted: '“{{ejemplo}}”',

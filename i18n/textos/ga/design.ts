@@ -1,7 +1,7 @@
 /*
  * WEË DESIGN — diseñar y visualizar casi cualquier cosa física.
  *
- * Irlandés. "Weë Design" es marca y no se traduce; lo que comparte con Weë
+ * Irlandés. "WeëDesign" es marca y no se traduce; lo que comparte con Weë
  * Studio ("Mis creaciones", "Ver todas", "Creando...") vive en `studio`.
  */
 export const design: typeof import('../es/design').design = {

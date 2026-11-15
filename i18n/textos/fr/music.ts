@@ -1,4 +1,4 @@
-/* fr — Weë Music : accueil, Composer, workstation et outils. «Weë Music» et les noms des fournisseurs sont des marques et ne se traduisent pas. Tipado contra el español. Pendiente de revisión por un hablante nativo. */
+/* fr — WeëMusic : accueil, Composer, workstation et outils. «WeëMusic» et les noms des fournisseurs sont des marques et ne se traduisent pas. Tipado contra el español. Pendiente de revisión por un hablante nativo. */
 export const music: typeof import('../es/music').music = {
   tagline: 'Ton idée. Ton son. Sans limites.',
   intro: 'Crée des chansons à partir d’une idée, de paroles ou d’une mélodie, et modifie-les section par section.',
@@ -6,7 +6,7 @@ export const music: typeof import('../es/music').music = {
   ctaCreate: 'Créer de la musique',
   demoPrompt: 'Quelle musique veux-tu créer ?',
   chooseTitle: 'Choisis comment commencer',
-  skillsTitle: 'Ce que peut faire Weë Music',
+  skillsTitle: 'Ce que peut faire WeëMusic',
   recentTitle: 'Chansons récentes',
   viewExample: 'Voir un exemple de design',
   honestyNote: 'Aujourd’hui, tu peux préparer ta chanson, enregistrer une mélodie de référence et demander conseil à Weë Brain. La création de la chanson sera activée une fois connectée et validée.',
@@ -14,7 +14,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Tes audios et chansons enregistrés.',
   openProjects: 'Mes projets',
   openProjectsHelp: 'Organise tes chansons en projets.',
-  backToMusic: 'Retour à Weë Music',
+  backToMusic: 'Retour à WeëMusic',
   composerTitle: 'Créer de la musique',
   modesLabel: 'Mode',
   modeSimple: 'Simple',
@@ -300,7 +300,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Le traitement audio est une fonction en attente : ici, seul le contrat est préparé.',
 
   voiceInterpretation: 'Style d’interprétation',
-  voiceNoClone: 'Weë Music ne clone ni n’imite la voix de personnes : tu choisis seulement des caractéristiques vocales générales.',
+  voiceNoClone: 'WeëMusic ne clone ni n’imite la voix de personnes : tu choisis seulement des caractéristiques vocales générales.',
   voiceStylePending: 'Le style d’interprétation dépend du moteur et n’est pas encore disponible.',
   styleTitle: 'Genre et style',
   transformTitle: 'Transformations',

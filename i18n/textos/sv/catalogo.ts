@@ -9,16 +9,16 @@
  * en produkt»; en los verbos en -a coincide con el infinitivo); donde pone «Quiero…», «Jag vill…», como creator.ts y
  * business.ts. Cuando la misma frase es título y objetivo («Crear una canción», «Crear un menú», «Planificar un
  * viaje»), las dos dicen lo mismo, que además es la forma de un botón. Las tarjetas de «No sé…» empiezan por «Vet
- * inte…», la respuesta sueca de siempre y la opción 🤷 de Weë (help.ts), y es lo que cabe en la tarjeta de Weë Chef
+ * inte…», la respuesta sueca de siempre y la opción 🤷 de Weë (help.ts), y es lo que cabe en la tarjeta de WeëChef
  * («Vet inte vad jag ska laga»). En Weë Brain, entre «Jag har…» y «Jag vill…», va entera; los objetivos, también
  * («Jag vet inte vad jag ska laga i dag», como creator.ts).
  *
  * MARCAS (guía § 4). Ni se traducen ni se declinan: «för Weë», «med Weë», «hjälper Weë dig». «Los otros Weë» son
- * «Weë-experter», el compuesto con guion del glosario, como en weeai.ts. En el selector de Weë Studio, «Beauty» es el
- * nombre del área y no la marca: «Skönhet», como studio.ts y creator.ts («Weë Studio · Skönhet»). «Writer» abre la
+ * «Weë-experter», el compuesto con guion del glosario, como en weeai.ts. En el selector de WeëStudio, «Beauty» es el
+ * nombre del área y no la marca: «Skönhet», como studio.ts y creator.ts («WeëStudio · Skönhet»). «Writer» abre la
  * pantalla de Weë Writer y va con su marca entera, «Weë Writer»: suelto, entre «Foton», «Videor» y «Skönhet», se
  * leería como inglés sin traducir. OJO: en sueco «chef» es «jefe»; el cocinero es «kock» («Din egen kock»), y la
- * marca, Weë Chef, no se toca.
+ * marca, WeëChef, no se toca.
  *
  * PALABRAS. «Redes» es «sociala medier»; «negocio», «företag» (business.ts); «logo», «logga»; «personaje»,
  * «karaktär»; un email, un «mejl» (creator.ts); el CV, «cv» dentro de la frase, como SAOL y creator.ts; el «espacio»
@@ -36,11 +36,11 @@
  * SE ESCRIBEN IGUAL, A PROPÓSITO: los géneros (Pop, Rock, Reggaeton, Ballad), «Drama», «Motivation» y el plato peruano
  * «Lomo saltado»: así se dicen en sueco.
  *
- * LO QUE NO SE PUEDE ROMPER. Los chips de Weë Travel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
- * solo quita el emoji si lo sigue un espacio. En Weë Studio y Weë Chef ningún objetivo, chip ni ejemplo nombra una
+ * LO QUE NO SE PUEDE ROMPER. Los chips de WeëTravel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
+ * solo quita el emoji si lo sigue un espacio. En WeëStudio y WeëChef ningún objetivo, chip ni ejemplo nombra una
  * foto donde el español no la nombra: `CreatorFlowScreen` todavía mira el texto (/foto|imagen/,
  * /ingredientes|nevera|refri|foto/) para decidir si la pide, y en sueco «foto» se escribe igual. Las tarjetas de Weë
- * Beauty, las de Weë Chef, los ejemplos y la fila de Weë Travel enseñan una o dos líneas: ahí va la forma más corta
+ * Beauty, las de WeëChef, los ejemplos y la fila de WeëTravel enseñan una o dos líneas: ahí va la forma más corta
  * que se dice de verdad («Ansiktsform», «Pricken över i», «Vart vill du resa?»).
  */
 export const catalogo: typeof import('../es/catalogo').catalogo = {
@@ -90,7 +90,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Tar hand om hela processen',
   brainEj3Subtitle: 'Från idé till design, video och musik',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Designa allt du kan tänka dig.',
   designIntro: 'Förvandla dina idéer till fantastisk design med AI. Från en logga till en bil, en produkt eller en hel värld.',
   designChip1: 'Snabbt och enkelt',
@@ -189,7 +189,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Ansiktsretusch',
   photoEj6Title: 'Förvandla med AI',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Skapa, lyssna på och upplev din musik med AI',
   musicIntro: 'Förvandla dina idéer till låtar, videor och unika upplevelser. Inga gränser för din kreativitet.',
   musicChip1: 'Snabbt och enkelt',
@@ -251,7 +251,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Gör din musik till en fantastisk video: flera stilar, automatisk synkning, format för sociala medier, scener och karaktärer.',
   musicClosingButton: 'Skapa video nu',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Skapa foton och videor med AI',
   studioIntro: 'Berätta vad du vill skapa så hjälper jag dig steg för steg.',
   studioChip1: 'Lätt att använda',
@@ -344,7 +344,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Mottagna meddelanden',
   businessEj4Meta: '↑ 70 %',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Din egen kock, alltid med dig',
   chefIntro: 'Upptäck recept, skapa menyer, ta vara på det du har och ät bättre, enklare och godare.',
   chefChip1: 'Enkla recept',
@@ -374,7 +374,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Vet inte vad jag ska laga',
   chefAcIdkSubtitle: 'Jag föreslår något gott',
   chefAcIdkGoal: 'Jag vet inte vad jag ska laga i dag',
-  chefIdeaTitle: 'Hej! Jag är Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Hej! Jag är WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Berätta, vad vill du laga i dag?',
   chefIdeaPlaceholder: 'Skriv din idé här…',
   chefIdeaChip1: 'Jag vill ha en snabb middag',
@@ -586,7 +586,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'Professionellt cv',
   writerEj6Subtitle: 'Modernt och stilrent',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Planera din resa med någon som har rest mycket.',
   travelIntro: 'Berätta vart du ska – eller att du inte vet än – så planerar jag resan: vad du ska se, var du ska äta och hur du tar dig runt.',
   travelChip1: 'Inga bokningar',

@@ -4,7 +4,7 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila. Entre palabras va el ZWSP (U+200B);
  * el espacio normal separa frases y rodea marcas, cifras y huecos. Plural: Intl solo tiene «other», así que _one y
  * _other son idénticas y llevan {{contador}}. Weë Brain habla en primera persona (ខ្ញុំ) y trata a la persona de អ្នក.
- * Las marcas (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls, Travel Safe), «AI» y «DEMO» se quedan en latino.
+ * Las marcas (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls, Travel Safe), «AI» y «DEMO» se quedan en latino.
  */
 export const travel: typeof import('../es/travel').travel = {
   // Portada
@@ -742,9 +742,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'តើ​អ្វី​ល្អ​បំផុត​នៅ​ថ្ងៃនេះ?',
   saveEntry: 'រក្សាទុក​កំណត់ត្រា',
   journalEmpty: 'កំណត់ហេតុ​របស់អ្នក​នៅ​ទទេ។ សរសេរ​កំណត់ត្រា​ដំបូង។',
-  videoMemoriesDemo: 'DEMO៖ វីដេអូ​ត្រូវ​បាន​បង្កើត​ក្នុង Weë Studio ជាមួយ​រូបថត និង​ឃ្លីប​ផ្ទាល់ខ្លួន​របស់អ្នក។',
+  videoMemoriesDemo: 'DEMO៖ វីដេអូ​ត្រូវ​បាន​បង្កើត​ក្នុង WeëStudio ជាមួយ​រូបថត និង​ឃ្លីប​ផ្ទាល់ខ្លួន​របស់អ្នក។',
   videoOf: 'វីដេអូ​នៃ {{viaje}}',
-  createInStudio: 'បង្កើត​ក្នុង Weë Studio',
+  createInStudio: 'បង្កើត​ក្នុង WeëStudio',
   countriesVisited_one: 'បាន​ទៅ {{contador}} ប្រទេស',
   countriesVisited_other: 'បាន​ទៅ {{contador}} ប្រទេស',
   recapTitle: 'ដំណើរ​របស់អ្នក​ទៅ {{viaje}}',

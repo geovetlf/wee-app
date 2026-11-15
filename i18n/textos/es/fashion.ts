@@ -1,5 +1,5 @@
 /*
- * Weë Fashion: la portada y el Composer. El nombre «Weë Fashion» es marca y no se traduce.
+ * WeëFashion: la portada y el Composer. El nombre «WeëFashion» es marca y no se traduce.
  *
  * Tipado contra este archivo: una clave que falte en otro idioma no compila. Lo que escribe la persona
  * (su idea, sus referencias) nunca pasa por el traductor. Los briefs son frases con huecos: lo dinámico entra
@@ -102,7 +102,7 @@ export const fashion = {
   briefIdea: 'Mi idea: {{texto}}.',
   briefIdk: 'Ayúdame a elegir.',
   heroTags: 'Moda · Belleza · Estilo · Colecciones',
-  toolsTitle: 'Herramientas de Weë Fashion',
+  toolsTitle: 'Herramientas de WeëFashion',
   inspirationTitle: 'Inspiración',
   galleryTitle: 'Pruébate el look',
   galClothes: 'Ropa',

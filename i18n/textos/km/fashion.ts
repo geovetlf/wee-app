@@ -1,7 +1,7 @@
 /*
- * km — Weë Fashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * km — WeëFashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa.
- * Las marcas (Weë, Credits, ËContact, Boost, Weë Fashion, WeëPages…) no se traducen.
+ * Las marcas (Weë, Credits, ËContact, Boost, WeëFashion, WeëPages…) no se traducen.
  */
 export const fashion: typeof import('../es/fashion').fashion = {
   tagline: 'ស្ទីល​របស់អ្នក។ ចក្ខុវិស័យ​របស់អ្នក។ ពិភព​របស់អ្នក។',
@@ -95,7 +95,7 @@ export const fashion: typeof import('../es/fashion').fashion = {
   briefIdea: 'គំនិត​របស់ខ្ញុំ៖ {{texto}}។',
   briefIdk: 'ជួយ​ខ្ញុំ​ជ្រើសរើស។',
   heroTags: 'ម៉ូដ · សម្រស់ · ស្ទីល · កម្រងម៉ូដ',
-  toolsTitle: 'ឧបករណ៍ Weë Fashion',
+  toolsTitle: 'ឧបករណ៍ WeëFashion',
   inspirationTitle: 'ការបំផុសគំនិត',
   galleryTitle: 'សាក​រូបរាង​ស្លៀកពាក់',
   galClothes: 'សម្លៀកបំពាក់',

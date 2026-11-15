@@ -1,7 +1,7 @@
 /*
  * SERBIO (ћирилица, екавски) — lo que describe cada experiencia de WEË AI.
  *
- * Tipado contra el español. Los nombres —Weë Design, Weë Studio…— son marca y
+ * Tipado contra el español. Los nombres —WeëDesign, WeëStudio…— son marca y
  * viven en constants/weeExperiences.ts sin traducir; aquí solo entran por
  * `{{especialista}}` o dentro de las etiquetas de área, en latino. «Beauty»
  * queda en inglés como en es/en. «CV» e «Instagram» quedan en latino.
@@ -51,10 +51,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Не знам одакле да почнем',
   brainEx2: 'Објасни ми ово једноставно',
   brainEx3: 'Преведи овај текст',
-  areaStudioPhotos: 'Weë Studio · Фотографије',
-  areaStudioVideos: 'Weë Studio · Видео',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Дом и дизајн',
+  areaStudioPhotos: 'WeëStudio · Фотографије',
+  areaStudioVideos: 'WeëStudio · Видео',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Дом и дизајн',
   areaHomeName: 'Дом и дизајн',
   tellTheSpecialist: 'Реци {{especialista}} шта желиш да постигнеш: поставиће ти два-три једноставна питања и побринуће се за остало. После објављујеш директно у својој заједници.',
   exampleQuoted: '„{{ejemplo}}“',

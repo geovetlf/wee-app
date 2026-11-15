@@ -3,7 +3,7 @@
  * publicar. Tipado contra el español: si allí hay una clave que aquí falta,
  * no compila.
  *
- * «Wäll» es marca y se conserva en latino («Wäll عمومی»). «Mención» es «منشن»,
+ * «Ẅall» es marca y se conserva en latino («Ẅall عمومی»). «Mención» es «منشن»,
  * como en Instagram en persa. «Face swap» se deja en inglés porque el español
  * y el inglés también lo dejan.
  */
@@ -30,7 +30,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'نمایش گزینه‌های انتشار',
   hideOptions: 'پنهان کردن گزینه‌های انتشار',
   currentDestination: '{{destino}}، مقصد فعلی',
-  generalWall: 'Wäll عمومی',
+  generalWall: 'Ẅall عمومی',
   placeholderPollExtra: 'اگر خواستید چیز دیگری هم اضافه کنید (اختیاری)…',
   placeholderQuestion: 'می‌خواهید از انجمن چه بپرسید؟',
   placeholderWeel: 'بنویسید برای Weël خود چه ساختید و با کدام هوش مصنوعی…',

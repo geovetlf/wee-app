@@ -191,10 +191,10 @@ export const weeai: typeof import('../es/weeai').weeai = {
   couldNotCalculateRetry: 'कीमत नहीं निकाली जा सकी. फिर से कोशिश करें.',
   expandSection: '{{titulo}}. {{contenido}} देखें',
   collapseSection: '{{titulo}}. {{contenido}} छिपाएँ',
-  openTravel_one: '{{titulo}}. Weë Travel खोलें: अपनी यात्रा लिखने का बॉक्स और शुरू करने का {{contador}} तरीका',
-  openTravel_other: '{{titulo}}. Weë Travel खोलें: अपनी यात्रा लिखने का बॉक्स और शुरू करने के {{contador}} तरीके',
-  closeTravel_one: '{{titulo}}. Weë Travel छिपाएँ: अपनी यात्रा लिखने का बॉक्स और शुरू करने का {{contador}} तरीका',
-  closeTravel_other: '{{titulo}}. Weë Travel छिपाएँ: अपनी यात्रा लिखने का बॉक्स और शुरू करने के {{contador}} तरीके',
+  openTravel_one: '{{titulo}}. WeëTravel खोलें: अपनी यात्रा लिखने का बॉक्स और शुरू करने का {{contador}} तरीका',
+  openTravel_other: '{{titulo}}. WeëTravel खोलें: अपनी यात्रा लिखने का बॉक्स और शुरू करने के {{contador}} तरीके',
+  closeTravel_one: '{{titulo}}. WeëTravel छिपाएँ: अपनी यात्रा लिखने का बॉक्स और शुरू करने का {{contador}} तरीका',
+  closeTravel_other: '{{titulo}}. WeëTravel छिपाएँ: अपनी यात्रा लिखने का बॉक्स और शुरू करने के {{contador}} तरीके',
   tellWeeTheTrip: 'Weë को अपनी यात्रा के बारे में बताएँ',
   theMotto: 'नतीजा आप चुनें. AI Weë चुनेगा.',
   trySearchWords: 'लोगो, वीडियो, फ़ोटो, टेक्स्ट, गाना, लुक, रेसिपी, घर या बिज़नेस जैसे शब्द लिखकर देखें. या Weë Brain से पूछें.',
@@ -272,7 +272,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   durationSeconds: '{{segundos}} सेकंड',
   volumeDiscount: '{{descuento}}% थोक छूट',
   createWork: 'बनाएँ',
-  /* ── Weë Travel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
+  /* ── WeëTravel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
   travelHeroLine1: 'अपनी यात्रा की योजना',
   travelHeroLine2: 'किसी ऐसे के साथ बनाएँ',
   travelHeroAccent: 'जो वहाँ जा चुका है.',

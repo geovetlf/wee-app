@@ -1,5 +1,5 @@
 /*
- * DANÉS — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * DANÉS — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -95,9 +95,9 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: 'Kopieret!',
   demoBadge: 'Demo',
   demoBadgeLabel: 'Demoindhold',
-  /* ── El Wäll inmersivo: una publicación a la vez ── */
-  immersiveEmpty: 'Der er endnu ingen opslag på Wäll',
-  immersiveError: 'Vi kunne ikke indlæse Wäll',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Der er endnu ingen opslag på Ẅall',
+  immersiveError: 'Vi kunne ikke indlæse Ẅall',
   immersiveEnd: 'Du har set det hele',
   agreePost: 'Enig',
   disagreePost: 'Uenig',

@@ -11,8 +11,8 @@
  *     infinitivo de petición («Crear una canción»), el imperativo con el que se le pide algo a un asistente
  *     («Erinarsuummik pilersitsigit»). Para «probar…» se usa «…-mik misiliinissaq kissaatigaara».
  *   · Las tarjetas «No sé…» usan la pregunta indirecta + «nalugara» (no lo sé): «Suna igassanerlugu nalugara».
- *   · Marcas sin sufijo nunca: «Weë», «Weë Brain», «Weë Chef»; «Design, Studio, Chef…» y las tarjetas «Beauty»
- *     y «Writer» de Weë Studio son pedazos de marca y se copian tal cual. «Weë atorlugu» = con Weë.
+ *   · Marcas sin sufijo nunca: «Weë», «Weë Brain», «WeëChef»; «Design, Studio, Chef…» y las tarjetas «Beauty»
+ *     y «Writer» de WeëStudio son pedazos de marca y se copian tal cual. «Weë atorlugu» = con Weë.
  *   · Lo que no se traduce: números, duraciones y cifras (`3:12`, `20 min`, `↑ 40%`; los separadores decimales de
  *     las cifras de ejemplo siguen la convención kl, coma decimal), los nombres de géneros musicales
  *     internacionales (Pop, Rock, Trap, Reggaeton) y los nombres de platos (Lomo saltado, Pasta carbonara).
@@ -67,7 +67,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Suliap ingerlanera tamaat isumagisarpaa',
   brainEj3Subtitle: 'Isumassarsiamiit ilusilersukkanut, videonut nipilersornermullu',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Takorloorsinnaasatit ilusilersukkit.',
   designIntro: 'Isumassarsiatit AI atorlugu ilusilersukkanut tupinnartunut allanngortikkit. Ilisarnaammiit biilimut, nioqqutissiamut silarsuarmulluunniit tamarmut.',
   designChip1: 'Sukkasoq oqitsorlu',
@@ -166,7 +166,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Kiinap iluarsiiffiginera',
   photoEj6Title: 'AI atorlugu allanngortiguk',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'AI atorlugu nipilersornerit pilersiguk, tusarnaaruk inuuffigalugulu',
   musicIntro: 'Isumassarsiatit erinarsuutinut, videonut misigisanullu immikkuullarissunut allanngortikkit. Pilersitsisinnaanerit killeqanngilaq.',
   musicChip1: 'Sukkasoq pisariitsorlu',
@@ -228,7 +228,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Nipilersornerit videomut tupinnartumut allanngortiguk: isikkut assigiinngitsut, nammineerluni ataqatigiissaarineq, attaveqaatinut ilusit, takutitat inuttaasullu.',
   musicClosingButton: 'Maanna videomik pilersitsigit',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'AI atorlugu assinik videonillu pilersitsigit',
   studioIntro: 'Suna pilersikkusunnerlugu oqaluttuarfiginga, alloriarfissat tamaasa ikiussavakkit.',
   studioChip1: 'Atornissaa oqitsoq',
@@ -321,7 +321,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Oqariartuutit tigusat',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Igasorit, ilinniittuaannartoq',
   chefIntro: 'Nerisassiornermut ilitsersuutinik nassaarit, nerisassat pilersaarusiukkit, pigisatit atukkit pitsaanerusumillu, oqinnerusumik mamarnerusumillu nerigit.',
   chefChip1: 'Ilitsersuutit oqitsut',
@@ -351,7 +351,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Suna igassanerlugu nalugara',
   chefAcIdkSubtitle: 'Mamartumik siunnersuuteqassaanga',
   chefAcIdkGoal: 'Ullumi suna igassanerlugu nalugara',
-  chefIdeaTitle: 'Aluu! Uanga tassa Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Aluu! Uanga tassa WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Oqaluttuarfiginga: ullumi suna igarusuppiuk?',
   chefIdeaPlaceholder: 'Isumassarsiat maani allaguk…',
   chefIdeaChip1: 'Unnukkorsiutissamik sukkasumik kissaateqarpunga',
@@ -563,7 +563,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'CV suliffimmut',
   writerEj6Subtitle: 'Nutaaliaq eqqiluisaarlu',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Angalanerit angalasarsimasumik ikiorteqarlutit piareersaruk.',
   travelIntro: 'Sumut ingerlanerlutit —imaluunniit suli nalugakku— oqaluttuarfiginga, angalanerillu piareersassavara: suna takussanerlugu, sumi nerissanerlutit qanorlu angalaarsinnaanerlutit.',
   travelChip1: 'Inniminniinani',

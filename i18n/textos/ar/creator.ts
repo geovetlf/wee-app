@@ -2,7 +2,7 @@
  * ÁRABE — lo que describe cada experiencia de WEË AI. Tipado contra el
  * español.
  *
- * Los nombres —Weë Design, Weë Studio…— son marca y llegan por hueco o se
+ * Los nombres —WeëDesign, WeëStudio…— son marca y llegan por hueco o se
  * escriben en latino. «Beauty» en `areaStudioBeauty` se queda en inglés como
  * en el español y el inglés. Las comillas del ejemplo pasan a «…».
  */
@@ -51,10 +51,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'لا أعرف من أين أبدأ',
   brainEx2: 'اشرح لي هذا ببساطة',
   brainEx3: 'ترجم هذا النص',
-  areaStudioPhotos: 'Weë Studio · الصور',
-  areaStudioVideos: 'Weë Studio · الفيديوهات',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · المنزل والتصميم',
+  areaStudioPhotos: 'WeëStudio · الصور',
+  areaStudioVideos: 'WeëStudio · الفيديوهات',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · المنزل والتصميم',
   areaHomeName: 'المنزل والتصميم',
   tellTheSpecialist: 'أخبر {{especialista}} بما تريد تحقيقه: سيطرح عليك سؤالين أو ثلاثة أسئلة بسيطة ويتولى الباقي. بعدها تنشر مباشرة في مجتمعك.',
   exampleQuoted: '«{{ejemplo}}»',

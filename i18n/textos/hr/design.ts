@@ -7,8 +7,8 @@
  * (femenino: Prirodna, Topla, Studijska). Las puertas de entrada («Un salón»,
  * «Una silla») van sin artículo, como pide el croata.
  *
- * QUÉ NO ESTÁ AQUÍ: "Weë Design", que es marca. Tampoco lo que Weë Design
- * comparte con Weë Studio y significa lo mismo —"Mis creaciones", "Ver todas",
+ * QUÉ NO ESTÁ AQUÍ: "WeëDesign", que es marca. Tampoco lo que WeëDesign
+ * comparte con WeëStudio y significa lo mismo —"Mis creaciones", "Ver todas",
  * "Creando...", "Creación lista"—: eso vive en `studio` y se lee de allí, para
  * que las dos pantallas no puedan acabar diciendo cosas distintas.
  */

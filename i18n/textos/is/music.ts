@@ -1,7 +1,7 @@
 /*
- * ISLANDÉS (is · is-IS) — Weë Music: portada, Composer, workstation y herramientas. Tipado contra el español.
+ * ISLANDÉS (is · is-IS) — WeëMusic: portada, Composer, workstation y herramientas. Tipado contra el español.
  *
- * «Weë Music» y «Weë Brain» son marca y no se declinan (van en nominativo o tras preposición, invariables, guía § 2);
+ * «WeëMusic» y «Weë Brain» son marca y no se declinan (van en nominativo o tras preposición, invariables, guía § 2);
  * tampoco se traducen los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs). Se tutea («þú»); botones en infinitivo
  * sin «að», frases a la persona en imperativo. Términos del oficio en islandés: lag (canción), söngtexti (letra),
  * erindi (verso), forviðlag (preestribillo), viðlag (coro/estribillo), brú (puente), millikafli (interludio),
@@ -18,7 +18,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Segðu mér hugmyndina þína eða syngdu laglínu og undirbúðu lagið þitt skref fyrir skref.',
   ctaCreate: 'Búa til tónlist',
   chooseTitle: 'Veldu hvernig þú byrjar',
-  skillsTitle: 'Hvað Weë Music getur gert',
+  skillsTitle: 'Hvað WeëMusic getur gert',
   recentTitle: 'Nýleg lög',
   viewExample: 'Skoða dæmi um hönnun',
   honestyNote: 'Í dag geturðu undirbúið lagið þitt, tekið upp viðmiðunarlaglínu og fengið leiðsögn frá Weë Brain. Gerð lagsins verður virkjuð þegar hún hefur verið tengd og staðfest.',
@@ -26,7 +26,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Vistuð hljóð og lög.',
   openProjects: 'Verkefnin mín',
   openProjectsHelp: 'Raðaðu lögunum þínum í verkefni.',
-  backToMusic: 'Til baka í Weë Music',
+  backToMusic: 'Til baka í WeëMusic',
   composerTitle: 'Búa til tónlist',
   modesLabel: 'Hamur',
   modeSimple: 'Einfalt',
@@ -312,7 +312,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Hljóðvinnsla er geta sem bíður: hér er aðeins samningurinn undirbúinn.',
 
   voiceInterpretation: 'Túlkunarstíll',
-  voiceNoClone: 'Weë Music hvorki klónar né hermir eftir röddum fólks: aðeins eru valdir almennir raddeiginleikar.',
+  voiceNoClone: 'WeëMusic hvorki klónar né hermir eftir röddum fólks: aðeins eru valdir almennir raddeiginleikar.',
   voiceStylePending: 'Túlkunarstíllinn fer eftir vélinni og er ekki enn tiltækur.',
   styleTitle: 'Tónlistarstefna og stíll',
   transformTitle: 'Umbreytingar',

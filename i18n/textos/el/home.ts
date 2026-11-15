@@ -85,8 +85,8 @@ export const home: typeof import('../es/home').home = {
   likesCount_other: '{{cantidad}} μου αρέσει',
   commentsCount_one: '{{cantidad}} σχόλιο',
   commentsCount_other: '{{cantidad}} σχόλια',
-  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Wäll es marca. Sin revisión nativa. */
-  tabWall: 'Wäll',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Ẅall es marca. Sin revisión nativa. */
+  tabWall: 'Ẅall',
   sectionsNav: 'Ενότητες',
   weeAiTagline: 'Δημιούργησε, ανάπτυξε και μεταμόρφωσε τις ιδέες σου',
   openBrain: 'Άνοιγμα του Weë Brain',

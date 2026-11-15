@@ -1,5 +1,5 @@
 /*
- * DANÉS — Weë Studio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
+ * DANÉS — WeëStudio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -8,7 +8,7 @@
  * creaciones», «Mine kreationer»; lo que se está haciendo, «Genererer…». «Mejorar» es «Optimer» y «Simplificar»,
  * «Gør enklere», porque «Forbedr» y «Forenkl» acaban en grupo de consonantes (guía § 3). «Entendido» es «Forstået».
  *
- * LA CÁMARA habla como el cine danés y sigue la fila «Weë Studio (cámara)» del glosario: el encuadre es
+ * LA CÁMARA habla como el cine danés y sigue la fila «WeëStudio (cámara)» del glosario: el encuadre es
  * «Billedudsnit» y los planos, de lo más abierto a lo más cerrado, «Oversigtsbillede» (el plano general que sitúa la
  * escena: establishing), «Total» (el plano abierto), «Halvnær» (el plano medio: de cintura arriba, la escala de
  * Filmcentralen), «Nærbillede» y «Ekstremt nærbillede»; el plano
@@ -18,7 +18,7 @@
  * «Kør ud», «Kør med», «Kør rundt om motivet» (la órbita: «Kør rundt» solo sería dar vueltas); y «Følg», «Panorér», «Tilt», «Kran op» / «Kran ned». La cámara subjetiva es
  * «Subjektivt kamera», el término de Filmcentralen. La luz: «Den gyldne time», «Den blå time»; la composición,
  * «Tredjedelsreglen». «Locución» es «Speak» y «Narración», «Fortællerstemme» (glosario). La pista de la tarjeta
- * Voz (`voiceHint`, «Narración y más») dice «Oplæsning og mere», como la descripción de Weë Music: en la fila de
+ * Voz (`voiceHint`, «Narración y más») dice «Oplæsning og mere», como la descripción de WeëMusic: en la fila de
  * cuatro tarjetas del escritorio «Fortællerstemme og mere» partía la línea y descolocaba el título.
  *
  * LA CONCORDANCIA. Estas etiquetas viajan también, en minúsculas y unidas por comas, dentro del objetivo que lee
@@ -27,7 +27,7 @@
  * (et-ord), esos adjetivos van en neutro —«Blødt», «Normalt», «Langsomt», «Hurtigt», «Naturligt»— y una sola forma
  * sirve en todas; en «Bevægelse» se leen como adverbio («se mueve suave»). La composición («en komposition»)
  * concuerda en común: «Centreret», «Symmetrisk», «Luftig». «Natural» se separa A PROPÓSITO: la luz es «Naturligt
- * lys», como en Weë Design (`design.valNatural`), y el movimiento, «Naturligt», porque ahí no es una luz.
+ * lys», como en WeëDesign (`design.valNatural`), y el movimiento, «Naturligt», porque ahí no es una luz.
  * «Subir»/«Bajar» son aquí la grúa de la cámara («Kran op/ned»), no reordenar como en Filmmaker.
  *
  * «Formato» es «Format», con «Kvadratisk», «Stående» y «Liggende». La longitud de un texto es «Kort»,
@@ -38,7 +38,7 @@
  * «Neutral», «Accent», «Illustration», «Drone», «Timelapse», «Outfit», «Styling», «Makeup», «Blogs», «Podcasts»,
  * «Essays», «CV», «Total» y «Tilt».
  *
- * QUÉ NO ESTÁ AQUÍ: «Weë Studio» y «Writer», que son marca, ni los formatos —MP4, 16:9—, que no cambian.
+ * QUÉ NO ESTÁ AQUÍ: «WeëStudio» y «Writer», que son marca, ni los formatos —MP4, 16:9—, que no cambian.
  */
 export const studio: typeof import('../es/studio').studio = {
   /* ── La cabecera ──────────────────────────────────────────────────────── */
@@ -261,7 +261,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Kommer snart',
   soonHint: 'Værktøjet har allerede sin plads, men det er ikke koblet til endnu.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Tekst',
   textHint: 'Skriv hvad som helst',
   exploreTitle: 'Udforsk',

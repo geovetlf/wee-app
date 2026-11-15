@@ -4,7 +4,7 @@ import { ConPlurales } from '../ru/plurales';
  * WEË FILMMAKER — «Varias escenas» (F1-C), en montenegrino (ijekaviano, latino). Tipado contra el español con
  * `ConPlurales`: las claves que cuentan añaden `_few` (2-4) y las tres formas llevan {{contador}}. Tuteo. La
  * producción es «produkcija», el panel Director es «Režija», el plano «kadar», la toma «snimak» y la escena
- * «scena». Weë y Weë Studio son marca: en latino y sin declinar. Las claves val*, op*, rec*, req* y per* son los
+ * «scena». Weë y WeëStudio son marca: en latino y sin declinar. Las claves val*, op*, rec*, req* y per* son los
  * `messageKey` de F1-A y F1-B leídos como claves planas.
  */
 export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> = {
@@ -17,20 +17,20 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   createProduction: 'Kreiraj produkciju',
   creatingProduction: 'Kreiramo produkciju…',
   openProduction: 'Otvori {{titulo}}',
-  goToStudio: 'Idi u Weë Studio',
+  goToStudio: 'Idi u WeëStudio',
   loadMore: 'Prikaži više',
   backToList: 'Nazad na tvoje produkcije',
   updatedAgo: 'Ažurirana {{cuando}}',
 
   emptyListTitle: 'Još nemaš produkcija',
-  emptyListText: 'Počni u Weë Studio: uđi u Video, izaberi „Više scena“ i reci Weë što želiš da ispričaš.',
+  emptyListText: 'Počni u WeëStudio: uđi u Video, izaberi „Više scena“ i reci Weë što želiš da ispričaš.',
   emptyArchived: 'Nemaš arhiviranih produkcija.',
   emptyStoryboardTitle: 'Ova produkcija još nema scena',
   emptyStoryboardText: 'Dodaj prvu i gradi svoju priču kadar po kadar.',
   addFirstScene: 'Dodaj prvu scenu',
 
   yourIdea: 'Tvoja ideja',
-  ideaFromStudio: 'Ideja se piše u Weë Studio. Da je promijeniš, vrati se tamo.',
+  ideaFromStudio: 'Ideja se piše u WeëStudio. Da je promijeniš, vrati se tamo.',
   whereWillItPlay: 'Gdje će se gledati?',
   otherFormat: 'Drugi format',
   continueOne: 'Ili nastavi neku od svojih produkcija',

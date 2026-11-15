@@ -3,9 +3,9 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * «Weë Design» es marca y no aparece aquí. Diseñar es «reka bentuk» y el
- * diseño, «reka bentuk» (guía § 4); visualizar, «visualkan». Lo que Weë Design
- * comparte con Weë Studio se lee de `studio`. Las puertas de entrada («Un
+ * «WeëDesign» es marca y no aparece aquí. Diseñar es «reka bentuk» y el
+ * diseño, «reka bentuk» (guía § 4); visualizar, «visualkan». Lo que WeëDesign
+ * comparte con WeëStudio se lee de `studio`. Las puertas de entrada («Un
  * salón», «Una silla»…) van sin artículo, porque el malayo no lo tiene:
  * «Ruang tamu», «Kerusi». «3D» y «Render» quedan tal cual.
  */

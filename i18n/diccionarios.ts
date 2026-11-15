@@ -224,8 +224,8 @@ export const DICCIONARIOS: Diccionarios = {
  * que la regla queda aquí también.
  *
  * Los nombres de Weë son MARCA y se escriben IGUAL en todos los idiomas: Weë,
- * Wäll, Weëls, WeeTalk, ËContact, Credits, Weë AI y las experiencias (Weë
- * Studio, Weë Brain, Weë Chef…). No se traducen, no se adaptan, no se
+ * Ẅall, Weëls, WeeTalk, ËContact, Credits, Weë AI y las experiencias (Weë
+ * Studio, Weë Brain, WeëChef…). No se traducen, no se adaptan, no se
  * pluralizan, no se transliteran, no cambian de mayúsculas y no pierden ni un
  * diacrítico. "Credits" no es "Crédits" ni "Kredite"; "Weë Brain" no es "Weë
  * Cerveau". Lo que se traduce es el texto que los rodea.

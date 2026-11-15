@@ -1,5 +1,5 @@
 /*
- * ISLANDÉS (is · is-IS) — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * ISLANDÉS (is · is-IS) — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -81,8 +81,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada con is/kl, 2026-11-05: traducción de IA, SIN revisión humana nativa. */
   demoBadge: 'Sýnishorn',
   demoBadgeLabel: 'Sýnishornsefni',
-  immersiveEmpty: 'Engar færslur á Wäll enn',
-  immersiveError: 'Ekki tókst að hlaða Wäll',
+  immersiveEmpty: 'Engar færslur á Ẅall enn',
+  immersiveError: 'Ekki tókst að hlaða Ẅall',
   immersiveEnd: 'Þú hefur séð allt',
   agreePost: 'Sammála',
   disagreePost: 'Ósammála',

@@ -56,7 +56,7 @@ const CreatorFlowScreen: React.FC = () => {
   /*
    * Con quién cree la persona que está hablando (fase 2E-56).
    *
-   * Quien entra por Weë Design → Hogar & Diseño no debe leer "Weë Home" en
+   * Quien entra por WeëDesign → Hogar & Diseño no debe leer "Weë Home" en
    * ningún sitio: ni firmando las burbujas, ni en el progreso, ni en el
    * resultado, ni en lo que se publica. El identificador interno sigue siendo
    * `home`; lo que cambia es el nombre con el que la experiencia habla.
@@ -347,7 +347,7 @@ const CreatorFlowScreen: React.FC = () => {
   /*
    * Ajustar un viaje no es empezar otro (fase 2E-65.1).
    *
-   * Weë Travel es la única sección donde una respuesta puede ser algo que no cabe
+   * WeëTravel es la única sección donde una respuesta puede ser algo que no cabe
    * en un botón: unas fechas, o dos intereses a la vez. Al pedir un cambio se
    * abría un trabajo nuevo con el objetivo y nada más, así que del 12 al 22 de
    * octubre se convertía en aire y había que volver a elegirlo en el calendario.
@@ -425,8 +425,8 @@ const CreatorFlowScreen: React.FC = () => {
       kind: media ? media.type : 'post',
       /*
        * La sección de la que sale el resultado. Se resuelve por el área a la que
-       * pertenece la experiencia —Hogar & Diseño publica como Weë Design, Fotos
-       * como Weë Studio—, que es lo que la persona ve y lo que tiene sentido leer
+       * pertenece la experiencia —Hogar & Diseño publica como WeëDesign, Fotos
+       * como WeëStudio—, que es lo que la persona ve y lo que tiene sentido leer
        * en la publicación (fase 2E-63C.1).
        */
       sourceSection: EXPERIENCE_AREA[experience.id]?.section ?? experience.id,
@@ -489,8 +489,8 @@ const CreatorFlowScreen: React.FC = () => {
 
   /*
    * Dónde está la persona, dicho como ella lo entiende. Weë Photo y Weë Beauty
-   * dejaron de ser secciones y son áreas de Weë Studio: la cabecera lo dice
-   * ("Weë Studio · Fotos") y la barra lateral marca Studio. Por dentro no cambia
+   * dejaron de ser secciones y son áreas de WeëStudio: la cabecera lo dice
+   * ("WeëStudio · Fotos") y la barra lateral marca Studio. Por dentro no cambia
    * nada —el identificador sigue siendo `photo`, y con él viajan el historial, el
    * plan y el servidor—; cambia lo que se lee arriba.
    */
@@ -526,7 +526,7 @@ const CreatorFlowScreen: React.FC = () => {
         {/*
           LO QUE SE TRAE DE DONDE SE VENÍA, A LA VISTA (B3.12).
 
-          Quien eligió Retrato, hora dorada y primer plano en Weë Studio tiene
+          Quien eligió Retrato, hora dorada y primer plano en WeëStudio tiene
           que VER que llegaron. Si no se ven, no hay forma de saber si Weë se
           acordó, y la única salida es volver a elegirlo todo —que es justo lo
           que un lugar de trabajo existe para evitar—.
@@ -573,7 +573,7 @@ const CreatorFlowScreen: React.FC = () => {
           proporción, con su nombre y con las dos acciones que hacen falta:
           cambiarla y quitarla. El archivo no se toca ni se vuelve a subir.
 
-          Solo para lo que transforma un espacio: un plato de Weë Chef o un
+          Solo para lo que transforma un espacio: un plato de WeëChef o un
           retrato de Weë Beauty siguen con su tira de siempre.
         */}
         {!!imageUri && trabajaSobreUnEspacio && (

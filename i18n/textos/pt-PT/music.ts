@@ -1,4 +1,4 @@
-/* pt-PT — Weë Music: página inicial, Composer, workstation e ferramentas, em português de Portugal (tratamento por «tu»/forma neutra). «Weë Music» e os nomes dos fornecedores são marcas e não se traduzem. Tipado contra o espanhol. Pendente de revisão por um falante nativo. */
+/* pt-PT — WeëMusic: página inicial, Composer, workstation e ferramentas, em português de Portugal (tratamento por «tu»/forma neutra). «WeëMusic» e os nomes dos fornecedores são marcas e não se traduzem. Tipado contra o espanhol. Pendente de revisão por um falante nativo. */
 export const music: typeof import('../es/music').music = {
   tagline: 'A tua ideia. O teu som. Sem limites.',
   intro: 'Cria canções a partir de uma ideia, de uma letra ou de uma melodia, e edita-as por secções.',
@@ -6,7 +6,7 @@ export const music: typeof import('../es/music').music = {
   ctaCreate: 'Criar música',
   demoPrompt: 'Que música queres criar?',
   chooseTitle: 'Escolhe como começar',
-  skillsTitle: 'O que o Weë Music consegue fazer',
+  skillsTitle: 'O que o WeëMusic consegue fazer',
   recentTitle: 'Canções recentes',
   viewExample: 'Ver um exemplo de design',
   honestyNote: 'Hoje podes preparar a tua canção, gravar uma melodia de referência e pedir orientação ao Weë Brain. A criação da canção será ativada quando estiver ligada e validada.',
@@ -14,7 +14,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Os teus áudios e canções guardados.',
   openProjects: 'Os meus projetos',
   openProjectsHelp: 'Organiza as tuas canções em projetos.',
-  backToMusic: 'Voltar ao Weë Music',
+  backToMusic: 'Voltar ao WeëMusic',
   composerTitle: 'Criar música',
   modesLabel: 'Modo',
   modeSimple: 'Simples',
@@ -300,7 +300,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'O processamento de áudio é uma capacidade pendente: aqui só se prepara o contrato.',
 
   voiceInterpretation: 'Estilo de interpretação',
-  voiceNoClone: 'O Weë Music não clona nem imita vozes de pessoas: apenas escolhe características vocais gerais.',
+  voiceNoClone: 'O WeëMusic não clona nem imita vozes de pessoas: apenas escolhe características vocais gerais.',
   voiceStylePending: 'O estilo de interpretação depende do motor e ainda não está disponível.',
   styleTitle: 'Género e estilo',
   transformTitle: 'Transformações',

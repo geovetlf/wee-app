@@ -1,8 +1,8 @@
 /*
- * HÚNGARO — Weë Design: diseñar y visualizar casi cualquier cosa física.
+ * HÚNGARO — WeëDesign: diseñar y visualizar casi cualquier cosa física.
  * Tipado contra el español.
  *
- * «Weë Design» es marca y no está aquí. Las puertas de entrada («Un salón»,
+ * «WeëDesign» es marca y no está aquí. Las puertas de entrada («Un salón»,
  * «Una silla»…) van como sustantivo sin artículo, que es lo natural en una
  * etiqueta húngara.
  */

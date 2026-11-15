@@ -6,14 +6,14 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * VOCABULARIO: una producción es un 影片 (clasificador 部), una escena es un 场景
- * y un plano, un 镜头. La puerta de Weë Studio se llama 视频 y esta experiencia
+ * y un plano, un 镜头. La puerta de WeëStudio se llama 视频 y esta experiencia
  * 多场景, igual que en `studio.xpMultiScene`. El modo que dirige la producción
  * entera se llama 导演, y dirigir una escena o un plano es 执导.
  *
  * PLURALES: el chino tiene una sola categoría, `other`; la forma `_one` no se lee
  * nunca y lleva exactamente el mismo texto que `_other`.
  *
- * ESPACIADO: un espacio entre hanzi y alfabeto latino o cifras («前往 Weë Studio»,
+ * ESPACIADO: un espacio entre hanzi y alfabeto latino o cifras («前往 WeëStudio»,
  * «{{segundos}} 秒»); donde el hueco puede traer hanzi o latín, lo separan los
  * dos puntos de ancho completo.
  */
@@ -27,20 +27,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: '创建影片',
   creatingProduction: '正在创建影片…',
   openProduction: '打开影片：{{titulo}}',
-  goToStudio: '前往 Weë Studio',
+  goToStudio: '前往 WeëStudio',
   loadMore: '查看更多',
   backToList: '返回你的影片',
   updatedAgo: '{{cuando}}更新',
 
   emptyListTitle: '你还没有影片',
-  emptyListText: '从 Weë Studio 开始：进入“视频”，选择“多场景”，然后告诉 Weë 你想讲述什么。',
+  emptyListText: '从 WeëStudio 开始：进入“视频”，选择“多场景”，然后告诉 Weë 你想讲述什么。',
   emptyArchived: '你没有已归档的影片。',
   emptyStoryboardTitle: '这部影片还没有场景',
   emptyStoryboardText: '添加第一个场景，逐个镜头搭建你的故事。',
   addFirstScene: '添加第一个场景',
 
   yourIdea: '你的想法',
-  ideaFromStudio: '想法是在 Weë Studio 里写的。如需修改，请回到那里。',
+  ideaFromStudio: '想法是在 WeëStudio 里写的。如需修改，请回到那里。',
   whereWillItPlay: '会在哪里观看？',
   otherFormat: '其他画幅',
   continueOne: '或者继续制作已有的影片',

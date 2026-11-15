@@ -155,11 +155,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Хуваалцах',
   shareHint: 'Таны утасны хуваалцах цонх нээгдэнэ: хүссэн аппаа сонгоорой.',
   shareToWee: 'Weë дээр хуваалцах',
-  shareWall: 'Миний Wäll',
+  shareWall: 'Миний Ẅall',
   shareCommunities: 'Нийгэмлэгүүд',
   shareProfile: 'Business Profile',
   shareNothing: 'Эхлээд ямар нэг зүйл бүтээгээд дараа нь эндээс хуваалцаарай.',
-  shareText: 'Weë Fashion ашиглан бүтээв',
+  shareText: 'WeëFashion ашиглан бүтээв',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Өгөгдлөө байршуулах',

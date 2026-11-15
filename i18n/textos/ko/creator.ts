@@ -1,5 +1,5 @@
 /*
- * COREANO — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * COREANO — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign, WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -58,10 +58,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: '어디서부터 시작할지 모르겠어요',
   brainEx2: '이거 쉽게 설명해 주세요',
   brainEx3: '이 글 번역해 주세요',
-  areaStudioPhotos: 'Weë Studio · 사진',
-  areaStudioVideos: 'Weë Studio · 영상',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · 홈 & 디자인',
+  areaStudioPhotos: 'WeëStudio · 사진',
+  areaStudioVideos: 'WeëStudio · 영상',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · 홈 & 디자인',
   areaHomeName: '홈 & 디자인',
   tellTheSpecialist: '{{especialista}}에게 무엇을 만들고 싶은지 말해 보세요. 간단한 질문 두세 개만 하고 나머지는 알아서 해드려요. 그다음 바로 커뮤니티에 올릴 수 있어요.',
   exampleQuoted: '“{{ejemplo}}”',

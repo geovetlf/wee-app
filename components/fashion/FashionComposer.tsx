@@ -19,7 +19,7 @@ import { scale } from '../../utils/scale';
 interface Props {
   modo: FashionModo;
   onVolver: () => void;
-  /** Lo que ya traía la persona al entrar (por ejemplo, desde una puerta de Weë Studio). */
+  /** Lo que ya traía la persona al entrar (por ejemplo, desde una puerta de WeëStudio). */
   inicial?: { texto?: string; imageUri?: string };
 }
 

@@ -7,7 +7,7 @@
  * «Mis creaciones» es «Karya Saya» y una creación, «karya» (guía § 4); el
  * indonesio no flexiona el número, así que `count_one` y `count_other` son
  * idénticas y llevan `{{contador}}`. Los nombres de las experiencias (Weë
- * Design, Weë Studio…) y el nombre de la creación entran por hueco sin tocar.
+ * Design, WeëStudio…) y el nombre de la creación entran por hueco sin tocar.
  * Los estados dicen lo que se sabe: «Memproses» y «Siap», nunca un porcentaje.
  */
 export const creaciones: typeof import('../es/creaciones').creaciones = {

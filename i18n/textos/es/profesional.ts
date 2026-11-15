@@ -1,7 +1,7 @@
 /*
  * Weë versión creator: su marco y su navegación.
  *
- * Los nombres de las secciones (Weë Studio, Weë Design…) son marca y no pasan por aquí.
+ * Los nombres de las secciones (WeëStudio, WeëDesign…) son marca y no pasan por aquí.
  */
 export const profesional = {
   name: 'Weë versión creator',

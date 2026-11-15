@@ -2,7 +2,7 @@
  * WEË DESIGN — diseñar y visualizar casi cualquier cosa física.
  *
  * Montenegrino (ijekaviano, latino). Mismas claves que el español; «Weë
- * Design» es marca y no está aquí. Lo compartido con Weë Studio se lee de
+ * Design» es marca y no está aquí. Lo compartido con WeëStudio se lee de
  * `studio`.
  */
 export const design: typeof import('../es/design').design = {

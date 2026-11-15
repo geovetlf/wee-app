@@ -12,12 +12,12 @@
  * y una producción se cuenta «tagning för tagning». Por eso la TOMA —cada vídeo que Weë genera para un plano, que se
  * puede repetir— no puede ser también «tagning»: es «version», la palabra con la que el resto de Weë dice «hazlo otra
  * vez» (`weeai.anotherVersion`, «Skapa en ny version»). «Bild» se descartó para el plano aunque los tipos de plano de
- * Weë Studio sean «-bild» (närbild, halvbild): en una app que crea imágenes, «Lägg till bild» o «Generera den här
+ * WeëStudio sean «-bild» (närbild, halvbild): en una app que crea imágenes, «Lägg till bild» o «Generera den här
  * bilden» se leerían como «añadir/generar una imagen». Las dos palabras, «scen» y «tagning», son de género común, así
  * que los motivos de F1-D, que hablan de un plano o de una escena sin decir cuál, empiezan por «Den».
  *
  * El storyboard es «Bildmanus» (el término sueco de la producción de cine) y el panel Director, «Regi»; dirigir una
- * escena o un plano, «Regissera». La duración es «Längd» como en Weë Studio (`studio.optDuration`): «Mållängd»,
+ * escena o un plano, «Regissera». La duración es «Längd» como en WeëStudio (`studio.optDuration`): «Mållängd»,
  * «Total längd». La proporción es «Bildförhållande» y «Formato», «Format», como `studio.optFormat`. Los personajes son
  * «Karaktärer» (`studio.charactersTitle`), su vestuario, «klädsel», y una línea de diálogo, «replik». «Atardecer» es
  * «Solnedgång», como el tema de WeeTalk, y «Amanecer», «Soluppgång»: es la pareja exacta del español. «Gryning»
@@ -31,7 +31,7 @@
  * devolución, «få tillbaka» (`weeai.creditsNote`).
  *
  * REVISIÓN (nativa). Se confirma «tagning» para el plano y «version» para la toma: «bild» chocaría de frente con la
- * «bild» de Weë Studio («Bilder», «Bild till video», donde es la imagen de partida), y en la escuela sueca de cine
+ * «bild» de WeëStudio («Bilder», «Bild till video», donde es la imagen de partida), y en la escuela sueca de cine
  * la cadena es «bildruta, tagning, scen, sekvens». Los tipos de plano de Studio («Närbild», «Halvbild») son tamaños
  * de encuadre («bildutsnitt»), no la unidad: «Tagning 2 · Närbild» se lee bien. «Version» vale para la toma y para la versión
  * guardada de la producción porque nunca comparten pantalla: la toma vive en el panel de generación y la otra en el
@@ -45,7 +45,7 @@
  * «Escena 1 · Plano 2» es «Scen 1 · tagning 2»: solo la primera palabra va en mayúscula, como pide el sueco.
  *
  * Se escriben igual que en español o en inglés porque no se traducen: TikTok, YouTube y YouTube Shorts (plataformas),
- * y «Format», que es la palabra sueca. Weë, Weë Studio y Credits son marca y no se declinan («ditt Weë-konto»).
+ * y «Format», que es la palabra sueca. Weë, WeëStudio y Credits son marca y no se declinan («ditt Weë-konto»).
  */
 export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   sectionName: 'Flera scener',
@@ -57,20 +57,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'Skapa produktion',
   creatingProduction: 'Skapar produktionen…',
   openProduction: 'Öppna {{titulo}}',
-  goToStudio: 'Gå till Weë Studio',
+  goToStudio: 'Gå till WeëStudio',
   loadMore: 'Visa mer',
   backToList: 'Tillbaka till dina produktioner',
   updatedAgo: 'Uppdaterad {{cuando}}',
 
   emptyListTitle: 'Inga produktioner ännu',
-  emptyListText: 'Börja i Weë Studio: öppna Videor, välj ”Flera scener” och tala om för Weë vad du vill berätta.',
+  emptyListText: 'Börja i WeëStudio: öppna Videor, välj ”Flera scener” och tala om för Weë vad du vill berätta.',
   emptyArchived: 'Du har inga arkiverade produktioner.',
   emptyStoryboardTitle: 'Den här produktionen har inga scener ännu',
   emptyStoryboardText: 'Lägg till den första och bygg upp berättelsen tagning för tagning.',
   addFirstScene: 'Lägg till den första scenen',
 
   yourIdea: 'Din idé',
-  ideaFromStudio: 'Idén skriver du i Weë Studio. Om du vill ändra den går du tillbaka dit.',
+  ideaFromStudio: 'Idén skriver du i WeëStudio. Om du vill ändra den går du tillbaka dit.',
   whereWillItPlay: 'Var ska den visas?',
   otherFormat: 'Annat format',
   continueOne: 'Eller fortsätt med en av dina produktioner',

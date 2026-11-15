@@ -4,8 +4,8 @@
  * Traducción al polaco, tipada contra el molde español. El polaco no tiene
  * artículos, así que «Un salón» es simplemente «Salon».
  *
- * QUÉ NO ESTÁ AQUÍ: "Weë Design", que es marca. Tampoco lo que Weë Design
- * comparte con Weë Studio y significa lo mismo —"Mis creaciones", "Ver todas",
+ * QUÉ NO ESTÁ AQUÍ: "WeëDesign", que es marca. Tampoco lo que WeëDesign
+ * comparte con WeëStudio y significa lo mismo —"Mis creaciones", "Ver todas",
  * "Creando...", "Creación lista"—: eso vive en `studio` y se lee de allí, para
  * que las dos pantallas no puedan acabar diciendo cosas distintas.
  */

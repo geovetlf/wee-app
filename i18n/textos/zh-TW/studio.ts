@@ -16,7 +16,7 @@
  *   簡報 (no 演示文稿) · 履歷 (no 簡歷) · 部落格 (no 博客) · 型錄 (no 產品目錄)
  *   腦力激盪 (no 頭腦風暴) · 去背 (no 去除背景) · 物件 (no 物體) · 新增 (no 添加)
  *
- * MARCA: "Weë Studio", "Writer" y el resto de los nombres de Weë van en
+ * MARCA: "WeëStudio", "Writer" y el resto de los nombres de Weë van en
  * alfabeto latino dentro del hanzi, nunca traducidos ni transliterados
  * («工作室» no es Studio y «積分» no es Credits). Los formatos técnicos —PDF,
  * MP4, 16:9— tampoco cambian de idioma.
@@ -279,7 +279,7 @@ export const studio: typeof import('../es/studio').studio = {
   /* 串接 es como se dice en Taiwán conectar con una API. */
   soonHint: '這個工具的位置已經留好了，還差串接。',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: '文字',
   textHint: '寫任何內容',
   exploreTitle: '探索',

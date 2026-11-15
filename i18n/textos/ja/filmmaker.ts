@@ -15,7 +15,7 @@
  * proporción, es un destino —TikTok動画, Instagram動画…— con su proporción, su resolución y su duración recomendada,
  * lo mismo que Weë Business llama フォーマット al elegir entre TikTok動画, Instagram動画 y ストーリーズ. アスペクト比
  * queda para lo que es literalmente la proporción (las fichas 9:16, 4:5… de «Otro formato» y el motivo de una toma que
- * no se puede generar en esa proporción), como en Weë Studio, donde «Formato» es solo cuadrado / vertical / horizontal.
+ * no se puede generar en esa proporción), como en WeëStudio, donde «Formato» es solo cuadrado / vertical / horizontal.
  * Las referencias de una producción no son solo imágenes —pueden ser vídeo, audio o
  * movimiento—, así que son 参考素材 y se cuentan con 件, no el 参考画像〜枚 de Studio. «Historias» como formato de
  * redes es ストーリーズ, como lo llama Instagram en Japón, no el 物語 de Writer. «Subir» y «Bajar» reordenan escenas y
@@ -43,20 +43,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'プロダクションを作成',
   creatingProduction: 'プロダクションを作成中…',
   openProduction: '{{titulo}}を開く',
-  goToStudio: 'Weë Studioに移動',
+  goToStudio: 'WeëStudioに移動',
   loadMore: 'もっと見る',
   backToList: 'マイプロダクションに戻る',
   updatedAgo: '更新：{{cuando}}',
 
   emptyListTitle: 'プロダクションはまだありません',
-  emptyListText: 'Weë Studioで始めましょう。「動画」を開いて「複数シーン」を選び、描きたいストーリーをWeëに伝えてください。',
+  emptyListText: 'WeëStudioで始めましょう。「動画」を開いて「複数シーン」を選び、描きたいストーリーをWeëに伝えてください。',
   emptyArchived: 'アーカイブ済みのプロダクションはありません。',
   emptyStoryboardTitle: 'このプロダクションにはまだシーンがありません',
   emptyStoryboardText: '最初のシーンを追加して、ショットを1つずつ重ねながら物語を組み立てましょう。',
   addFirstScene: '最初のシーンを追加',
 
   yourIdea: 'アイデア',
-  ideaFromStudio: 'アイデアはWeë Studioで書きます。変更するときは、そちらに戻ってください。',
+  ideaFromStudio: 'アイデアはWeëStudioで書きます。変更するときは、そちらに戻ってください。',
   whereWillItPlay: 'どこで公開しますか？',
   otherFormat: 'その他のアスペクト比',
   continueOne: 'または、マイプロダクションから続ける',

@@ -38,7 +38,7 @@ const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => 
 
   /*
    * Dos niveles (fase 2E-53). Las acciones marcadas como secundarias salen de la
-   * cuadrícula y bajan a su propia zona, bajo una línea: es como Weë Studio dice
+   * cuadrícula y bajan a su propia zona, bajo una línea: es como WeëStudio dice
    * que Fotos y Videos son los caminos y Beauty una capacidad especializada, sin
    * esconderla detrás de un "Más" ni obligar a entrar por otro flujo.
    *
@@ -73,7 +73,7 @@ const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => 
       : layout === 'compact'
       ? /*
          * Cuatro y tres: siete funciones caben en dos filas cortas sin apretarse.
-         * Pero nunca más columnas que acciones (fase 2E-52): Weë Studio tiene tres
+         * Pero nunca más columnas que acciones (fase 2E-52): WeëStudio tiene tres
          * áreas, y con la cuadrícula fija quedaba una celda vacía a la derecha de
          * Beauty. Una sección recién ordenada parecía una sección a medio hacer.
          *

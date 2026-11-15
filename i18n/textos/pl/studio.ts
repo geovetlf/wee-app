@@ -4,7 +4,7 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tuteo («ty», «twój»), imperativo directo en los botones y frases sin género
  * donde el español lo esconde (el polaco marca el género en el pasado).
- * Los formatos —PDF, MP4— no cambian de idioma y "Weë Studio" y "Writer" son
+ * Los formatos —PDF, MP4— no cambian de idioma y "WeëStudio" y "Writer" son
  * marca: se escriben igual y no se declinan. Cine: plano = ujęcie, escena =
  * scena, guion = scenariusz.
  *
@@ -242,7 +242,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   soon: 'Wkrótce',
   soonHint: 'To narzędzie ma już swoje miejsce. Pozostaje je podłączyć.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Tekst',
   textHint: 'Pisz dowolne treści',
   exploreTitle: 'Odkrywaj',

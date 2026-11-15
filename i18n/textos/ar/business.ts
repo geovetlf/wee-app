@@ -6,7 +6,7 @@
  * los mensajes de sus clientes— nunca pasa por el traductor. Aquí solo están
  * los rótulos que pone Weë.
  *
- * MARCA Y MÓDULOS: Weë, Wäll, Weë Fashion y Credits van en latino dentro de la
+ * MARCA Y MÓDULOS: Weë, Ẅall, WeëFashion y Credits van en latino dentro de la
  * frase árabe, nunca transliterados. Los nombres de las funciones de negocio
  * —Business Plan, Business Coach, Pricing Assistant, Brand Kit, Customer
  * Insights, Business Ideas, Business Profile, SWOT— y los de las redes
@@ -186,11 +186,11 @@ export const business: ConPlurales<typeof import('../es/business').business> = {
   share: 'مشاركة',
   shareHint: 'تُفتح قائمة المشاركة في هاتفك: اختر التطبيق الذي تريده.',
   shareToWee: 'مشاركة في Weë',
-  shareWall: 'Wäll الخاص بي',
+  shareWall: 'Ẅall الخاص بي',
   shareCommunities: 'المجتمعات',
   shareProfile: 'Business Profile',
   shareNothing: 'أنشئ شيئًا أولًا ثم شاركه من هنا.',
-  shareText: 'تم الإنشاء باستخدام Weë Fashion',
+  shareText: 'تم الإنشاء باستخدام WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'رفع بياناتي',

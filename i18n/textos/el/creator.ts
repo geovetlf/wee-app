@@ -1,9 +1,9 @@
 /*
  * GRIEGO — Lo que describe cada experiencia de WEË AI, sus ejemplos y las
- * áreas. Los nombres (Weë Design, Weë Studio…) son marca y no se traducen.
+ * áreas. Los nombres (WeëDesign, WeëStudio…) son marca y no se traducen.
  * Tipado contra el español.
  *
- * «Beauty» en «Weë Studio · Beauty» se deja en latino, como en es/en: es el
+ * «Beauty» en «WeëStudio · Beauty» se deja en latino, como en es/en: es el
  * nombre del área. Las comillas del ejemplo pasan a « » (puntuación griega).
  */
 export const creator: typeof import('../es/creator').creator = {
@@ -51,10 +51,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Δεν ξέρω από πού να ξεκινήσω',
   brainEx2: 'Εξήγησέ μου το απλά',
   brainEx3: 'Μετάφρασε αυτό το κείμενο',
-  areaStudioPhotos: 'Weë Studio · Φωτογραφίες',
-  areaStudioVideos: 'Weë Studio · Βίντεο',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Σπίτι & Σχεδιασμός',
+  areaStudioPhotos: 'WeëStudio · Φωτογραφίες',
+  areaStudioVideos: 'WeëStudio · Βίντεο',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Σπίτι & Σχεδιασμός',
   areaHomeName: 'Σπίτι & Σχεδιασμός',
   tellTheSpecialist: 'Πες στο {{especialista}} τι θέλεις να πετύχεις: σου κάνει δύο-τρεις απλές ερωτήσεις και αναλαμβάνει τα υπόλοιπα. Μετά δημοσιεύεις κατευθείαν στην κοινότητά σου.',
   exampleQuoted: '«{{ejemplo}}»',

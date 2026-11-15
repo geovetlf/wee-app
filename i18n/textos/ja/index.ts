@@ -7,12 +7,12 @@
  * español no compila hasta que exista también aquí.
  *
  * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS:
- *   · los nombres de Weë —Weë, Wäll, Weëls, WeeTalk, ËContact, ẄContact,
- *     Credits, Weë AI, Weë Studio…—, que son marca y se escriben igual en todos
+ *   · los nombres de Weë —Weë, Ẅall, Weëls, WeeTalk, ËContact, ẄContact,
+ *     Credits, Weë AI, WeëStudio…—, que son marca y se escriben igual en todos
  *     los idiomas. En japonés eso significa algo más que «no traducir»:
  *     significa NO PASARLOS A KATAKANA, que es lo que el japonés hace con todo
  *     nombre extranjero. Dentro de la frase, la marca se queda en alfabeto
- *     latino y la partícula va pegada: 「Weë Studioで作成」, 「Creditsが不足
+ *     latino y la partícula va pegada: 「WeëStudioで作成」, 「Creditsが不足
  *     しています」. «Credits» no es «クレジット» y «Weë» no es «ウィー»;
  *   · nada que escriba una persona: publicaciones, comentarios, nombres de
  *     comunidades, proyectos o prompts. Eso es contenido, no interfaz.

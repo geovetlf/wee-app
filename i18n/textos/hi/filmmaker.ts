@@ -7,7 +7,7 @@
  * Se trata de «आप»: los botones van en imperativo de cortesía y sin punto (जोड़ें, हटाएँ, बाँटें, मिलाएँ,
  * जनरेट करें) y los avisos acaban en «.», nunca en «।».
  *
- * EL VOCABULARIO es el de Weë Studio (`studio.ts`), para que una escena se llame igual en las dos pantallas: la
+ * EL VOCABULARIO es el de WeëStudio (`studio.ts`), para que una escena se llame igual en las dos pantallas: la
  * experiencia es कई सीन (`studio.xpMultiScene`), una escena es सीन y un plano, शॉट (los dos m e invariables, como
  * los tipos de plano de Studio). Una toma es टेक (m), la palabra de un rodaje indio («एक और टेक»). La producción es
  * प्रोडक्शन (m, invariable, como las palabras en -शन: कनेक्शन, ऑप्शन). El panel Director es डायरेक्टर, dirigir es
@@ -48,20 +48,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'प्रोडक्शन बनाएँ',
   creatingProduction: 'प्रोडक्शन बन रहा है…',
   openProduction: '{{titulo}} खोलें',
-  goToStudio: 'Weë Studio में जाएँ',
+  goToStudio: 'WeëStudio में जाएँ',
   loadMore: 'ज़्यादा देखें',
   backToList: 'अपने प्रोडक्शन पर वापस जाएँ',
   updatedAgo: '{{cuando}} अपडेट किया गया',
 
   emptyListTitle: 'अभी तक आपका कोई प्रोडक्शन नहीं है',
-  emptyListText: 'Weë Studio में शुरू करें: वीडियो में जाएँ, “कई सीन” चुनें और Weë को बताएँ कि आपको कौन-सी कहानी सुनानी है.',
+  emptyListText: 'WeëStudio में शुरू करें: वीडियो में जाएँ, “कई सीन” चुनें और Weë को बताएँ कि आपको कौन-सी कहानी सुनानी है.',
   emptyArchived: 'आर्काइव में आपका कोई प्रोडक्शन नहीं है.',
   emptyStoryboardTitle: 'इस प्रोडक्शन में अभी तक कोई सीन नहीं है',
   emptyStoryboardText: 'पहला सीन जोड़ें और एक-एक शॉट करके अपनी कहानी बनाएँ.',
   addFirstScene: 'पहला सीन जोड़ें',
 
   yourIdea: 'आपका आइडिया',
-  ideaFromStudio: 'आइडिया Weë Studio में लिखा जाता है. इसे बदलने के लिए, वहीं वापस जाएँ.',
+  ideaFromStudio: 'आइडिया WeëStudio में लिखा जाता है. इसे बदलने के लिए, वहीं वापस जाएँ.',
   whereWillItPlay: 'इसे कहाँ देखा जाएगा?',
   otherFormat: 'दूसरा फ़ॉर्मैट',
   continueOne: 'या अपने किसी प्रोडक्शन पर काम जारी रखें',

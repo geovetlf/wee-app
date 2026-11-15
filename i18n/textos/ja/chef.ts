@@ -1,5 +1,5 @@
 /*
- * JAPONÉS — Weë Chef: la caja, las ocho funciones con sus paneles, los ajustes de la receta y Mis proyectos.
+ * JAPONÉS — WeëChef: la caja, las ocho funciones con sus paneles, los ajustes de la receta y Mis proyectos.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *

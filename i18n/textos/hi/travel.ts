@@ -1,7 +1,7 @@
 /*
  * HINDI — WeëTravel, el workspace de viajes (prototipo con datos DEMO). Tipado contra el español.
  *
- * Las marcas (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls), «Travel Safe» y la etiqueta «DEMO» quedan en latino.
+ * Las marcas (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls), «Travel Safe» y la etiqueta «DEMO» quedan en latino.
  * Se trata de «आप» y las frases van sin género (dativo: «आपको कहाँ जाना है?»); Weë Brain, en masculino como Weë
  * y en ergativo cuando habla de lo que hizo. «Viaje» = «यात्रा» (f), como en weeai; «destino» = «मंज़िल» (f);
  * «itinerario» = «यात्रा कार्यक्रम». Los rótulos comunes, los del glosario y los que ya dice el resto de la app.
@@ -743,9 +743,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'आज सबसे अच्छा क्या रहा?',
   saveEntry: 'एंट्री सेव करें',
   journalEmpty: 'आपकी डायरी खाली है. पहली एंट्री लिखें.',
-  videoMemoriesDemo: 'DEMO: वीडियो Weë Studio में बनते हैं, आपकी अपनी फ़ोटो और क्लिप से.',
+  videoMemoriesDemo: 'DEMO: वीडियो WeëStudio में बनते हैं, आपकी अपनी फ़ोटो और क्लिप से.',
   videoOf: '{{viaje}} का वीडियो',
-  createInStudio: 'Weë Studio में बनाएँ',
+  createInStudio: 'WeëStudio में बनाएँ',
   countriesVisited_one: '{{contador}} देश घूमा',
   countriesVisited_other: '{{contador}} देश घूमे',
   recapTitle: '{{viaje}} की आपकी यात्रा',

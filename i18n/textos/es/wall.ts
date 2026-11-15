@@ -1,5 +1,5 @@
 /*
- * El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * El Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Este archivo es el MOLDE: de él sale el tipo que tiene que cumplir el resto
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
@@ -76,9 +76,9 @@ export const wall = {
   promptCopied: 'Copiado',
   demoBadge: 'Demo',
   demoBadgeLabel: 'Contenido de demostración',
-  /* ── El Wäll inmersivo: una publicación a la vez ── */
-  immersiveEmpty: 'Todavía no hay publicaciones en el Wäll',
-  immersiveError: 'No pudimos cargar el Wäll',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Todavía no hay publicaciones en el Ẅall',
+  immersiveError: 'No pudimos cargar el Ẅall',
   immersiveEnd: 'Ya lo has visto todo',
   agreePost: 'De acuerdo',
   disagreePost: 'En desacuerdo',

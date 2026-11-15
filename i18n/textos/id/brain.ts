@@ -5,7 +5,7 @@
  *
  * «Weë Brain» y los nombres de los satélites son marca y salen de `constants/weeExperiences.ts`; aquí
  * solo entra lo que los describe. Las herramientas de la caja y los precios viven en `weeai`.
- * `goTo` recibe el nombre de la sección: «Pergi ke Weë Studio». `blockLeft` cuenta lo que queda, no lo
+ * `goTo` recibe el nombre de la sección: «Pergi ke WeëStudio». `blockLeft` cuenta lo que queda, no lo
  * gastado, como el español.
  */
 export const brain: typeof import('../es/brain').brain = {

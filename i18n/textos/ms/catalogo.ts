@@ -16,7 +16,7 @@
  * «watak», «perang» (rubio), «solekan», «resipi», «cef».
  *
  * MARCAS (guía § 3). Ni se traducen ni se declinan: «dengan Weë», «Beritahu Weë…». «Los otros Weë» son «Weë yang
- * lain». En el selector de Weë Studio, «Beauty» y «Writer» se quedan en inglés, como en el español y el inglés.
+ * lain». En el selector de WeëStudio, «Beauty» y «Writer» se quedan en inglés, como en el español y el inglés.
  *
  * PRÉSTAMOS QUE SE QUEDAN. Los que el español y el inglés también dejan: «look», «outfit», «beat», «jingle», los
  * géneros (Pop, Rock, Trap, Reggaeton), «Pasta carbonara», «Lomo saltado», «CV», «blog», «vintaj» (grafía malaya),
@@ -32,8 +32,8 @@
  * cambian; «20 min» tampoco (minit → min). El límite de subida es «maks. 10 MB». Las duraciones (3:12, 0:15) y
  * la fecha de ejemplo se dicen «dari 12 hingga 22 Oktober».
  *
- * LO QUE NO SE PUEDE ROMPER. Los chips de Weë Travel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
- * solo quita el emoji si lo sigue un espacio. En Weë Studio y Weë Chef ningún objetivo, chip ni ejemplo nombra una
+ * LO QUE NO SE PUEDE ROMPER. Los chips de WeëTravel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
+ * solo quita el emoji si lo sigue un espacio. En WeëStudio y WeëChef ningún objetivo, chip ni ejemplo nombra una
  * foto donde el español no la nombra, y la nombran donde el español lo hace («Bekerja dengan foto», «Perhalusi foto
  * hidangan saya»): `CreatorFlowScreen` todavía mira el texto (/foto|imagen/) para decidir si la pide, y en malayo
  * «foto» se escribe igual.
@@ -85,7 +85,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Menguruskan keseluruhan proses',
   brainEj3Subtitle: 'Daripada idea kepada reka bentuk, video dan muzik',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Reka bentuk apa sahaja yang anda bayangkan.',
   designIntro: 'Ubah idea anda menjadi reka bentuk yang menakjubkan dengan kecerdasan buatan. Daripada logo hingga kereta, produk atau seluruh dunia.',
   designChip1: 'Cepat dan mudah',
@@ -184,7 +184,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Perhalusi wajah',
   photoEj6Title: 'Ubah dengan AI',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Cipta, dengar dan hayati muzik anda dengan AI',
   musicIntro: 'Ubah idea anda menjadi lagu, video dan pengalaman yang unik. Tiada had untuk kreativiti anda.',
   musicChip1: 'Cepat dan mudah',
@@ -246,7 +246,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Ubah muzik anda menjadi video yang menakjubkan: pelbagai gaya, penyegerakan automatik, format untuk media sosial, adegan dan watak.',
   musicClosingButton: 'Cipta video sekarang',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Cipta foto dan video dengan AI',
   studioIntro: 'Beritahu saya apa yang anda mahu cipta dan saya akan bantu anda langkah demi langkah.',
   studioChip1: 'Mudah digunakan',
@@ -339,7 +339,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Mesej diterima',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Cef anda, sentiasa bersama anda',
   chefIntro: 'Temui resipi, cipta menu, manfaatkan apa yang ada dan makan dengan lebih baik, lebih mudah dan lebih sedap.',
   chefChip1: 'Resipi mudah',
@@ -369,7 +369,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Tidak pasti apa yang mahu dimasak',
   chefAcIdkSubtitle: 'Saya cadangkan sesuatu yang sedap',
   chefAcIdkGoal: 'Saya tidak pasti apa yang mahu dimasak hari ini',
-  chefIdeaTitle: 'Hai! Saya Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Hai! Saya WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Beritahu saya, apa yang anda ingin masak hari ini?',
   chefIdeaPlaceholder: 'Tulis idea anda di sini…',
   chefIdeaChip1: 'Saya mahu makan malam yang cepat',
@@ -581,7 +581,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'CV profesional',
   writerEj6Subtitle: 'Moden dan kemas',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Rancang perjalanan anda bersama seseorang yang pernah ke sana.',
   travelIntro: 'Beritahu saya ke mana anda hendak pergi —atau jika anda belum tahu lagi— dan saya akan sediakan perjalanan anda: apa yang perlu dilihat, di mana hendak makan dan cara bergerak.',
   travelChip1: 'Tanpa tempahan',

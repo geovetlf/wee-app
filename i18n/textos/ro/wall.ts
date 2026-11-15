@@ -1,5 +1,5 @@
 /*
- * RUMANO — el Wäll: la publicación y todo lo que se puede hacer con ella. Tipado contra el español.
+ * RUMANO — el Ẅall: la publicación y todo lo que se puede hacer con ella. Tipado contra el español.
  *
  * Votos, días y horas llevan `_few` además de `_one`/`_other`: el rumano tiene
  * tres plurales («1 vot», «2 voturi», «20 de voturi»).
@@ -82,8 +82,8 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demo',
   demoBadgeLabel: 'Conținut demonstrativ',
-  immersiveEmpty: 'Încă nu există postări pe Wäll',
-  immersiveError: 'Nu am putut încărca Wäll',
+  immersiveEmpty: 'Încă nu există postări pe Ẅall',
+  immersiveError: 'Nu am putut încărca Ẅall',
   immersiveEnd: 'Ai văzut tot',
   agreePost: 'De acord',
   disagreePost: 'Nu sunt de acord',

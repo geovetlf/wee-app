@@ -11,12 +11,12 @@
  * Weë, guía § 4); en los objetivos van con sujeto («Jeg vet ikke hvor jeg skal reise»).
  *
  * MARCAS (guía § 3). Ni se traducen ni se declinan: «med Weë», «Fortell Weë …». «Los otros Weë» son «de andre
- * Weë-spesialistene» (compuesto con guion, no artículo pegado). En el selector de Weë Studio, «Beauty» y «Writer»
+ * Weë-spesialistene» (compuesto con guion, no artículo pegado). En el selector de WeëStudio, «Beauty» y «Writer»
  * se dejan en inglés, como hacen el español y el inglés. «IA» en prosa es «KI» (kunstig intelligens); «AI» solo
  * dentro de marcas.
  *
- * PALABRAS. «Foto» es «bilde» salvo en el objetivo de Fotos de Weë Studio («Jobb med et foto») y en el retoque del
- * plato de Weë Chef («fotoet»): `CreatorFlowScreen` todavía mira el texto (/foto|imagen/) para decidir si pide la
+ * PALABRAS. «Foto» es «bilde» salvo en el objetivo de Fotos de WeëStudio («Jobb med et foto») y en el retoque del
+ * plato de WeëChef («fotoet»): `CreatorFlowScreen` todavía mira el texto (/foto|imagen/) para decidir si pide la
  * imagen, y «foto» también es bokmål. «Redes» es «sosiale medier»; «negocio», «bedrift»; «marca», «merkevare»;
  * «personaje», «figur»; el «espacio» de Weë Home, «rom»; «diseñar un espacio», «Innred» (innredning es el diseño de
  * interiores); «Hogar & Diseño», «Hjem og design», con «og» en lugar de «&»; «look» y «outfit» quedan en inglés
@@ -32,8 +32,8 @@
  * SE ESCRIBEN IGUAL, A PROPÓSITO: los géneros (Pop, Rock, Drama, Science fiction), «Pasta carbonara», el plato
  * peruano «Lomo saltado» y los préstamos «beat», «jingle», «vintage», «glam».
  *
- * LO QUE NO SE PUEDE ROMPER. Los chips de Weë Travel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
- * solo quita el emoji si lo sigue un espacio. En Weë Studio ningún objetivo ni chip nombra «foto» donde el español no
+ * LO QUE NO SE PUEDE ROMPER. Los chips de WeëTravel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
+ * solo quita el emoji si lo sigue un espacio. En WeëStudio ningún objetivo ni chip nombra «foto» donde el español no
  * lo hace.
  */
 export const catalogo: typeof import('../es/catalogo').catalogo = {
@@ -83,7 +83,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Tar seg av hele prosessen',
   brainEj3Subtitle: 'Fra idé til design, videoer og musikk',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Design det du ser for deg.',
   designIntro: 'Gjør ideene dine om til utrolige design med kunstig intelligens. Fra en logo til en bil, et produkt eller en hel verden.',
   designChip1: 'Raskt og enkelt',
@@ -182,7 +182,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Ansiktsretusj',
   photoEj6Title: 'Forvandle med KI',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Skap, lytt til og lev musikken din med KI',
   musicIntro: 'Gjør ideene dine om til sanger, videoer og unike opplevelser. Ingen grenser for kreativiteten din.',
   musicChip1: 'Raskt og enkelt',
@@ -244,7 +244,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Gjør musikken din om til en utrolig video: flere stiler, automatisk synkronisering, formater for sosiale medier, scener og figurer.',
   musicClosingButton: 'Lag video nå',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Lag bilder og videoer med KI',
   studioIntro: 'Fortell meg hva du vil lage, så hjelper jeg deg steg for steg.',
   studioChip1: 'Enkelt å bruke',
@@ -337,7 +337,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Mottatte meldinger',
   businessEj4Meta: '↑ 70 %',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Kokken din, alltid med deg',
   chefIntro: 'Oppdag oppskrifter, lag menyer, bruk det du har, og spis bedre, enklere og mer smakfullt.',
   chefChip1: 'Enkle oppskrifter',
@@ -367,7 +367,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Vet ikke hva jeg skal lage',
   chefAcIdkSubtitle: 'Jeg foreslår noe godt',
   chefAcIdkGoal: 'Jeg vet ikke hva jeg skal lage til middag i dag',
-  chefIdeaTitle: 'Hei! Jeg er Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Hei! Jeg er WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Fortell meg, hva har du lyst til å lage i dag?',
   chefIdeaPlaceholder: 'Skriv ideen din her…',
   chefIdeaChip1: 'Jeg vil ha en rask middag',
@@ -579,7 +579,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'Profesjonell CV',
   writerEj6Subtitle: 'Moderne og ren',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Planlegg reisen din med noen som har reist før.',
   travelIntro: 'Fortell meg hvor du skal – eller at du ikke vet ennå – så forbereder jeg reisen: hva du bør se, hvor du bør spise og hvordan du kommer deg rundt.',
   travelChip1: 'Uten bestillinger',

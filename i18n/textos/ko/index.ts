@@ -6,8 +6,8 @@
  * que falte o sobre en coreano no compila.
  *
  * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS:
- *   · los nombres de Weë —Weë, Wäll, Weëls, WeeTalk, ËContact, Credits, Weë AI,
- *     Weë Studio…—, que son marca y se escriben igual en todos los idiomas. En
+ *   · los nombres de Weë —Weë, Ẅall, Weëls, WeeTalk, ËContact, Credits, Weë AI,
+ *     WeëStudio…—, que son marca y se escriben igual en todos los idiomas. En
  *     coreano eso significa algo más que «no traducir»: significa NO
  *     TRANSLITERAR. Dentro de la frase en hangul, la marca se queda en alfabeto
  *     latino. «Credits» no es «크레딧» y «Weë Brain» no es «Weë 브레인»;

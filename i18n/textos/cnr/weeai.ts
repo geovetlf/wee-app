@@ -3,7 +3,7 @@ import { ConPlurales } from '../ru/plurales';
 /*
  * WEË AI: el armazón, la conversación guiada y Weë Brain, en montenegrino (ijekaviano, latino). Tipado contra el
  * español con `ConPlurales`: las claves que cuentan añaden `_few` (2-4) y las tres formas llevan {{contador}}.
- * Tuteo. Las marcas (Weë, Weë AI, Weë Brain, Weë Travel, Credits) van en latino y sin declinar.
+ * Tuteo. Las marcas (Weë, Weë AI, Weë Brain, WeëTravel, Credits) van en latino y sin declinar.
  */
 export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   searchInWee: 'Pretraži Weë…',
@@ -135,12 +135,12 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   couldNotCalculateRetry: 'Nijesmo mogli da izračunamo cijenu. Pokušaj ponovo.',
   expandSection: '{{titulo}}. Prikaži {{contenido}}',
   collapseSection: '{{titulo}}. Sakrij {{contenido}}',
-  openTravel_one: '{{titulo}}. Otvori Weë Travel: napiši svoje putovanje i {{contador}} način da počneš',
-  openTravel_few: '{{titulo}}. Otvori Weë Travel: napiši svoje putovanje i {{contador}} načina da počneš',
-  openTravel_other: '{{titulo}}. Otvori Weë Travel: napiši svoje putovanje i {{contador}} načina da počneš',
-  closeTravel_one: '{{titulo}}. Sakrij Weë Travel: napiši svoje putovanje i {{contador}} način da počneš',
-  closeTravel_few: '{{titulo}}. Sakrij Weë Travel: napiši svoje putovanje i {{contador}} načina da počneš',
-  closeTravel_other: '{{titulo}}. Sakrij Weë Travel: napiši svoje putovanje i {{contador}} načina da počneš',
+  openTravel_one: '{{titulo}}. Otvori WeëTravel: napiši svoje putovanje i {{contador}} način da počneš',
+  openTravel_few: '{{titulo}}. Otvori WeëTravel: napiši svoje putovanje i {{contador}} načina da počneš',
+  openTravel_other: '{{titulo}}. Otvori WeëTravel: napiši svoje putovanje i {{contador}} načina da počneš',
+  closeTravel_one: '{{titulo}}. Sakrij WeëTravel: napiši svoje putovanje i {{contador}} način da počneš',
+  closeTravel_few: '{{titulo}}. Sakrij WeëTravel: napiši svoje putovanje i {{contador}} načina da počneš',
+  closeTravel_other: '{{titulo}}. Sakrij WeëTravel: napiši svoje putovanje i {{contador}} načina da počneš',
   tellWeeTheTrip: 'Ispričaj Weë o putovanju',
   theMotto: 'Ti biraš rezultat. Weë bira AI.',
   trySearchWords: 'Probaj sa riječima kao logo, video, fotografija, tekst, pjesma, stil, recept, kuća ili biznis. Ili pitaj Weë Brain.',

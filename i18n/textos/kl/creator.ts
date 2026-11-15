@@ -4,7 +4,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Kalaallisut, NO danés: ni palabras ni estructuras danesas. Glosario y moldes en
- * docs/I18N-GROENLANDES.md. Los nombres (Weë Design, Weë Studio…) son marca y no pasan
+ * docs/I18N-GROENLANDES.md. Los nombres (WeëDesign, WeëStudio…) son marca y no pasan
  * por aquí. Descripciones como frases nominales o imperativos 2sg→3pl («…pilersikkit»);
  * ejemplos en 1.ª persona, como los diría quien escribe. Préstamos integrados: «video(t)»,
  * «e-mail»; «CV» es sigla y admite sufijo tras guion (guía §2.4). Nombres de redes ajenas
@@ -55,10 +55,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Sumit aallartissanerlunga nalugara',
   brainEx2: 'Una paasiuminartumik nassuiarnga',
   brainEx3: 'Allagaq una nutseruk',
-  areaStudioPhotos: 'Weë Studio · Assit',
-  areaStudioVideos: 'Weë Studio · Videot',
-  areaStudioBeauty: 'Weë Studio · Kusanassuseq',
-  areaDesignHome: 'Weë Design · Angerlarsimaffik & Ilusilersuineq',
+  areaStudioPhotos: 'WeëStudio · Assit',
+  areaStudioVideos: 'WeëStudio · Videot',
+  areaStudioBeauty: 'WeëStudio · Kusanassuseq',
+  areaDesignHome: 'WeëDesign · Angerlarsimaffik & Ilusilersuineq',
   areaHomeName: 'Angerlarsimaffik & Ilusilersuineq',
   tellTheSpecialist: '{{especialista}} oqaluttuariuk suna anguniarneriuk: apeqqutinik marlunnik pingasunilluunniit paasiuminartunik apeqquteqassaaq, sinneraalu isumagissallugu. Tamatuma kingorna peqatigiiffinni toqqaannartumik saqqummiussissaatit.',
   exampleQuoted: '»{{ejemplo}}«',

@@ -4,7 +4,7 @@ import { ConPlurales } from './plurales';
  * WEË FILMMAKER — «Varias escenas» (F1-C), en ruso. Tipado contra el español con `ConPlurales`: solo las seis
  * claves que cuentan (droppedTitle, scenes, shots, references, dialogueLines, soundCues) añaden `_few` y `_many`,
  * y su `_other` es la forma de las fracciones (1,5 сцены). Trato de «вы». La producción es «постановка», el
- * panel Director es «Режиссура» y el plano es «план». Weë y Weë Studio son marca: en latino y sin declinar.
+ * panel Director es «Режиссура» y el plano es «план». Weë y WeëStudio son marca: en latino y sin declinar.
  * Las claves val*, op*, rec*, req* y per* son los `messageKey` de F1-A y F1-B leídos como claves planas.
  */
 export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> = {
@@ -17,20 +17,20 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   createProduction: 'Создать постановку',
   creatingProduction: 'Создаём постановку…',
   openProduction: 'Открыть «{{titulo}}»',
-  goToStudio: 'Перейти в Weë Studio',
+  goToStudio: 'Перейти в WeëStudio',
   loadMore: 'Показать ещё',
   backToList: 'Назад к постановкам',
   updatedAgo: 'Обновлена {{cuando}}',
 
   emptyListTitle: 'У вас пока нет постановок',
-  emptyListText: 'Начните в Weë Studio: откройте «Видео», выберите «Несколько сцен» и расскажите Weë, о чём хотите рассказать.',
+  emptyListText: 'Начните в WeëStudio: откройте «Видео», выберите «Несколько сцен» и расскажите Weë, о чём хотите рассказать.',
   emptyArchived: 'У вас нет архивных постановок.',
   emptyStoryboardTitle: 'В этой постановке пока нет сцен',
   emptyStoryboardText: 'Добавьте первую и выстраивайте свою историю план за планом.',
   addFirstScene: 'Добавить первую сцену',
 
   yourIdea: 'Ваша идея',
-  ideaFromStudio: 'Идея пишется в Weë Studio. Чтобы изменить её, вернитесь туда.',
+  ideaFromStudio: 'Идея пишется в WeëStudio. Чтобы изменить её, вернитесь туда.',
   whereWillItPlay: 'Где это будут смотреть?',
   otherFormat: 'Другой формат',
   continueOne: 'Или продолжите одну из своих постановок',

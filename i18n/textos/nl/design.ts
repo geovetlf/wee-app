@@ -1,5 +1,5 @@
 /*
- * NEERLANDÉS — Weë Design: diseñar y visualizar casi cualquier cosa física. Tipado contra el español.
+ * NEERLANDÉS — WeëDesign: diseñar y visualizar casi cualquier cosa física. Tipado contra el español.
  *
  * Los puntos de partida van con artículo indefinido («Een woonkamer»), como en el español. Los valores de los
  * ajustes son etiquetas sueltas sin -e («Modern», «Warm»). «Render» y «3D-model» son el uso corriente en NL.

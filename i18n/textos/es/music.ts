@@ -1,5 +1,5 @@
 /*
- * Weë Music: portada, Composer, workstation y herramientas. «Weë Music» es marca y no se traduce; tampoco los nombres de
+ * WeëMusic: portada, Composer, workstation y herramientas. «WeëMusic» es marca y no se traduce; tampoco los nombres de
  * los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs), que son marcas de terceros.
  *
  * Tipado contra este archivo: una clave que falte en otro idioma no compila. Lo que escribe la persona (su idea, su letra,
@@ -13,7 +13,7 @@ export const music = {
   ctaCreate: 'Crear música',
   demoPrompt: '¿Qué música quieres crear?',
   chooseTitle: 'Elige cómo empezar',
-  skillsTitle: 'Qué puede hacer Weë Music',
+  skillsTitle: 'Qué puede hacer WeëMusic',
   recentTitle: 'Canciones recientes',
   viewExample: 'Ver un ejemplo de diseño',
   honestyNote: 'Hoy puedes preparar tu canción, grabar una melodía de referencia y pedir orientación a Weë Brain. La creación de la canción se activará cuando esté conectada y validada.',
@@ -21,7 +21,7 @@ export const music = {
   openLibraryHelp: 'Tus audios y canciones guardados.',
   openProjects: 'Mis proyectos',
   openProjectsHelp: 'Organiza tus canciones en proyectos.',
-  backToMusic: 'Volver a Weë Music',
+  backToMusic: 'Volver a WeëMusic',
   composerTitle: 'Crear música',
   modesLabel: 'Modo',
   modeSimple: 'Simple',
@@ -307,7 +307,7 @@ export const music = {
   processingNote: 'El procesado de audio es una capacidad pendiente: aquí solo se prepara el contrato.',
 
   voiceInterpretation: 'Estilo de interpretación',
-  voiceNoClone: 'Weë Music no clona ni imita voces de personas: solo elige características vocales generales.',
+  voiceNoClone: 'WeëMusic no clona ni imita voces de personas: solo elige características vocales generales.',
   voiceStylePending: 'El estilo de interpretación depende del motor y todavía no está disponible.',
   styleTitle: 'Género y estilo',
   transformTitle: 'Transformaciones',

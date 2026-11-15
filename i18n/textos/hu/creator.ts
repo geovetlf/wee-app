@@ -1,6 +1,6 @@
 /*
  * HÚNGARO — Lo que describe cada experiencia de WEË AI y sus ejemplos. Los
- * nombres (Weë Design, Weë Studio…) son marca y no se traducen. Tipado contra
+ * nombres (WeëDesign, WeëStudio…) son marca y no se traducen. Tipado contra
  * el español.
  */
 export const creator: typeof import('../es/creator').creator = {
@@ -48,10 +48,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Nem tudom, hol kezdjem',
   brainEx2: 'Magyarázd el ezt egyszerűen',
   brainEx3: 'Fordítsd le ezt a szöveget',
-  areaStudioPhotos: 'Weë Studio · Fotók',
-  areaStudioVideos: 'Weë Studio · Videók',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Otthon és design',
+  areaStudioPhotos: 'WeëStudio · Fotók',
+  areaStudioVideos: 'WeëStudio · Videók',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Otthon és design',
   areaHomeName: 'Otthon és design',
   tellTheSpecialist: '{{especialista}} segít: mondd el, mit szeretnél elérni, ő feltesz két-három egyszerű kérdést, a többit pedig elintézi. Utána közvetlenül a közösségedben teheted közzé.',
   exampleQuoted: '„{{ejemplo}}”',

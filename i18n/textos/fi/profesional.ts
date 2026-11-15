@@ -1,7 +1,7 @@
 /*
  * SUOMI — Weë versión creator: su marco y su navegación. Tipado contra el español.
  *
- * Los nombres de las secciones (Weë Studio, Weë Design…) son marca y no pasan por aquí. «creator» y «app» se dejan en
+ * Los nombres de las secciones (WeëStudio, WeëDesign…) son marca y no pasan por aquí. «creator» y «app» se dejan en
  * latino dentro del nombre de la versión, como en el resto de idiomas; el caso va en «-versio», nunca en la marca.
  * Hecho por agentes, SIN revisión humana nativa.
  */

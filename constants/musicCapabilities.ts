@@ -22,7 +22,7 @@
 export const MUSIC_GENERACION_VALIDADA = false;
 
 /**
- * ¿Puede Weë Music grabar con el micrófono en iPhone? SÍ (decisión del dueño, 2026-10-15): graba ideas musicales,
+ * ¿Puede WeëMusic grabar con el micrófono en iPhone? SÍ (decisión del dueño, 2026-10-15): graba ideas musicales,
  * melodías tarareadas y referencias vocales propias. Lo que lo hace legítimo, y lo vigila `i18n-permisos-ios.test.mjs`
  * (F1–F2c): el texto de propósito de iOS (`NSMicrophoneUsageDescription`: `app.json` para el español y `locales/<idioma>.json`
  * para los otros quince) ya habla de música y de mensajes de voz, y no de una sola función; el permiso se pide solo al
@@ -32,7 +32,7 @@ export const MUSIC_GENERACION_VALIDADA = false;
  */
 export const MUSIC_GRABACION_EN_IOS_AUTORIZADA = true;
 
-/** Versión del contrato interno de Weë Music (espejo de `functions/src/music/contract.ts`). */
+/** Versión del contrato interno de WeëMusic (espejo de `functions/src/music/contract.ts`). */
 export const MUSIC_CONTRATO_VERSION = '0.1.0';
 
 export type EstadoDeCapacidad = 'implementada' | 'preparada' | 'pendiente';

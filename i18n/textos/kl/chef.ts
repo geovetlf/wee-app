@@ -1,5 +1,5 @@
 /*
- * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — Weë Chef: el sitio donde se cocina.
+ * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — WeëChef: el sitio donde se cocina.
  * Traducción hecha por agentes de IA, SIN revisión humana nativa (2026-11-03).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
@@ -9,7 +9,7 @@
  * pilersaarut» (guía §4.14). «Sin X» = «X-qanngitsoq» / «X-nik peqanngitsoq». La nutrición usa
  * préstamos ya oídos en groenlandés («kaloriit», «proteinit», «sukkut») y formaciones propias
  * donde no los hay (carbohidratos, frutos secos, alérgenos): todo pendiente de confirmación
- * nativa. «Weë Chef» no pasa por aquí. {{panel}}, {{que}}, {{idea}}, {{ajustes}} se copian.
+ * nativa. «WeëChef» no pasa por aquí. {{panel}}, {{que}}, {{idea}}, {{ajustes}} se copian.
  */
 export const chef: typeof import('../es/chef').chef = {
   /* ── La cabecera ──────────────────────────────────────────────────────── */

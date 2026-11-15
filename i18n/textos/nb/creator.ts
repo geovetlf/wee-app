@@ -1,6 +1,6 @@
 /*
  * NORUEGO BOKMÅL — lo que describe cada experiencia de WEË AI. Los nombres
- * —Weë Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts
+ * —WeëDesign, WeëStudio…— son marca y viven en constants/weeExperiences.ts
  * sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
@@ -54,10 +54,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Jeg vet ikke hvor jeg skal begynne',
   brainEx2: 'Forklar meg dette på en enkel måte',
   brainEx3: 'Oversett denne teksten',
-  areaStudioPhotos: 'Weë Studio · Bilder',
-  areaStudioVideos: 'Weë Studio · Videoer',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Hjem & design',
+  areaStudioPhotos: 'WeëStudio · Bilder',
+  areaStudioVideos: 'WeëStudio · Videoer',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Hjem & design',
   areaHomeName: 'Hjem & design',
   tellTheSpecialist: 'Fortell {{especialista}} hva du vil oppnå: du får to eller tre enkle spørsmål, og resten blir tatt hånd om. Etterpå publiserer du rett i fellesskapet ditt.',
   exampleQuoted: '«{{ejemplo}}»',

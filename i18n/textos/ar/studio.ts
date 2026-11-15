@@ -1,8 +1,8 @@
 /*
- * ÁRABE — Weë Studio: el sitio donde se crea. Tipado contra el español.
+ * ÁRABE — WeëStudio: el sitio donde se crea. Tipado contra el español.
  *
  * Árabe estándar moderno (فصحى contemporánea). Marcas en latino sin
- * transliterar: Weë, Weë Studio, Credits, Beauty, Fashion y 3D World se
+ * transliterar: Weë, WeëStudio, Credits, Beauty, Fashion y 3D World se
  * escriben igual que en español. Los formatos (PDF, Excel, CSV) también.
  *
  * PLURALES: `settingsReferences` cuenta referencias y el árabe tiene SEIS
@@ -244,7 +244,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   soon: 'قريبًا',
   soonHint: 'هذه الأداة لها مكانها بالفعل. بقي فقط ربطها.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'نص',
   textHint: 'كتابة أي محتوى',
   exploreTitle: 'استكشاف',

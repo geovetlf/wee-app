@@ -51,7 +51,7 @@ interface Props {
   /**
    * Cómo se llama el campo para quien no lo ve. Por defecto, lo que dice el
    * propio `placeholder`, que es lo normal. Se pasa aparte cuando la caja va
-   * vacía a propósito —Weë Chef— y aun así tiene que poder anunciarse.
+   * vacía a propósito —WeëChef— y aun así tiene que poder anunciarse.
    */
   etiqueta?: string;
   /** Mientras se está creando, el botón no acepta otro toque. */
@@ -79,20 +79,20 @@ interface Props {
   /** Sin dorado: la caja de una sección en blanco y negro. El contorno y el botón de crear van con la tinta del tema. */
   monocromo?: boolean;
   /**
-   * El traje de vitrina (referencia del dueño para Weë Chef, 2026-11-02): contorno dorado con halo, un destello a la
+   * El traje de vitrina (referencia del dueño para WeëChef, 2026-11-02): contorno dorado con halo, un destello a la
    * izquierda del texto, el de crear redondo a su derecha y los botones en una píldora debajo, separados por rayas.
    * Crece igual y sus botones no se van.
    */
   vitrina?: boolean;
-  /** La frase de dentro solo en el traje de vitrina (Weë Chef la lleva vacía fuera de él). */
+  /** La frase de dentro solo en el traje de vitrina (WeëChef la lleva vacía fuera de él). */
   textoDeVitrina?: string;
 }
 
 /**
  * LA CAJA DE WEË AI: UNA SOLA, LA MISMA EN TODAS LAS SECCIONES.
  *
- * Es la lámina de Weë Studio y Weë Design, y desde el 2026-09-15 es también la
- * de Weë Chef, Weë Music, Weë Business y Weë Travel (decisión del usuario: se
+ * Es la lámina de WeëStudio y WeëDesign, y desde el 2026-09-15 es también la
+ * de WeëChef, WeëMusic, Weë Business y WeëTravel (decisión del usuario: se
  * retiran los diseños antiguos —la píldora estrecha con el botón al lado—).
  * Weë Brain se pasará después.
  *
@@ -258,7 +258,7 @@ const CajaDePrompt: React.FC<Props> = ({
       {/*
         EL AIRE DE LA FILA SE ESTRECHA CUANDO HAY MUCHOS BOTONES.
         Con cuatro grises y el amarillo sobra sitio hasta en un teléfono de 360;
-        con cinco —Weë Chef, que además lleva cámara— la fila se salía por doce
+        con cinco —WeëChef, que además lleva cámara— la fila se salía por doce
         puntos. Lo que se encoge es el hueco ENTRE botones, nunca el botón: el
         dedo sigue teniendo sus 42 y sus 50, que es lo que no se puede tocar.
       */}
@@ -460,7 +460,7 @@ export const ALTO_MINIMO_DE_LA_CAJA = ALTO_MINIMO;
  * cocinar hoy?".
  *
  * Una línea y nada más. El nombre de la sección ya lo dice la cabecera, justo
- * encima, y repetirlo —"¡Hola! Soy Weë Chef"— era decir dos veces lo mismo en
+ * encima, y repetirlo —"¡Hola! Soy WeëChef"— era decir dos veces lo mismo en
  * dos dedos de pantalla.
  */
 export const InvitacionDeLaCaja: React.FC<{ texto: string }> = ({ texto }) => {

@@ -4,8 +4,8 @@
  * escribe a mano.
  *
  * Tipado contra el español: refleja `textos/es/catalogo.ts` clave por clave y
- * una clave que falte aquí no compila. Los nombres de Weë (Weë Brain, Weë Chef,
- * Weë Studio…) y Credits se escriben en latino dentro de la frase cirílica; los
+ * una clave que falte aquí no compila. Los nombres de Weë (Weë Brain, WeëChef,
+ * WeëStudio…) y Credits se escriben en latino dentro de la frase cirílica; los
  * identificadores, los emojis, los números y las duraciones no se traducen.
  *
  * Decisiones de este módulo: trato de «ти»; títulos de acción en imperativo
@@ -62,7 +62,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Брине о целом процесу',
   brainEj3Subtitle: 'Од идеје до дизајна, видеа и музике',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Дизајнирај шта год замислиш.',
   designIntro: 'Претвори своје идеје у невероватне дизајне уз вештачку интелигенцију. Од логотипа до аутомобила, производа или читавог света.',
   designChip1: 'Брзо и лако',
@@ -161,7 +161,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Ретуш лица',
   photoEj6Title: 'Преображај уз AI',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Стварај, слушај и живи своју музику уз AI',
   musicIntro: 'Претвори своје идеје у песме, видео-снимке и јединствена искуства. Без граница за твоју креативност.',
   musicChip1: 'Брзо и једноставно',
@@ -223,7 +223,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Претвори своју музику у невероватан видео: разни стилови, аутоматска синхронизација, формати за мреже, сцене и ликови.',
   musicClosingButton: 'Креирај видео одмах',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Креирај фотографије и видео-снимке уз AI',
   studioIntro: 'Реци ми шта желиш да креираш и помоћи ћу ти корак по корак.',
   studioChip1: 'Лако за коришћење',
@@ -316,7 +316,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Примљених порука',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Твој кувар, увек уз тебе',
   chefIntro: 'Откриј рецепте, прави меније, искористи оно што имаш и једи боље, лакше и укусније.',
   chefChip1: 'Лаки рецепти',
@@ -346,7 +346,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Не знам шта да кувам',
   chefAcIdkSubtitle: 'Предложићу ти нешто укусно',
   chefAcIdkGoal: 'Не знам шта да кувам данас',
-  chefIdeaTitle: 'Здраво! Ја сам Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Здраво! Ја сам WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Реци ми, шта желиш да куваш данас?',
   chefIdeaPlaceholder: 'Напиши своју идеју овде…',
   chefIdeaChip1: 'Желим брзу вечеру',
@@ -558,7 +558,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'Професионални CV',
   writerEj6Subtitle: 'Модеран и чист',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Испланирај путовање с неким ко је већ био тамо.',
   travelIntro: 'Реци ми куда идеш — или да још не знаш — и испланираћу ти путовање: шта да видиш, где да једеш и како да се крећеш.',
   travelChip1: 'Без резервација',

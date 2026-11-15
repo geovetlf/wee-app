@@ -1,6 +1,6 @@
 /*
- * HEBREO — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design,
- * Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * HEBREO — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign,
+ * WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Traducido del español, con el inglés como segunda referencia (docs/I18N-HEBREO.md).
@@ -10,7 +10,7 @@
  * se marca en género («No sé qué cocinar», «Cómo me quedaría el cabello largo»)
  * el hebreo busca una forma neutra: «אין לי מושג מה לבשל היום», «איך שיער ארוך
  * היה נראה עליי»; «אני רוצה» se lee igual para los dos géneros sin niqud. «IA»
- * es «AI». «Beauty» en «Weë Studio · Beauty» queda en latino porque nombra la
+ * es «AI». «Beauty» en «WeëStudio · Beauty» queda en latino porque nombra la
  * sección Weë Beauty. «Hogar & Diseño» es «בית ועיצוב» (conjunción, no «&»).
  * «Cuéntale a {{especialista}}» se dice impersonal con el prefijo y guion
  * («מספרים ל-{{especialista}}») para que la marca no lleve prefijo pegado.
@@ -61,10 +61,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'אין לי מושג מאיפה להתחיל',
   brainEx2: 'להסביר לי את זה בפשטות',
   brainEx3: 'לתרגם את הטקסט הזה',
-  areaStudioPhotos: 'Weë Studio · תמונות',
-  areaStudioVideos: 'Weë Studio · סרטונים',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · בית ועיצוב',
+  areaStudioPhotos: 'WeëStudio · תמונות',
+  areaStudioVideos: 'WeëStudio · סרטונים',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · בית ועיצוב',
   areaHomeName: 'בית ועיצוב',
   tellTheSpecialist: 'מספרים ל-{{especialista}} מה רוצים להשיג, עונים על שתיים-שלוש שאלות פשוטות, והשאר כבר מטופל. אחר כך מפרסמים ישירות בקהילה שלך.',
   exampleQuoted: '“{{ejemplo}}”',

@@ -1,11 +1,11 @@
 /*
- * JEMER — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design,
- * Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * JEMER — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign,
+ * WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * Los ejemplos son frases de quien escribe en la caja, en primera persona
- * («របស់ខ្ញុំ»). «Beauty» se queda en latino dentro de «Weë Studio · Beauty»,
+ * («របស់ខ្ញុំ»). «Beauty» se queda en latino dentro de «WeëStudio · Beauty»,
  * como el molde; «Hogar & Diseño» es «ផ្ទះ & ការរចនា». «CV» e «Instagram» se
  * quedan en latino. Las listas separan los elementos con espacio, no con
  * coma (guía § 2). Entre palabras va ZWSP (U+200B).
@@ -55,10 +55,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'មិនដឹង​ចាប់ផ្តើម​ពីណា',
   brainEx2: 'ពន្យល់​ខ្ញុំ​រឿងនេះ​ឱ្យ​ងាយយល់',
   brainEx3: 'បកប្រែ​អត្ថបទ​នេះ',
-  areaStudioPhotos: 'Weë Studio · រូបថត',
-  areaStudioVideos: 'Weë Studio · វីដេអូ',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · ផ្ទះ & ការរចនា',
+  areaStudioPhotos: 'WeëStudio · រូបថត',
+  areaStudioVideos: 'WeëStudio · វីដេអូ',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · ផ្ទះ & ការរចនា',
   areaHomeName: 'ផ្ទះ & ការរចនា',
   tellTheSpecialist: 'ប្រាប់ {{especialista}} ថា​អ្នក​ចង់​សម្រេច​អ្វី៖ វា​នឹង​សួរ​អ្នក​សំណួរ​សាមញ្ញ​ពីរបី ហើយ​ធ្វើ​អ្វី​ដែល​នៅសល់​ទាំងអស់។ បន្ទាប់មក អ្នក​បង្ហោះ​ដោយផ្ទាល់​ក្នុង​សហគមន៍​របស់អ្នក។',
   exampleQuoted: '“{{ejemplo}}”',

@@ -1,13 +1,13 @@
 /*
  * PERSA — Lo que describe cada experiencia de WEË AI. Los nombres (Weë
- * Design, Weë Studio…) son marca y viven en constants/weeExperiences.ts sin
+ * Design, WeëStudio…) son marca y viven en constants/weeExperiences.ts sin
  * traducir. Tipado contra el español: si allí hay una clave que aquí falta,
  * no compila.
  *
  * Los ejemplos son frases que la persona le diría a Weë, así que van en
  * primera persona y, cuando son una orden al asistente, en imperativo
  * singular, como se le habla a un asistente. Las comillas de ejemplo son las
- * persas «…». «Beauty» en «Weë Studio · Beauty» se queda como en el español:
+ * persas «…». «Beauty» en «WeëStudio · Beauty» se queda como en el español:
  * nombra la sección de marca.
  */
 export const creator: typeof import('../es/creator').creator = {
@@ -55,10 +55,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'نمی‌دانم از کجا شروع کنم',
   brainEx2: 'این را ساده برایم توضیح دهید',
   brainEx3: 'این متن را ترجمه کنید',
-  areaStudioPhotos: 'Weë Studio · عکس‌ها',
-  areaStudioVideos: 'Weë Studio · ویدیوها',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · خانه و دکوراسیون',
+  areaStudioPhotos: 'WeëStudio · عکس‌ها',
+  areaStudioVideos: 'WeëStudio · ویدیوها',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · خانه و دکوراسیون',
   areaHomeName: 'خانه و دکوراسیون',
   tellTheSpecialist: 'برای {{especialista}} توضیح دهید که چه می‌خواهید: دو سه پرسش ساده از شما می‌پرسد و بقیه‌اش را خودش انجام می‌دهد. بعد مستقیم در انجمن خود منتشر می‌کنید.',
   exampleQuoted: '«{{ejemplo}}»',

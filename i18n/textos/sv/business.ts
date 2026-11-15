@@ -10,7 +10,7 @@
  * pasan por el traductor; por eso «Business Profile» se queda igual cuando es un destino para compartir: es el
  * nombre que la persona ve en la tarjeta del módulo. Los NOMBRES de las funciones de dentro —Business Plan,
  * Business Coach, Pricing Assistant, Brand Kit, Customer Insights, Business Ideas— también son de producto y se
- * escriben igual en todos los idiomas, como Weë Studio (decisión del usuario, 2026-09-16); lo que hace cada una sí se
+ * escriben igual en todos los idiomas, como WeëStudio (decisión del usuario, 2026-09-16); lo que hace cada una sí se
  * traduce, en su pista. «SWOT» se queda como sigla: «SWOT-analys».
  *
  * Los «…Goal» son lo que la persona le pide a Weë Brain: aparecen como su propio mensaje en la conversación y acaban
@@ -181,11 +181,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Dela',
   shareHint: 'Telefonens delningsmeny öppnas: välj den app du vill.',
   shareToWee: 'Dela på Weë',
-  shareWall: 'Min Wäll',
+  shareWall: 'Min Ẅall',
   shareCommunities: 'Communities',
   shareProfile: 'Business Profile',
   shareNothing: 'Skapa något först, sedan kan du dela det härifrån.',
-  shareText: 'Skapat med Weë Fashion',
+  shareText: 'Skapat med WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Ladda upp data',

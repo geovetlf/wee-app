@@ -1,6 +1,6 @@
 /*
- * IRLANDÉS — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design,
- * Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * IRLANDÉS — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign,
+ * WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -53,10 +53,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Níl a fhios agam cá háit le tosú',
   brainEx2: 'Mínigh é seo dom go simplí',
   brainEx3: 'Aistrigh an téacs seo',
-  areaStudioPhotos: 'Weë Studio · Grianghraif',
-  areaStudioVideos: 'Weë Studio · Físeáin',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Baile & Dearadh',
+  areaStudioPhotos: 'WeëStudio · Grianghraif',
+  areaStudioVideos: 'WeëStudio · Físeáin',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Baile & Dearadh',
   areaHomeName: 'Baile & Dearadh',
   tellTheSpecialist: 'Inis do {{especialista}} cad ba mhaith leat a bhaint amach: cuirfidh sé dhá cheist nó trí cheist shimplí ort agus déanfaidh sé an chuid eile. Ina dhiaidh sin foilsíonn tú go díreach i do phobal.',
   exampleQuoted: '“{{ejemplo}}”',

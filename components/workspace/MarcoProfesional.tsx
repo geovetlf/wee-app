@@ -56,7 +56,7 @@ const MarcoProfesional: React.FC<{ children: React.ReactNode }> = ({ children })
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const t = useT();
-  /* En árabe o hebreo, «Weë Studio» empieza en el mismo lado que «الرئيسية»: los nombres de marca no se alinean al revés. */
+  /* En árabe o hebreo, «WeëStudio» empieza en el mismo lado que «الرئيسية»: los nombres de marca no se alinean al revés. */
   const dir = useDireccion();
   const { user } = useAuth();
   const { isDesktop, isTablet } = useResponsive();

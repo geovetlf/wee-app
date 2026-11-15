@@ -1,8 +1,8 @@
 /*
- * HÚNGARO — Weë Studio: el sitio donde se crea (compositor, ajustes, puertas,
+ * HÚNGARO — WeëStudio: el sitio donde se crea (compositor, ajustes, puertas,
  * herramientas, vocabulario de cámara y 3D World). Tipado contra el español.
  *
- * «Weë Studio», «Writer», «Beauty», «Fashion» y «3D World» no se traducen.
+ * «WeëStudio», «Writer», «Beauty», «Fashion» y «3D World» no se traducen.
  * Tras un número, sustantivo en singular («{{contador}} karakter»).
  */
 export const studio: typeof import('../es/studio').studio = {
@@ -223,7 +223,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Hamarosan',
   soonHint: 'Ennek az eszköznek már megvan a helye. Már csak be kell kötni.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Szöveg',
   textHint: 'Írj bármilyen tartalmat',
   exploreTitle: 'Felfedezés',

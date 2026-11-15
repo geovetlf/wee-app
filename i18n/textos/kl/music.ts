@@ -1,9 +1,9 @@
 /*
- * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — Weë Music: portada, Composer, workstation y herramientas.
+ * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — WeëMusic: portada, Composer, workstation y herramientas.
  * Traducción hecha por agentes de IA, SIN revisión humana nativa (2026-11-03).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Kalaallisut, NO danés. «Weë Music», «Weë Brain», «Weë AI», «WeeTalk» y «Credits» son marca: en
+ * Kalaallisut, NO danés. «WeëMusic», «Weë Brain», «Weë AI», «WeeTalk» y «Credits» son marca: en
  * absolutivo, entre paréntesis o tras dos puntos, nunca con sufijo. Botones en imperativo 2sg
  * (-guk/-ruk con objeto, -kkit con objeto plural, -git/-it sin objeto). Decisiones de léxico (todas
  * pendientes de confirmación nativa, guía §6): canción = erinarsuut; melodía = erinaq; letra =
@@ -19,7 +19,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Isumassarsiat oqaluttuaruk erinamilluunniit erinarsorit, erinarsuutillu alloriarnerit malillugit piareersaruk.',
   ctaCreate: 'Nipilersornermik pilersitsigit',
   chooseTitle: 'Qanoq aallartinnissat toqqaruk',
-  skillsTitle: 'Weë Music: periarfissat',
+  skillsTitle: 'WeëMusic: periarfissat',
   recentTitle: 'Erinarsuutit kingulliit',
   viewExample: 'Ilusilersuinermut assersuut takuuk',
   honestyNote: 'Ullumi erinarsuutit piareersarsinnaavat, erinaq innersuussutissaq immiussinnaavat, aamma Weë Brain siunnersuummik aperisinnaavat. Erinarsuutip pilersinneqarnera atassusersimalerpat misilinneqareerpallu atorneqalissaaq.',
@@ -27,7 +27,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Nipitit erinarsuutitillu toqqorsimasatit.',
   openProjects: 'Suliniutikka',
   openProjectsHelp: 'Erinarsuutitit suliniutinut aaqqissukkit.',
-  backToMusic: 'Uterit: Weë Music',
+  backToMusic: 'Uterit: WeëMusic',
   composerTitle: 'Nipilersornermik pilersitsigit',
   modesLabel: 'Periaaseq',
   modeSimple: 'Pisariitsoq',
@@ -313,7 +313,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Nipip suliarinera suli piginnaasaanngilaq: maani isumaqatigiissut kisimi piareersarneqarpoq.',
 
   voiceInterpretation: 'Erinarsornerup isikkua',
-  voiceNoClone: 'Weë Music inuit nipaat assilineq ajorpai: nipip pissusii nalinginnaasut kisimik toqqartarpai.',
+  voiceNoClone: 'WeëMusic inuit nipaat assilineq ajorpai: nipip pissusii nalinginnaasut kisimik toqqartarpai.',
   voiceStylePending: 'Erinarsornerup isikkua sakkumut attuumassuteqarpoq suli atorneqarsinnaanngilarlu.',
   styleTitle: 'Suussusaa isikkualu',
   transformTitle: 'Allanngortitsinerit',

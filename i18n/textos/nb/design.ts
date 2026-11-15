@@ -9,8 +9,8 @@
  * confunda con «Rom» de interiores. Los puntos de partida van con artículo
  * indefinido según el género («En stue», «Et kjøkken»), como el español.
  *
- * QUÉ NO ESTÁ AQUÍ: "Weë Design", que es marca. Tampoco lo que Weë Design
- * comparte con Weë Studio y significa lo mismo —"Mis creaciones", "Ver todas",
+ * QUÉ NO ESTÁ AQUÍ: "WeëDesign", que es marca. Tampoco lo que WeëDesign
+ * comparte con WeëStudio y significa lo mismo —"Mis creaciones", "Ver todas",
  * "Creando...", "Creación lista"—: eso vive en `studio` y se lee de allí.
  */
 export const design: typeof import('../es/design').design = {

@@ -139,10 +139,10 @@ export const weeai: typeof import('../es/weeai').weeai = {
   couldNotCalculateRetry: 'Non siamo riusciti a calcolare il costo. Riprova, per favore.',
   expandSection: '{{titulo}}. Mostra {{contenido}}',
   collapseSection: '{{titulo}}. Nascondi {{contenido}}',
-  openTravel_one: '{{titulo}}. Apri Weë Travel: raccontare il tuo viaggio e il modo per iniziare',
-  openTravel_other: '{{titulo}}. Apri Weë Travel: raccontare il tuo viaggio e i {{contador}} modi per iniziare',
-  closeTravel_one: '{{titulo}}. Nascondi Weë Travel: raccontare il tuo viaggio e il modo per iniziare',
-  closeTravel_other: '{{titulo}}. Nascondi Weë Travel: raccontare il tuo viaggio e i {{contador}} modi per iniziare',
+  openTravel_one: '{{titulo}}. Apri WeëTravel: raccontare il tuo viaggio e il modo per iniziare',
+  openTravel_other: '{{titulo}}. Apri WeëTravel: raccontare il tuo viaggio e i {{contador}} modi per iniziare',
+  closeTravel_one: '{{titulo}}. Nascondi WeëTravel: raccontare il tuo viaggio e il modo per iniziare',
+  closeTravel_other: '{{titulo}}. Nascondi WeëTravel: raccontare il tuo viaggio e i {{contador}} modi per iniziare',
   tellWeeTheTrip: 'Raccontare il viaggio a Weë',
   theMotto: 'Tu scegli il risultato. Weë sceglie l’IA.',
   trySearchWords: 'Prova con parole come logo, video, foto, testo, canzone, look, ricetta, casa o business. Oppure chiedi a Weë Brain.',
@@ -220,7 +220,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   durationSeconds: '{{segundos}} s',
   volumeDiscount: '−{{descuento}}% di sconto per quantità',
   createWork: 'Crea',
-  /* ── Weë Travel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
+  /* ── WeëTravel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
   travelHeroLine1: 'Organizza il tuo viaggio',
   travelHeroLine2: 'con qualcuno',
   travelHeroAccent: 'che c’è già stato.',

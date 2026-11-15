@@ -1,11 +1,11 @@
 /*
- * RUMANO — Weë Studio: el sitio donde se crea. Tipado contra el español.
+ * RUMANO — WeëStudio: el sitio donde se crea. Tipado contra el español.
  *
  * `settingsReferences` cuenta referencias y el rumano tiene tres formas
  * (1 referință / 2 referințe / 20 de referințe), así que el módulo se declara
  * con `ConPlurales` para poder añadir `_few`. Lo demás, el tipo estricto.
  *
- * Marcas en latino sin tocar: Weë, Weë Studio, Writer, Beauty, Fashion,
+ * Marcas en latino sin tocar: Weë, WeëStudio, Writer, Beauty, Fashion,
  * 3D World, Credits. Formatos (PDF, CV, 5 s) tampoco cambian.
  */
 import { ConPlurales } from '../ru/plurales';
@@ -229,7 +229,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   soon: 'În curând',
   soonHint: 'Acest instrument își are deja locul. Mai trebuie doar conectat.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Text',
   textHint: 'Scrie orice fel de conținut',
   exploreTitle: 'Explorează',

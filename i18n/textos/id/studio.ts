@@ -1,5 +1,5 @@
 /*
- * INDONESIO — Weë Studio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
+ * INDONESIO — WeëStudio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -235,7 +235,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Segera',
   soonHint: 'Alat ini sudah punya tempatnya. Tinggal dihubungkan.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Teks',
   textHint: 'Tulis konten apa saja',
   exploreTitle: 'Jelajahi',

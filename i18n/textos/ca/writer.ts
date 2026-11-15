@@ -1,5 +1,5 @@
 /*
- * CATALÁN — Weë Writer, dentro de Weë Studio. El texto que escribe la persona NUNCA pasa por aquí.
+ * CATALÁN — Weë Writer, dentro de WeëStudio. El texto que escribe la persona NUNCA pasa por aquí.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Botones en imperativo («Millora», «Escurça»); las metas (`*Goal`) en infinitivo, como el español.

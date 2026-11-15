@@ -3,7 +3,7 @@
  * publicar.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tuteo («ti»), imperativo de segunda persona en los botones. Weë, Weël, Wäll,
+ * Tuteo («ti»), imperativo de segunda persona en los botones. Weë, Weël, Ẅall,
  * ËContact y Weë AI son marca y van en latino tal cual; «face swap» se queda.
  * Las frases que en español hablan de lo que «escribiste» van en forma neutra
  * («kako je napisano») para no obligar a elegir género en el participio.
@@ -38,7 +38,7 @@ export const composer: ConPlurales<typeof import('../es/composer').composer> = {
   showOptions: 'Prikaži opcije objavljivanja',
   hideOptions: 'Sakrij opcije objavljivanja',
   currentDestination: '{{destino}}, trenutačno odredište',
-  generalWall: 'Opći Wäll',
+  generalWall: 'Opći Ẅall',
   placeholderPollExtra: 'Dodaj još nešto ako želiš (neobavezno)…',
   placeholderQuestion: 'Što želiš pitati zajednicu?',
   placeholderWeel: 'Ispričaj kako je nastao tvoj Weël i s kojim AI-jem…',

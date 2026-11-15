@@ -1,5 +1,5 @@
 /*
- * JAPONÉS — El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * JAPONÉS — El Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -81,9 +81,9 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: 'コピー済み',
   demoBadge: 'デモ',
   demoBadgeLabel: 'デモ用のコンテンツ',
-  /* ── El Wäll inmersivo: una publicación a la vez ── */
-  immersiveEmpty: 'Wällにはまだ投稿がありません',
-  immersiveError: 'Wällを読み込めませんでした',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Ẅallにはまだ投稿がありません',
+  immersiveError: 'Ẅallを読み込めませんでした',
   immersiveEnd: 'すべて見終わりました',
   agreePost: '賛成',
   disagreePost: '反対',

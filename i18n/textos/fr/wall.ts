@@ -1,5 +1,5 @@
 /*
- * FRANCÉS — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * FRANCÉS — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -80,9 +80,9 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: 'Copié',
   demoBadge: 'Démo',
   demoBadgeLabel: 'Contenu de démonstration',
-  /* ── El Wäll inmersivo: una publicación a la vez ── */
-  immersiveEmpty: 'Il n’y a encore aucune publication sur le Wäll',
-  immersiveError: 'Impossible de charger le Wäll',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Il n’y a encore aucune publication sur le Ẅall',
+  immersiveError: 'Impossible de charger le Ẅall',
   immersiveEnd: 'Tu as tout vu',
   agreePost: 'D’accord',
   disagreePost: 'Pas d’accord',

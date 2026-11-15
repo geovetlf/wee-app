@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Trato de "tu" (informal). Los formatos —PDF, MP4, 16:9— y los segundos no
- * cambian de idioma, y "Weë Studio" y "Writer" son marca: no se traducen.
+ * cambian de idioma, y "WeëStudio" y "Writer" son marca: no se traducen.
  */
 export const studio: typeof import('../es/studio').studio = {
   /* ── La cabecera ──────────────────────────────────────────────────────── */
@@ -223,7 +223,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Bientôt',
   soonHint: 'Cet outil a déjà sa place. Il ne reste qu’à le connecter.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Texte',
   textHint: 'Écris n’importe quel contenu',
   exploreTitle: 'Explorer',

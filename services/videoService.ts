@@ -9,7 +9,7 @@ import type {
  * Weë Video Engine desde la app: una petición abstracta de video, sin nada del
  * proveedor. El servidor elige la versión de Seedance, reserva los Credits y
  * contesta de una de dos formas: el video ya hecho y guardado en Weë Storage, o
- * que ModelArk lo ACEPTÓ y lo está haciendo. Weë Studio (CreatorFlow) sigue
+ * que ModelArk lo ACEPTÓ y lo está haciendo. WeëStudio (CreatorFlow) sigue
  * usando creatorChat/creatorRun, que por dentro llaman a este mismo motor.
  */
 export interface VideoReferences {

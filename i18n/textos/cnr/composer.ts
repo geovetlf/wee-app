@@ -32,7 +32,7 @@ export const composer: ConPlurales<typeof import('../es/composer').composer> = {
   showOptions: 'Prikaži opcije objavljivanja',
   hideOptions: 'Sakrij opcije objavljivanja',
   currentDestination: '{{destino}}, trenutno odredište',
-  generalWall: 'Opšti Wäll',
+  generalWall: 'Opšti Ẅall',
   placeholderPollExtra: 'Dodaj još nešto ako želiš (opciono)…',
   placeholderQuestion: 'Što želiš da pitaš zajednicu?',
   placeholderWeel: 'Ispričaj što je nastalo za tvoj Weël i s kojom AI…',

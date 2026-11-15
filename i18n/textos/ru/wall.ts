@@ -1,5 +1,5 @@
 /*
- * RUSO — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * RUSO — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -94,9 +94,9 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   promptCopied: 'Скопировано',
   demoBadge: 'Демо',
   demoBadgeLabel: 'Демонстрационный контент',
-  /* ── El Wäll inmersivo: una publicación a la vez ── */
-  immersiveEmpty: 'На Wäll пока нет публикаций',
-  immersiveError: 'Не удалось загрузить Wäll',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'На Ẅall пока нет публикаций',
+  immersiveError: 'Не удалось загрузить Ẅall',
   immersiveEnd: 'Вы всё посмотрели',
   agreePost: 'Согласен',
   disagreePost: 'Не согласен',

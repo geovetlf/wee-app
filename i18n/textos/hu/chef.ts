@@ -1,7 +1,7 @@
 /*
- * HÚNGARO — Weë Chef: el sitio donde se cocina. Tipado contra el español.
+ * HÚNGARO — WeëChef: el sitio donde se cocina. Tipado contra el español.
  *
- * «Weë Chef» es marca y no está aquí; tampoco lo que se lee de `studio` ni las
+ * «WeëChef» es marca y no está aquí; tampoco lo que se lee de `studio` ni las
  * funciones de `weeai`. «panelStart» termina en espacio: la persona completa
  * la frase.
  */

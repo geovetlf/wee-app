@@ -1,5 +1,5 @@
 /*
- * PORTUGUÉS (pt-BR) — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * PORTUGUÉS (pt-BR) — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign, WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tratamiento informal (você). Los ejemplos son frases que la persona diría en
@@ -50,10 +50,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Não sei por onde começar',
   brainEx2: 'Me explique isso de um jeito simples',
   brainEx3: 'Traduza este texto',
-  areaStudioPhotos: 'Weë Studio · Fotos',
-  areaStudioVideos: 'Weë Studio · Vídeos',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Casa & Design',
+  areaStudioPhotos: 'WeëStudio · Fotos',
+  areaStudioVideos: 'WeëStudio · Vídeos',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Casa & Design',
   areaHomeName: 'Casa & Design',
   tellTheSpecialist: 'Conte para {{especialista}} o que você quer conseguir: são duas ou três perguntas simples e o resto fica por conta dele. Depois é só publicar direto na sua comunidade.',
   exampleQuoted: '“{{ejemplo}}”',

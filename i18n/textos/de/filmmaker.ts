@@ -1,7 +1,7 @@
 /*
  * WEË FILMMAKER — „Mehrere Szenen“ (F1-C) auf Deutsch: die Produktion in der App, das Storyboard, das Regie-Panel
  * und die Meldungen zu den Codes der Domäne (val*, op*, rec*, req*, per*). Gegen das Spanische typisiert; Anrede
- * mit „du“. Weë und Weë Studio sind Marke und werden nicht übersetzt.
+ * mit „du“. Weë und WeëStudio sind Marke und werden nicht übersetzt.
  */
 export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   sectionName: 'Mehrere Szenen',
@@ -13,20 +13,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'Produktion erstellen',
   creatingProduction: 'Produktion wird erstellt…',
   openProduction: '{{titulo}} öffnen',
-  goToStudio: 'Zu Weë Studio',
+  goToStudio: 'Zu WeëStudio',
   loadMore: 'Mehr anzeigen',
   backToList: 'Zurück zu deinen Produktionen',
   updatedAgo: 'Aktualisiert {{cuando}}',
 
   emptyListTitle: 'Du hast noch keine Produktionen',
-  emptyListText: 'Starte in Weë Studio: Öffne Videos, wähle „Mehrere Szenen“ und sag Weë, was du erzählen willst.',
+  emptyListText: 'Starte in WeëStudio: Öffne Videos, wähle „Mehrere Szenen“ und sag Weë, was du erzählen willst.',
   emptyArchived: 'Du hast keine archivierten Produktionen.',
   emptyStoryboardTitle: 'Diese Produktion hat noch keine Szenen',
   emptyStoryboardText: 'Füge die erste hinzu und baue deine Geschichte Einstellung für Einstellung auf.',
   addFirstScene: 'Erste Szene hinzufügen',
 
   yourIdea: 'Deine Idee',
-  ideaFromStudio: 'Die Idee schreibst du in Weë Studio. Um sie zu ändern, geh dorthin zurück.',
+  ideaFromStudio: 'Die Idee schreibst du in WeëStudio. Um sie zu ändern, geh dorthin zurück.',
   whereWillItPlay: 'Wo soll es laufen?',
   otherFormat: 'Anderes Format',
   continueOne: 'Oder mach mit einer deiner Produktionen weiter',

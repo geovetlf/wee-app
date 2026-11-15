@@ -1,5 +1,5 @@
 /*
- * NORUEGO BOKMÅL — Weë Studio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
+ * NORUEGO BOKMÅL — WeëStudio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -12,7 +12,7 @@
  * «Kran opp/ned». La luz y el ritmo («lys», «tempo») son neutros, así que sus adjetivos van en neutro («Mykt»,
  * «Langsomt», «Raskt»); la composición concuerda en común («Sentrert», «Symmetrisk»).
  *
- * QUÉ NO ESTÁ AQUÍ: «Weë Studio» y «Writer», que son marca, ni los formatos —PDF, MP4, 16:9—, que no cambian.
+ * QUÉ NO ESTÁ AQUÍ: «WeëStudio» y «Writer», que son marca, ni los formatos —PDF, MP4, 16:9—, que no cambian.
  * «Beauty», «Fashion» y «3D World» se dejan como en el español.
  */
 export const studio: typeof import('../es/studio').studio = {
@@ -236,7 +236,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Snart',
   soonHint: 'Dette verktøyet har allerede plassen sin. Det gjenstår bare å koble det til.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Tekst',
   textHint: 'Skriv hva som helst',
   exploreTitle: 'Utforsk',

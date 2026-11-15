@@ -5,8 +5,8 @@
  *
  * El singular «Weël» del español no existe en japonés, que no tiene plural: la
  * marca va siempre como «Weëls» (guía § 9, «sin plural ni declinación»). El
- * «Wäll general» —el muro donde está todo el mundo, frente a los de cada
- * sección— es 総合Wäll. El botón «Ubicación» y la pantalla «Agregar ubicación»
+ * «Ẅall general» —el muro donde está todo el mundo, frente a los de cada
+ * sección— es 総合Ẅall. El botón «Ubicación» y la pantalla «Agregar ubicación»
  * son 場所 / 場所を追加: lo que se pone ahí es sobre todo el LUGAR del que habla
  * la publicación (glosario: 場所 es un lugar); 位置情報
  * queda para lo que sale del aparato, la zona aproximada (`removeMyLocation`).
@@ -43,7 +43,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: '投稿オプションを開く',
   hideOptions: '投稿オプションを閉じる',
   currentDestination: '{{destino}}、現在の投稿先',
-  generalWall: '総合Wäll',
+  generalWall: '総合Ẅall',
   placeholderPollExtra: '補足があれば入力（任意）…',
   placeholderQuestion: 'コミュニティに何を質問しますか？',
   placeholderWeel: 'どんなWeëlsを、どのAIで作ったか書く…',

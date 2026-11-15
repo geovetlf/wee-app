@@ -1,8 +1,8 @@
 /*
  * GRIEGO — El catálogo de las once experiencias de Weë AI, en palabras. Tipado contra el español.
  *
- * Los títulos de ejemplo de Weë Music se traducen como en inglés (son interfaz de muestra);
- * «Lomo saltado» y las métricas de Business quedan igual. «Beauty» y «Writer» de Weë Studio,
+ * Los títulos de ejemplo de WeëMusic se traducen como en inglés (son interfaz de muestra);
+ * «Lomo saltado» y las métricas de Business quedan igual. «Beauty» y «Writer» de WeëStudio,
  * en latino como en inglés. «CV» se acompaña de «Βιογραφικό», que es lo que se lee en Grecia.
  */
 export const catalogo: typeof import('../es/catalogo').catalogo = {
@@ -52,7 +52,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Αναλαμβάνει όλη τη διαδικασία',
   brainEj3Subtitle: 'Από την ιδέα ως τα σχέδια, τα βίντεο και τη μουσική',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Σχεδίασε ό,τι φαντάζεσαι.',
   designIntro: 'Μετάτρεψε τις ιδέες σου σε απίστευτα σχέδια με τεχνητή νοημοσύνη. Από ένα λογότυπο ως ένα αυτοκίνητο, ένα προϊόν ή έναν ολόκληρο κόσμο.',
   designChip1: 'Γρήγορα και εύκολα',
@@ -151,7 +151,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Ρετούς προσώπου',
   photoEj6Title: 'Μεταμόρφωση με AI',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Δημιούργησε, άκουσε και ζήσε τη μουσική σου με AI',
   musicIntro: 'Μετάτρεψε τις ιδέες σου σε τραγούδια, βίντεο και μοναδικές εμπειρίες. Χωρίς όρια στη δημιουργικότητά σου.',
   musicChip1: 'Γρήγορα και απλά',
@@ -213,7 +213,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Μετάτρεψε τη μουσική σου σε ένα απίστευτο βίντεο: διάφορα στιλ, αυτόματος συγχρονισμός, μορφές για τα social, σκηνές και χαρακτήρες.',
   musicClosingButton: 'Δημιουργία βίντεο τώρα',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Δημιούργησε φωτογραφίες και βίντεο με AI',
   studioIntro: 'Πες μου τι θέλεις να δημιουργήσεις και θα σε βοηθήσω βήμα βήμα.',
   studioChip1: 'Εύκολο στη χρήση',
@@ -305,7 +305,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Μηνύματα που λήφθηκαν',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Ο σεφ σου, πάντα μαζί σου',
   chefIntro: 'Ανακάλυψε συνταγές, φτιάξε μενού, αξιοποίησε ό,τι έχεις και φάε καλύτερα, πιο εύκολα και πιο νόστιμα.',
   chefChip1: 'Εύκολες συνταγές',
@@ -335,7 +335,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Δεν ξέρω τι να μαγειρέψω',
   chefAcIdkSubtitle: 'Σου προτείνω κάτι νόστιμο',
   chefAcIdkGoal: 'Δεν ξέρω τι να μαγειρέψω σήμερα',
-  chefIdeaTitle: 'Γεια! Είμαι το Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Γεια! Είμαι το WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Πες μου, τι θα ήθελες να μαγειρέψεις σήμερα;',
   chefIdeaPlaceholder: 'Γράψε εδώ την ιδέα σου…',
   chefIdeaChip1: 'Θέλω ένα γρήγορο βραδινό',
@@ -547,7 +547,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'Επαγγελματικό βιογραφικό',
   writerEj6Subtitle: 'Μοντέρνο και καθαρό',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Ετοίμασε το ταξίδι σου με κάποιον που έχει ήδη ταξιδέψει.',
   travelIntro: 'Πες μου πού πας —ή ότι δεν το ξέρεις ακόμη— και σου ετοιμάζω το ταξίδι: τι να δεις, πού να φας και πώς να μετακινηθείς.',
   travelChip1: 'Χωρίς κρατήσεις',

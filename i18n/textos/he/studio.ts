@@ -1,5 +1,5 @@
 /*
- * HEBREO — Weë Studio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
+ * HEBREO — WeëStudio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila. Donde el español declara
  * `_one`/`_other`, aquí hay además la forma dual `_two` (`ConPlurales`).
@@ -237,7 +237,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   soon: 'בקרוב',
   soonHint: 'לכלי הזה כבר יש מקום. נשאר רק לחבר אותו.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'טקסט',
   textHint: 'כתיבה של כל תוכן',
   exploreTitle: 'גילוי',

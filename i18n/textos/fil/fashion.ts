@@ -1,7 +1,7 @@
 /*
- * fil — Weë Fashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * fil — WeëFashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa.
- * Las marcas (Weë, Credits, ËContact, Boost, Weë Fashion, WeëPages…) no se traducen.
+ * Las marcas (Weë, Credits, ËContact, Boost, WeëFashion, WeëPages…) no se traducen.
  */
 export const fashion: typeof import('../es/fashion').fashion = {
   tagline: 'Ang istilo mo. Ang bisyon mo. Ang mundo mo.',
@@ -95,7 +95,7 @@ export const fashion: typeof import('../es/fashion').fashion = {
   briefIdea: 'Ang ideya ko: {{texto}}.',
   briefIdk: 'Tulungan mo akong pumili.',
   heroTags: 'Fashion · Kagandahan · Istilo · Mga koleksyon',
-  toolsTitle: 'Mga tool ng Weë Fashion',
+  toolsTitle: 'Mga tool ng WeëFashion',
   inspirationTitle: 'Inspirasyon',
   galleryTitle: 'Isukat ang look',
   galClothes: 'Damit',

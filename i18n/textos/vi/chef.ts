@@ -1,5 +1,5 @@
 /*
- * VIETNAMITA — Weë Chef: el sitio donde se cocina.
+ * VIETNAMITA — WeëChef: el sitio donde se cocina.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  */

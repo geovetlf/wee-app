@@ -1,6 +1,6 @@
 /*
  * WEË FILMMAKER en alemán suizo (de-CH): adaptado desde el alemán base (i18n/textos/de/filmmaker.ts).
- * Ortografía suiza («ss», sin Eszett), comillas «…», mismas claves y mismo orden; tuteo. Weë y Weë Studio son marca.
+ * Ortografía suiza («ss», sin Eszett), comillas «…», mismas claves y mismo orden; tuteo. Weë y WeëStudio son marca.
  */
 export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   sectionName: 'Mehrere Szenen',
@@ -12,20 +12,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'Produktion erstellen',
   creatingProduction: 'Produktion wird erstellt…',
   openProduction: '{{titulo}} öffnen',
-  goToStudio: 'Zu Weë Studio',
+  goToStudio: 'Zu WeëStudio',
   loadMore: 'Mehr anzeigen',
   backToList: 'Zurück zu deinen Produktionen',
   updatedAgo: 'Aktualisiert {{cuando}}',
 
   emptyListTitle: 'Du hast noch keine Produktionen',
-  emptyListText: 'Starte in Weë Studio: Öffne Videos, wähle «Mehrere Szenen» und sag Weë, was du erzählen willst.',
+  emptyListText: 'Starte in WeëStudio: Öffne Videos, wähle «Mehrere Szenen» und sag Weë, was du erzählen willst.',
   emptyArchived: 'Du hast keine archivierten Produktionen.',
   emptyStoryboardTitle: 'Diese Produktion hat noch keine Szenen',
   emptyStoryboardText: 'Füge die erste hinzu und baue deine Geschichte Einstellung für Einstellung auf.',
   addFirstScene: 'Erste Szene hinzufügen',
 
   yourIdea: 'Deine Idee',
-  ideaFromStudio: 'Die Idee schreibst du in Weë Studio. Um sie zu ändern, geh dorthin zurück.',
+  ideaFromStudio: 'Die Idee schreibst du in WeëStudio. Um sie zu ändern, geh dorthin zurück.',
   whereWillItPlay: 'Wo soll es laufen?',
   otherFormat: 'Anderes Format',
   continueOne: 'Oder mach mit einer deiner Produktionen weiter',

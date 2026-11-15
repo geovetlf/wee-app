@@ -2,13 +2,13 @@
  * FILIPINO — WEË CHEF: el sitio donde se cocina.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Chef comparte con Weë Studio —"Ver todos", "Ajustes", "Listo"— vive en
+ * Lo que Chef comparte con WeëStudio —"Ver todos", "Ajustes", "Listo"— vive en
  * `studio`, y las funciones que ya existían siguen en `catalogo` (chefAc…).
  *
- * Glosario § 11.11, Cocina, y lo que ya dice el catálogo de Weë Chef: receta
+ * Glosario § 11.11, Cocina, y lo que ya dice el catálogo de WeëChef: receta
  * «recipe», ingrediente «sangkap», la lista de la compra «Listahan ng bibilhin»
  * y la información nutricional «Nutrition facts», como en las etiquetas de los
- * envases en Filipinas; la marca Weë Chef no cambia. «Cocinar», el botón, es
+ * envases en Filipinas; la marca WeëChef no cambia. «Cocinar», el botón, es
  * «Magluto». Los nutrientes, con la palabra de casa donde la hay: «Kaloriya»,
  * «Protina», «Taba», «Karbohidrato», «Asukal», y «Sodium» y «allergen», que se
  * dicen así; la porción es «serving». «Sin X» es «Walang X», igual en el panel
@@ -23,7 +23,7 @@
  * arriba, que en español es «De chef», «Pang-chef». «Sin restricciones» es
  * «Walang bawal», como se dice de una dieta en filipino; lo que no decide nada
  * es «Kahit ilan», «Kahit gaano katagal», «Kahit ano». «Tiempo» es «Tagal» (lo
- * que dura, glosario Weë Studio) y «Todo» (los valores nutricionales), «Lahat
+ * que dura, glosario WeëStudio) y «Todo» (los valores nutricionales), «Lahat
  * ng impormasyon», no el filtro «Lahat». Las cifras no llevan enlace: «15
  * minuto» (§ 8.3: el 15 acaba en vocal).
  *

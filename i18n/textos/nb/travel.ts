@@ -4,7 +4,7 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * Se tutea («du»), las comillas son «…» y la IA en prosa es «KI». Los nombres de Weë (Weë, WeëTravel, Weë Brain,
- * Weë Studio, Weëls), «Travel Safe» y la etiqueta «DEMO» no se traducen. Los lugares van con su nombre noruego
+ * WeëStudio, Weëls), «Travel Safe» y la etiqueta «DEMO» no se traducen. Los lugares van con su nombre noruego
  * («Lisboa», «Reykjavík», «Marrakech»); los platos, con su nombre local.
  */
 export const travel: typeof import('../es/travel').travel = {
@@ -743,9 +743,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Hva var det beste i dag?',
   saveEntry: 'Lagre innlegg',
   journalEmpty: 'Dagboken din er tom. Skriv det første innlegget.',
-  videoMemoriesDemo: 'DEMO: videoene lages i Weë Studio, med dine egne bilder og klipp.',
+  videoMemoriesDemo: 'DEMO: videoene lages i WeëStudio, med dine egne bilder og klipp.',
   videoOf: 'Videoen fra {{viaje}}',
-  createInStudio: 'Lag i Weë Studio',
+  createInStudio: 'Lag i WeëStudio',
   countriesVisited_one: '{{contador}} land besøkt',
   countriesVisited_other: '{{contador}} land besøkt',
   recapTitle: 'Reisen din til {{viaje}}',

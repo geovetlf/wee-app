@@ -5,7 +5,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { scale } from '../../utils/scale';
 
 /*
- * ─── El distintivo de Weë Travel ────────────────────────────────────────────
+ * ─── El distintivo de WeëTravel ────────────────────────────────────────────
  *
  * Un emoji suelto delante del título es lo que pone quien todavía no ha decidido
  * cómo se llama una cosa. Aquí Travel tiene marca propia: un mundo dentro de una

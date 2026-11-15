@@ -26,7 +26,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Hiện các tùy chọn đăng bài',
   hideOptions: 'Ẩn các tùy chọn đăng bài',
   currentDestination: '{{destino}}, nơi đăng hiện tại',
-  generalWall: 'Wäll chung',
+  generalWall: 'Ẅall chung',
   placeholderPollExtra: 'Thêm điều gì đó nếu bạn muốn (không bắt buộc)…',
   placeholderQuestion: 'Bạn muốn hỏi cộng đồng điều gì?',
   placeholderWeel: 'Kể về những gì bạn đã tạo cho Weël của mình và bằng AI nào…',

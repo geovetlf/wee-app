@@ -179,11 +179,11 @@ export const business: typeof import('../es/business').business = {
   share: '공유',
   shareHint: '휴대폰의 공유 창이 열려요. 원하는 앱을 고르세요.',
   shareToWee: 'Weë에 공유',
-  shareWall: '내 Wäll',
+  shareWall: '내 Ẅall',
   shareCommunities: '커뮤니티',
   shareProfile: 'Business Profile',
   shareNothing: '먼저 무언가를 만들면 여기에서 공유할 수 있어요.',
-  shareText: 'Weë Fashion으로 만들었어요',
+  shareText: 'WeëFashion으로 만들었어요',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: '내 데이터 올리기',

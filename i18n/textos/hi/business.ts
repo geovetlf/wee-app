@@ -186,11 +186,11 @@ export const business: typeof import('../es/business').business = {
   share: 'शेयर करें',
   shareHint: 'आपके फ़ोन का शेयर मेन्यू खुलता है: जो ऐप चाहें, उसे चुनें.',
   shareToWee: 'Weë पर शेयर करें',
-  shareWall: 'मेरा Wäll',
+  shareWall: 'मेरा Ẅall',
   shareCommunities: 'कम्यूनिटी',
   shareProfile: 'Business Profile',
   shareNothing: 'पहले कुछ बनाएँ, फिर उसे यहाँ से शेयर करें.',
-  shareText: 'Weë Fashion से बनाया गया',
+  shareText: 'WeëFashion से बनाया गया',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'अपना डेटा अपलोड करें',

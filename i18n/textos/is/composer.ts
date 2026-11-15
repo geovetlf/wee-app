@@ -7,7 +7,7 @@
  * Publicar es «Birta» y la publicación, «færsla» (glosario § 4). La encuesta es «könnun» y cada opción, «valkostur»;
  * mencionar es «minnast á» (pendiente, guía § 6). «Ubicación» (GPS) es «staðsetning» y «lugar» (lo etiquetado),
  * «staður». El watermark es «vatnsmerki». «Face swap» es «andlitsskipti» (pendiente de confirmación nativa).
- * El muro se nombra con sustantivo puente: «Wäll-veggurinn» (la marca intacta, el artículo en la parte islandesa).
+ * El muro se nombra con sustantivo puente: «Ẅall-veggurinn» (la marca intacta, el artículo en la parte islandesa).
  * «PUBLICAR EN» va en mayúsculas porque así lo escribe el español. {{lugar}}, {{lista}} y {{pais}} quedan en
  * nominativo (tras dos puntos o como sujeto) para no declinarlos.
  *
@@ -36,7 +36,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Sýna birtingarvalkostina',
   hideOptions: 'Fela birtingarvalkostina',
   currentDestination: '{{destino}}, núverandi áfangastaður',
-  generalWall: 'Almenni Wäll-veggurinn',
+  generalWall: 'Almenni Ẅall-veggurinn',
   placeholderPollExtra: 'Bættu einhverju við ef þú vilt (valfrjálst)…',
   placeholderQuestion: 'Hvað viltu spyrja samfélagið?',
   placeholderWeel: 'Segðu frá því sem þú bjóst til fyrir Weël-myndbandið þitt og með hvaða gervigreind…',

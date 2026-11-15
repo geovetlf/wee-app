@@ -10,7 +10,7 @@
  *
  * LAS MARCAS NO PASAN A HANZI. "Credits" es la moneda de Weë y NUNCA es «積分»,
  * «點數», «點券» ni «信用點»; el SALDO sí es chino («餘額», «還剩»). "Weë Brain"
- * tampoco es «大腦», ni "Weë Travel" «旅行».
+ * tampoco es «大腦», ni "WeëTravel" «旅行».
  *
  * TAIWÁN, NO UNA CONVERSIÓN DEL SIMPLIFICADO. Lo que cambia no son los trazos
  * sino las palabras: un vídeo es «影片» (no «視頻»), un proyecto «專案» (no
@@ -26,7 +26,7 @@
  * en la forma `_one`, que en español no lo tenía: si no, la cifra desaparecería.
  *
  * ESPACIADO: un espacio entre hanzi y latín o cifras («還剩 {{saldo}} Credits»,
- * «開啟 Weë Travel»), ninguno entre palabras chinas, y puntuación de ancho
+ * «開啟 WeëTravel»), ninguno entre palabras chinas, y puntuación de ancho
  * completo （。，、：？！）.
  */
 export const weeai: typeof import('../es/weeai').weeai = {
@@ -166,10 +166,10 @@ export const weeai: typeof import('../es/weeai').weeai = {
   couldNotCalculateRetry: '我們沒能算出費用，請再試一次。',
   expandSection: '{{titulo}}。查看{{contenido}}',
   collapseSection: '{{titulo}}。隱藏{{contenido}}',
-  openTravel_one: '{{titulo}}。開啟 Weë Travel：寫下你的旅行，以及 {{contador}} 種開始方式',
-  openTravel_other: '{{titulo}}。開啟 Weë Travel：寫下你的旅行，以及 {{contador}} 種開始方式',
-  closeTravel_one: '{{titulo}}。隱藏 Weë Travel：寫下你的旅行，以及 {{contador}} 種開始方式',
-  closeTravel_other: '{{titulo}}。隱藏 Weë Travel：寫下你的旅行，以及 {{contador}} 種開始方式',
+  openTravel_one: '{{titulo}}。開啟 WeëTravel：寫下你的旅行，以及 {{contador}} 種開始方式',
+  openTravel_other: '{{titulo}}。開啟 WeëTravel：寫下你的旅行，以及 {{contador}} 種開始方式',
+  closeTravel_one: '{{titulo}}。隱藏 WeëTravel：寫下你的旅行，以及 {{contador}} 種開始方式',
+  closeTravel_other: '{{titulo}}。隱藏 WeëTravel：寫下你的旅行，以及 {{contador}} 種開始方式',
   tellWeeTheTrip: '把旅行計畫告訴 Weë',
   theMotto: '結果你來選，AI 由 Weë 來選。',
   trySearchWords: '試試這些詞：logo、影片、照片、文案、歌曲、造型、食譜、居家、生意。也可以直接問 Weë Brain。',
@@ -247,7 +247,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   durationSeconds: '{{segundos}} 秒',
   volumeDiscount: '數量優惠 −{{descuento}}%',
   createWork: '開始創作',
-  /* ── Weë Travel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
+  /* ── WeëTravel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
   travelHeroLine1: '和去過的人',
   travelHeroLine2: '一起',
   travelHeroAccent: '規劃你的旅行。',

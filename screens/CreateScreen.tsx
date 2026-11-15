@@ -254,7 +254,7 @@ const CreateScreen: React.FC = () => {
    * DÓNDE QUIERE APARECER ESTA PUBLICACIÓN.
    *
    * Arranca con el sitio desde el que se abrió el compositor: si vienes del muro
-   * de Weë Travel, Travel viene marcado; si vienes del muro general, el muro
+   * de WeëTravel, Travel viene marcado; si vienes del muro general, el muro
    * general. Es lo que la persona estaba mirando, así que es la apuesta correcta
    * —pero solo una apuesta: se puede quitar y se puede añadir todo lo demás.
    *
@@ -1036,7 +1036,7 @@ const CreateScreen: React.FC = () => {
    * dedo al marcar el segundo.
    */
   /*
-   * Los nombres de sección son marca —"Weë Chef" se escribe igual en todos los
+   * Los nombres de sección son marca —"WeëChef" se escribe igual en todos los
    * idiomas—; el muro general es una descripción y trae su clave.
    */
   const nombreDelDestino = (destino: { nombre: string; clave?: string }) =>
@@ -1049,7 +1049,7 @@ const CreateScreen: React.FC = () => {
    * su sección de Weë AI —la de siempre, no un segundo creador— y lo creado vuelve
    * aquí por «Mis proyectos». Los nombres son marca y los iconos, los del menú.
    */
-  /* Decisión del dueño (2026-11-05): sale Weë Writer y entra Weë Fashion (id histórico 'business'). */
+  /* Decisión del dueño (2026-11-05): sale Weë Writer y entra WeëFashion (id histórico 'business'). */
   const CREAR_CON_IA = ['studio', 'design', 'photo', 'business', 'music'] as const;
   const renderCrearConIA = () => (
     <View style={styles.crearIA}>

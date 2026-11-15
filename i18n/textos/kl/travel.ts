@@ -4,7 +4,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Kalaallisut, NO danés: ni æ/ø/å ni palabras danesas. Mismas decisiones que weeai.ts: botones en imperativo 2sg,
- * marcas sin sufijo (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls), huecos en absolutivo o tras dos puntos, números
+ * marcas sin sufijo (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls), huecos en absolutivo o tras dos puntos, números
  * delante del sustantivo (`_one` singular, `_other` plural) y comillas »…«. «DEMO» y «Travel Safe» no se traducen.
  * viaje = angalaneq; destino = angalaffissaq; itinerario = angalanissap aqqutaa; presupuesto = aningaasartuutissat.
  * Casi todo «pendiente de confirmación nativa» (guía §6).
@@ -745,9 +745,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Ullumi suna nuannernerpaavoq?',
   saveEntry: 'Allagaq toqqoruk',
   journalEmpty: 'Ullormut allattuiffiit imaqanngilaq. Allagaq siulleq allaguk.',
-  videoMemoriesDemo: 'DEMO: videot Weë Studio atorlugu pilersinneqartarput, assitit videollu nammineq pigisatit atorlugit.',
+  videoMemoriesDemo: 'DEMO: videot WeëStudio atorlugu pilersinneqartarput, assitit videollu nammineq pigisatit atorlugit.',
   videoOf: 'Angalanerup videoa: {{viaje}}',
-  createInStudio: 'Weë Studio atorlugu pilersiguk',
+  createInStudio: 'WeëStudio atorlugu pilersiguk',
   countriesVisited_one: '{{contador}} nuna pulaarsimasaq',
   countriesVisited_other: '{{contador}} nunat pulaarsimasat',
   recapTitle: 'Angalanerit: {{viaje}}',

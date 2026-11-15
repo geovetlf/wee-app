@@ -1,7 +1,7 @@
 /*
  * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — Páginas (WeëPages) — entidades públicas que se siguen. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Migración de la UI (demo YC) integrada con is/kl, 2026-11-05: traducción de IA, SIN revisión humana nativa.
- * Las marcas (Weë, Credits, ËContact, Boost, Weë Fashion, WeëPages…) no se traducen. Kalaallisut, NO danés; marcas sin sufijo (docs/I18N-GROENLANDES.md).
+ * Las marcas (Weë, Credits, ËContact, Boost, WeëFashion, WeëPages…) no se traducen. Kalaallisut, NO danés; marcas sin sufijo (docs/I18N-GROENLANDES.md).
  */
 export const pages: typeof import('../es/pages').pages = {
   subtitle: 'Qupperneratit pilersikkit aqutsiffigalugillu.',

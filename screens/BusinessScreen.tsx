@@ -72,7 +72,7 @@ const NETWORK_ICON: Record<string, string> = {
  * ── Los módulos no son pantallas ─────────────────────────────────────────────
  *
  * Abrir uno no navega: cambia lo que enseña ESTA pantalla, como las puertas de
- * Weë Studio y los paneles de Weë Chef. Volver es instantáneo, no se acumula una
+ * WeëStudio y los paneles de WeëChef. Volver es instantáneo, no se acumula una
  * pila de rutas y lo escrito se queda donde estaba.
  *
  * ── Qué hay de verdad detrás ─────────────────────────────────────────────────
@@ -264,7 +264,7 @@ const BusinessScreen: React.FC = () => {
 
   /* ── Dentro de un módulo: la portada se aparta y manda el módulo ───────── */
   const panel = (contenido: React.ReactNode) => (
-    <CreatorShell activeId="business" overline="🤖 Weë AI" title="👗 Weë Fashion" breadcrumb="Weë AI" sinFranjaSuperior>
+    <CreatorShell activeId="business" overline="🤖 Weë AI" title="👗 WeëFashion" breadcrumb="Weë AI" sinFranjaSuperior>
       <CabeceraDelModulo
         nombre={modulo ? modulo.nombre : ''}
         pista={modulo ? t(modulo.claveHint) : ''}
@@ -291,12 +291,12 @@ const BusinessScreen: React.FC = () => {
   /*
    * LA CAJA DE WEË AI, CONTESTANDO A UNA FUNCIÓN.
    *
-   * Es la MISMA de Weë Studio y Weë Design —crece con lo escrito, no pierde sus
+   * Es la MISMA de WeëStudio y WeëDesign —crece con lo escrito, no pierde sus
    * botones, se acomoda al teclado—: lo único propio es a qué pregunta contesta.
    */
   if (conversa) {
     return (
-      <CreatorShell activeId="business" overline="🤖 Weë AI" title="👗 Weë Fashion" breadcrumb="Weë AI" sinFranjaSuperior>
+      <CreatorShell activeId="business" overline="🤖 Weë AI" title="👗 WeëFashion" breadcrumb="Weë AI" sinFranjaSuperior>
         <CabeceraDelModulo
           nombre={t(conversa.claveTitulo)}
           pista={t(conversa.claveObjetivo)}
@@ -733,7 +733,7 @@ const BusinessScreen: React.FC = () => {
     <CreatorShell
       activeId="business"
       overline="🤖 Weë AI"
-      title="👗 Weë Fashion"
+      title="👗 WeëFashion"
       breadcrumb="Weë AI"
       /* En el teléfono, arriba solo va la cabecera de la sección (2026-09-15). */
       sinFranjaSuperior
@@ -754,10 +754,10 @@ const BusinessScreen: React.FC = () => {
         módulos son para quien ya sabe a cuál va; la caja es para todos los
         demás, y por eso entra en la primera pantalla sin desplazar.
 
-        Es la MISMA caja de Weë AI que Weë Studio, sin preset: la conversación
+        Es la MISMA caja de Weë AI que WeëStudio, sin preset: la conversación
         guiada pregunta qué quiere hacer y decide por dónde sigue, que es el
         camino que ya existía. El margen negativo la acerca a la cabecera, como
-        en Weë Studio, Weë Design y Weë Chef.
+        en WeëStudio, WeëDesign y WeëChef.
       */}
       <View style={[styles.compositorDeLaPortada, cajaComoEnStudio, pro && styles.compositorPro]}>
         {/*
@@ -767,7 +767,7 @@ const BusinessScreen: React.FC = () => {
 
           Y con la frase CORTA dentro: la larga —"Ejemplo: Quiero vender más este
           mes en mi cafetería…"— ocupaba dos renglones y hacía la caja más alta
-          que la de Weë Studio. Esta es la misma caja; lo que cambiaba era el
+          que la de WeëStudio. Esta es la misma caja; lo que cambiaba era el
           texto que llevaba dentro. La larga sigue viva dentro del módulo Create,
           donde sí hay sitio y ayuda a arrancar.
         */}

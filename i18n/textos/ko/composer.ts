@@ -36,7 +36,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: '게시 옵션 보기',
   hideOptions: '게시 옵션 숨기기',
   currentDestination: '{{destino}}, 현재 게시 대상',
-  generalWall: '전체 Wäll',
+  generalWall: '전체 Ẅall',
   placeholderPollExtra: '덧붙일 말이 있으면 적어주세요 (선택)…',
   placeholderQuestion: '커뮤니티에 무엇을 물어볼까요?',
   placeholderWeel: 'Weël로 무엇을 만들었는지, 어떤 AI를 썼는지 들려주세요…',

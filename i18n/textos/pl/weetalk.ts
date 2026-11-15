@@ -4,7 +4,7 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * Tuteo («ty»), comillas polacas „…” para citar botones. «Prywatnie» cita el
- * botón del Wäll y tiene que coincidir letra por letra con el de allí.
+ * botón del Ẅall y tiene que coincidir letra por letra con el de allí.
  */
 export const weetalk: typeof import('../es/weetalk').weetalk = {
   title: 'WeeTalk',

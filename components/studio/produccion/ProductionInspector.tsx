@@ -58,7 +58,7 @@ const Opciones: React.FC<{
  * (`edit_text`), el clima y el momento del día de una escena
  * (`change_weather`, `change_time_of_day`) y la cámara, el encuadre, el
  * movimiento y la luz (`change_camera`, `change_movement`, `change_lighting`)
- * con el vocabulario de la biblioteca de Weë Studio. Personajes, lugares,
+ * con el vocabulario de la biblioteca de WeëStudio. Personajes, lugares,
  * referencias y la intención se ven, pero no se editan aquí: F1-A todavía no
  * tiene operaciones para ellos, y no se inventan.
  */

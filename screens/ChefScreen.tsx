@@ -40,7 +40,7 @@ const SITIO_DE_LA_BARRA = scale(96);
  * ── Qué es esta pantalla ─────────────────────────────────────────────────────
  *
  * Un sitio de trabajo, no una app de recetas: se entra, se dice qué te apetece
- * y se cocina. Por eso el orden es el mismo de Weë Studio y no otro —cabecera,
+ * y se cocina. Por eso el orden es el mismo de WeëStudio y no otro —cabecera,
  * caja, funciones, lo ya hecho—: es la misma familia, y quien viene de Studio
  * tiene que reconocer esto sin pensar.
  *
@@ -129,7 +129,7 @@ const ChefScreen: React.FC = () => {
    * EL CAMINO DE SIEMPRE, SIN NADA NUEVO DETRÁS.
    *
    * Es el mismo `CreatorFlow` con el mismo `experienceId` y los mismos `preset`
-   * que ya usaba Weë Chef: allí Weë Brain pregunta lo que falte, enseña el plan
+   * que ya usaba WeëChef: allí Weë Brain pregunta lo que falte, enseña el plan
    * y su coste en Credits, y solo entonces se crea.
    */
   const abrirFlujo = useCallback(
@@ -213,7 +213,7 @@ const ChefScreen: React.FC = () => {
   /*
    * ATRÁS CIERRA EL PANEL, NO LA SECCIÓN.
    *
-   * Un panel abierto es un nivel más dentro de Weë Chef, no otra pantalla: si el
+   * Un panel abierto es un nivel más dentro de WeëChef, no otra pantalla: si el
    * gesto de atrás se lo llevara la navegación, saldrías al Home y perderías lo
    * escrito. Mientras hay panel, el gesto vuelve a la caja.
    */
@@ -396,7 +396,7 @@ const ChefScreen: React.FC = () => {
       </EspacioDeEscritura>
 
       {/*
-        Los ajustes de la receta: la misma hoja de Weë Studio con el catálogo de
+        Los ajustes de la receta: la misma hoja de WeëStudio con el catálogo de
         Chef. Se decide todo aquí, sin llamar a nadie y sin gastar un Credit.
       */}
       <AjustesContextuales
@@ -420,7 +420,7 @@ const styles = StyleSheet.create({
   centrado: { width: '100%', alignSelf: 'center', gap: SPACING.xxl, flex: 1 },
   /*
    * LA CAJA, MÁS CERCA DE LA PRESENTACIÓN (decisión del usuario, 2026-09-16,
-   * solo en Weë Chef; el mismo ajuste que ya llevan Weë Studio y Weë Design).
+   * solo en WeëChef; el mismo ajuste que ya llevan WeëStudio y WeëDesign).
    *
    * Entre el último renglón de la cabecera y la caja había 44 puntos: 20 del
    * aire de abajo de la cabecera y 24 del `gap` de esta página. Se recortan aquí
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
 });
 
 /*
- * Weë Chef es de la CUENTA, como el resto del taller: se ve claro lleves puesto
+ * WeëChef es de la CUENTA, como el resto del taller: se ve claro lleves puesto
  * el Perfil Real o el Perfil Weë.
  */
 export default enTemaClaro(ChefScreen);

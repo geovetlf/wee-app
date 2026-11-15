@@ -1,5 +1,5 @@
 /*
- * CROATA — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * CROATA — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tuteo («ti»). Weë, Weëls, WeeTalk y World Encode Entity son marca y van en
@@ -88,8 +88,8 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demo',
   demoBadgeLabel: 'Demo sadržaj',
-  immersiveEmpty: 'Wäll još nema objava',
-  immersiveError: 'Nismo mogli učitati Wäll',
+  immersiveEmpty: 'Ẅall još nema objava',
+  immersiveError: 'Nismo mogli učitati Ẅall',
   immersiveEnd: 'To je sve zasad',
   agreePost: 'Slažem se',
   disagreePost: 'Ne slažem se',

@@ -13,14 +13,14 @@ import { useIdioma } from '../../contexts/IdiomaContext';
 
 /*
  * LA PORTADA DE WEË TRAVEL, COMO EN LA DEMO YC. Todo entra por la conversación de siempre con Weë Brain: una función
- * del catálogo (`onAccion`, con su pregunta ya contestada) o una frase (`onIdea`). Weë Travel no reserva nada, así que la
+ * del catálogo (`onAccion`, con su pregunta ya contestada) o una frase (`onIdea`). WeëTravel no reserva nada, así que la
  * tarjeta del plan completo no promete reservas. Los nombres de los países salen de `Intl.DisplayNames` en el idioma
  * activo (i18n/formato.ts), nunca escritos a mano.
  */
 
 const MASCOTA = require('../../assets/images/sectores/travel-mascota.jpg');
 export interface AccionesDeTravel {
-  /** Una de las funciones de Weë Travel: 'plan' | 'where' | 'doing' | 'moving'. */
+  /** Una de las funciones de WeëTravel: 'plan' | 'where' | 'doing' | 'moving'. */
   onAccion: (id: string) => void;
   onIdea: (texto: string) => void;
 }
@@ -31,7 +31,7 @@ export interface AccionesDeTravel {
  * Una mancha orgánica y lila —esquinas distintas, nada de rectángulo— con el paisaje y el robot de Travel a la
  * derecha, fundidos con el lila, y el mensaje a la izquierda: «Plan your trip with someone» y, en morado eléctrico,
  * «who's been there.». Sin fichas dentro: las cuatro píldoras (Plan, Flights, Hotels, Activities) se retiraron y no
- * se sustituyen; todo eso sigue a un toque en la caja de abajo y en las puertas del cuerpo. Es propio de Weë Travel:
+ * se sustituyen; todo eso sigue a un toque en la caja de abajo y en las puertas del cuerpo. Es propio de WeëTravel:
  * la pieza común `HeroDeSector` de las demás secciones no cambia. Las props se conservan para no tocar quien lo pinta.
  */
 const LILA = '#EEDFFF';

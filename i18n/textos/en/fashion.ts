@@ -1,5 +1,5 @@
 /*
- * Weë Fashion: the home screen and the Composer. "Weë Fashion" is a brand and is never translated.
+ * WeëFashion: the home screen and the Composer. "WeëFashion" is a brand and is never translated.
  *
  * Typed against the Spanish file: a key missing here does not compile. What the person writes (their idea,
  * their references) never goes through the translator.
@@ -101,7 +101,7 @@ export const fashion: typeof import('../es/fashion').fashion = {
   briefIdea: 'My idea: {{texto}}.',
   briefIdk: 'Help me choose.',
   heroTags: 'Fashion · Beauty · Style · Collections',
-  toolsTitle: 'Weë Fashion tools',
+  toolsTitle: 'WeëFashion tools',
   inspirationTitle: 'Inspiration',
   galleryTitle: 'Try the look',
   galClothes: 'Clothes',

@@ -1,5 +1,5 @@
 /*
- * GRIEGO — Weë Design: diseñar y visualizar casi cualquier cosa física.
+ * GRIEGO — WeëDesign: diseñar y visualizar casi cualquier cosa física.
  * Tipado contra el español.
  *
  * «Render» se queda en latino, como lo usan los diseñadores en Grecia. Los

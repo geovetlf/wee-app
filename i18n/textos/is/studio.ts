@@ -1,5 +1,5 @@
 /*
- * ISLANDÉS (is · is-IS) — Weë Studio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
+ * ISLANDÉS (is · is-IS) — WeëStudio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -10,7 +10,7 @@
  * «Aðdráttarlinsa», «Fiskaugalinsa»). Los valores concuerdan con el sustantivo del grupo: luz («ljós», neutro:
  * «Náttúrulegt», «Mjúkt»), composición («myndbygging», femenino: «Samhverf»), ritmo («taktur», masculino: «Hægur»),
  * tono («tónn», masculino), longitud («lengd», femenino: «Löng»), variaciones («útgáfur»: «Ein», «Fjórar»).
- * «Beauty», «Fashion» y «3D World» son nombres de entrada de la familia de marca (Weë Beauty, Weë Fashion) y se
+ * «Beauty», «Fashion» y «3D World» son nombres de entrada de la familia de marca (Weë Beauty, WeëFashion) y se
  * dejan tal cual, como en los demás idiomas; «PDF», «CV» se escriben así en islandés («ferilskrá» se usa en el texto).
  *
  * Traducción hecha por agentes de IA, SIN revisión humana nativa (2026-11-03).
@@ -236,7 +236,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Væntanlegt',
   soonHint: 'Þetta verkfæri á sér þegar stað. Eftir er að tengja það.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Texti',
   textHint: 'Skrifaðu hvaða efni sem er',
   exploreTitle: 'Kanna',

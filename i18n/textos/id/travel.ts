@@ -5,7 +5,7 @@
  *
  * Trato «Anda», como el resto del diccionario; Weë Brain habla en primera persona («saya») y las frases `brainCtx*`
  * son lo que la persona le dice, también con «saya». «Guardados» es «Tersimpan» (glosario § 4). El plural solo
- * tiene «other»: las dos formas son idénticas y llevan {{contador}}. Weë, WeëTravel, Weë Brain, Weë Studio, Weëls,
+ * tiene «other»: las dos formas son idénticas y llevan {{contador}}. Weë, WeëTravel, Weë Brain, WeëStudio, Weëls,
  * Travel Safe y DEMO no se traducen. Traducción de IA, pendiente de revisión nativa.
  */
 export const travel: typeof import('../es/travel').travel = {
@@ -744,9 +744,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Apa yang paling berkesan hari ini?',
   saveEntry: 'Simpan entri',
   journalEmpty: 'Jurnal Anda masih kosong. Tulis entri pertama.',
-  videoMemoriesDemo: 'DEMO: video dibuat di Weë Studio, dengan foto dan klip Anda sendiri.',
+  videoMemoriesDemo: 'DEMO: video dibuat di WeëStudio, dengan foto dan klip Anda sendiri.',
   videoOf: 'Video {{viaje}}',
-  createInStudio: 'Buat di Weë Studio',
+  createInStudio: 'Buat di WeëStudio',
   countriesVisited_one: '{{contador}} negara dikunjungi',
   countriesVisited_other: '{{contador}} negara dikunjungi',
   recapTitle: 'Perjalanan Anda ke {{viaje}}',

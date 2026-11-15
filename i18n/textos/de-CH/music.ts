@@ -1,11 +1,11 @@
-/* de-CH — Weë Music: Startseite, Composer, Workstation und Werkzeuge. Adaptación del alemán base (de/music.ts): ss en lugar de la eszett y comillas «…». «Weë Music» y los nombres de los proveedores son marca. Tipado contra el español. Hecho por agentes, SIN revisión humana nativa. */
+/* de-CH — WeëMusic: Startseite, Composer, Workstation und Werkzeuge. Adaptación del alemán base (de/music.ts): ss en lugar de la eszett y comillas «…». «WeëMusic» y los nombres de los proveedores son marca. Tipado contra el español. Hecho por agentes, SIN revisión humana nativa. */
 export const music: typeof import('../es/music').music = {
   tagline: 'Deine Idee. Dein Sound. Ohne Grenzen.',
   intro: 'Erstelle Songs aus einer Idee, einem Text oder einer Melodie und bearbeite sie Abschnitt für Abschnitt.',
   heroLine: 'Erzähl mir deine Idee oder summ eine Melodie, und wir bereiten deinen Song Schritt für Schritt vor.',
   ctaCreate: 'Musik erstellen',
   chooseTitle: 'Wähle, wie du starten möchtest',
-  skillsTitle: 'Was Weë Music kann',
+  skillsTitle: 'Was WeëMusic kann',
   recentTitle: 'Zuletzt erstellte Songs',
   viewExample: 'Designbeispiel ansehen',
   honestyNote: 'Heute kannst du deinen Song vorbereiten, eine Referenzmelodie aufnehmen und dich von Weë Brain beraten lassen. Das Erstellen des Songs wird aktiviert, sobald es angebunden und geprüft ist.',
@@ -13,7 +13,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Deine gespeicherten Audios und Songs.',
   openProjects: 'Meine Projekte',
   openProjectsHelp: 'Ordne deine Songs in Projekten.',
-  backToMusic: 'Zurück zu Weë Music',
+  backToMusic: 'Zurück zu WeëMusic',
   composerTitle: 'Musik erstellen',
   modesLabel: 'Modus',
   modeSimple: 'Einfach',
@@ -299,7 +299,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Die Audiobearbeitung ist noch ausstehend: Hier wird nur der Vertrag vorbereitet.',
 
   voiceInterpretation: 'Vortragsstil',
-  voiceNoClone: 'Weë Music klont oder imitiert keine Stimmen von Personen: Du wählst nur allgemeine Stimmmerkmale.',
+  voiceNoClone: 'WeëMusic klont oder imitiert keine Stimmen von Personen: Du wählst nur allgemeine Stimmmerkmale.',
   voiceStylePending: 'Der Vortragsstil hängt von der Engine ab und ist noch nicht verfügbar.',
   styleTitle: 'Genre und Stil',
   transformTitle: 'Umwandlungen',

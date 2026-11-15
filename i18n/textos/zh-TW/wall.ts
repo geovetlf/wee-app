@@ -1,5 +1,5 @@
 /*
- * CHINO TRADICIONAL (TAIWÁN) — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * CHINO TRADICIONAL (TAIWÁN) — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -19,8 +19,8 @@
  * `_other`. Lo que sí lleva el chino es clasificador: 票 para los votos, 張 para
  * las imágenes, 天 y 小時 para lo que queda, 則 para las publicaciones.
  *
- * Weë, Wäll, Weëls, Weël y WeeTalk se quedan en alfabeto latino dentro del hanzi:
- * son marca, y eso significa no traducir Y NO PASAR A HANZI. Nada de 牆 por Wäll.
+ * Weë, Ẅall, Weëls, Weël y WeeTalk se quedan en alfabeto latino dentro del hanzi:
+ * son marca, y eso significa no traducir Y NO PASAR A HANZI. Nada de 牆 por Ẅall.
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} 轉發了這則貼文',
@@ -94,9 +94,9 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: '已複製',
   demoBadge: '示範',
   demoBadgeLabel: '示範內容',
-  /* ── El Wäll inmersivo: una publicación a la vez ── */
-  immersiveEmpty: 'Wäll 上還沒有貼文',
-  immersiveError: '無法載入 Wäll',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Ẅall 上還沒有貼文',
+  immersiveError: '無法載入 Ẅall',
   immersiveEnd: '你已經看完了',
   agreePost: '贊同',
   disagreePost: '反對',

@@ -5,7 +5,7 @@ import { ConPlurales } from './plurales';
  * claves que cuentan (droppedTitle, scenes, shots, references, dialogueLines, soundCues) añaden `_two`, `_few` y
  * `_many`, con la mutación en la palabra (lenición 2-6, eclipsis 7-10) y el singular tras el número. Tuteo. La
  * producción es «léiriú», el panel Director es «Stiúrthóir», el plano es «seat», la toma «glacadh» y la escena
- * «radharc». Weë y Weë Studio son marca: en latino y sin mutar. Las claves val*, op*, rec*, req* y per* son los
+ * «radharc». Weë y WeëStudio son marca: en latino y sin mutar. Las claves val*, op*, rec*, req* y per* son los
  * `messageKey` de F1-A y F1-B leídos como claves planas.
  */
 export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> = {
@@ -18,20 +18,20 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   createProduction: 'Cruthaigh léiriú',
   creatingProduction: 'Ag cruthú an léirithe…',
   openProduction: 'Oscail {{titulo}}',
-  goToStudio: 'Téigh go Weë Studio',
+  goToStudio: 'Téigh go WeëStudio',
   loadMore: 'Féach tuilleadh',
   backToList: 'Ar ais chuig do léirithe',
   updatedAgo: 'Nuashonraithe {{cuando}}',
 
   emptyListTitle: 'Níl aon léiriú agat fós',
-  emptyListText: 'Tosaigh i Weë Studio: téigh isteach i bhFíseáin, roghnaigh “Roinnt radharc” agus inis do Weë cén scéal atá uait a insint.',
+  emptyListText: 'Tosaigh i WeëStudio: téigh isteach i bhFíseáin, roghnaigh “Roinnt radharc” agus inis do Weë cén scéal atá uait a insint.',
   emptyArchived: 'Níl aon léiriú i gcartlann agat.',
   emptyStoryboardTitle: 'Níl aon radharc sa léiriú seo fós',
   emptyStoryboardText: 'Cuir an chéad cheann leis agus tóg do scéal seat ar sheat.',
   addFirstScene: 'Cuir an chéad radharc leis',
 
   yourIdea: 'Do smaoineamh',
-  ideaFromStudio: 'Scríobhtar an smaoineamh i Weë Studio. Chun é a athrú, téigh ar ais ansin.',
+  ideaFromStudio: 'Scríobhtar an smaoineamh i WeëStudio. Chun é a athrú, téigh ar ais ansin.',
   whereWillItPlay: 'Cá bhfeicfear é?',
   otherFormat: 'Formáid eile',
   continueOne: 'Nó lean ar aghaidh le ceann de do léirithe',

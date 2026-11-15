@@ -3,7 +3,7 @@
  * Tipado contra el español.
  *
  * Pestañas cortas: «Media» y «Reposts» se quedan (son las palabras de las apps en NL); «Likes» es «Vind-ik-leuks»
- * como el contador del glosario. En frases, «reposten» es «opnieuw plaatsen» como en el Wäll.
+ * como el contador del glosario. En frases, «reposten» es «opnieuw plaatsen» como en el Ẅall.
  */
 export const profile: typeof import('../es/profile').profile = {
   /* ── La portada ──────────────────────────────────────────────────────── */

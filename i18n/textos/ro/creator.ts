@@ -1,7 +1,7 @@
 /*
  * RUMANO — lo que describe cada experiencia de WEË AI. Tipado contra el español.
  *
- * Los nombres —Weë Design, Weë Studio…— son marca y no se traducen.
+ * Los nombres —WeëDesign, WeëStudio…— son marca y no se traducen.
  */
 export const creator: typeof import('../es/creator').creator = {
   design: 'Logouri, postere, ilustrații și materiale pentru rețelele tale',
@@ -48,10 +48,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Nu știu de unde să încep',
   brainEx2: 'Explică-mi asta simplu',
   brainEx3: 'Tradu acest text',
-  areaStudioPhotos: 'Weë Studio · Fotografii',
-  areaStudioVideos: 'Weë Studio · Videoclipuri',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Casă & Design',
+  areaStudioPhotos: 'WeëStudio · Fotografii',
+  areaStudioVideos: 'WeëStudio · Videoclipuri',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Casă & Design',
   areaHomeName: 'Casă & Design',
   tellTheSpecialist: 'Spune-i lui {{especialista}} ce vrei să obții: îți pune două sau trei întrebări simple și se ocupă de rest. Apoi publici direct în comunitatea ta.',
   exampleQuoted: '„{{ejemplo}}”',

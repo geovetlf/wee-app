@@ -1,7 +1,7 @@
 /*
- * RUMANO — Weë Music: portada, Composer, workstation y herramientas. Tipado contra el español.
+ * RUMANO — WeëMusic: portada, Composer, workstation y herramientas. Tipado contra el español.
  *
- * «Weë Music» es marca y no se traduce; tampoco los nombres de los proveedores. «Canción» → «piesă»; «letra» → «versuri»;
+ * «WeëMusic» es marca y no se traduce; tampoco los nombres de los proveedores. «Canción» → «piesă»; «letra» → «versuri»;
  * «pistas separadas» (stems) → «piste separate»; «motor» → «motor» (motor de muzică). Los géneros y términos del oficio
  * que en Rumanía se dicen en inglés (pop, rock, hip-hop, R&B, jazz, folk, intro, outro, jingle, cover, remix, MIDI,
  * solo) se quedan así. Tuteo; botones en imperativo de 2.ª singular; ș y ț con coma. SIN revisión humana nativa.
@@ -12,7 +12,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Spune-mi ideea ta sau cântă o melodie și pregătește-ți piesa pas cu pas.',
   ctaCreate: 'Creează muzică',
   chooseTitle: 'Alege cum începi',
-  skillsTitle: 'Ce poate face Weë Music',
+  skillsTitle: 'Ce poate face WeëMusic',
   recentTitle: 'Piese recente',
   viewExample: 'Vezi un exemplu de design',
   honestyNote: 'Azi îți poți pregăti piesa, poți înregistra o melodie de referință și poți cere îndrumare de la Weë Brain. Crearea piesei va fi activată când va fi conectată și validată.',
@@ -20,7 +20,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Fișierele audio și piesele tale salvate.',
   openProjects: 'Proiectele mele',
   openProjectsHelp: 'Organizează-ți piesele în proiecte.',
-  backToMusic: 'Înapoi la Weë Music',
+  backToMusic: 'Înapoi la WeëMusic',
   composerTitle: 'Creează muzică',
   modesLabel: 'Mod',
   modeSimple: 'Simplu',
@@ -306,7 +306,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Procesarea audio este o funcție încă în așteptare: aici se pregătește doar contractul.',
 
   voiceInterpretation: 'Stil de interpretare',
-  voiceNoClone: 'Weë Music nu clonează și nu imită vocile oamenilor: alege doar caracteristici vocale generale.',
+  voiceNoClone: 'WeëMusic nu clonează și nu imită vocile oamenilor: alege doar caracteristici vocale generale.',
   voiceStylePending: 'Stilul de interpretare depinde de motor și nu este încă disponibil.',
   styleTitle: 'Gen și stil',
   transformTitle: 'Transformări',

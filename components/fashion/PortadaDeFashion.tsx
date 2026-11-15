@@ -9,7 +9,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/
 import { scale } from '../../utils/scale';
 
 /*
- * La portada de Weë Fashion en la demo (referencia del dueño, en blanco y negro): una portada con modelo, «¿qué quieres
+ * La portada de WeëFashion en la demo (referencia del dueño, en blanco y negro): una portada con modelo, «¿qué quieres
  * crear hoy?» con fotos, las herramientas —que son los seis modos de siempre— e inspiración de la comunidad. Todo abre
  * un modo real del composer; las fotos las sirve el modo demo (docs/WEE-DEMO.md).
  */

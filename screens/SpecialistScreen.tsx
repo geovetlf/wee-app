@@ -84,7 +84,7 @@ const SpecialistScreen: React.FC = () => {
   /*
    * ATRÁS PLIEGA LAS HERRAMIENTAS ANTES DE SALIR.
    *
-   * En Weë Travel se entra escribiendo, dentro del desplegable: si el gesto de
+   * En WeëTravel se entra escribiendo, dentro del desplegable: si el gesto de
    * atrás se llevara la sección de un golpe, se iría con el viaje a medio
    * contar. Plegado primero, y desde ahí sí sale. Lo escrito se queda.
    */
@@ -104,28 +104,28 @@ const SpecialistScreen: React.FC = () => {
     return null;
   }
   if (isBrain) return <BrainChatScreen />;
-  /* La sección con el nombre Weë Fashion es de moda (demo YC, decisión del dueño); `business` es solo su id histórico. */
+  /* La sección con el nombre WeëFashion es de moda (demo YC, decisión del dueño); `business` es solo su id histórico. */
   if (id === 'business') return <FashionScreen />;
-  /* "Weë Chef" → "Chef": la cabecera pone la marca y la sección pone su palabra. */
+  /* "WeëChef" → "Chef": la cabecera pone la marca y la sección pone su palabra. */
   const nombreCorto = spec.experience.name.replace(/^Weë\s+/i, '');
   /*
-   * Weë Studio dejó de ser una ficha de especialista y pasó a ser un sitio con
+   * WeëStudio dejó de ser una ficha de especialista y pasó a ser un sitio con
    * pantalla propia. Se entrega aquí —y no cambiando los cinco sitios que
    * navegan a 'Specialist'— para que todas las puertas que ya existían —el ☰,
    * la barra de escritorio, la de Weë AI, la cuadrícula— lleven al Studio nuevo
    * sin tocar ninguna. La dirección /studio va a la misma pantalla.
    */
   if (id === 'studio') return <StudioScreen />;
-  /* Y Weë Design, por la misma razón: todas las puertas que ya existían llegan al sitio nuevo. */
+  /* Y WeëDesign, por la misma razón: todas las puertas que ya existían llegan al sitio nuevo. */
   if (id === 'design') return <DesignScreen />;
-  /* Y Weë Chef, desde el 2026-09-15: su sitio de trabajo, con la misma estructura. */
+  /* Y WeëChef, desde el 2026-09-15: su sitio de trabajo, con la misma estructura. */
   if (id === 'chef') return <ChefScreen />;
-  /* Weë Music: portada, Composer y workstation propios (screens/MusicScreen.tsx). */
+  /* WeëMusic: portada, Composer y workstation propios (screens/MusicScreen.tsx). */
   if (id === 'music') return <MusicScreen />;
 
   /*
    * `opens` deja que una acción abra la conversación de otra experiencia. Lo usa
-   * Weë Studio para sus tres áreas: "Fotos" abre Weë Photo, "Beauty" abre Weë
+   * WeëStudio para sus tres áreas: "Fotos" abre Weë Photo, "Beauty" abre Weë
    * Beauty. Sin `opens` —las otras siete secciones— se abre la propia, exactamente
    * como antes.
    */
@@ -153,14 +153,14 @@ const SpecialistScreen: React.FC = () => {
   const handleExample = (example: SpecialistExample) => startFlow(example.subtitle ? `${example.title} · ${example.subtitle}` : example.title);
 
   /*
-   * Las secciones con muro (hoy solo Weë Chef) se leen de arriba abajo como una
+   * Las secciones con muro (hoy solo WeëChef) se leen de arriba abajo como una
    * comunidad con herramientas dentro: cabecera baja → herramientas plegadas →
    * el muro. Todo lo demás —tus creaciones, los ejemplos— es complementario y va
    * después, para no competir con lo que publica la gente.
    */
 
   /*
-   * Secciones que entran por una sola tarjeta (hoy Weë Travel, fase 2E-69). El
+   * Secciones que entran por una sola tarjeta (hoy WeëTravel, fase 2E-69). El
    * nombre, la frase y las funciones caben juntos en una pieza compacta, así que
    * no hay cabecera dentro ni franja aparte: debajo empieza el muro y punto. Se
    * apoya en `ideaFirst`, que es justo lo que distingue a esas secciones —se
@@ -169,7 +169,7 @@ const SpecialistScreen: React.FC = () => {
    */
   const lanzador = !!spec.ideaFirst;
   /*
-   * Weë Travel: la portada de la demo YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3) con su workspace (docs/TRAVEL-WORKPLACE.md),
+   * WeëTravel: la portada de la demo YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3) con su workspace (docs/TRAVEL-WORKPLACE.md),
    * la MISMA en la versión app y en creator (decisión del dueño, 2026-11-06). Solo cambia el marco, que pone CreatorShell.
    */
   const portadaDeTravel = lanzador && spec.id === 'travel';
@@ -187,7 +187,7 @@ const SpecialistScreen: React.FC = () => {
     >
       {/*
         La cabecera de la sección: la W oficial, el nombre y su frase. La misma
-        de Weë Studio y Weë Design, y lo único que hay arriba desde el
+        de WeëStudio y WeëDesign, y lo único que hay arriba desde el
         2026-09-15. Antes había una franja gris con el nombre y, debajo, una
         tarjeta de presentación con sellos e ilustración; la frase se queda, el
         resto sobraba para empezar a crear.
@@ -225,13 +225,13 @@ const SpecialistScreen: React.FC = () => {
 
       {/*
         Y justo debajo, la caja: en Weë AI se entra diciendo qué quieres, no
-        eligiendo herramienta. Las que entran por una tarjeta —Weë Travel— la
+        eligiendo herramienta. Las que entran por una tarjeta —WeëTravel— la
         llevan dentro de ella.
       */}
       {!lanzador && <IdeaBox config={spec.idea} onSubmit={(text) => startFlow(text)} />}
 
       {/*
-        Weë Travel entra por la frase, no por la cuadrícula (fase 2E-64C): un
+        WeëTravel entra por la frase, no por la cuadrícula (fase 2E-64C): un
         viaje se cuenta hablando y esa frase ya trae casi todo lo que hace falta.
         Desde 2E-69 la frase y las cuatro funciones viven en la misma tarjeta, así
         que entre la cabecera y el muro solo hay una pieza.
@@ -319,7 +319,7 @@ const SpecialistScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  /* La portada de Weë Travel de la demo YC: el héroe y el cuerpo salen del aire del marco; la caja sube sobre el fundido. */
+  /* La portada de WeëTravel de la demo YC: el héroe y el cuerpo salen del aire del marco; la caja sube sobre el fundido. */
   portada: { marginBottom: -scale(30), marginHorizontal: -SPACING.lg },
   cajaDeTravel: { marginBottom: SPACING.xl },
   cuerpoDeTravel: { gap: SPACING.xxl, marginHorizontal: -SPACING.lg, paddingBottom: SPACING.xl },

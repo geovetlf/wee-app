@@ -2,7 +2,7 @@
  * WEË STUDIO — el sitio donde se crea, en bosnio (bs-BA, ijekaviano, latino).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tuteo («ti») e imperativo de 2.ª singular en los botones. "Weë Studio",
+ * Tuteo («ti») e imperativo de 2.ª singular en los botones. "WeëStudio",
  * "Writer", "Beauty", "Fashion" y "3D World" son marca y no se traducen; los
  * formatos —PDF, MP4— tampoco. Los segundos van en «s», que es la abreviatura
  * bosnia de «sekunda».
@@ -238,7 +238,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   soon: 'Uskoro',
   soonHint: 'Ovaj alat već ima svoje mjesto. Još ga treba povezati.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Tekst',
   textHint: 'Piši bilo kakav sadržaj',
   exploreTitle: 'Istraži',

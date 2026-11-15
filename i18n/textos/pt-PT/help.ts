@@ -12,7 +12,7 @@
  * Lo legal va con el término exacto ("Termos de Serviço", "Política de
  * Privacidade"); los nombres de Weë, los especialistas y el símbolo ☰ se
  * copian tal cual. `a5` cita el botón de Weë AI ("Guardar num projeto") y `q9` el
- * del Wäll ("Como eu fiz"), siempre con las mismas palabras que esos módulos.
+ * del Ẅall ("Como eu fiz"), siempre con las mismas palabras que esos módulos.
  * Apóstrofo tipográfico ’ siempre.
  */
 export const help: typeof import('../es/help').help = {

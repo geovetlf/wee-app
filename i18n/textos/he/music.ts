@@ -1,7 +1,7 @@
 /*
- * HEBREO — Weë Music: portada, Composer, workstation y herramientas. Tipado contra el español.
+ * HEBREO — WeëMusic: portada, Composer, workstation y herramientas. Tipado contra el español.
  *
- * «Weë Music», «Weë Brain», «Credits», «WeeTalk» e «iPhone» quedan en latino, con guion ante prefijo («ב-WeeTalk»); también
+ * «WeëMusic», «Weë Brain», «Credits», «WeeTalk» e «iPhone» quedan en latino, con guion ante prefijo («ב-WeeTalk»); también
  * MP3, WAV, M4A, MIDI, R&B y dB. Botones como sustantivo de acción («שמירה», «ניגון», «ייצוא»); instrucciones impersonales
  * («אפשר…», «כדאי…»). Donde no hay escapatoria, forma con barra («לא יודע/ת», «בחר/י»), anotada para el revisor.
  * Secciones de la canción: בית (verso), פזמון (coro), גשר (puente), קטע מעבר (interludio). «Pistas separadas» = ערוצים נפרדים.
@@ -13,7 +13,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'אפשר לספר את הרעיון או לזמזם מנגינה, ולהכין את השיר צעד אחר צעד.',
   ctaCreate: 'יצירת מוזיקה',
   chooseTitle: 'איך מתחילים?',
-  skillsTitle: 'מה Weë Music יודע לעשות',
+  skillsTitle: 'מה WeëMusic יודע לעשות',
   recentTitle: 'שירים אחרונים',
   viewExample: 'צפייה בדוגמת עיצוב',
   honestyNote: 'כבר היום אפשר להכין את השיר, להקליט מנגינת רפרנס ולבקש הכוונה מ-Weë Brain. יצירת השיר עצמו תופעל כשתהיה מחוברת ומאומתת.',
@@ -21,7 +21,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'קובצי האודיו והשירים ששמרת.',
   openProjects: 'הפרויקטים שלי',
   openProjectsHelp: 'ארגון השירים בפרויקטים.',
-  backToMusic: 'חזרה ל-Weë Music',
+  backToMusic: 'חזרה ל-WeëMusic',
   composerTitle: 'יצירת מוזיקה',
   modesLabel: 'מצב',
   modeSimple: 'פשוט',
@@ -307,7 +307,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'עיבוד אודיו הוא יכולת שעדיין ממתינה: כאן רק מכינים את החוזה.',
 
   voiceInterpretation: 'סגנון ביצוע',
-  voiceNoClone: 'Weë Music לא משכפל ולא מחקה קולות של אנשים: הוא בוחר רק מאפיינים קוליים כלליים.',
+  voiceNoClone: 'WeëMusic לא משכפל ולא מחקה קולות של אנשים: הוא בוחר רק מאפיינים קוליים כלליים.',
   voiceStylePending: 'סגנון הביצוע תלוי במנוע ועדיין לא זמין.',
   styleTitle: 'ז׳אנר וסגנון',
   transformTitle: 'שינויים',

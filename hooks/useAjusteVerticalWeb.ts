@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { FlatList, NativeScrollEvent, NativeSyntheticEvent, Platform } from 'react-native';
 
 /**
- * UNA PÁGINA A LA VEZ TAMBIÉN EN LA WEB (Weëls y el Wäll inmersivo).
+ * UNA PÁGINA A LA VEZ TAMBIÉN EN LA WEB (Weëls y el Ẅall inmersivo).
  *
  * En el teléfono, `pagingEnabled` deja cada publicación encajada en la pantalla. En la web no: la rueda del ratón o el
  * trackpad pueden parar a medio camino entre dos y dejar media de cada una. Aquí, cuando el desplazamiento se detiene,

@@ -1,7 +1,7 @@
 /*
  * WEË CHEF — el sitio donde se cocina.
  *
- * Irlandés. "Weë Chef" es marca y no se traduce; lo que comparte con Weë
+ * Irlandés. "WeëChef" es marca y no se traduce; lo que comparte con Weë
  * Studio ("Ver todos", "Ajustes", "Listo") vive en `studio`, y las siete
  * funciones que ya existían siguen en `weeai`.
  */

@@ -16,7 +16,7 @@
  * «Direktor» (la grafía filipina corriente) y dirigir es «idirek»: «Idirek ang {{nombre}}». Los personajes son
  * «Mga karakter» (como en `studio`), su vestuario, «kasuotan», el diálogo, «diyalogo» (como `studio.wrDialogue`), y una
  * línea de diálogo, «linya ng diyalogo». El sonido es «tunog»; el ambiente, «Tunog ng paligid». La duración es «tagal»
- * (glosario, Weë Studio): «Target na tagal», «Kabuuang tagal». El coste es «Halaga» y el precio, «presyo» (glosario
+ * (glosario, WeëStudio): «Target na tagal», «Kabuuang tagal». El coste es «Halaga» y el precio, «presyo» (glosario
  * § 11.9). Lo que el español llama «entrega» (lo que se exporta para una red) es «export», para no confundirlo con el
  * «delivery» de Weë Business. «Sujeto» es lo que se está filmando: «Kinukunan: {{valor}}».
  *
@@ -33,7 +33,7 @@
  * «Grupo», «Bagay», «Detalye», «Paligid».
  *
  * LAS CIFRAS. Los segundos se escriben «seg.», la unidad corta que escribe `Intl` en filipino (§ 8.1) y la misma que
- * pinta la línea de tiempo (`useSegundos`) y las duraciones de Weë Studio (`studio.valSec5`: «5 seg.»); medida con un
+ * pinta la línea de tiempo (`useSegundos`) y las duraciones de WeëStudio (`studio.valSec5`: «5 seg.»); medida con un
  * verbo, «nang» de medida (§ 5.3): «Pahabain nang {{segundos}} seg.», «Tumatagal nang {{totalSec}} seg. ang produksyon».
  * Los plurales ponen el enlace `na` en `_other` tras `{{contador}}` (§ 8.3): «3 eksena» / «4 na eksena». En los
  * mensajes del dominio, que traen cifras sin plural ({{scenes}}, {{actions}}), la frase se reescribe para que la cifra
@@ -45,7 +45,7 @@
  *
  * Se escriben igual que en español o en inglés porque no se traducen o ya son la palabra filipina: TikTok, YouTube,
  * YouTube Shorts y Stories (plataformas y sus formatos), «Format», «Storyboard», «Timeline», «Aspect ratio», «Draft»,
- * «Standard», «Audio», «Grupo» y la pieza «{{donde}}: {{frase}}». Weë, Weë Studio y Credits son marca y no llevan
+ * «Standard», «Audio», «Grupo» y la pieza «{{donde}}: {{frase}}». Weë, WeëStudio y Credits son marca y no llevan
  * nada pegado («ang Weë account mo»).
  */
 export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
@@ -58,20 +58,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'Gumawa ng produksyon',
   creatingProduction: 'Ginagawa ang produksyon…',
   openProduction: 'Buksan ang {{titulo}}',
-  goToStudio: 'Pumunta sa Weë Studio',
+  goToStudio: 'Pumunta sa WeëStudio',
   loadMore: 'Tingnan pa',
   backToList: 'Bumalik sa mga produksyon mo',
   updatedAgo: 'Na-update {{cuando}}',
 
   emptyListTitle: 'Wala ka pang produksyon',
-  emptyListText: 'Magsimula sa Weë Studio: buksan ang “Mga video”, piliin ang “Maraming eksena” at sabihin sa Weë kung ano ang gusto mong ikuwento.',
+  emptyListText: 'Magsimula sa WeëStudio: buksan ang “Mga video”, piliin ang “Maraming eksena” at sabihin sa Weë kung ano ang gusto mong ikuwento.',
   emptyArchived: 'Wala kang naka-archive na produksyon.',
   emptyStoryboardTitle: 'Wala pang eksena ang produksyong ito',
   emptyStoryboardText: 'Idagdag ang una at buuin ang kuwento mo nang paisa-isang shot.',
   addFirstScene: 'Idagdag ang unang eksena',
 
   yourIdea: 'Ang ideya mo',
-  ideaFromStudio: 'Sa Weë Studio isinusulat ang ideya. Para baguhin ito, bumalik doon.',
+  ideaFromStudio: 'Sa WeëStudio isinusulat ang ideya. Para baguhin ito, bumalik doon.',
   whereWillItPlay: 'Saan ito mapapanood?',
   otherFormat: 'Ibang format',
   continueOne: 'O ituloy ang isa sa mga produksyon mo',

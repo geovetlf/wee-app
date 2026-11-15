@@ -3,7 +3,7 @@
  *
  * Se trata de «شما» como en el resto del diccionario; las frases `brainCtx*` y los ejemplos entre comillas
  * van en primera persona, porque es la persona quien habla. Se pregunta con «؟». Weë, WeëTravel, Weë Brain,
- * Weë Studio, Weëls, Travel Safe y «DEMO» quedan en latino; los lugares van con su nombre persa habitual.
+ * WeëStudio, Weëls, Travel Safe y «DEMO» quedan en latino; los lugares van con su nombre persa habitual.
  */
 export const travel: typeof import('../es/travel').travel = {
   // Portada
@@ -741,9 +741,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'بهترین بخش امروز چه بود؟',
   saveEntry: 'ذخیرهٔ نوشته',
   journalEmpty: 'دفتر خاطراتتان خالی است. اولین نوشته را بنویسید.',
-  videoMemoriesDemo: 'DEMO: ویدیوها در Weë Studio و با عکس‌ها و کلیپ‌های خودتان ساخته می‌شوند.',
+  videoMemoriesDemo: 'DEMO: ویدیوها در WeëStudio و با عکس‌ها و کلیپ‌های خودتان ساخته می‌شوند.',
   videoOf: 'ویدیوی {{viaje}}',
-  createInStudio: 'ساختن در Weë Studio',
+  createInStudio: 'ساختن در WeëStudio',
   countriesVisited_one: '{{contador}} کشور دیده‌شده',
   countriesVisited_other: '{{contador}} کشور دیده‌شده',
   recapTitle: 'سفر شما به {{viaje}}',

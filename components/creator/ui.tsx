@@ -73,7 +73,7 @@ export const Handwritten: React.FC<{ text: string; align?: 'left' | 'right' | 'c
  * alta si está abierto o cerrado, y lo que hay dentro entra con una transición
  * corta en vez de aparecer de golpe.
  *
- * Lo estrena Weë Chef (fase 2E-41): con las herramientas cerradas, la comunidad
+ * Lo estrena WeëChef (fase 2E-41): con las herramientas cerradas, la comunidad
  * sube casi media pantalla.
  */
 export const Collapsible: React.FC<{
@@ -149,10 +149,10 @@ export interface BannerAction {
  * Franja de cierre con una llamada a la acción.
  *
  * Tres formas, de la más simple a la más explícita:
- *  · `button` — un solo camino (Weë Home, Weë Music).
+ *  · `button` — un solo camino (Weë Home, WeëMusic).
  *  · `secondaryButton` — dos caminos con la etiqueta como única explicación.
  *  · `actions` — dos o más caminos, cada uno con su icono y su frase de qué hace.
- *    Es lo que usa Weë Chef: una foto sirve para cocinar con lo que hay o para
+ *    Es lo que usa WeëChef: una foto sirve para cocinar con lo que hay o para
  *    retocar el plato, y el nombre del botón por sí solo no lo dejaba claro.
  *
  * `compact` reduce la altura para que el bloque no compita con el muro social.

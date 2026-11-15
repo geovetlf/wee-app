@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 /**
  * LOS TÍTULOS DE WEË VERSIÓN CREATOR, EN EL SENTIDO DE LA INTERFAZ.
  *
- * En árabe o hebreo, el nombre de una sección —«Weë Music», «Weë Chef»— es marca y
+ * En árabe o hebreo, el nombre de una sección —«WeëMusic», «WeëChef»— es marca y
  * va en letras latinas. React Native Web pinta cada título con `dir="auto"`, así
  * que el navegador lo lee como texto de izquierda a derecha y lo pega a la
  * izquierda, mientras la descripción traducida, debajo, empieza a la derecha.

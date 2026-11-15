@@ -1,6 +1,6 @@
 /*
  * CATALÁN — Weë versión creator: su marco y su navegación. Tipado contra el español.
- * Los nombres de las secciones (Weë Studio, Weë Design…) son marca y no pasan por aquí. «creator» y «app» se dejan
+ * Los nombres de las secciones (WeëStudio, WeëDesign…) son marca y no pasan por aquí. «creator» y «app» se dejan
  * como en el castellano (préstamo): «Weë versió creator».
  */
 export const profesional: typeof import('../es/profesional').profesional = {

@@ -1,5 +1,5 @@
 /*
- * NEERLANDÉS — Lo que describe cada experiencia de WEË AI y sus ejemplos. Los nombres (Weë Design, Weë Studio…)
+ * NEERLANDÉS — Lo que describe cada experiencia de WEË AI y sus ejemplos. Los nombres (WeëDesign, WeëStudio…)
  * son marca y no se traducen. Tipado contra el español.
  *
  * «Beauty» se queda en inglés como en en/de; «Hogar & Diseño» es «Wonen & Design» (como el alemán «Wohnen»).
@@ -50,10 +50,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Ik weet niet waar ik moet beginnen',
   brainEx2: 'Leg dit eenvoudig uit',
   brainEx3: 'Vertaal deze tekst',
-  areaStudioPhotos: 'Weë Studio · Foto\'s',
-  areaStudioVideos: 'Weë Studio · Video\'s',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Wonen & Design',
+  areaStudioPhotos: 'WeëStudio · Foto\'s',
+  areaStudioVideos: 'WeëStudio · Video\'s',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Wonen & Design',
   areaHomeName: 'Wonen & Design',
   tellTheSpecialist: 'Vertel {{especialista}} wat je wilt bereiken: je krijgt twee of drie eenvoudige vragen en de rest wordt voor je geregeld. Daarna plaats je het direct in je community.',
   exampleQuoted: '“{{ejemplo}}”',

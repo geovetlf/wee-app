@@ -73,7 +73,7 @@ const LandingScreen: React.FC = () => {
   const [featuredIndex, setFeaturedIndex] = useState(0);
   const [feedPosts, setFeedPosts] = useState<Post[]>([]);
   /*
-   * El filtro del Wäll: «Para ti» (el muro entero, que es como se entra) o
+   * El filtro del Ẅall: «Para ti» (el muro entero, que es como se entra) o
    * «Creatividad» (lo que viene de las secciones creativas de Weë). Solo acota
    * el muro: no cambia de página ni abre Weëls. La lógica vive en
    * `feedFilters`, compartida con la web.
@@ -107,9 +107,9 @@ const LandingScreen: React.FC = () => {
   /*
    * EL HOME ES UNA SOLA LISTA.
    *
-   * Arriba, quietos, la cabecera y los atajos Wäll · Weëls · Explorar ·
+   * Arriba, quietos, la cabecera y los atajos Ẅall · Weëls · Explorar ·
    * Comunidades; en la lista, la tarjeta de WeëAI, las pastillas y debajo el
-   * Wäll con sus publicaciones. No hay páginas ni gesto de lado: los atajos
+   * Ẅall con sus publicaciones. No hay páginas ni gesto de lado: los atajos
    * NAVEGAN a pantallas que ya existían (rediseño del 2026-11-15).
    */
 
@@ -325,7 +325,7 @@ const LandingScreen: React.FC = () => {
     const tabNavigation = navigation.getParent();
     const mainNavigation = tabNavigation?.getParent();
     if (mainNavigation) {
-      /* Tocar una publicación abre el Wäll inmersivo en ella, con lo que el muro ya tiene cargado (utils/semillaDelMuro.ts). */
+      /* Tocar una publicación abre el Ẅall inmersivo en ella, con lo que el muro ya tiene cargado (utils/semillaDelMuro.ts). */
       const indice = Math.max(0, filteredFeedPostsRef.current.findIndex((p) => p.id === post.id));
       sembrarMuro({ posts: filteredFeedPostsRef.current, indice, cursor: lastDocRef.current, hayMas: hasMoreRef.current });
       (mainNavigation as any).navigate('Wall');
@@ -391,7 +391,7 @@ const LandingScreen: React.FC = () => {
   }, [user, navigation, handleRegister]);
 
   /*
-   * LOS ATAJOS DE ARRIBA. «Wäll» es esta pantalla: tocarlo sube al principio.
+   * LOS ATAJOS DE ARRIBA. «Ẅall» es esta pantalla: tocarlo sube al principio.
    * Los otros tres abren lo de siempre: el visor de Weëls, la búsqueda —que se
    * llama Explorar— y el explorador de comunidades, que vive en esta pila.
    */
@@ -654,7 +654,7 @@ const LandingScreen: React.FC = () => {
 
   /* El muro, acotado por la pastilla puesta. Con «Para ti», entero. */
   const filteredFeedPosts = useMemo(() => filterBySections(feedPosts, seccionesDelFeed(feedFilter)), [feedPosts, feedFilter]);
-  /* Lo que el Wäll inmersivo recibe al tocar una publicación: el muro tal como se ve, y por dónde seguir. */
+  /* Lo que el Ẅall inmersivo recibe al tocar una publicación: el muro tal como se ve, y por dónde seguir. */
   const filteredFeedPostsRef = useRef(filteredFeedPosts);
   filteredFeedPostsRef.current = filteredFeedPosts;
   const lastDocRef = useRef(lastDoc);

@@ -1,7 +1,7 @@
 /**
  * LAS TRES CAPAS DE WEË STUDIO.
  *
- *   CAPA 1  EL SITIO      dónde estoy: Weë Studio. Una caja y cuatro entradas.
+ *   CAPA 1  EL SITIO      dónde estoy: WeëStudio. Una caja y cuatro entradas.
  *   CAPA 2  LA EXPERIENCE qué quiero conseguir: un retrato, un timelapse.
  *   CAPA 3  LOS CONTROLES con qué detalle: cámara, luz, movimiento.
  *
@@ -83,13 +83,13 @@ export const ENTRADAS_PRINCIPALES: PuertaDeEntrada[] = [
    * VOZ LLEVA A `music`, y no es un capricho: es lo medido.
    *
    * En todo Weë hay UN plan que produce voz sola —`text.generate` + `voice.tts`,
-   * sin tocar `music.generate`— y vive en la plantilla de Weë Music, cuyo
+   * sin tocar `music.generate`— y vive en la plantilla de WeëMusic, cuyo
    * catálogo incluye «🗣️ Una voz o narración». El otro `voice.tts` que existe
    * es el tercer paso de un plan de vídeo, así que pedir una narración por ahí
    * generaría también un vídeo.
    *
    * Tiene una consecuencia que se dice en vez de taparse: quien entra por Voz
-   * ve «Weë Music» en la cabecera del flujo. No es mentira —esa sección hace
+   * ve «WeëMusic» en la cabecera del flujo. No es mentira —esa sección hace
    * narraciones— pero tampoco es lo que esperaba. Separarlo exige sacar la rama
    * de voz a su propia plantilla, que es servidor y es otra fase.
    */
@@ -227,7 +227,7 @@ const ENSENAR_ALGO = { questionId: 'type', optionId: 'promo' } as const;
 /**
  * Lo que elegir una experiencia de VOZ ya contesta.
  *
- * `DECIR_ALGO` es «una voz o narración» en el catálogo de Weë Music, que es lo
+ * `DECIR_ALGO` es «una voz o narración» en el catálogo de WeëMusic, que es lo
  * que separa un plan de voz sola de uno que además compone una canción. Sin
  * ella, «Lectura» —que no lleva ninguna palabra que suene a voz— acababa
  * pidiendo `music.generate`, que está PENDIENTE, más una portada.
@@ -274,7 +274,7 @@ export const EXPERIENCIAS_DE_IMAGEN: ExperienciaDeStudio[] = [
  * más controles hay: quince maneras de empezar, y cada una abre solo las suyas.
  *
  * Travel Time es una experiencia de vídeo del Studio —un viaje contado en
- * imágenes— y NO es Weë Travel, que es el lugar de trabajo donde se planifica
+ * imágenes— y NO es WeëTravel, que es el lugar de trabajo donde se planifica
  * un viaje de verdad. Comparten la palabra y nada más.
  */
 export const EXPERIENCIAS_DE_VIDEO: ExperienciaDeStudio[] = [

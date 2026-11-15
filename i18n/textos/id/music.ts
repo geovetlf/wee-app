@@ -1,7 +1,7 @@
 /*
- * INDONESIO — Weë Music: portada, Composer, workstation y herramientas. Tipado contra el español.
+ * INDONESIO — WeëMusic: portada, Composer, workstation y herramientas. Tipado contra el español.
  *
- * «Weë Music» es marca y no se traduce; tampoco los nombres de los proveedores. «Canción» → «lagu»; «letra» → «lirik»;
+ * «WeëMusic» es marca y no se traduce; tampoco los nombres de los proveedores. «Canción» → «lagu»; «letra» → «lirik»;
  * «pistas separadas» (stems) → «trek terpisah»; «motor» → «mesin»; «borrador» → «draf»; «proveedor» → «penyedia».
  * Los géneros y términos del oficio que en Indonesia se dicen en inglés (pop, rock, hip-hop, R&B, jazz, folk, intro,
  * outro, jingle, cover, remix, MIDI, solo, tempo) se quedan así. Trato «Anda». SIN revisión humana nativa.
@@ -12,7 +12,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Ceritakan ide Anda atau nyanyikan sebuah melodi, lalu siapkan lagu Anda langkah demi langkah.',
   ctaCreate: 'Buat musik',
   chooseTitle: 'Pilih cara memulai',
-  skillsTitle: 'Yang bisa dilakukan Weë Music',
+  skillsTitle: 'Yang bisa dilakukan WeëMusic',
   recentTitle: 'Lagu terbaru',
   viewExample: 'Lihat contoh desain',
   honestyNote: 'Saat ini Anda bisa menyiapkan lagu, merekam melodi referensi, dan meminta arahan dari Weë Brain. Pembuatan lagu akan diaktifkan setelah terhubung dan tervalidasi.',
@@ -20,7 +20,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Audio dan lagu yang Anda simpan.',
   openProjects: 'Proyek Saya',
   openProjectsHelp: 'Atur lagu Anda dalam proyek.',
-  backToMusic: 'Kembali ke Weë Music',
+  backToMusic: 'Kembali ke WeëMusic',
   composerTitle: 'Buat musik',
   modesLabel: 'Mode',
   modeSimple: 'Sederhana',
@@ -306,7 +306,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Pemrosesan audio adalah kemampuan yang masih tertunda: di sini hanya kontraknya yang disiapkan.',
 
   voiceInterpretation: 'Gaya interpretasi',
-  voiceNoClone: 'Weë Music tidak mengkloning atau meniru suara orang: hanya memilih karakteristik vokal umum.',
+  voiceNoClone: 'WeëMusic tidak mengkloning atau meniru suara orang: hanya memilih karakteristik vokal umum.',
   voiceStylePending: 'Gaya interpretasi bergantung pada mesin dan belum tersedia.',
   styleTitle: 'Genre dan gaya',
   transformTitle: 'Transformasi',

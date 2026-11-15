@@ -1,5 +1,5 @@
 /*
- * VIETNAMITA — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * VIETNAMITA — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  */
@@ -76,8 +76,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demo',
   demoBadgeLabel: 'Nội dung demo',
-  immersiveEmpty: 'Chưa có bài viết nào trên Wäll',
-  immersiveError: 'Không thể tải Wäll',
+  immersiveEmpty: 'Chưa có bài viết nào trên Ẅall',
+  immersiveError: 'Không thể tải Ẅall',
   immersiveEnd: 'Bạn đã xem hết rồi',
   agreePost: 'Đồng ý',
   disagreePost: 'Không đồng ý',

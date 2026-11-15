@@ -1,7 +1,7 @@
 /*
- * el — Weë Fashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * el — WeëFashion — la sección de moda de Weë AI. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa.
- * Las marcas (Weë, Credits, ËContact, Boost, Weë Fashion, WeëPages…) no se traducen.
+ * Las marcas (Weë, Credits, ËContact, Boost, WeëFashion, WeëPages…) no se traducen.
  */
 export const fashion: typeof import('../es/fashion').fashion = {
   tagline: 'Το στιλ σου. Το όραμά σου. Ο κόσμος σου.',
@@ -95,7 +95,7 @@ export const fashion: typeof import('../es/fashion').fashion = {
   briefIdea: 'Η ιδέα μου: {{texto}}.',
   briefIdk: 'Βοήθησέ με να διαλέξω.',
   heroTags: 'Μόδα · Ομορφιά · Στιλ · Συλλογές',
-  toolsTitle: 'Εργαλεία του Weë Fashion',
+  toolsTitle: 'Εργαλεία του WeëFashion',
   inspirationTitle: 'Έμπνευση',
   galleryTitle: 'Δοκίμασε το look',
   galClothes: 'Ρούχα',

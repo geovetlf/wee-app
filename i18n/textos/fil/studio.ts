@@ -1,5 +1,5 @@
 /*
- * FILIPINO — Weë Studio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
+ * FILIPINO — WeëStudio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -7,7 +7,7 @@
  * los botones (glosario 11.2); el lema, que no es un botón, dice «Lumikha», y la pregunta de la caja es la fija del
  * glosario 11.10, «Ano ang gusto mong likhain ngayon?». «Creación» es «likha» y «Mis creaciones», «Mga likha ko»
  * (§ 6); lo que se está haciendo, «Ginagawa…». «Mejorar» es «Pagandahin» y «Entendido», «OK» (el botón que cierra un
- * aviso, glosario 11.2). Los ajustes siguen la fila «Weë Studio (ajustes)» del glosario: «Format», «Kalidad»,
+ * aviso, glosario 11.2). Los ajustes siguen la fila «WeëStudio (ajustes)» del glosario: «Format», «Kalidad»,
  * «Resolution», «Istilo», «Mga variation», «Tagal», «Galaw», «Haba», «Tono», «Laki», «Awtomatiko», «Parisukat»,
  * «Patayo», «Pahiga», «Banayad» (todo «Suave»: movimiento, luz y ritmo), «May galaw», «Magiliw»…
  *
@@ -42,7 +42,7 @@
  * «Text», «Format», «Resolution», «Standard», «Minimalist», «Neutral», «Tono», «Accent», «Makeup», «Outfit»,
  * «Styling», «Portrait», «Cinematic», «Poster», «Brainstorming», «Reference» y los planos de cámara de arriba.
  *
- * QUÉ NO ESTÁ AQUÍ: «Weë Studio» y «Writer», que son marca, ni los formatos —PDF, MP4, 16:9—, que no cambian.
+ * QUÉ NO ESTÁ AQUÍ: «WeëStudio» y «Writer», que son marca, ni los formatos —PDF, MP4, 16:9—, que no cambian.
  */
 export const studio: typeof import('../es/studio').studio = {
   /* ── La cabecera ──────────────────────────────────────────────────────── */
@@ -265,7 +265,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Malapit na',
   soonHint: 'May puwesto na ang tool na ito. Kailangan na lang itong ikonekta.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Text',
   textHint: 'Magsulat ng kahit ano',
   exploreTitle: 'Explore',

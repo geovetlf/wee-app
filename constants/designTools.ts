@@ -7,7 +7,7 @@
  *
  * ── Las categorías son puertas, no límites ───────────────────────────────────
  *
- * Weë Design sirve para diseñar casi cualquier cosa física —una sala, un yate de
+ * WeëDesign sirve para diseñar casi cualquier cosa física —una sala, un yate de
  * quince metros, un avión privado, una silla—, y eso se escribe en el
  * compositor. Estas siete son atajos para quien prefiere empezar por el tipo de
  * cosa. Si algo no encaja en ninguna, no pasa nada: la caja de arriba no pide
@@ -31,7 +31,7 @@ export interface PuertaDeDesign {
   /**
    * Si sale en la portada. Se enseñan seis y no siete: la séptima está a un
    * "Ver todas" de distancia, y una fila más de tarjetas es justo la carga que
-   * Weë Design no quiere delante de alguien que viene a imaginar.
+   * WeëDesign no quiere delante de alguien que viene a imaginar.
    */
   enPortada: boolean;
   /** Por dónde se puede empezar dentro. Pocos, y ninguno obligatorio. */
@@ -106,7 +106,7 @@ export const AJUSTES_DE_DESIGN: AjusteDeStudio[] = [
 /*
  * CREACIONES DE MUESTRA.
  *
- * Mentira, y a propósito, como las del Studio: Weë Design todavía no genera
+ * Mentira, y a propósito, como las del Studio: WeëDesign todavía no genera
  * nada. Cuatro piezas —un interior, una casa, un barco, una silla— para poder
  * juzgar si la galería se entiende. Sin fotos: sin conexión no hay nada que
  * descargar, y una foto de archivo haría pasar por creación algo que no lo es.

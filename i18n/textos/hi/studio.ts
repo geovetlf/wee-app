@@ -1,5 +1,5 @@
 /*
- * HINDI — Weë Studio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
+ * HINDI — WeëStudio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -22,7 +22,7 @@
  * ninguna concuerda con el nombre de su familia. Las del ritmo son invariables (धीरे-धीरे, सामान्य, तेज़, स्मूद, नैचुरल,
  * ज़ोरदार). Lo que el español repite en familias distintas se separa A PROPÓSITO: «Suave» es हल्का en el movimiento de
  * los ajustes (frente a भरपूर, «Con movimiento»), सॉफ़्ट लाइट en la luz y स्मूद en el ritmo; «Natural» es नैचुरल लाइट
- * en la luz, como la luz natural de Weë Design, y नैचुरल en el ritmo. «Normal» es सामान्य en la óptica y en el ritmo,
+ * en la luz, como la luz natural de WeëDesign, y नैचुरल en el ritmo. «Normal» es सामान्य en la óptica y en el ritmo,
  * una sola palabra. «Seguir», el movimiento de cámara, no es seguir a alguien (फ़ॉलो करें).
  *
  * «Creación» es रचना y «Mis creaciones», मेरी रचनाएँ (glosario § 11.7); «personaje» es किरदार, la palabra del cine y de
@@ -33,7 +33,7 @@
  * (5 सेकंड, la forma larga de `Intl`) y no con la abreviatura «से॰», que solo pone `Intl`; «Una» y «Cuatro» son
  * cifras (1, 4), como pide la guía (§ 8). «Creando...» lleva «…», un solo carácter.
  *
- * QUÉ NO ESTÁ AQUÍ: «Weë Studio» y «Writer», que son marca, ni los formatos —PDF, MP4, 16:9—, que no cambian.
+ * QUÉ NO ESTÁ AQUÍ: «WeëStudio» y «Writer», que son marca, ni los formatos —PDF, MP4, 16:9—, que no cambian.
  */
 export const studio: typeof import('../es/studio').studio = {
   /* ── La cabecera ──────────────────────────────────────────────────────── */
@@ -256,7 +256,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'जल्द ही',
   soonHint: 'इस टूल की जगह तैयार है. बस इसे कनेक्ट करना बाकी है.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'टेक्स्ट',
   textHint: 'कुछ भी लिखें',
   exploreTitle: 'एक्सप्लोर',

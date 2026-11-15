@@ -4,7 +4,7 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Portugués de PORTUGAL: trato de «tu», «estar a + infinitivo», «guardar», «partilhar»,
  * «telemóvel», «ecrã», «câmara», «comboio», «autocarro», «elétrico», «itinerário».
- * Los nombres de Weë (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls) y «Travel Safe» no se traducen.
+ * Los nombres de Weë (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls) y «Travel Safe» no se traducen.
  */
 export const travel: typeof import('../es/travel').travel = {
   // Portada
@@ -742,9 +742,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Qual foi o melhor de hoje?',
   saveEntry: 'Guardar entrada',
   journalEmpty: 'O teu diário está vazio. Escreve a primeira entrada.',
-  videoMemoriesDemo: 'DEMO: os vídeos são criados no Weë Studio, com as tuas próprias fotografias e clipes.',
+  videoMemoriesDemo: 'DEMO: os vídeos são criados no WeëStudio, com as tuas próprias fotografias e clipes.',
   videoOf: 'O vídeo de {{viaje}}',
-  createInStudio: 'Criar no Weë Studio',
+  createInStudio: 'Criar no WeëStudio',
   countriesVisited_one: '{{contador}} país visitado',
   countriesVisited_other: '{{contador}} países visitados',
   recapTitle: 'A tua viagem a {{viaje}}',

@@ -3,8 +3,8 @@
  * (bs-BA, ijekaviano, latino).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tuteo («ti»). "Weë Design" es marca y no se traduce; 3D tampoco. Lo que
- * Weë Design comparte con Weë Studio vive en `studio` y se lee de allí.
+ * Tuteo («ti»). "WeëDesign" es marca y no se traduce; 3D tampoco. Lo que
+ * WeëDesign comparte con WeëStudio vive en `studio` y se lee de allí.
  * Los valores de los ajustes concuerdan con su etiqueta: «Stil» (m.),
  * «Materijali» (m. pl.), «Osvjetljenje» (n.).
  */

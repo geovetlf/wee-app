@@ -4,8 +4,8 @@
  * Mismo reparto que los demás idiomas: el tipo `FormaDelDiccionario` sale del español, así que una clave que falte o
  * sobre no compila, y un módulo nuevo del español no compila hasta que exista aquí.
  *
- * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS: las marcas de Weë traducidas (Weë, Wäll, Weëls —nunca «Reels»—, WeeTalk, ËContact,
- * ẄContact, Credits, Weë AI, Weë Studio…) ni lo que escribe una persona.
+ * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS: las marcas de Weë traducidas (Weë, Ẅall, Weëls —nunca «Reels»—, WeeTalk, ËContact,
+ * ẄContact, Credits, Weë AI, WeëStudio…) ni lo que escribe una persona.
  *
  * Traducción hecha por agentes y SIN revisión humana nativa (2026-10-30). Guía y glosario en `docs/I18N-RUMANO.md`.
  */

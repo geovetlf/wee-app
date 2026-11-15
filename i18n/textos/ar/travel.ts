@@ -1,6 +1,6 @@
 /*
  * ÁRABE — WeëTravel, el workspace de viajes (prototipo con datos DEMO). Tipado contra el español.
- * Las marcas (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls), «Travel Safe» y la etiqueta «DEMO» quedan en latino.
+ * Las marcas (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls), «Travel Safe» y la etiqueta «DEMO» quedan en latino.
  * Las claves que cuentan añaden `_two`/`_few`/`_many` como `tripDays` en weeai; en `_one`/`_two` el número va en la
  * palabra (واحد / dual). Se pregunta con «؟». Lugares con su exónimo árabe habitual.
  */
@@ -793,9 +793,9 @@ export const travel: ConPlurales<typeof import('../es/travel').travel> = {
   journalPh: 'ما أجمل ما حدث اليوم؟',
   saveEntry: 'حفظ التدوينة',
   journalEmpty: 'يومياتك فارغة. اكتب أول تدوينة.',
-  videoMemoriesDemo: 'DEMO: تُصنع الفيديوهات في Weë Studio، بصورك ومقاطعك.',
+  videoMemoriesDemo: 'DEMO: تُصنع الفيديوهات في WeëStudio، بصورك ومقاطعك.',
   videoOf: 'فيديو {{viaje}}',
-  createInStudio: 'الإنشاء في Weë Studio',
+  createInStudio: 'الإنشاء في WeëStudio',
   countriesVisited_one: 'زرت بلدًا واحدًا',
   countriesVisited_two: 'زرت بلدين',
   countriesVisited_few: 'زرت {{contador}} بلدان',

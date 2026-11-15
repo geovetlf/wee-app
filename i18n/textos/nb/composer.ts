@@ -12,7 +12,7 @@
  * se deja en inglés, como pide la guía.
  *
  * «PUBLICAR EN» va en mayúsculas porque así lo escribe el español: «PUBLISER I».
- * El muro general es «Felles Wäll»: adjetivo delante de la marca, sin declinarla.
+ * El muro general es «Felles Ẅall»: adjetivo delante de la marca, sin declinarla.
  *
  * Weël es «en Weël», de género común como «en video»: «din Weël», «En Weël kan
  * ikke vare…», «For lang Weël». La marca nunca se declina ni lleva artículo
@@ -50,7 +50,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Vis publiseringsvalgene',
   hideOptions: 'Skjul publiseringsvalgene',
   currentDestination: '{{destino}}, gjeldende mål',
-  generalWall: 'Felles Wäll',
+  generalWall: 'Felles Ẅall',
   placeholderPollExtra: 'Legg til noe mer hvis du vil (valgfritt)…',
   placeholderQuestion: 'Hva vil du spørre fellesskapet om?',
   placeholderWeel: 'Fortell hva du lagde til din Weël, og med hva slags KI…',

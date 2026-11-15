@@ -36,7 +36,7 @@ export interface Question {
    * campo del servidor (functions/src/creator/types.ts).
    *
    * 'dates' pide dos fechas y la pantalla dibuja un calendario. Hoy solo lo usa
-   * Weë Travel: sin este campo se contesta como siempre (fase 2E-65).
+   * WeëTravel: sin este campo se contesta como siempre (fase 2E-65).
    */
   kind?: 'dates';
 }

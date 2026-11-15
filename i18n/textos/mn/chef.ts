@@ -2,7 +2,7 @@
  * MONGOL — WEË CHEF: el sitio donde se cocina.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * «Weë Chef» es marca y no aparece aquí; lo compartido con Weë Studio se lee
+ * «WeëChef» es marca y no aparece aquí; lo compartido con WeëStudio se lee
  * de `studio`, y las siete funciones heredadas siguen en `weeai`.
  */
 export const chef: typeof import('../es/chef').chef = {

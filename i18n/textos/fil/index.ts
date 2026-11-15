@@ -6,11 +6,11 @@
  * falte o sobre en filipino no compila.
  *
  * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS:
- *   · los nombres de Weë —Weë, Wäll, Weëls, WeeTalk, ËContact, ẄContact,
- *     Credits, Weë AI, Weë Studio…—, que son marca y se escriben igual en todos
+ *   · los nombres de Weë —Weë, Ẅall, Weëls, WeeTalk, ËContact, ẄContact,
+ *     Credits, Weë AI, WeëStudio…—, que son marca y se escriben igual en todos
  *     los idiomas. En filipino eso significa también no pegarles afijos ni el
  *     enlace: ni «i-Weë» ni «Weëng»; la marca va con su marcador de cosa
- *     («sa Weë», «ng Weë Studio», «ang Weë AI»), nunca con «si/ni»;
+ *     («sa Weë», «ng WeëStudio», «ang Weë AI»), nunca con «si/ni»;
  *   · nada que escriba una persona: publicaciones, comentarios, nombres de
  *     comunidades, proyectos o prompts. Eso es contenido, no interfaz.
  *

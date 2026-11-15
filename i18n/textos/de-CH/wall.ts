@@ -1,5 +1,5 @@
 /*
- * ALEMÁN SUIZO (de-CH) — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * ALEMÁN SUIZO (de-CH) — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Variante del alemán base (de/wall.ts): ortografía suiza (sin Eszett); todo lo
  * demás, igual que el alemán. Tipado contra el español: si allí hay una clave
@@ -79,8 +79,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demo',
   demoBadgeLabel: 'Demo-Inhalt',
-  immersiveEmpty: 'Auf dem Wäll gibt es noch keine Beiträge',
-  immersiveError: 'Der Wäll konnte nicht geladen werden',
+  immersiveEmpty: 'Auf dem Ẅall gibt es noch keine Beiträge',
+  immersiveError: 'Der Ẅall konnte nicht geladen werden',
   immersiveEnd: 'Du hast alles gesehen',
   agreePost: 'Zustimmen',
   disagreePost: 'Ablehnen',

@@ -9,7 +9,7 @@
  * sinónimo más corto.
  *
  * ESTE MÓDULO CITA BOTONES QUE VIVEN EN OTROS: `a5` nombra el de Weë AI
- * («Сохранить в проект», `weeai.saveToProject`), `q9` el del Wäll («Как это
+ * («Сохранить в проект», `weeai.saveToProject`), `q9` el del Ẅall («Как это
  * сделано», `wall.howIMadeIt`) y `a9` el de copiar («Скопировать промпт»). Las
  * palabras tienen que ser LAS MISMAS que allí, letra por letra.
  *

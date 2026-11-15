@@ -1,7 +1,7 @@
 /*
- * CATALÁN — Weë Music: portada, Composer, workstation y herramientas. Tipado contra el español.
+ * CATALÁN — WeëMusic: portada, Composer, workstation y herramientas. Tipado contra el español.
  *
- * «Weë Music» es marca y no se traduce; tampoco los nombres de los proveedores. Criterios de Softcatalà: «cançó»,
+ * «WeëMusic» es marca y no se traduce; tampoco los nombres de los proveedores. Criterios de Softcatalà: «cançó»,
  * «lletra», «pistes separades» (stems), «motor», «esborrany», «proveïdor», «dispositiu», «desa». Los préstamos del
  * oficio que el catalán usa tal cual (pop, rock, hip-hop, R&B, jazz, folk, jingle, cover, remix, MIDI, solo, outro)
  * se quedan así. Tuteo; botones en imperativo de 2.ª singular. SIN revisión por una persona competente en catalán.
@@ -12,7 +12,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Explica\'m la teva idea o canta una melodia, i prepara la teva cançó pas a pas.',
   ctaCreate: 'Crea música',
   chooseTitle: 'Tria com vols començar',
-  skillsTitle: 'Què pot fer Weë Music',
+  skillsTitle: 'Què pot fer WeëMusic',
   recentTitle: 'Cançons recents',
   viewExample: 'Mostra un exemple de disseny',
   honestyNote: 'Avui pots preparar la teva cançó, enregistrar una melodia de referència i demanar orientació a Weë Brain. La creació de la cançó s\'activarà quan estigui connectada i validada.',
@@ -20,7 +20,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Els teus àudios i cançons desats.',
   openProjects: 'Els meus projectes',
   openProjectsHelp: 'Organitza les teves cançons en projectes.',
-  backToMusic: 'Torna a Weë Music',
+  backToMusic: 'Torna a WeëMusic',
   composerTitle: 'Crea música',
   modesLabel: 'Mode',
   modeSimple: 'Senzill',
@@ -306,7 +306,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'El processament d\'àudio és una capacitat pendent: aquí només es prepara el contracte.',
 
   voiceInterpretation: 'Estil d\'interpretació',
-  voiceNoClone: 'Weë Music no clona ni imita veus de persones: només tria característiques vocals generals.',
+  voiceNoClone: 'WeëMusic no clona ni imita veus de persones: només tria característiques vocals generals.',
   voiceStylePending: 'L\'estil d\'interpretació depèn del motor i encara no està disponible.',
   styleTitle: 'Gènere i estil',
   transformTitle: 'Transformacions',

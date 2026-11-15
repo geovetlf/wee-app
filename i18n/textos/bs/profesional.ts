@@ -4,7 +4,7 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * Como en español, «app» y «creator» son los nombres de las dos versiones y no se traducen; los nombres de las
- * secciones (Weë Studio, Weë Design…) son marca y no pasan por aquí. Traducción SIN revisión humana nativa.
+ * secciones (WeëStudio, WeëDesign…) son marca y no pasan por aquí. Traducción SIN revisión humana nativa.
  */
 export const profesional: typeof import('../es/profesional').profesional = {
   name: 'Weë verzija creator',

@@ -12,7 +12,7 @@
  * PLURAL (§ 8.3): `_one` lleva {{contador}} aunque el español escriba «Mañana», y `_other` añade el enlace «na» tras
  * la cifra delante de un sustantivo («{{contador}} araw» / «{{contador}} na araw»).
  * Sin raya larga, sin «» y sin acentos (§ 15): el aviso de emergencia usa dos puntos. Weë, WeëTravel, Weë Brain,
- * Weë Studio, Weëls, Travel Safe y DEMO no se traducen. Traducción de IA, pendiente de revisión nativa.
+ * WeëStudio, Weëls, Travel Safe y DEMO no se traducen. Traducción de IA, pendiente de revisión nativa.
  */
 export const travel: typeof import('../es/travel').travel = {
   // Portada
@@ -750,9 +750,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Ano ang pinakamaganda ngayong araw?',
   saveEntry: 'I-save ang entry',
   journalEmpty: 'Wala pang laman ang talaarawan mo. Isulat ang unang entry.',
-  videoMemoriesDemo: 'DEMO: ginagawa ang mga video sa Weë Studio, gamit ang sarili mong mga litrato at clip.',
+  videoMemoriesDemo: 'DEMO: ginagawa ang mga video sa WeëStudio, gamit ang sarili mong mga litrato at clip.',
   videoOf: 'Ang video ng {{viaje}}',
-  createInStudio: 'Gumawa sa Weë Studio',
+  createInStudio: 'Gumawa sa WeëStudio',
   countriesVisited_one: '{{contador}} bansang napuntahan',
   countriesVisited_other: '{{contador}} na bansang napuntahan',
   recapTitle: 'Ang biyahe mo sa {{viaje}}',

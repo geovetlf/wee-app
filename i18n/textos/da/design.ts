@@ -2,7 +2,7 @@
  * DANÉS — WEË DESIGN: diseñar y visualizar casi cualquier cosa física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Weë Design comparte con Weë Studio —"Mis creaciones", "Ver todas",
+ * Lo que WeëDesign comparte con WeëStudio —"Mis creaciones", "Ver todas",
  * "Creando...", "Creación lista"— vive en `studio` y se lee de allí.
  *
  * «Diseñar» es «designe» (imperativo «Design», préstamo admitido por la
@@ -19,7 +19,7 @@
  * «Et før og efter-billede», con el guion solo antes del último elemento.
  *
  * Las tres luces dicen que son luz («Naturligt lys», «Varmt lys», «Studielys»),
- * como en Weë Studio (`studio.ltNatural`, `studio.ltStudio`); el grupo es
+ * como en WeëStudio (`studio.ltNatural`, `studio.ltStudio`); el grupo es
  * «Belysning», para no repetir «lys». Los estilos concuerdan con «en stil»
  * («Klassisk», «Industriel»; «Moderne» no cambia) y «Mixtos» es «Blandet».
  *

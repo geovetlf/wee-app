@@ -1,5 +1,5 @@
 /*
- * GRIEGO — Weë Studio: el sitio donde se crea. Tipado contra el español.
+ * GRIEGO — WeëStudio: el sitio donde se crea. Tipado contra el español.
  *
  * «Beauty», «Fashion», «3D World», «Timelapse», «Drone», «Macro» y «CV» se dejan
  * como en inglés; «Outfit» va como «Ντύσιμο». «sampleNarration» se adapta al
@@ -226,7 +226,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Σύντομα',
   soonHint: 'Αυτό το εργαλείο έχει ήδη τη θέση του. Μένει να συνδεθεί.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Κείμενο',
   textHint: 'Γράψε οποιοδήποτε περιεχόμενο',
   exploreTitle: 'Εξερεύνηση',

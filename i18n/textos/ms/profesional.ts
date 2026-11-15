@@ -1,6 +1,6 @@
 /*
  * MALAYO — Weë versión creator: su marco y su navegación. Tipado contra el español.
- * Los nombres de las secciones (Weë Studio, Weë Design…) son marca y no pasan por aquí. «creator» se deja como
+ * Los nombres de las secciones (WeëStudio, WeëDesign…) son marca y no pasan por aquí. «creator» se deja como
  * préstamo, en el orden del malayo («Weë versi creator»); «app» → «aplikasi».
  */
 export const profesional: typeof import('../es/profesional').profesional = {

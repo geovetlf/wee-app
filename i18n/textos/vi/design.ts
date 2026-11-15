@@ -1,5 +1,5 @@
 /*
- * VIETNAMITA — Weë Design: diseñar y visualizar casi cualquier cosa física.
+ * VIETNAMITA — WeëDesign: diseñar y visualizar casi cualquier cosa física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  */

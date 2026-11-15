@@ -1,7 +1,7 @@
 /*
- * MONGOL — Weë Studio, el sitio donde se crea. Tipado contra el español.
+ * MONGOL — WeëStudio, el sitio donde se crea. Tipado contra el español.
  *
- * «Weë Studio», «Writer», «Beauty», «Fashion» y «3D World» son marca o nombres
+ * «WeëStudio», «Writer», «Beauty», «Fashion» y «3D World» son marca o nombres
  * que el español deja en inglés: no se traducen. Los formatos (PDF, MP4) tampoco.
  */
 export const studio: typeof import('../es/studio').studio = {
@@ -222,7 +222,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Тун удахгүй',
   soonHint: 'Энэ хэрэгслийн байр бэлэн. Холбох л үлдсэн.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Текст',
   textHint: 'Ямар ч контент бичих',
   exploreTitle: 'Нээх',

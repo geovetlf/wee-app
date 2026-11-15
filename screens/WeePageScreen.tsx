@@ -29,7 +29,7 @@ import { RellenoDeMarca } from '../components/GradienteDeMarca';
  * ẄContact). Quien gestiona la página —su cuenta, desde cualquiera de las dos caras— ve además «Editar página».
  *
  * ESCENAS DE LA HISTORIA. Una página puede enseñar escenas hechas con Weë AI que cualquiera abre y ve a pantalla
- * completa. Se crean con el Filmmaker de Weë Studio (el composer de siempre, «Añadir escena»), no con otro creador.
+ * completa. Se crean con el Filmmaker de WeëStudio (el composer de siempre, «Añadir escena»), no con otro creador.
  *
  * IMPULSAR. Su dueño ve «Impulsar»: consumirá Credits de la cuenta por el Credit Engine. Hoy solo lo explica; no cobra
  * nada ni inventa un precio (CLAUDE.md §7).
@@ -177,11 +177,11 @@ const WeePageScreen: React.FC = () => {
                     <Text style={s.escenaTitulo} numberOfLines={2}>{e.title}</Text>
                     {/*
                       PUBLICARLA TAMBIÉN EN EL MURO (2026-11-02). Abre el compositor de siempre con la escena puesta: ahí se
-                      elige el Wäll general, las secciones o las dos cosas, y publica la cara activa —quien firma se ve arriba—.
+                      elige el Ẅall general, las secciones o las dos cosas, y publica la cara activa —quien firma se ve arriba—.
                     */}
                     {esMia && (
                       <TouchableOpacity
-                        onPress={() => navigation.navigate('Create', { kind: 'video', sourceSection: 'studio', prefill: { content: `${e.title} · ${pagina.name}`, aiTools: ['Weë Studio'], media: [{ type: 'video', uri: e.videoURL }] } })}
+                        onPress={() => navigation.navigate('Create', { kind: 'video', sourceSection: 'studio', prefill: { content: `${e.title} · ${pagina.name}`, aiTools: ['WeëStudio'], media: [{ type: 'video', uri: e.videoURL }] } })}
                         accessibilityRole="button"
                         accessibilityLabel={t('composer.publish')}
                         hitSlop={8}

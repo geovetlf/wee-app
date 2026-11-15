@@ -29,7 +29,7 @@ const isWeb = Platform.OS === 'web';
 const W_DE_WEE = require('../../assets/icon.png');
 
 interface Props {
-  /** El lema en un solo color, sin el dorado: lo usa Weë Travel. */
+  /** El lema en un solo color, sin el dorado: lo usa WeëTravel. */
   /** Lo que va detrás de "Weë": Studio, Design, Chef, Travel… */
   nombre: string;
   /**
@@ -47,7 +47,7 @@ interface Props {
   onVolver?: () => void;
   /**
    * Solo la fila de identidad (volver · W · nombre · saldo), sin el lema ni la descripción. La usa la portada de
-   * Weë Studio de la demo YC, que presenta la sección en su propio héroe (components/studio/PortadaStudio.tsx).
+   * WeëStudio de la demo YC, que presenta la sección en su propio héroe (components/studio/PortadaStudio.tsx).
    */
   soloIdentidad?: boolean;
 }
@@ -55,7 +55,7 @@ interface Props {
 /**
  * LA CABECERA DE UNA SECCIÓN DE WEË AI.
  *
- * Nació en Weë Studio y desde el 2026-09-15 la llevan todas (decisión del
+ * Nació en WeëStudio y desde el 2026-09-15 la llevan todas (decisión del
  * usuario): arriba de una sección no va nada más que esto.
  *
  * La W y el nombre en una fila, y debajo —alineado con el nombre, no con el
@@ -118,7 +118,7 @@ export const tamanoDelLema = (lema: string): number => {
 };
 
 const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolver, soloIdentidad }) => {
-  /* Weë Travel y Weë Fashion son en blanco y negro: su nombre no lleva el color de la marca. */
+  /* WeëTravel y WeëFashion son en blanco y negro: su nombre no lleva el color de la marca. */
   const monocromo = nombre === 'Travel' || nombre === 'Fashion';
   const { theme } = useTheme();
   const t = useT();
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
    * caja es mayor que lo que se ve.
    */
   logo: {
-    /* Redondeado: sobre el negro de Weë Music no se ve el cuadro blanco del icono. */
+    /* Redondeado: sobre el negro de WeëMusic no se ve el cuadro blanco del icono. */
     borderRadius: scale(12),
     width: scale(52),
     height: scale(52),

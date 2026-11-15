@@ -101,7 +101,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, label, active, onPress
  * Barra lateral de escritorio: el mismo menú que el ☰ en móvil (rediseño del 2026-11-15).
  *
  *   logo · quién soy · [ Real | Weë ] · tarjeta WeëAI
- *   Inicio / Wäll · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
+ *   Inicio / Ẅall · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
  *   MyWeës
  *   Guardados · Historial · Credits · Configuración
  *   Ayuda y soporte

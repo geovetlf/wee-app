@@ -4,7 +4,7 @@ import { generatePostUrl } from '../config/linking';
 /*
  * COMPARTIR FUERA DE WEË: SE MANDA EL ENLACE, NO EL ARCHIVO.
  *
- * Un solo sitio para los dos caminos que salen de Weë —el vídeo del Wäll y el
+ * Un solo sitio para los dos caminos que salen de Weë —el vídeo del Ẅall y el
  * Weël—, porque son la misma cosa contada dos veces y no tienen por qué poder
  * diverger.
  *

@@ -35,7 +35,7 @@ interface Props {
   grupos?: GrupoDeAjustes[];
   /**
    * La línea de debajo del título. Por defecto explica que los ajustes cambian
-   * con lo que se está creando, que es lo que pasa en Weë Studio; una sección
+   * con lo que se está creando, que es lo que pasa en WeëStudio; una sección
    * con catálogo propio y una sola lista dice la suya, porque allí no cambian.
    */
   pista?: string;

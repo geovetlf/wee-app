@@ -1,7 +1,7 @@
 /*
  * ISLANDÉS (is · is-IS) — Páginas (WeëPages) — entidades públicas que se siguen. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Migración de la UI (demo YC) integrada con is/kl, 2026-11-05: traducción de IA, SIN revisión humana nativa.
- * Las marcas (Weë, Credits, ËContact, Boost, Weë Fashion, WeëPages…) no se traducen. þú; marcas sin declinar (docs/I18N-ISLANDES.md).
+ * Las marcas (Weë, Credits, ËContact, Boost, WeëFashion, WeëPages…) no se traducen. þú; marcas sin declinar (docs/I18N-ISLANDES.md).
  */
 export const pages: typeof import('../es/pages').pages = {
   subtitle: 'Búðu til og stjórnaðu síðunum þínum.',

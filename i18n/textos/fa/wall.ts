@@ -1,5 +1,5 @@
 /*
- * PERSA — El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * PERSA — El Ẅall: la publicación y todo lo que se puede hacer con ella.
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * «Repost» es «بازنشر»; «comentario», «نظر» (glosario § 4); «prompt»,
@@ -79,8 +79,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'نمایشی',
   demoBadgeLabel: 'محتوای نمایشی',
-  immersiveEmpty: 'هنوز پستی در Wäll نیست',
-  immersiveError: 'نتوانستیم Wäll را بارگذاری کنیم',
+  immersiveEmpty: 'هنوز پستی در Ẅall نیست',
+  immersiveError: 'نتوانستیم Ẅall را بارگذاری کنیم',
   immersiveEnd: 'همه را دیده‌اید',
   agreePost: 'موافقم',
   disagreePost: 'مخالفم',

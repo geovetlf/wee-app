@@ -4,7 +4,7 @@
  *
  * Cine en finés: plano = «otos», toma = «otto», guion = «käsikirjoitus», escena = «kohtaus»,
  * storyboard = «kuvakäsikirjoitus». «Generar» es «generoida», distinto de «luoda» (crear la producción).
- * Las marcas no se declinan: «Weë Studio -sovelluksessa», «Weë:lle» solo donde no hay otra salida.
+ * Las marcas no se declinan: «WeëStudio -sovelluksessa», «Weë:lle» solo donde no hay otra salida.
  */
 export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   sectionName: 'Useita kohtauksia',
@@ -16,20 +16,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'Luo tuotanto',
   creatingProduction: 'Luodaan tuotantoa…',
   openProduction: 'Avaa {{titulo}}',
-  goToStudio: 'Avaa Weë Studio',
+  goToStudio: 'Avaa WeëStudio',
   loadMore: 'Näytä lisää',
   backToList: 'Takaisin omiin tuotantoihin',
   updatedAgo: 'Päivitetty {{cuando}}',
 
   emptyListTitle: 'Sinulla ei ole vielä tuotantoja',
-  emptyListText: 'Aloita Weë Studio -sovelluksessa: avaa Videot, valitse ”Useita kohtauksia” ja kerro Weë:lle, mitä haluat kertoa.',
+  emptyListText: 'Aloita WeëStudio -sovelluksessa: avaa Videot, valitse ”Useita kohtauksia” ja kerro Weë:lle, mitä haluat kertoa.',
   emptyArchived: 'Sinulla ei ole arkistoituja tuotantoja.',
   emptyStoryboardTitle: 'Tässä tuotannossa ei ole vielä kohtauksia',
   emptyStoryboardText: 'Lisää ensimmäinen ja rakenna tarinasi otos otokselta.',
   addFirstScene: 'Lisää ensimmäinen kohtaus',
 
   yourIdea: 'Ideasi',
-  ideaFromStudio: 'Idea kirjoitetaan Weë Studio -sovelluksessa. Jos haluat muuttaa sitä, palaa sinne.',
+  ideaFromStudio: 'Idea kirjoitetaan WeëStudio -sovelluksessa. Jos haluat muuttaa sitä, palaa sinne.',
   whereWillItPlay: 'Missä sitä katsotaan?',
   otherFormat: 'Muu muoto',
   continueOne: 'Tai jatka jotakin tuotannoistasi',

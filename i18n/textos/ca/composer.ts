@@ -26,7 +26,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Mostra les opcions de publicació',
   hideOptions: 'Amaga les opcions de publicació',
   currentDestination: '{{destino}}, destinació actual',
-  generalWall: 'Wäll general',
+  generalWall: 'Ẅall general',
   placeholderPollExtra: 'Afegeix alguna cosa més si vols (opcional)…',
   placeholderQuestion: 'Què vols preguntar a la comunitat?',
   placeholderWeel: 'Explica què has creat per al teu Weël i amb quina IA…',

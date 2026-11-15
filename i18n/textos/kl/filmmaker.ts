@@ -4,7 +4,7 @@
  * Traducción hecha por agentes de IA, SIN revisión humana nativa (2026-11-03).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Kalaallisut, NO danés. «Weë», «Weë Studio», «Credits», TikTok, Instagram y YouTube son marca:
+ * Kalaallisut, NO danés. «Weë», «WeëStudio», «Credits», TikTok, Instagram y YouTube son marca:
  * en absolutivo, en aposición o tras dos puntos, nunca con sufijo. Ningún hueco lleva sufijo:
  * cuando la frase lo pediría, la cifra va tras dos puntos o delante de «s» (segundos) como valor
  * suelto. Las etiquetas entre comillas (»Pilersitakka«) tampoco se flexionan: van tras «uani:».
@@ -23,20 +23,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'Filmiliamik pilersitsigit',
   creatingProduction: 'Filmiliaq pilersinneqarpoq…',
   openProduction: 'Ammaruk: {{titulo}}',
-  goToStudio: 'Ingerlaffigiuk: Weë Studio',
+  goToStudio: 'Ingerlaffigiuk: WeëStudio',
   loadMore: 'Amerlanerusut takukkit',
   backToList: 'Uterit: filmiliatit',
   updatedAgo: 'Nutarterneqarpoq: {{cuando}}',
 
   emptyListTitle: 'Suli filmiliaqanngilatit',
-  emptyListText: 'Weë Studio aallaavigiuk: »Videot« ammaruk, »Takutitat arlallit« toqqaruk, Weë oqaluttuuguk suna oqaluttuarerusunnerlugu.',
+  emptyListText: 'WeëStudio aallaavigiuk: »Videot« ammaruk, »Takutitat arlallit« toqqaruk, Weë oqaluttuuguk suna oqaluttuarerusunnerlugu.',
   emptyArchived: 'Toqqorsivimmi filmiliaqanngilatit.',
   emptyStoryboardTitle: 'Filmiliaq una suli takutitaqanngilaq',
   emptyStoryboardText: 'Siulleq ilanngutiguk oqaluttuallu assilisat ataasiakkaarlugit sanaruk.',
   addFirstScene: 'Takutitaq siulleq ilanngutiguk',
 
   yourIdea: 'Isumassarsiat',
-  ideaFromStudio: 'Isumassarsiaq Weë Studio atorlugu allanneqartarpoq. Allanngortikkusukkukku tassunga uterit.',
+  ideaFromStudio: 'Isumassarsiaq WeëStudio atorlugu allanneqartarpoq. Allanngortikkusukkukku tassunga uterit.',
   whereWillItPlay: 'Sumi takuneqassava?',
   otherFormat: 'Iluseq alla',
   continueOne: 'Imaluunniit filmiliatit ilaat ingerlateqqiguk',

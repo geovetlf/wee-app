@@ -56,7 +56,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'S\'encarrega de tot el procés',
   brainEj3Subtitle: 'De la idea als dissenys, els vídeos i la música',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Dissenya el que imaginis.',
   designIntro: 'Converteix les teves idees en dissenys increïbles amb intel·ligència artificial. Des d\'un logotip fins a un cotxe, un producte o un món sencer.',
   designChip1: 'Ràpid i fàcil',
@@ -155,7 +155,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Retoc facial',
   photoEj6Title: 'Transformar amb IA',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Crea, escolta i viu la teva música amb IA',
   musicIntro: 'Converteix les teves idees en cançons, vídeos i experiències úniques. Sense límits per a la teva creativitat.',
   musicChip1: 'Ràpid i senzill',
@@ -217,7 +217,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Converteix la teva música en un vídeo increïble: diversos estils, sincronització automàtica, formats per a xarxes, escenes i personatges.',
   musicClosingButton: 'Crea el vídeo ara',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Crea fotos i vídeos amb IA',
   studioIntro: 'Explica\'m què vols crear i t\'ajudaré pas a pas.',
   studioChip1: 'Fàcil d\'usar',
@@ -310,7 +310,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Missatges rebuts',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'El teu xef, sempre amb tu',
   chefIntro: 'Descobreix receptes, crea menús, aprofita el que tens i menja millor, més fàcil i més bo.',
   chefChip1: 'Receptes fàcils',
@@ -340,7 +340,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'No sé què cuinar',
   chefAcIdkSubtitle: 'Et proposo alguna cosa bona',
   chefAcIdkGoal: 'No sé què cuinar avui',
-  chefIdeaTitle: 'Hola! Soc Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Hola! Soc WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Explica\'m, què t\'agradaria cuinar avui?',
   chefIdeaPlaceholder: 'Escriu la teva idea aquí…',
   chefIdeaChip1: 'Vull un sopar ràpid',
@@ -552,7 +552,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'CV professional',
   writerEj6Subtitle: 'Modern i net',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Prepara el teu viatge amb algú que ja ha viatjat.',
   travelIntro: 'Explica\'m on vas —o que encara no ho saps— i et preparo el viatge: què veure, on menjar i com moure\'t.',
   travelChip1: 'Sense reserves',

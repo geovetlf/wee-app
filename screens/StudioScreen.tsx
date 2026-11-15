@@ -170,7 +170,7 @@ const StudioScreen: React.FC = () => {
   /**
    * CREAR EN EL STUDIO ES IRSE A CREAR, NO CREAR AQUÍ.
    *
-   * Weë Studio es un hub: descubre, encamina y entrega el contexto. Quien crea
+   * WeëStudio es un hub: descubre, encamina y entrega el contexto. Quien crea
    * de verdad es la experiencia común —`CreatorFlow`—, que es donde están las
    * preguntas, el plan, los Credits y el resultado. Construir aquí un segundo
    * camino de generación sería tener dos, y el día que discreparan alguien
@@ -340,7 +340,7 @@ const StudioScreen: React.FC = () => {
   /**
    * UNA REFERENCIA DE VERDAD, POR EL CAMINO DE SIEMPRE.
    *
-   * El mismo selector que usan Weë Brain y Weë Chef. Lo que se guarda es un
+   * El mismo selector que usan Weë Brain y WeëChef. Lo que se guarda es un
    * `Adjunto` con su CLASE —una referencia inspira, no se reproduce—, y quien
    * sube el archivo sigue siendo `creatorUploads` cuando llegue el momento:
    * aquí no hay almacén, ni se crea uno.
@@ -428,7 +428,7 @@ const StudioScreen: React.FC = () => {
 
             {/*
               LA CAJA, MÁS CERCA DE LA PRESENTACIÓN (decisión del usuario,
-              2026-09-16, solo en Weë Studio).
+              2026-09-16, solo en WeëStudio).
 
               Entre el último renglón de la cabecera y la caja había 44 puntos:
               20 del aire de abajo de la cabecera y 24 del `gap` de esta página.
@@ -574,7 +574,7 @@ const styles = StyleSheet.create({
 });
 
 /*
- * Weë Studio es de la CUENTA, como el resto del taller: se ve claro lleves
+ * WeëStudio es de la CUENTA, como el resto del taller: se ve claro lleves
  * puesto el Perfil Real o el Perfil Weë.
  */
 export default enTemaClaro(StudioScreen);

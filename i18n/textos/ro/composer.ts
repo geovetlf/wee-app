@@ -7,8 +7,8 @@
  * zile». Las claves que cuentan llevan `_few`, y el `_other` (20 en adelante)
  * lleva la preposición «de». Por eso este módulo usa `ConPlurales`.
  *
- * Marcas en latino sin artículo enclítico: Weë, Weël, Wäll, ËContact, Weë AI.
- * `myWallet` no existe aquí; «Wäll general» es el muro, marca, y se conserva.
+ * Marcas en latino sin artículo enclítico: Weë, Weël, Ẅall, ËContact, Weë AI.
+ * `myWallet` no existe aquí; «Ẅall general» es el muro, marca, y se conserva.
  */
 import { ConPlurales } from '../ru/plurales';
 
@@ -35,7 +35,7 @@ export const composer: ConPlurales<typeof import('../es/composer').composer> = {
   showOptions: 'Arată opțiunile de publicare',
   hideOptions: 'Ascunde opțiunile de publicare',
   currentDestination: '{{destino}}, destinația actuală',
-  generalWall: 'Wäll general',
+  generalWall: 'Ẅall general',
   placeholderPollExtra: 'Adaugă ceva în plus dacă vrei (opțional)…',
   placeholderQuestion: 'Ce vrei să întrebi comunitatea?',
   placeholderWeel: 'Povestește ce ai creat pentru Weël și cu ce IA…',

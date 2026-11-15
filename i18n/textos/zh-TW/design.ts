@@ -3,7 +3,7 @@
  * cosa física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * "Weë Design" es marca y no está aquí. Lo que Weë Design comparte con Weë
+ * "WeëDesign" es marca y no está aquí. Lo que WeëDesign comparte con Weë
  * Studio —"Mis creaciones", "Ver todas", "Creando...", "Creación lista"— vive
  * en `studio` y se lee de allí.
  *
@@ -100,7 +100,7 @@ export const design: typeof import('../es/design').design = {
   valMixed: '混合',
   valNatural: '自然光',
   valWarm: '暖光',
-  /* «De estudio» es la luz de un plató, no Weë Studio: por eso 攝影棚光, sin la marca. */
+  /* «De estudio» es la luz de un plató, no WeëStudio: por eso 攝影棚光, sin la marca. */
   valStudioLight: '攝影棚光',
 
   /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */

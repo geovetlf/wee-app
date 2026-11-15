@@ -4,7 +4,7 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * Japonés sin número: _one y _other dicen lo mismo y llevan siempre {{contador}}. Sin espacios entre japonés y
- * latino; citas con 「」. Las marcas (Weë, WeëTravel, Weë Brain, WEË BRAIN, Weë Studio, Weëls, Travel Safe) y la
+ * latino; citas con 「」. Las marcas (Weë, WeëTravel, Weë Brain, WEË BRAIN, WeëStudio, Weëls, Travel Safe) y la
  * etiqueta «DEMO» van en latino. Los rótulos que ya existen en la app (保存, 共有, 削除, 保存済み…) se repiten igual.
  */
 export const travel: typeof import('../es/travel').travel = {
@@ -743,9 +743,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: '今日いちばんよかったことは？',
   saveEntry: '日記を保存',
   journalEmpty: '日記はまだ空です。最初の1ページを書きましょう。',
-  videoMemoriesDemo: 'DEMO：動画はWeë Studioで、あなた自身の写真やクリップから作ります。',
+  videoMemoriesDemo: 'DEMO：動画はWeëStudioで、あなた自身の写真やクリップから作ります。',
   videoOf: '{{viaje}}の動画',
-  createInStudio: 'Weë Studioで作成',
+  createInStudio: 'WeëStudioで作成',
   countriesVisited_one: '{{contador}}か国を訪問',
   countriesVisited_other: '{{contador}}か国を訪問',
   recapTitle: 'あなたの{{viaje}}の旅',

@@ -5,7 +5,7 @@
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
  *
  * QUÉ NO ESTÁ AQUÍ: "Weë Brain" ni los nombres de los seis satélites —Weë
- * Studio, Weë Music, Weë Business, Weë Design, Weë Chef, Weë Travel—, que son
+ * Studio, WeëMusic, Weë Business, WeëDesign, WeëChef, WeëTravel—, que son
  * marca y se escriben igual en todos los idiomas. Salen de
  * `constants/weeExperiences.ts`, que es su única fuente. Tampoco están las
  * herramientas de la caja ni los precios: eso ya vive en `weeai`, y repetirlo

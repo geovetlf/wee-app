@@ -1,5 +1,5 @@
 /*
- * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — Weë Design: diseñar y visualizar casi cualquier cosa física.
+ * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — WeëDesign: diseñar y visualizar casi cualquier cosa física.
  * Traducción hecha por agentes de IA, SIN revisión humana nativa (2026-11-03).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
@@ -7,7 +7,7 @@
  * docs/I18N-GROENLANDES.md. Diseñar = «ilusilersorpaa» (2sg: «ilusilersoruk», pl.
  * «ilusilersukkit»), render = «takussutissiaq», 3D queda como sigla. Préstamos ya integrados
  * con ortografía groenlandesa: «biili», «sikkili». Los objetos de ejemplo van en absolutivo
- * singular sin artículo (el groenlandés no tiene artículos). «Weë Design» no pasa por aquí.
+ * singular sin artículo (el groenlandés no tiene artículos). «WeëDesign» no pasa por aquí.
  */
 export const design: typeof import('../es/design').design = {
   /* ── La cabecera ──────────────────────────────────────────────────────── */

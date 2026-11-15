@@ -1,5 +1,5 @@
 /*
- * tr — Weë Fashion: la portada y el Composer. «Weë Fashion» es marca y no se traduce.
+ * tr — WeëFashion: la portada y el Composer. «WeëFashion» es marca y no se traduce.
  * Tipado contra el español. Pendiente de revisión por un hablante nativo.
  */
 export const fashion: typeof import('../es/fashion').fashion = {
@@ -94,7 +94,7 @@ export const fashion: typeof import('../es/fashion').fashion = {
   briefIdea: 'Fikrim: {{texto}}.',
   briefIdk: 'Seçmeme yardım et.',
   heroTags: 'Moda · güzellik · stil · koleksiyonlar',
-  toolsTitle: 'Weë Fashion araçları',
+  toolsTitle: 'WeëFashion araçları',
   inspirationTitle: 'İlham',
   galleryTitle: 'Görünümü dene',
   galClothes: 'Kıyafet',

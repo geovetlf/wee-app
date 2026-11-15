@@ -2,7 +2,7 @@
  * HÚNGARO — El compositor: lo que se escribe y lo que se adjunta antes de
  * publicar. Tipado contra el español.
  *
- * «Wäll» es marca y se conserva; ningún sufijo va pegado a un {{hueco}}.
+ * «Ẅall» es marca y se conserva; ningún sufijo va pegado a un {{hueco}}.
  */
 export const composer: typeof import('../es/composer').composer = {
   publish: 'Közzététel',
@@ -27,7 +27,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Közzétételi beállítások megjelenítése',
   hideOptions: 'Közzétételi beállítások elrejtése',
   currentDestination: '{{destino}}, jelenlegi cél',
-  generalWall: 'Általános Wäll',
+  generalWall: 'Általános Ẅall',
   placeholderPollExtra: 'Ha szeretnéd, írj hozzá még valamit (nem kötelező)…',
   placeholderQuestion: 'Mit szeretnél megkérdezni a közösségtől?',
   placeholderWeel: 'Weël: meséld el, mit alkottál, és melyik AI segítségével…',

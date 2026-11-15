@@ -1,11 +1,11 @@
 /*
- * PERSA — Weë Studio: el sitio donde se crea (cabecera, compositor, ajustes,
+ * PERSA — WeëStudio: el sitio donde se crea (cabecera, compositor, ajustes,
  * puertas, herramientas, Mis creaciones, cámara y 3D World).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * Tratamiento «شما» con verbos de cortesía. Los botones van como sustantivo de
- * acción («ایجاد», «افزودن», «حذف»). Las marcas (Weë, Weë Studio, Credits,
+ * acción («ایجاد», «افزودن», «حذف»). Las marcas (Weë, WeëStudio, Credits,
  * Beauty, Fashion, 3D World) y los formatos (PDF) quedan en latino. Los números
  * los pone Intl: aquí solo hay dígitos latinos heredados del español («5 ثانیه»).
  * Vocabulario de cámara: el que usan los tutoriales de fotografía en persa
@@ -229,7 +229,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'به‌زودی',
   soonHint: 'این ابزار جای خودش را دارد. فقط باید متصل شود.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'متن',
   textHint: 'هر محتوایی بنویسید',
   exploreTitle: 'کاوش',

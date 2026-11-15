@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tuteo («tu»). Los formatos —PDF, MP4, 16:9— y los segundos no cambian de
- * idioma, y "Weë Studio" y "Writer" son marca: no se traducen. Vocabulario de
+ * idioma, y "WeëStudio" y "Writer" son marca: no se traducen. Vocabulario de
  * cine: plano = pla, toma = presa, escena = escena, guion = guió.
  */
 export const studio: typeof import('../es/studio').studio = {
@@ -227,7 +227,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Aviat',
   soonHint: 'Aquesta eina ja té el seu lloc. Falta connectar-la.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Text',
   textHint: 'Escriu qualsevol contingut',
   exploreTitle: 'Explora',

@@ -1,7 +1,7 @@
 /*
- * ÁRABE — Weë Music: portada, Composer, workstation y herramientas. Tipado contra el español.
+ * ÁRABE — WeëMusic: portada, Composer, workstation y herramientas. Tipado contra el español.
  *
- * «Weë Music», «Weë Brain», «Credits» y «WeeTalk» son marca y quedan en latino; también MP3, WAV, M4A, MIDI y «iPhone».
+ * «WeëMusic», «Weë Brain», «Credits» y «WeeTalk» son marca y quedan en latino; también MP3, WAV, M4A, MIDI y «iPhone».
  * Botones como sustantivo de acción («حفظ», «تشغيل», «تصدير»); donde hay que dirigirse a la persona, 2.ª persona masculina
  * singular, la convención de la industria (anotado para el revisor). Secciones de la canción: مقطع (verso), لازمة (coro),
  * جسر (puente), فاصل موسيقي (interludio). «Pistas separadas» = المسارات المنفصلة. Sin plurales: el español no declara ninguno.
@@ -13,7 +13,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'احكِ لي فكرتك أو دندن لحنًا، وجهّز أغنيتك خطوة بخطوة.',
   ctaCreate: 'إنشاء موسيقى',
   chooseTitle: 'اختر طريقة البدء',
-  skillsTitle: 'ما الذي يستطيعه Weë Music',
+  skillsTitle: 'ما الذي يستطيعه WeëMusic',
   recentTitle: 'الأغاني الأخيرة',
   viewExample: 'عرض مثال على التصميم',
   honestyNote: 'يمكنك اليوم تجهيز أغنيتك وتسجيل لحن مرجعي وطلب التوجيه من Weë Brain. أما إنشاء الأغنية فسيُفعَّل عندما يكون متصلًا ومُتحقَّقًا منه.',
@@ -21,7 +21,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'ملفاتك الصوتية وأغانيك المحفوظة.',
   openProjects: 'مشاريعي',
   openProjectsHelp: 'نظّم أغانيك في مشاريع.',
-  backToMusic: 'العودة إلى Weë Music',
+  backToMusic: 'العودة إلى WeëMusic',
   composerTitle: 'إنشاء موسيقى',
   modesLabel: 'الوضع',
   modeSimple: 'بسيط',
@@ -307,7 +307,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'المعالجة الصوتية قدرة لم تُنفَّذ بعد: هنا يُجهَّز العقد فقط.',
 
   voiceInterpretation: 'أسلوب الأداء',
-  voiceNoClone: 'لا يستنسخ Weë Music أصوات الأشخاص ولا يقلّدها: يختار فقط خصائص صوتية عامة.',
+  voiceNoClone: 'لا يستنسخ WeëMusic أصوات الأشخاص ولا يقلّدها: يختار فقط خصائص صوتية عامة.',
   voiceStylePending: 'أسلوب الأداء يعتمد على المحرك وغير متاح بعد.',
   styleTitle: 'النوع والأسلوب',
   transformTitle: 'التحويلات',

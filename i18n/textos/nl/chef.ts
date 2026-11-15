@@ -1,5 +1,5 @@
 /*
- * NEERLANDÉS — Weë Chef: el sitio donde se cocina. Tipado contra el español.
+ * NEERLANDÉS — WeëChef: el sitio donde se cocina. Tipado contra el español.
  *
  * Los valores de dieta van sin -e para no depender del género del sustantivo («Vegetarisch», «Glutenvrij»).
  * «panelStart» y «goalWith» se copian tal cual: son solo huecos y separadores.

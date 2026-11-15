@@ -11,7 +11,7 @@
  * persona: la dieta («תזונה», f.) es «צמחונית / טבעונית»; la dificultad («רמת
  * קושי», f.) es «קלה / בינונית / ברמת שף». «בישלת» se escribe igual en los dos
  * géneros. `panelStart` conserva el «: » final y `goalWith` los paréntesis, porque
- * la pantalla concatena con ellos. «Weë Chef» no aparece aquí: es marca.
+ * la pantalla concatena con ellos. «WeëChef» no aparece aquí: es marca.
  */
 export const chef: typeof import('../es/chef').chef = {
   /* ── La cabecera ──────────────────────────────────────────────────────── */

@@ -34,7 +34,7 @@ export type InputMode = 'text' | 'upload' | 'camera' | 'voice' | 'attach' | 'web
 
 /**
  * Cómo se muestra la cuadrícula "¿Qué quieres hacer hoy?".
- * 'compact' es la forma que estrena Weë Chef (fase 2E-37): controles pequeños,
+ * 'compact' es la forma que estrena WeëChef (fase 2E-37): controles pequeños,
  * fáciles de recorrer de un vistazo y sin ninguna fotografía, para que la pantalla
  * no se convierta en un catálogo de tarjetas grandes.
  */
@@ -74,8 +74,8 @@ export interface SpecialistAction {
   /**
    * Abre la conversación de OTRA experiencia (fase 2E-50).
    *
-   * Weë Studio reúne tres áreas —fotos, videos y look— que por dentro siguen
-   * siendo Weë Photo, Weë Studio y Weë Beauty, con sus plantillas y sus planes
+   * WeëStudio reúne tres áreas —fotos, videos y look— que por dentro siguen
+   * siendo Weë Photo, WeëStudio y Weë Beauty, con sus plantillas y sus planes
    * intactos. Esta línea es lo único que hacía falta para que el selector lleve
    * a la mesa de trabajo correcta sin duplicar ni una.
    *
@@ -86,7 +86,7 @@ export interface SpecialistAction {
   /**
    * Entrada secundaria del selector (fase 2E-53).
    *
-   * Weë Studio dice primero una cosa —crea fotos y videos— y Beauty es una
+   * WeëStudio dice primero una cosa —crea fotos y videos— y Beauty es una
    * capacidad especializada dentro de ese mundo. Con las tres tarjetas iguales,
    * Beauty competía con el mensaje principal; escondida dentro del flujo de
    * Fotos, quedaba a tres pasos y detrás de una subida de foto. Esta marca le da
@@ -100,7 +100,7 @@ export interface SpecialistAction {
   /**
    * La acción abre la PANTALLA de esa experiencia, no su conversación.
    *
-   * Weë Writer entra en el selector de Weë Studio y deja de tener puerta propia
+   * Weë Writer entra en el selector de WeëStudio y deja de tener puerta propia
    * en el menú. Con `opens` a secas se abriría su conversación y se perdería lo
    * que solo vive en su pantalla: "Mis documentos", que es su historial de
    * textos. Con esta marca la tarjeta lleva a la pantalla de siempre —la misma
@@ -148,7 +148,7 @@ export interface SpecialistConfig {
    * La caja de escribir va antes que la cuadrícula de funciones (fase 2E-64C).
    *
    * En una sección con muro, el orden normal es: herramientas plegadas y luego
-   * el muro. Weë Travel invierte los dos primeros porque su entrada natural es
+   * el muro. WeëTravel invierte los dos primeros porque su entrada natural es
    * una frase —"Japón 10 días en octubre"—, no elegir de un menú. Sin esta marca
    * el orden no cambia, así que las demás secciones siguen exactamente igual.
    */
@@ -171,7 +171,7 @@ export interface SpecialistConfig {
   };
   /*
    * La fila de ejemplos bajo el muro. Es opcional desde 2E-69: una sección puede
-   * no tener nada que enseñar ahí, y entonces no enseña nada. Weë Travel tenía
+   * no tener nada que enseñar ahí, y entonces no enseña nada. WeëTravel tenía
    * "Viajes que preparó Weë" con cuatro tarjetas que no llevaban a ningún viaje
    * de nadie —eran decorado— y competían con lo que sí publica la gente.
    */
@@ -283,7 +283,7 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
       { id: 'idk', icon: 'bulb-outline', emoji: '💡', title: 'designAcIdkTitle', subtitle: 'designAcIdkSubtitle', goal: 'designAcIdkGoal', idk: true },
     ],
     inputs: ['text'],
-    // Weë Design estrena el muro social después de Weë Chef (fase 2E-43).
+    // WeëDesign estrena el muro social después de WeëChef (fase 2E-43).
     idea: {
       title: 'designIdeaTitle',
       subtitle: 'designIdeaSubtitle',
@@ -392,7 +392,7 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
     /*
      * La cabecera nombra las tres cosas (fase 2E-52).
      *
-     * Weë Studio reunió fotos, videos y look en 2E-50, pero el hero se quedó
+     * WeëStudio reunió fotos, videos y look en 2E-50, pero el hero se quedó
      * diciendo «Convierte tus ideas en videos» y «No necesitas saber hacer videos»
      * justo encima de un selector cuya primera puerta es Fotos y cuya tercera es
      * Beauty. Era el primer texto de la sección desmintiendo lo que la sección
@@ -410,7 +410,7 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
     /*
      * Tres áreas, no veintiséis funciones (fase 2E-50) — y en dos niveles (2E-53).
      *
-     * Weë Studio reúne lo que antes eran tres secciones. Aquí no se elige una
+     * WeëStudio reúne lo que antes eran tres secciones. Aquí no se elige una
      * función: se elige de qué se va a hablar. Cada área abre la conversación de su
      * experiencia —que sigue existiendo entera, con sus plantillas, sus planes y sus
      * capacidades— y es allí donde se pregunta qué se quiere hacer: "¿Qué hacemos
@@ -442,7 +442,7 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
        */
       { id: 'writer', icon: 'create-outline', emoji: '✍️', title: 'studioAcWriterTitle', subtitle: 'studioAcWriterSubtitle', goal: 'studioAcWriterGoal', opens: 'writer', opensSection: true, secondary: true },
     ],
-    // Weë Studio estrena muro después de Weë Chef y Weë Design (fase 2E-50).
+    // WeëStudio estrena muro después de WeëChef y WeëDesign (fase 2E-50).
     inputs: ['text', 'upload'],
     idea: {
       title: 'studioIdeaTitle',
@@ -535,7 +535,7 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
      * hubo aquí las repetía palabra por palabra y se quitó en 2E-40: una acción,
      * un sitio. La foto se sigue pidiendo dentro de la conversación, como antes.
      */
-    // Weë Chef es el piloto del muro social dentro de una sección (fase 2E-37).
+    // WeëChef es el piloto del muro social dentro de una sección (fase 2E-37).
     examplesTitle: 'chefExamplesTitle',
     examples: [
       { title: 'chefEj1Title', subtitle: 'chefEj1Subtitle', kind: 'recipe', emoji: '🍝', tone: T.yellow, meta: 'chefEj1Meta' },
@@ -559,7 +559,7 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
      * Las mismas siete intenciones que la conversación (fase 2E-60).
      *
      * Esta pantalla ya no se abre desde la navegación —a Hogar & Diseño se entra
-     * por el selector de Weë Design—, pero mientras exista no puede enseñar una
+     * por el selector de WeëDesign—, pero mientras exista no puede enseñar una
      * lista distinta de la que existe: "Remodelar" era una octava puerta que
      * hacía lo mismo que rediseñar y se retiró en 2E-59. Su identificador sigue
      * resolviendo en la plantilla; lo que desaparece es el botón.
@@ -691,7 +691,7 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
     ],
   },
   /*
-   * Weë Travel (fase 2E-64C).
+   * WeëTravel (fase 2E-64C).
    *
    * Cuatro funciones y ni una más: planificar, elegir destino, qué hacer y cómo
    * moverse. La entrada principal NO es la cuadrícula sino la caja de escribir
@@ -699,7 +699,7 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
    * `ideaFirst`: el texto arriba, las cuatro funciones plegadas debajo y el muro
    * de la comunidad después.
    *
-   * Lo que Weë Travel NO hace, y conviene decirlo aquí: no reserva vuelos, no
+   * Lo que WeëTravel NO hace, y conviene decirlo aquí: no reserva vuelos, no
    * reserva hoteles, no cobra nada y no abre un mapa. Prepara el viaje; ir es
    * cosa de la persona.
    */
@@ -753,8 +753,8 @@ export const SPECIALISTS: Record<SpecialistId, SpecialistConfig> = {
 /** Orden de la barra lateral y de la pantalla de Weë Creator (referencias visuales). */
 /**
  * El orden de las secciones en la barra lateral. Photo y Beauty ya no están:
- * se entra a ellas desde el selector de Weë Studio. Home tampoco, desde la fase
- * 2E-56: se entra por el de Weë Design, como Hogar & Diseño. Las tres
+ * se entra a ellas desde el selector de WeëStudio. Home tampoco, desde la fase
+ * 2E-56: se entra por el de WeëDesign, como Hogar & Diseño. Las tres
  * configuraciones siguen enteras más arriba, porque sus mesas de trabajo se
  * siguen usando.
  */

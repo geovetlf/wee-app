@@ -8,7 +8,7 @@
  * «Apersuineq» encuesta, «Periarfissaq» opción, «Sumiiffik» ubicación, «Assiliut» cámara, «Assinut toqqorsivik»
  * galería, «Akuersissut pisariaqarpoq: …» permisos, «… iluatsinngilaq» errores. Los límites numéricos siguen el
  * molde «Naqinnerit annerpaamik: {{maximo}}» para que ningún sufijo toque un hueco. «Sekundi/sekundit»,
- * «minutsi/minutsit» y «video» son préstamos integrados. «Weë», «Weël», «Wäll» y «ËContact» van sin sufijo
+ * «minutsi/minutsit» y «video» son préstamos integrados. «Weë», «Weël», «Ẅall» y «ËContact» van sin sufijo
  * (como objeto, con «pillugu», tras dos puntos o entre paréntesis). Todo «pendiente de confirmación nativa».
  */
 export const composer: typeof import('../es/composer').composer = {
@@ -34,7 +34,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Saqqummiussinermut periarfissat takukkit',
   hideOptions: 'Saqqummiussinermut periarfissat isertukkit',
   currentDestination: '{{destino}}, maanna saqqummiuffik',
-  generalWall: 'Wäll tamanut',
+  generalWall: 'Ẅall tamanut',
   placeholderPollExtra: 'Kissaatigigukku allanik ilanngussigit (pisariaqanngilaq)…',
   placeholderQuestion: 'Peqatigiiffimmut suna apeqqutigerusuppiuk?',
   placeholderWeel: 'Weël pillugu: suna pilersippiuk, AI-lu sorleq atorpiuk?…',

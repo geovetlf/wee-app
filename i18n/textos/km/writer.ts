@@ -1,5 +1,5 @@
 /*
- * JEMER — Weë Writer, dentro de Weë Studio. El texto que escribe la persona NUNCA pasa por aquí: solo las herramientas que lo trabajan.
+ * JEMER — Weë Writer, dentro de WeëStudio. El texto que escribe la persona NUNCA pasa por aquí: solo las herramientas que lo trabajan.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * «សំនៀង» = tono (del texto). El jemer no tiene plural: las dos formas del contador son idénticas.

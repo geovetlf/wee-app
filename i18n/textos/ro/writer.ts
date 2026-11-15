@@ -1,5 +1,5 @@
 /*
- * RUMANO — Weë Writer, dentro de Weë Studio. El texto que escribe la persona nunca pasa por aquí: solo las herramientas que lo trabajan.
+ * RUMANO — Weë Writer, dentro de WeëStudio. El texto que escribe la persona nunca pasa por aquí: solo las herramientas que lo trabajan.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * El contador de palabras lleva las tres formas del rumano.

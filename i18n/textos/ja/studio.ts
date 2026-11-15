@@ -1,5 +1,5 @@
 /*
- * JAPONÉS — Weë Studio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
+ * JAPONÉS — WeëStudio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -9,7 +9,7 @@
  * frases cortas que se entienden solas. «Formato» (cuadrado, vertical, horizontal) es アスペクト比, como en el
  * glosario; «Referencias» son siempre imágenes: 参考画像. «Beauty» y «Fashion», que el español deja en inglés, van en
  * katakana (ビューティー、ファッション): no son marca, y en latino no se leerían como japonés. El lema va en paralelo
- * al de Weë Design (思いのままにデザイン。), que comparte la misma cabecera.
+ * al de WeëDesign (思いのままにデザイン。), que comparte la misma cabecera.
  *
  * Una frase española, una japonesa: «Normal» es 標準 en la lente y en la velocidad (como la velocidad de reproducción
  * de YouTube), y «Movimiento» es 動き en los ajustes, en la herramienta y en la fila de controles. Solo se separan donde
@@ -237,7 +237,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: '準備中',
   soonHint: 'このツールはすでに用意されています。あとは接続するだけです。',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'テキスト',
   textHint: 'あらゆる文章を作成',
   exploreTitle: '発見',

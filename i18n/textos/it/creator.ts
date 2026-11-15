@@ -1,5 +1,5 @@
 /*
- * ITALIANO — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * ITALIANO — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign, WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Tratamiento informal (tu) y apóstrofo tipográfico ’ (U+2019) siempre. Los
@@ -50,10 +50,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Non so da dove cominciare',
   brainEx2: 'Spiegamelo in modo semplice',
   brainEx3: 'Traduci questo testo',
-  areaStudioPhotos: 'Weë Studio · Foto',
-  areaStudioVideos: 'Weë Studio · Video',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Casa & Design',
+  areaStudioPhotos: 'WeëStudio · Foto',
+  areaStudioVideos: 'WeëStudio · Video',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Casa & Design',
   areaHomeName: 'Casa & Design',
   tellTheSpecialist: 'Racconta a {{especialista}} che cosa vuoi ottenere: ti fa due o tre domande semplici e si occupa del resto. Poi pubblichi direttamente nella tua community.',
   exampleQuoted: '«{{ejemplo}}»',

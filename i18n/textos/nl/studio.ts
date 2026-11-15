@@ -1,5 +1,5 @@
 /*
- * NEERLANDÉS — Weë Studio: el sitio donde se crea. Tipado contra el español.
+ * NEERLANDÉS — WeëStudio: el sitio donde se crea. Tipado contra el español.
  *
  * Los planos de cine siguen el uso de la industria en NL (glosario: «shot»): «close-up», «establishing shot».
  * «Beauty», «Fashion» y «3D World» se quedan en inglés, como en en/de. «sampleNarration» nombra el idioma
@@ -226,7 +226,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Binnenkort',
   soonHint: 'Deze tool heeft al zijn plek. Hij moet alleen nog gekoppeld worden.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Tekst',
   textHint: 'Schrijf elke soort tekst',
   exploreTitle: 'Ontdekken',

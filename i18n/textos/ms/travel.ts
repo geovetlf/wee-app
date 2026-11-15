@@ -6,7 +6,7 @@
  * Trato «anda» (guía docs/I18N-MALAYO.md), en minúscula dentro de la frase; Weë Brain habla en primera persona
  * («saya») y las frases `brainCtx*` son lo que la persona le dice, también con «saya». «Guardados» es «Disimpan».
  * El plural solo tiene «other»: las dos formas son idénticas y llevan {{contador}}. Weë, WeëTravel, Weë Brain,
- * Weë Studio, Weëls, Travel Safe y DEMO no se traducen. Traducción de IA, pendiente de revisión nativa.
+ * WeëStudio, Weëls, Travel Safe y DEMO no se traducen. Traducción de IA, pendiente de revisión nativa.
  */
 export const travel: typeof import('../es/travel').travel = {
   // Portada
@@ -744,9 +744,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Apakah yang terbaik hari ini?',
   saveEntry: 'Simpan catatan',
   journalEmpty: 'Diari anda masih kosong. Tulis catatan pertama.',
-  videoMemoriesDemo: 'DEMO: video dicipta dalam Weë Studio, dengan foto dan klip anda sendiri.',
+  videoMemoriesDemo: 'DEMO: video dicipta dalam WeëStudio, dengan foto dan klip anda sendiri.',
   videoOf: 'Video {{viaje}}',
-  createInStudio: 'Cipta dalam Weë Studio',
+  createInStudio: 'Cipta dalam WeëStudio',
   countriesVisited_one: '{{contador}} negara dilawati',
   countriesVisited_other: '{{contador}} negara dilawati',
   recapTitle: 'Perjalanan anda ke {{viaje}}',

@@ -3,11 +3,11 @@
  * (i18n/textos/sr/). Cualquier corrección se hace en el cirílico y se vuelve a generar.
  */
 /*
- * SERBIO (ćirilica) — Weë Music: portada, Composer, workstation y herramientas.
+ * SERBIO (ćirilica) — WeëMusic: portada, Composer, workstation y herramientas.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * «Weë Music», «Weë Brain», «Weë AI» y «Credits» son marca y no se declinan: se usan con sustantivo puente o en
+ * «WeëMusic», «Weë Brain», «Weë AI» y «Credits» son marca y no se declinan: se usan con sustantivo puente o en
  * nominativo. Los nombres de los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs) tampoco se traducen. Lo que escribe
  * la persona (su idea, su letra, el título) entra por interpolación. `trackVolume` y `addInstrument` llevan el
  * instrumento tras dos puntos para no declinar lo que llega por {{instrumento}}. `section_other` e `instr_other` son
@@ -21,7 +21,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Ispričaj mi svoju ideju ili otpevaj melodiju, i pripremi svoju pesmu korak po korak.',
   ctaCreate: 'Kreiraj muziku',
   chooseTitle: 'Izaberi kako da počneš',
-  skillsTitle: 'Šta Weë Music ume da radi',
+  skillsTitle: 'Šta WeëMusic ume da radi',
   recentTitle: 'Nedavne pesme',
   viewExample: 'Pogledaj primer dizajna',
   honestyNote: 'Danas možeš da pripremiš pesmu, snimiš referentnu melodiju i pitaš Weë Brain za savet. Kreiranje pesme biće uključeno kada bude povezano i provereno.',
@@ -29,7 +29,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Tvoji sačuvani audio snimci i pesme.',
   openProjects: 'Moji projekti',
   openProjectsHelp: 'Organizuj svoje pesme u projekte.',
-  backToMusic: 'Nazad na Weë Music',
+  backToMusic: 'Nazad na WeëMusic',
   composerTitle: 'Kreiraj muziku',
   modesLabel: 'Režim',
   modeSimple: 'Jednostavno',
@@ -315,7 +315,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Obrada zvuka je funkcija koja tek dolazi: ovde se priprema samo specifikacija.',
 
   voiceInterpretation: 'Stil interpretacije',
-  voiceNoClone: 'Weë Music ne klonira niti oponaša glasove stvarnih ljudi: bira samo opšte karakteristike vokala.',
+  voiceNoClone: 'WeëMusic ne klonira niti oponaša glasove stvarnih ljudi: bira samo opšte karakteristike vokala.',
   voiceStylePending: 'Stil interpretacije zavisi od motora i još nije dostupan.',
   styleTitle: 'Žanr i stil',
   transformTitle: 'Transformacije',

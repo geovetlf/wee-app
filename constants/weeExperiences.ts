@@ -1,8 +1,8 @@
 /**
  * Las experiencias de Weë Creator (docs/CREATOR.md §1 y §8).
  *
- * Once existen; nueve se ven. Weë Travel es la última en llegar (fase 2E-64C). Weë Photo y Weë Beauty dejaron de ser secciones
- * del menú y pasaron a ser áreas dentro de Weë Studio (fase 2E-50), pero sus
+ * Once existen; nueve se ven. WeëTravel es la última en llegar (fase 2E-64C). Weë Photo y Weë Beauty dejaron de ser secciones
+ * del menú y pasaron a ser áreas dentro de WeëStudio (fase 2E-50), pero sus
  * identificadores, sus plantillas y sus rutas siguen enteros: de eso vive todo
  * el trabajo ya creado. Por eso hay dos listas y no una.
  *
@@ -23,12 +23,12 @@ export type ClaveDeTexto = string;
 
 export interface WeeExperience {
   id: string;
-  /** Nombre de identidad (Weë Design, Weë Studio…). No traducir ni cambiar. */
+  /** Nombre de identidad (WeëDesign, WeëStudio…). No traducir ni cambiar. */
   name: string;
   /**
    * El icono dibujado, de `components/icons/trazosDeWee`. Lo pinta el cajón.
    *
-   * El emoji de identidad de cada experiencia (🎨 Weë Design, 🎬 Weë Studio…) se
+   * El emoji de identidad de cada experiencia (🎨 WeëDesign, 🎬 WeëStudio…) se
    * queda: lo usan sus propias pantallas y es parte de su nombre. Esto es otra
    * cosa: la versión dibujada, para que en el menú las once se vean de la misma
    * familia y no once dibujos del sistema operativo puestos en columna.
@@ -38,7 +38,7 @@ export interface WeeExperience {
   /**
    * La clave de i18n de la descripción. Lo que se PINTA sale de aquí.
    *
-   * El NOMBRE no lleva clave y no la va a llevar: "Weë Design" es marca y se
+   * El NOMBRE no lleva clave y no la va a llevar: "WeëDesign" es marca y se
    * escribe igual en todos los idiomas, como Instagram o Photoshop. Lo que se
    * traduce es lo que la describe.
    */
@@ -71,7 +71,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     id: 'design',
     icono: 'pincel',
     claveDescripcion: 'creator.design',
-    name: 'Weë Design',
+    name: 'WeëDesign',
     emoji: '🎨',
     description: 'Logos, posters, ilustraciones y material para tus redes',
     examples: ['creator.designEx1', 'creator.designEx2', 'creator.designEx3'],
@@ -81,10 +81,10 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     id: 'studio',
     icono: 'claqueta',
     claveDescripcion: 'creator.studio',
-    name: 'Weë Studio',
+    name: 'WeëStudio',
     emoji: '🎬',
     // La propuesta principal de la sección, tal cual (fases 2E-52 y 2E-53): esta
-    // línea se lee en la tarjeta de Weë Studio dentro de Weë Creator, y dice lo
+    // línea se lee en la tarjeta de WeëStudio dentro de Weë Creator, y dice lo
     // mismo que el hero. Beauty no entra aquí a propósito —tiene su propia
     // descripción dentro del selector— para no repartir el mensaje principal.
     description: 'Crea y transforma fotos y videos con IA.',
@@ -115,7 +115,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     id: 'music',
     icono: 'notas',
     claveDescripcion: 'creator.music',
-    name: 'Weë Music',
+    name: 'WeëMusic',
     emoji: '🎵',
     description: 'Canciones, música instrumental, voces y narración',
     examples: ['creator.musicEx1', 'creator.musicEx2', 'creator.musicEx3'],
@@ -135,7 +135,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     id: 'chef',
     icono: 'gorro',
     claveDescripcion: 'creator.chef',
-    name: 'Weë Chef',
+    name: 'WeëChef',
     emoji: '👨‍🍳',
     description: 'Tu chef personal: qué cocinar, recetas y menús',
     examples: ['creator.chefEx1', 'creator.chefEx2', 'creator.chefEx3'],
@@ -155,7 +155,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     id: 'business',
     icono: 'vestido',
     claveDescripcion: 'creator.business',
-    name: 'Weë Fashion',
+    name: 'WeëFashion',
     emoji: '👗',
     description: 'Moda, estilo, belleza y creación de contenido visual.',
     examples: ['creator.businessEx1', 'creator.businessEx2', 'creator.businessEx3'],
@@ -165,7 +165,7 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
     id: 'travel',
     icono: 'avion',
     claveDescripcion: 'creator.travel',
-    name: 'Weë Travel',
+    name: 'WeëTravel',
     emoji: '✈️',
     description: 'Prepara tu viaje: a dónde ir, qué hacer y cómo moverte',
     examples: ['creator.travelEx1', 'creator.travelEx2', 'creator.travelEx3'],
@@ -186,9 +186,9 @@ export const ALL_EXPERIENCES: WeeExperience[] = [
 /**
  * Las que aparecen como sección en el menú ☰, en la barra lateral y en la
  * pantalla que las reúne. Photo y Beauty no están: se entra a ellas desde el
- * selector de Weë Studio. Home tampoco: entra por el de Weë Design, donde se
+ * selector de WeëStudio. Home tampoco: entra por el de WeëDesign, donde se
  * llama Hogar & Diseño (fase 2E-56). Y Weë Writer tampoco: pasa a ser una
- * función más del selector de Weë Studio.
+ * función más del selector de WeëStudio.
  *
  * Esconder una sección no esconde NADA de lo que sabe hacer: sigue en
  * `ALL_EXPERIENCES`, `getExperienceById` la resuelve, `matchExperiences` la
@@ -241,7 +241,7 @@ export const WEE_EXPERIENCES: WeeExperience[] = (() => {
  * Lo que escribe quien usa Weë en otro idioma, por experiencia.
  *
  * Sin esto, quien escribe «opskrift» en danés leía «Weë todavía no hace eso»
- * —falso: Weë Chef lo hace—, porque solo se reconocían palabras en español.
+ * —falso: WeëChef lo hace—, porque solo se reconocían palabras en español.
  *
  * Reglas, para que nada cambie para nadie más:
  *  · se SUMAN a `keywords`, nunca las sustituyen; en español la búsqueda es la de siempre;
@@ -320,7 +320,7 @@ const palabrasDelIdioma = (idioma?: string): Readonly<Record<string, readonly st
  * nombre propio de la experiencia —que es marca y no se traduce—, que es lo que
  * siguen haciendo las tres áreas de Studio.
  *
- * Las dos son CLAVES: "Weë Design · Hogar & Diseño" se lee, así que se traduce.
+ * Las dos son CLAVES: "WeëDesign · Hogar & Diseño" se lee, así que se traduce.
  * Lo que no cambia nunca es el identificador `home`, que es con el que viajan
  * los trabajos guardados y las plantillas del servidor.
  */
@@ -329,7 +329,7 @@ export const EXPERIENCE_AREA: Record<string, { section: string; claveEtiqueta: C
   studio: { section: 'studio', claveEtiqueta: 'creator.areaStudioVideos' },
   beauty: { section: 'studio', claveEtiqueta: 'creator.areaStudioBeauty' },
   /*
-   * Weë Home pasa a ser Hogar & Diseño dentro de Weë Design. El nombre propio
+   * Weë Home pasa a ser Hogar & Diseño dentro de WeëDesign. El nombre propio
    * desaparece de la pantalla —nadie debe leer "Weë Home"—, pero el
    * identificador `home` sigue intacto por debajo: con él viajan los trabajos
    * históricos, la plantilla del servidor, los planes y los prompts.

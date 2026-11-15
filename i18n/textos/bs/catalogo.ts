@@ -19,12 +19,12 @@
  * Futuro en dos palabras («objasnit ću», «riješit ćemo», «predložit ću»).
  *
  * MARCAS (guía § 3). Ni se traducen ni se declinan: «uz Weë», «sa Weë», «Reci Weë…». «Los otros Weë» son «ostali
- * Weë specijalisti». En el selector de Weë Studio, «Beauty» y «Writer» se dejan como en el español y el inglés, igual
+ * Weë specijalisti». En el selector de WeëStudio, «Beauty» y «Writer» se dejan como en el español y el inglés, igual
  * que «outfit», «look», «vintage», «glam», «casual», «beat», «trap», «pop», «rock», «reggaeton» y el plato «Lomo
- * saltado». El cocinero es «kuhar» (bs; sr «kuvar»), y la marca Weë Chef no se toca.
+ * saltado». El cocinero es «kuhar» (bs; sr «kuvar»), y la marca WeëChef no se toca.
  *
  * PALABRAS. «Redes» es «društvene mreže» (y «mreže» a secas donde el español dice solo «redes»); «negocio», «biznis»
- * (glosario); «marca», «brend»; «personaje», «lik»; «mascotas» de Weë Design son «maskote» (personajes), las de Weë
+ * (glosario); «marca», «brend»; «personaje», «lik»; «mascotas» de WeëDesign son «maskote» (personajes), las de Weë
  * Studio «ljubimci» (animales); «espacio», «prostor»; «hogar», «dom»; «sala», «dnevni boravak»; «portada»,
  * «naslovnica»; «guion», «scenarij»; «videoclip», «spot» (lo que se dice en bosnio de un video musical); «jingle»,
  * «džingl»; «menú», «meni»; «postre», «desert»; «acogedor», «ugodan»; «CV» en mayúsculas sin declinar; «Ejemplo:»
@@ -37,8 +37,8 @@
  * GÉNERO. Donde el español se dirige a la persona con un participio o adjetivo que en bosnio tendría género («¿qué
  * te gustaría cocinar?»), se reescribe con una forma neutra («Šta ti se danas kuha?», «šta želiš poboljšati»).
  *
- * LO QUE NO SE PUEDE ROMPER. Los chips de Weë Travel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
- * solo quita el emoji si lo sigue un espacio. En Weë Studio y Weë Chef ningún objetivo, chip ni ejemplo nombra una
+ * LO QUE NO SE PUEDE ROMPER. Los chips de WeëTravel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
+ * solo quita el emoji si lo sigue un espacio. En WeëStudio y WeëChef ningún objetivo, chip ni ejemplo nombra una
  * foto donde el español no la nombra, y la nombran donde el español lo hace («Želim raditi s fotografijom», «Želim
  * dotjerati fotografiju svog jela»): `CreatorFlowScreen` todavía mira el texto (/foto|imagen/) para decidir si la
  * pide, y «fotografija» contiene «foto». Por eso aquí la foto es siempre «fotografija» y nunca «slika»; «slika» queda
@@ -91,7 +91,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Brine se za cijeli proces',
   brainEj3Subtitle: 'Od ideje do dizajna, videa i muzike',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Dizajniraj ono što zamisliš.',
   designIntro: 'Pretvori svoje ideje u nevjerovatne dizajne uz vještačku inteligenciju. Od logotipa do auta, proizvoda ili cijelog svijeta.',
   designChip1: 'Brzo i lako',
@@ -190,7 +190,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Retuširanje lica',
   photoEj6Title: 'Transformiši uz AI',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Kreiraj, slušaj i živi svoju muziku uz AI',
   musicIntro: 'Pretvori svoje ideje u pjesme, videe i jedinstvena iskustva. Bez granica za tvoju kreativnost.',
   musicChip1: 'Brzo i jednostavno',
@@ -252,7 +252,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Pretvori svoju muziku u nevjerovatan video: razni stilovi, automatska sinhronizacija, formati za društvene mreže, scene i likovi.',
   musicClosingButton: 'Kreiraj video sada',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Kreiraj fotografije i videe uz AI',
   studioIntro: 'Reci mi šta želiš kreirati i pomoći ću ti korak po korak.',
   studioChip1: 'Jednostavno za korištenje',
@@ -345,7 +345,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Primljene poruke',
   businessEj4Meta: '↑ 70 %',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Tvoj kuhar, uvijek uz tebe',
   chefIntro: 'Otkrij recepte, pravi menije, iskoristi ono što imaš i jedi bolje, lakše i ukusnije.',
   chefChip1: 'Jednostavni recepti',
@@ -375,7 +375,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Ne znam šta kuhati',
   chefAcIdkSubtitle: 'Predložit ću ti nešto ukusno',
   chefAcIdkGoal: 'Ne znam šta da kuham danas',
-  chefIdeaTitle: 'Zdravo! Ja sam Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Zdravo! Ja sam WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Reci mi, šta ti se danas kuha?',
   chefIdeaPlaceholder: 'Napiši svoju ideju ovdje…',
   chefIdeaChip1: 'Želim brzu večeru',
@@ -587,7 +587,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'Profesionalni CV',
   writerEj6Subtitle: 'Moderan i čist',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Pripremi putovanje s nekim ko je već putovao.',
   travelIntro: 'Reci mi kuda ideš – ili da još ne znaš – i pripremit ću ti putovanje: šta vidjeti, gdje jesti i kako se kretati.',
   travelChip1: 'Bez rezervacija',

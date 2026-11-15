@@ -43,7 +43,7 @@ interface CreatorShellProps {
    * En el teléfono, sin la franja de arriba (flecha de volver y nombre): la
    * sección se presenta sola con su cabecera —logo, nombre y lema—, que es lo
    * único que debe haber arriba (decisión del usuario, 2026-09-15). Se vuelve
-   * con el gesto de atrás y con la barra de abajo, como en Weë Studio y Weë
+   * con el gesto de atrás y con la barra de abajo, como en WeëStudio y Weë
    * Design, que nunca tuvieron esta franja. En escritorio se queda: allí es la
    * miga de pan de la barra lateral.
    */
@@ -92,7 +92,7 @@ interface CreatorShellProps {
  *
  * Hubo un tiempo —unas horas, el 2026-09-16— en que esta caja se quedaba con
  * poco menos de la mitad, para que al escribir no tapara el cerebro. El usuario
- * lo pidió al revés: que se extienda sin tope, como la de Weë Studio. Así que
+ * lo pidió al revés: que se extienda sin tope, como la de WeëStudio. Así que
  * escribir mucho tapa el cerebro mientras se escribe, y eso está decidido: la
  * página de debajo sigue ahí y vuelve en cuanto la caja se vacía.
  *

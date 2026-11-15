@@ -1,5 +1,5 @@
 /*
- * El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * El Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Y además es el último escalón del respaldo, así que no puede tener huecos.
@@ -76,9 +76,9 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: 'Copied',
   demoBadge: 'Demo',
   demoBadgeLabel: 'Demo content',
-  /* ── El Wäll inmersivo: una publicación a la vez ── */
-  immersiveEmpty: 'There are no posts on the Wäll yet',
-  immersiveError: 'We couldn’t load the Wäll',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'There are no posts on the Ẅall yet',
+  immersiveError: 'We couldn’t load the Ẅall',
   immersiveEnd: 'You’re all caught up',
   agreePost: 'Agree',
   disagreePost: 'Disagree',

@@ -8,7 +8,7 @@
  *
  * Los nombres de los módulos y de las funciones de negocio (Business Plan,
  * Business Coach, Pricing Assistant, Brand Kit, Customer Insights, Business
- * Ideas, Business Profile) y las marcas (Weë, Wäll, Credits, Weë Fashion) se
+ * Ideas, Business Profile) y las marcas (Weë, Ẅall, Credits, WeëFashion) se
  * escriben igual que en español. Lo que escribe la persona o sus clientes no
  * pasa por aquí.
  */
@@ -163,11 +163,11 @@ export const business: ConPlurales<typeof import('../es/business').business> = {
   share: 'Distribuie',
   shareHint: 'Se deschide meniul de distribuire al telefonului tău: alege aplicația pe care o vrei.',
   shareToWee: 'Distribuie în Weë',
-  shareWall: 'Wäll',
+  shareWall: 'Ẅall',
   shareCommunities: 'Comunități',
   shareProfile: 'Business Profile',
   shareNothing: 'Mai întâi creează ceva, apoi îl distribui de aici.',
-  shareText: 'Creat cu Weë Fashion',
+  shareText: 'Creat cu WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Încarcă datele mele',

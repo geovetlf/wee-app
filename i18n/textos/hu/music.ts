@@ -1,9 +1,9 @@
 /*
- * MAGYAR — Weë Music: kezdőlap, Composer, workstation és eszközök. Tipado contra el español.
+ * MAGYAR — WeëMusic: kezdőlap, Composer, workstation és eszközök. Tipado contra el español.
  *
- * «Weë Music» es marca y no se traduce; tampoco los nombres de los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs).
+ * «WeëMusic» es marca y no se traduce; tampoco los nombres de los proveedores (Mureka, MiniMax, Yinchao, ElevenLabs).
  * Se tutea («te»); los botones son sustantivo de acción en -ás/-és. Ningún sufijo se pega a un {{hueco}} ni a una marca:
- * se usa la forma de etiqueta («Hangerő: {{instrumento}}») o se reescribe la frase («a Weë Music főoldalára»).
+ * se usa la forma de etiqueta («Hangerő: {{instrumento}}») o se reescribe la frase («a WeëMusic főoldalára»).
  * Términos: canción = dal, letra = dalszöveg, pista separada = külön sáv, motor = motor, borrador = piszkozat,
  * IA = AI. «MIDI», «Pop», «Rock», «Jazz», «R&B», «Hip hop», «Remix», «Tempo» y «Szóló» se dejan como los usa la música
  * en húngaro. Lo que escribe la persona nunca pasa por aquí. Hecho por agentes, SIN revisión humana nativa.
@@ -14,7 +14,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Meséld el az ötleted, vagy dúdolj egy dallamot, és készítsd elő a dalodat lépésről lépésre.',
   ctaCreate: 'Zenekészítés',
   chooseTitle: 'Válaszd ki, hogyan kezdesz',
-  skillsTitle: 'Mire képes a Weë Music',
+  skillsTitle: 'Mire képes a WeëMusic',
   recentTitle: 'Legutóbbi dalok',
   viewExample: 'Tervezési példa megtekintése',
   honestyNote: 'Ma már előkészítheted a dalodat, felvehetsz egy referenciadallamot, és a Weë Brain segítségével tanácsot kaphatsz. A dal elkészítése akkor kapcsol be, amikor csatlakoztatva és ellenőrizve lesz.',
@@ -22,7 +22,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'A mentett hanganyagaid és dalaid.',
   openProjects: 'Projektjeim',
   openProjectsHelp: 'Rendezd projektekbe a dalaidat.',
-  backToMusic: 'Vissza a Weë Music főoldalára',
+  backToMusic: 'Vissza a WeëMusic főoldalára',
   composerTitle: 'Zenekészítés',
   modesLabel: 'Mód',
   modeSimple: 'Egyszerű',
@@ -308,7 +308,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'A hangfeldolgozás még függőben lévő képesség: itt csak a szerződés készül elő.',
 
   voiceInterpretation: 'Előadásmód',
-  voiceNoClone: 'A Weë Music nem klónozza és nem utánozza valós személyek hangját: csak általános hangjellemzőket választ.',
+  voiceNoClone: 'A WeëMusic nem klónozza és nem utánozza valós személyek hangját: csak általános hangjellemzőket választ.',
   voiceStylePending: 'Az előadásmód a motortól függ, és még nem érhető el.',
   styleTitle: 'Műfaj és stílus',
   transformTitle: 'Átalakítások',

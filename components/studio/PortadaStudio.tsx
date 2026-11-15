@@ -6,7 +6,7 @@ import { Bloque, HeroDeSector, PildorasDeSector, RejillaDeAccesos, TarjetaDestac
 /*
  * LA PORTADA DE WEË STUDIO, COMO EN LA DEMO YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3), con las piezas comunes de las
  * secciones (components/sectores/PiezasDeSector.tsx). Cada pieza llama a lo que el Studio ya tenía: abrir un panel, ir a
- * Production (Filmmaker), a Weë Design o a Mis proyectos. «Filmmaker», «Filmmaker Engine», «Writer» y «Design» son marca.
+ * Production (Filmmaker), a WeëDesign o a Mis proyectos. «Filmmaker», «Filmmaker Engine», «Writer» y «Design» son marca.
  */
 
 const MASCOTA = require('../../assets/images/sectores/studio-mascota.jpg');

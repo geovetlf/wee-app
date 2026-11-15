@@ -29,7 +29,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Optionen zum Posten anzeigen',
   hideOptions: 'Optionen zum Posten ausblenden',
   currentDestination: '{{destino}}, aktuelles Ziel',
-  generalWall: 'Allgemeiner Wäll',
+  generalWall: 'Allgemeiner Ẅall',
   placeholderPollExtra: 'Füge noch etwas hinzu, wenn du magst (optional)…',
   placeholderQuestion: 'Was möchtest du die Community fragen?',
   placeholderWeel: 'Erzähl, was du für dein Weël erstellt hast und mit welcher KI…',

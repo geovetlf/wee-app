@@ -2,7 +2,7 @@
  * MONGOL — WEË DESIGN: diseñar y visualizar casi cualquier cosa física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * «Weë Design» es marca y no aparece aquí; «3D» se queda como en el español.
+ * «WeëDesign» es marca y no aparece aquí; «3D» se queda como en el español.
  */
 export const design: typeof import('../es/design').design = {
   /* ── La cabecera ──────────────────────────────────────────────────────── */

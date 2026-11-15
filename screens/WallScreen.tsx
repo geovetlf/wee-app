@@ -19,12 +19,12 @@ import { RellenoDeMarca } from '../components/GradienteDeMarca';
 /**
  * EL WÄLL INMERSIVO — EL MURO DE WEË, UNA PUBLICACIÓN A LA VEZ.
  *
- * Se entra tocando una publicación del muro del Home: el Wäll se abre en esa misma publicación, con lo que el Home ya
+ * Se entra tocando una publicación del muro del Home: el Ẅall se abre en esa misma publicación, con lo que el Home ya
  * tenía cargado (utils/semillaDelMuro.ts), y desde ahí se sube y se baja con el dedo, la rueda o las flechas del
  * teclado. Los datos son los del muro general de siempre (`postsService.getMuroGeneralPaginado`, el único sitio que
  * sabe pedirlo); aquí no hay otra consulta ni otro orden.
  *
- * En el teléfono ocupa la pantalla entera. En tableta y escritorio, el Wäll es una columna centrada con la proporción
+ * En el teléfono ocupa la pantalla entera. En tableta y escritorio, el Ẅall es una columna centrada con la proporción
  * de un teléfono sobre fondo negro: una publicación pensada en vertical no se estira a 1440 de ancho.
  */
 const ANCHO_MAXIMO = 520;
@@ -108,7 +108,7 @@ const WallScreen: React.FC = () => {
       <TouchableOpacity onPress={volver} style={s.barraBoton} accessibilityRole="button" accessibilityLabel={t('common.back')} hitSlop={10}>
         <Ionicons name="arrow-back" size={scale(24)} color="#FFFFFF" style={dir.espejo} />
       </TouchableOpacity>
-      <Text style={s.titulo} accessibilityRole="header">Wäll</Text>
+      <Text style={s.titulo} accessibilityRole="header">Ẅall</Text>
       <View style={s.barraBoton} />
     </View>
   );

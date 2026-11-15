@@ -1,5 +1,5 @@
 /*
- * HÚNGARO — El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * HÚNGARO — El Ẅall: la publicación y todo lo que se puede hacer con ella.
  * Tipado contra el español.
  */
 export const wall: typeof import('../es/wall').wall = {
@@ -75,8 +75,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demó',
   demoBadgeLabel: 'Bemutató tartalom',
-  immersiveEmpty: 'A Wäll még üres',
-  immersiveError: 'A Wäll betöltése nem sikerült',
+  immersiveEmpty: 'A Ẅall még üres',
+  immersiveError: 'A Ẅall betöltése nem sikerült',
   immersiveEnd: 'Mindent láttál',
   agreePost: 'Egyetértek',
   disagreePost: 'Nem értek egyet',

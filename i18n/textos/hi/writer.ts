@@ -1,5 +1,5 @@
 /*
- * HINDI — Weë Writer, dentro de Weë Studio: el editor y las herramientas que
+ * HINDI — Weë Writer, dentro de WeëStudio: el editor y las herramientas que
  * trabajan el texto de la persona. Ese texto NUNCA pasa por aquí.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.

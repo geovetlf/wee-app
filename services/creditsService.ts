@@ -338,7 +338,7 @@ export interface TransactionView {
  * `constants/specialists.ts`—.
  *
  * `title` es el concepto que escribió el servidor y GUARDÓ con el movimiento, en español: «Credits de bienvenida»,
- * «WEË AI · Weë Chef», «Weë Brain · 12 respuestas». Esas frases están en el catálogo del servidor
+ * «WEË AI · WeëChef», «Weë Brain · 12 respuestas». Esas frases están en el catálogo del servidor
  * (`i18n/textos/es/servidor/movimientos.ts`), así que quien pinta las reconoce y las escribe en el idioma de quien
  * mira, también las de movimientos de hace meses (`i18n/servidor.ts`). `tituloClave` es lo que se dice por tipo
  * de movimiento, cuando no hay concepto o no se reconoce.

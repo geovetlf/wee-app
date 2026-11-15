@@ -1,7 +1,7 @@
 /*
  * COREANO — WeëTravel, el workspace de viajes (prototipo navegable con datos DEMO). Tipado contra el español: si allí
  * hay una clave que aquí falta, no compila. 해요체, como el resto del diccionario. Las marcas (Weë, WeëTravel, Weë Brain,
- * Weë Studio, Weëls, Travel Safe, DEMO) se quedan en alfabeto latino; Weë Brain lleva la serie 이/을/과 y Weë Studio la
+ * WeëStudio, Weëls, Travel Safe, DEMO) se quedan en alfabeto latino; Weë Brain lleva la serie 이/을/과 y WeëStudio la
  * serie 가/를/로. Sin plural: `_one` y `_other` dicen exactamente lo mismo. Ninguna partícula variable va pegada a un
  * {{hueco}}. Lugares y platos con su nombre habitual en coreano (교토, 리스본, 마추픽추…).
  */
@@ -741,9 +741,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: '오늘 가장 좋았던 건 뭐였나요?',
   saveEntry: '일기 저장',
   journalEmpty: '일기가 비어 있어요. 첫 일기를 써 보세요.',
-  videoMemoriesDemo: 'DEMO: 영상은 내 사진과 클립으로 Weë Studio에서 만들어요.',
+  videoMemoriesDemo: 'DEMO: 영상은 내 사진과 클립으로 WeëStudio에서 만들어요.',
   videoOf: '{{viaje}} 여행 영상',
-  createInStudio: 'Weë Studio에서 만들기',
+  createInStudio: 'WeëStudio에서 만들기',
   countriesVisited_one: '방문한 나라 {{contador}}곳',
   countriesVisited_other: '방문한 나라 {{contador}}곳',
   recapTitle: '나의 {{viaje}} 여행',

@@ -1,5 +1,5 @@
 /*
- * IRLANDÉS — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * IRLANDÉS — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -92,8 +92,8 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demo',
   demoBadgeLabel: 'Ábhar taispeána',
-  immersiveEmpty: 'Níl aon phostáil ar an Wäll fós',
-  immersiveError: 'Níorbh fhéidir linn an Wäll a lódáil',
+  immersiveEmpty: 'Níl aon phostáil ar an Ẅall fós',
+  immersiveError: 'Níorbh fhéidir linn an Ẅall a lódáil',
   immersiveEnd: 'Chonaic tú gach rud',
   agreePost: 'Aontaím',
   disagreePost: 'Ní aontaím',

@@ -1,6 +1,6 @@
 /*
- * MONTENEGRINO — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design,
- * Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * MONTENEGRINO — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign,
+ * WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Ijekaviano, latino. Tipado contra el español: si allí hay una clave que aquí
  * falta, no compila. «Beauty» en `areaStudioBeauty` se deja porque el español
@@ -51,10 +51,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Ne znam odakle da počnem',
   brainEx2: 'Objasni mi ovo jednostavno',
   brainEx3: 'Prevedi ovaj tekst',
-  areaStudioPhotos: 'Weë Studio · Fotografije',
-  areaStudioVideos: 'Weë Studio · Videosnimci',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Dom i dizajn',
+  areaStudioPhotos: 'WeëStudio · Fotografije',
+  areaStudioVideos: 'WeëStudio · Videosnimci',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Dom i dizajn',
   areaHomeName: 'Dom i dizajn',
   tellTheSpecialist: 'Reci {{especialista}} što želiš da postigneš: postaviće ti dva-tri jednostavna pitanja i pobrinuti se za ostalo. Poslije objavljuješ direktno u svojoj zajednici.',
   exampleQuoted: '“{{ejemplo}}”',

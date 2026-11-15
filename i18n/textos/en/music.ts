@@ -1,5 +1,5 @@
 /*
- * en — Weë Music: cover, Composer, workstation and tools. «Weë Music» and provider names are brands and are not translated.
+ * en — WeëMusic: cover, Composer, workstation and tools. «WeëMusic» and provider names are brands and are not translated.
  * Typed against the Spanish file. Machine-assisted draft: pending review by a native speaker.
  */
 export const music: typeof import('../es/music').music = {
@@ -9,7 +9,7 @@ export const music: typeof import('../es/music').music = {
   ctaCreate: 'Create music',
   demoPrompt: 'What music do you want to create?',
   chooseTitle: 'Choose how to start',
-  skillsTitle: 'What Weë Music can do',
+  skillsTitle: 'What WeëMusic can do',
   recentTitle: 'Recent songs',
   viewExample: 'See a design example',
   honestyNote: 'Today you can prepare your song, record a reference melody and ask Weë Brain for guidance. Creating the song will be switched on once it is connected and validated.',
@@ -17,7 +17,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Your saved audio and songs.',
   openProjects: 'My projects',
   openProjectsHelp: 'Organize your songs into projects.',
-  backToMusic: 'Back to Weë Music',
+  backToMusic: 'Back to WeëMusic',
   composerTitle: 'Create music',
   modesLabel: 'Mode',
   modeSimple: 'Simple',
@@ -303,7 +303,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Audio processing is a pending capability: only the contract is prepared here.',
 
   voiceInterpretation: 'Performance style',
-  voiceNoClone: 'Weë Music does not clone or imitate real people’s voices: it only picks general vocal characteristics.',
+  voiceNoClone: 'WeëMusic does not clone or imitate real people’s voices: it only picks general vocal characteristics.',
   voiceStylePending: 'Performance style depends on the engine and is not available yet.',
   styleTitle: 'Genre and style',
   transformTitle: 'Transformations',

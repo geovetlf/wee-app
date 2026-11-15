@@ -18,7 +18,7 @@ import { FASHION_MODOS, FashionModo, modoDeFashion } from '../constants/fashionM
  * entera— se ve lo mismo que en las otras secciones de creator: la caja común y
  * las seis experiencias en la rejilla de creator. El composer de cada modo es el
  * mismo de siempre, con los mismos parámetros de la ruta (`modo`, `goal`,
- * `imageUri`), así que las puertas «Beauty» y «Fashion» de Weë Studio abren aquí
+ * `imageUri`), así que las puertas «Beauty» y «Fashion» de WeëStudio abren aquí
  * igual que antes.
  */
 const FashionCreatorScreen: React.FC = () => {
@@ -46,7 +46,7 @@ const FashionCreatorScreen: React.FC = () => {
   }, [texto]);
 
   return (
-    <CreatorShell activeId="business" title="Weë Fashion" breadcrumb="Weë AI" sinFranjaSuperior>
+    <CreatorShell activeId="business" title="WeëFashion" breadcrumb="Weë AI" sinFranjaSuperior>
       <CabeceraDeSeccion nombre="Fashion" lema={t('fashion.tagline')} descripcion={t('fashion.intro')} />
       {modo ? (
         <FashionComposer key={modo.id} modo={modo} onVolver={volver} inicial={inicial} />

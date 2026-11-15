@@ -1,7 +1,7 @@
 /*
- * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — Weë Fashion. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — WeëFashion. Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Migración de la UI (demo YC) integrada con is/kl, 2026-11-05: traducción de IA, SIN revisión humana nativa.
- * Las marcas (Weë, Credits, ËContact, Boost, Weë Fashion, WeëPages…) no se traducen. Kalaallisut, NO danés; marcas sin sufijo (docs/I18N-GROENLANDES.md).
+ * Las marcas (Weë, Credits, ËContact, Boost, WeëFashion, WeëPages…) no se traducen. Kalaallisut, NO danés; marcas sin sufijo (docs/I18N-GROENLANDES.md).
  */
 export const fashion: typeof import('../es/fashion').fashion = {
   tagline: 'Isikkut. Takorluukkatit. Silarsuarit.',
@@ -95,7 +95,7 @@ export const fashion: typeof import('../es/fashion').fashion = {
   briefIdea: 'Isumassarsiara: {{texto}}.',
   briefIdk: 'Toqqaanissannut ikiunnga.',
   heroTags: 'Atisat · Kusanassuseq · Isikkoq · Katersat',
-  toolsTitle: 'Sakkut: Weë Fashion',
+  toolsTitle: 'Sakkut: WeëFashion',
   inspirationTitle: 'Isumassarsiorfiit',
   galleryTitle: 'Isikkoq misiliguk',
   galClothes: 'Atisat',

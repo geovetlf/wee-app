@@ -1,7 +1,7 @@
 /*
  * GRIEGO — WeëTravel: el workspace de viajes (prototipo navegable con datos DEMO). Tipado contra el español.
  * Tuteo como el resto del diccionario; se pregunta con «;»; las mayúsculas sostenidas van sin tono.
- * Weë, WeëTravel, Weë Brain, Weë Studio, Weëls, Travel Safe y «DEMO» no se traducen.
+ * Weë, WeëTravel, Weë Brain, WeëStudio, Weëls, Travel Safe y «DEMO» no se traducen.
  */
 export const travel: typeof import('../es/travel').travel = {
   // Portada
@@ -739,9 +739,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Ποιο ήταν το καλύτερο της σημερινής μέρας;',
   saveEntry: 'Αποθήκευση καταχώρισης',
   journalEmpty: 'Το ημερολόγιό σου είναι άδειο. Γράψε την πρώτη καταχώριση.',
-  videoMemoriesDemo: 'DEMO: τα βίντεο δημιουργούνται στο Weë Studio, με τις δικές σου φωτογραφίες και κλιπ.',
+  videoMemoriesDemo: 'DEMO: τα βίντεο δημιουργούνται στο WeëStudio, με τις δικές σου φωτογραφίες και κλιπ.',
   videoOf: 'Το βίντεο του ταξιδιού: {{viaje}}',
-  createInStudio: 'Δημιουργία στο Weë Studio',
+  createInStudio: 'Δημιουργία στο WeëStudio',
   countriesVisited_one: '{{contador}} χώρα που επισκέφτηκες',
   countriesVisited_other: '{{contador}} χώρες που επισκέφτηκες',
   recapTitle: 'Το ταξίδι σου: {{viaje}}',

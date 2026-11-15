@@ -2,7 +2,7 @@
  * COREANO — WEË DESIGN: diseñar y visualizar casi cualquier cosa física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Weë Design comparte con Weë Studio —"Mis creaciones", "Ver todas",
+ * Lo que WeëDesign comparte con WeëStudio —"Mis creaciones", "Ver todas",
  * "Creando...", "Creación lista"— vive en `studio` y se lee de allí.
  *
  * Las puertas de entrada («Un salón», «Una silla») van en coreano como se
@@ -91,7 +91,7 @@ export const design: typeof import('../es/design').design = {
   valMixed: '혼합',
   valNatural: '자연광',
   valWarm: '따뜻한 빛',
-  /* «De estudio» es la luz de un plató, no Weë Studio: por eso 촬영 조명, sin la marca. */
+  /* «De estudio» es la luz de un plató, no WeëStudio: por eso 촬영 조명, sin la marca. */
   valStudioLight: '촬영 조명',
 
   /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */

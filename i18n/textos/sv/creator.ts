@@ -1,6 +1,6 @@
 /*
  * SUECO — lo que describe cada experiencia de WEË AI y los ejemplos que se tocan
- * para empezar. Los nombres —Weë Design, Weë Studio…— son marca y viven en
+ * para empezar. Los nombres —WeëDesign, WeëStudio…— son marca y viven en
  * constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
@@ -12,9 +12,9 @@
  * «mejl», el CV «cv» (en minúscula, como SAOL), el patio es la «uteplats» y «un
  * look para una fiesta» es «En festlook». Un Weël es «en Weël».
  *
- * Las áreas se traducen porque se leen; la marca de delante no: «Weë Studio ·
- * Foton», «Weë Studio · Skönhet» (el «Beauty» del español es el nombre del área,
- * no la marca Weë Beauty) y «Weë Design · Hem och inredning», con «och» en lugar
+ * Las áreas se traducen porque se leen; la marca de delante no: «WeëStudio ·
+ * Foton», «WeëStudio · Skönhet» (el «Beauty» del español es el nombre del área,
+ * no la marca Weë Beauty) y «WeëDesign · Hem och inredning», con «och» en lugar
  * de «&» (guía § 5): «Hem och inredning» es como se llama en sueco esa sección de
  * cualquier tienda o revista. `tellTheSpecialist` nombra al experto con «för»
  * («Berätta för {{especialista}}…»), así la marca no se declina. Las comillas del
@@ -65,10 +65,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Jag vet inte var jag ska börja',
   brainEx2: 'Förklara det här enkelt',
   brainEx3: 'Översätt den här texten',
-  areaStudioPhotos: 'Weë Studio · Foton',
-  areaStudioVideos: 'Weë Studio · Videor',
-  areaStudioBeauty: 'Weë Studio · Skönhet',
-  areaDesignHome: 'Weë Design · Hem och inredning',
+  areaStudioPhotos: 'WeëStudio · Foton',
+  areaStudioVideos: 'WeëStudio · Videor',
+  areaStudioBeauty: 'WeëStudio · Skönhet',
+  areaDesignHome: 'WeëDesign · Hem och inredning',
   areaHomeName: 'Hem och inredning',
   tellTheSpecialist: 'Berätta för {{especialista}} vad du vill uppnå. Du får två eller tre enkla frågor, och resten sköts åt dig. Sedan publicerar du direkt i din community.',
   exampleQuoted: '”{{ejemplo}}”',

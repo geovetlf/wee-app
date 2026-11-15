@@ -27,7 +27,7 @@ interface Props {
  * Filas, no tarjetas. Dentro de una categoría ya sabes de qué va la cosa y lo
  * que buscas es un sitio por donde empezar; una lista ligera se recorre de un
  * vistazo, y otra rejilla de tarjetas convertiría esto en el catálogo que
- * Weë Design no quiere ser.
+ * WeëDesign no quiere ser.
  *
  * Elegir un punto de partida no abre nada más: vuelve a la caja con esa idea
  * empezada, para que la persona la termine con sus palabras —"una silla" pasa a

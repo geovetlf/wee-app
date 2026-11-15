@@ -5,7 +5,7 @@
  * Los nombres de módulos y funciones que es/en dejan en inglés (Business Plan,
  * Business Coach, Pricing Assistant, Brand Kit, Customer Insights, Business
  * Ideas, Business Profile) se quedan igual. Las marcas no se declinan: «Weë»
- * entra en compuesto («Weë-sovelluksessa», «Credits-saldo», «Weë Fashion
+ * entra en compuesto («Weë-sovelluksessa», «Credits-saldo», «WeëFashion
  * -sovelluksella»). Ninguna terminación de caso se pega a un {{hueco}}: la
  * palabra con caso va delante («käyttäjälle {{nombre}}», «palvelussa
  * {{red}}», «päivälle {{dia}} {{fecha}}»). Los «Goal» son lo que la persona
@@ -169,11 +169,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Jaa',
   shareHint: 'Puhelimesi jakovalikko avautuu: valitse haluamasi sovellus.',
   shareToWee: 'Jaa Weë-sovelluksessa',
-  shareWall: 'Oma Wäll',
+  shareWall: 'Oma Ẅall',
   shareCommunities: 'Yhteisöt',
   shareProfile: 'Business Profile',
   shareNothing: 'Luo ensin jotain ja jaa se sitten täältä.',
-  shareText: 'Luotu Weë Fashion -sovelluksella',
+  shareText: 'Luotu WeëFashion -sovelluksella',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Lataa tietoni',

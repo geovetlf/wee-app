@@ -1,10 +1,10 @@
 /*
- * FINÉS — Weë Design: diseñar y visualizar casi cualquier cosa física.
+ * FINÉS — WeëDesign: diseñar y visualizar casi cualquier cosa física.
  * Tipado contra el español.
  *
- * «Weë Design» es marca y no aparece aquí. Las puertas de entrada («Un
+ * «WeëDesign» es marca y no aparece aquí. Las puertas de entrada («Un
  * salón», «Una silla») van en nominativo sin artículo, que el finés no
- * tiene: «Olohuone», «Tuoli». Lo compartido con Weë Studio se lee de
+ * tiene: «Olohuone», «Tuoli». Lo compartido con WeëStudio se lee de
  * `studio`, como en el molde.
  */
 export const design: typeof import('../es/design').design = {

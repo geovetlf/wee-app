@@ -12,7 +12,7 @@
  * «Ég veit ekki…».
  *
  * MARCAS (guía § 3). Ni se traducen ni se declinan. «Los otros Weë» son «hinir Weë-sérfræðingarnir» (compuesto con
- * guion). En el selector de Weë Studio, «Beauty» y «Writer» se dejan como en el español y el inglés. «IA» en prosa
+ * guion). En el selector de WeëStudio, «Beauty» y «Writer» se dejan como en el español y el inglés. «IA» en prosa
  * es «gervigreind»; «AI» solo dentro de marcas. «Weë er til í að hjálpa þér» evita dar género gramatical a la marca.
  *
  * PALABRAS. «Foto» es «mynd»; «redes», «samfélagsmiðlar»; «negocio», «fyrirtæki»; «marca», «vörumerki»; «logo»,
@@ -26,7 +26,7 @@
  * SE ESCRIBEN IGUAL, A PROPÓSITO: «Drama», «Pasta carbonara», «Lomo saltado» (plato peruano), «Japan», las
  * extensiones de archivo y las cifras de ejemplo.
  *
- * LO QUE NO SE PUEDE ROMPER. Los chips de Weë Travel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
+ * LO QUE NO SE PUEDE ROMPER. Los chips de WeëTravel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
  * solo quita el emoji si lo sigue un espacio.
  *
  * Traducción hecha por agentes de IA, SIN revisión humana nativa (2026-11-03).
@@ -78,7 +78,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Sér um allt ferlið',
   brainEj3Subtitle: 'Frá hugmynd að hönnun, myndböndum og tónlist',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Hannaðu það sem þú sérð fyrir þér.',
   designIntro: 'Breyttu hugmyndunum þínum í magnaða hönnun með gervigreind. Allt frá merki til bíls, vöru eða heils heims.',
   designChip1: 'Fljótlegt og einfalt',
@@ -177,7 +177,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Andlitslagfæring',
   photoEj6Title: 'Umbreyta með gervigreind',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Skapaðu, hlustaðu og lifðu tónlistina þína með gervigreind',
   musicIntro: 'Breyttu hugmyndunum þínum í lög, myndbönd og einstaka upplifun. Engin takmörk fyrir sköpunargáfuna.',
   musicChip1: 'Fljótlegt og einfalt',
@@ -239,7 +239,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Breyttu tónlistinni þinni í magnað myndband: ýmsir stílar, sjálfvirk samstilling, snið fyrir samfélagsmiðla, atriði og persónur.',
   musicClosingButton: 'Búa til myndband núna',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Búðu til myndir og myndbönd með gervigreind',
   studioIntro: 'Segðu mér hvað þú vilt búa til og ég hjálpa þér skref fyrir skref.',
   studioChip1: 'Auðvelt í notkun',
@@ -332,7 +332,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Móttekin skilaboð',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Kokkurinn þinn, alltaf með þér',
   chefIntro: 'Finndu uppskriftir, búðu til matseðla, nýttu það sem þú átt og borðaðu betur, á einfaldari og bragðbetri hátt.',
   chefChip1: 'Einfaldar uppskriftir',
@@ -362,7 +362,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Ég veit ekki hvað ég á að elda',
   chefAcIdkSubtitle: 'Ég sting upp á einhverju góðu',
   chefAcIdkGoal: 'Ég veit ekki hvað ég á að elda í dag',
-  chefIdeaTitle: 'Hæ! Ég er Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Hæ! Ég er WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Segðu mér, hvað langar þig að elda í dag?',
   chefIdeaPlaceholder: 'Skrifaðu hugmyndina þína hér…',
   chefIdeaChip1: 'Mig langar í fljótlegan kvöldmat',
@@ -574,7 +574,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'Fagleg ferilskrá',
   writerEj6Subtitle: 'Nútímaleg og stílhrein',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Undirbúðu ferðina með einhverjum sem hefur ferðast áður.',
   travelIntro: 'Segðu mér hvert þú ert að fara – eða að þú vitir það ekki enn – og ég undirbý ferðina: hvað er vert að sjá, hvar á að borða og hvernig þú kemst á milli staða.',
   travelChip1: 'Engar bókanir',

@@ -11,8 +11,8 @@
  * «No sé…» empiezan por «Nie wiem, …», con la coma obligatoria del polaco antes de la subordinada.
  *
  * MARCAS (guía § 3). Ni se traducen ni se declinan: «z pomocą Weë», «Powiedz Weë, …», «gotować z Weë». «Los otros Weë»
- * son «specjaliści Weë» (sustantivo puente). En el selector de Weë Studio, «Beauty» y «Writer» se quedan en inglés
- * como en el español y el inglés. OJO: «chef» en polaco es «szef kuchni»; la marca Weë Chef no se toca.
+ * son «specjaliści Weë» (sustantivo puente). En el selector de WeëStudio, «Beauty» y «Writer» se quedan en inglés
+ * como en el español y el inglés. OJO: «chef» en polaco es «szef kuchni»; la marca WeëChef no se toca.
  *
  * PALABRAS. «Video» es «film» (plural «filmy»), la palabra con la que el polaco nombra los vídeos de la red
  * («Filmy» en YouTube); «videoclip», «teledysk»; «videojuego», «gra komputerowa». «IA» es «AI» en siglas y «sztuczna
@@ -31,10 +31,10 @@
  * SE ESCRIBEN IGUAL, A PROPÓSITO: los géneros (Pop, Rock, Trap, Reggaeton sin tilde, como lo escribe el polaco),
  * «Science fiction», «Pasta carbonara», el plato peruano «Lomo saltado», «vintage», «jingiel» (adaptado), «beat».
  *
- * LO QUE NO SE PUEDE ROMPER. Los chips de Weë Travel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
+ * LO QUE NO SE PUEDE ROMPER. Los chips de WeëTravel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
  * solo quita el emoji si lo sigue un espacio. `CreatorFlowScreen` todavía mira el texto (/foto|imagen/) para decidir si
- * Weë Studio pide una foto: por eso el objetivo de «Fotos» dice «fotografią» (que contiene «foto») y no «zdjęciem»,
- * aunque en el resto del módulo la foto sea «zdjęcie», la palabra corriente. En Weë Chef los dos flujos con foto van
+ * WeëStudio pide una foto: por eso el objetivo de «Fotos» dice «fotografią» (que contiene «foto») y no «zdjęciem»,
+ * aunque en el resto del módulo la foto sea «zdjęcie», la palabra corriente. En WeëChef los dos flujos con foto van
  * por el identificador de la respuesta (`cook`, `edit`), así que allí «zdjęcie» no rompe nada.
  */
 export const catalogo: typeof import('../es/catalogo').catalogo = {
@@ -84,7 +84,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Zajmuje się całym procesem',
   brainEj3Subtitle: 'Od pomysłu po projekty, filmy i muzykę',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Zaprojektuj to, co sobie wyobrażasz.',
   designIntro: 'Zamieniaj swoje pomysły w niesamowite projekty dzięki sztucznej inteligencji. Od logo po samochód, produkt albo cały świat.',
   designChip1: 'Szybko i łatwo',
@@ -183,7 +183,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Retusz twarzy',
   photoEj6Title: 'Przekształcenie z AI',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Twórz, słuchaj i przeżywaj swoją muzykę z AI',
   musicIntro: 'Zamieniaj swoje pomysły w piosenki, filmy i wyjątkowe doświadczenia. Bez ograniczeń dla twojej kreatywności.',
   musicChip1: 'Szybko i prosto',
@@ -245,7 +245,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Zamień swoją muzykę w niesamowity film: różne style, automatyczna synchronizacja, formaty do mediów społecznościowych, sceny i postacie.',
   musicClosingButton: 'Stwórz film teraz',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Twórz zdjęcia i filmy z AI',
   studioIntro: 'Powiedz mi, co chcesz stworzyć, a pomogę ci krok po kroku.',
   studioChip1: 'Łatwa obsługa',
@@ -338,7 +338,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Otrzymane wiadomości',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Twój szef kuchni, zawsze z tobą',
   chefIntro: 'Odkrywaj przepisy, układaj menu, wykorzystuj to, co masz, i jedz lepiej, łatwiej i smaczniej.',
   chefChip1: 'Łatwe przepisy',
@@ -368,7 +368,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Nie wiem, co ugotować',
   chefAcIdkSubtitle: 'Zaproponuję ci coś smacznego',
   chefAcIdkGoal: 'Nie wiem, co dziś ugotować',
-  chefIdeaTitle: 'Cześć! Jestem Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Cześć! Jestem WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Powiedz mi: co chcesz dziś ugotować?',
   chefIdeaPlaceholder: 'Napisz tutaj swój pomysł…',
   chefIdeaChip1: 'Chcę szybką kolację',
@@ -580,7 +580,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'Profesjonalne CV',
   writerEj6Subtitle: 'Nowoczesne i przejrzyste',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Zaplanuj podróż z kimś, kto już podróżował.',
   travelIntro: 'Powiedz mi, dokąd jedziesz — albo że jeszcze nie wiesz — a przygotuję ci podróż: co zobaczyć, gdzie zjeść i jak się poruszać.',
   travelChip1: 'Bez rezerwacji',

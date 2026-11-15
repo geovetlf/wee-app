@@ -1,5 +1,5 @@
 /*
- * CATALÁN — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * CATALÁN — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -78,8 +78,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demo',
   demoBadgeLabel: 'Contingut de demostració',
-  immersiveEmpty: 'Encara no hi ha publicacions al Wäll',
-  immersiveError: 'No hem pogut carregar el Wäll',
+  immersiveEmpty: 'Encara no hi ha publicacions al Ẅall',
+  immersiveError: 'No hem pogut carregar el Ẅall',
   immersiveEnd: 'Ja ho has vist tot',
   agreePost: 'D\'acord',
   disagreePost: 'En desacord',

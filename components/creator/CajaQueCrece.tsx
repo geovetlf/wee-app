@@ -13,7 +13,7 @@ import { SPACING } from '../../constants/design';
  * EN WEË AI, LA CAJA DONDE SE ESCRIBE CRECE SOLA Y NUNCA PIERDE SUS BOTONES.
  *
  * Vale para todas las secciones de Weë AI, las que ya están y las que vengan:
- * la caja de idea de cada especialista, Weë Studio, Weë Design, Weë Travel, las
+ * la caja de idea de cada especialista, WeëStudio, WeëDesign, WeëTravel, las
  * preguntas guiadas, "qué cambiamos" en un resultado y el chat de Weë Brain.
  *
  * ── Lo que tiene que pasar, sea cual sea la sección ──────────────────────────

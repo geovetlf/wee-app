@@ -2,7 +2,7 @@
  * WeëTravel en alemán suizo (de-CH): adaptado desde el alemán base (i18n/textos/de/travel.ts).
  * Ortografía suiza («ss», sin Eszett), comillas «…», mismas claves y mismo orden; tuteo.
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Los nombres de Weë (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls), «Travel Safe» y «DEMO» no se traducen.
+ * Los nombres de Weë (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls), «Travel Safe» y «DEMO» no se traducen.
  */
 export const travel: typeof import('../es/travel').travel = {
   // Portada
@@ -740,9 +740,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Was war heute das Schönste?',
   saveEntry: 'Eintrag speichern',
   journalEmpty: 'Dein Tagebuch ist leer. Schreib den ersten Eintrag.',
-  videoMemoriesDemo: 'DEMO: Die Videos entstehen in Weë Studio, mit deinen eigenen Fotos und Clips.',
+  videoMemoriesDemo: 'DEMO: Die Videos entstehen in WeëStudio, mit deinen eigenen Fotos und Clips.',
   videoOf: 'Das Video von {{viaje}}',
-  createInStudio: 'In Weë Studio erstellen',
+  createInStudio: 'In WeëStudio erstellen',
   countriesVisited_one: '{{contador}} besuchtes Land',
   countriesVisited_other: '{{contador}} besuchte Länder',
   recapTitle: 'Deine Reise nach {{viaje}}',

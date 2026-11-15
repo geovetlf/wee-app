@@ -1,5 +1,5 @@
 /*
- * tr — Weë Music: ana ekran, Composer, çalışma alanı ve araçlar. «Weë Music» ve sağlayıcı adları markadır, çevrilmez.
+ * tr — WeëMusic: ana ekran, Composer, çalışma alanı ve araçlar. «WeëMusic» ve sağlayıcı adları markadır, çevrilmez.
  * İspanyolca dosyaya karşı tiplenmiştir. Ana dili Türkçe olan biri tarafından gözden geçirilmeyi bekliyor.
  */
 export const music: typeof import('../es/music').music = {
@@ -9,7 +9,7 @@ export const music: typeof import('../es/music').music = {
   ctaCreate: 'Müzik oluştur',
   demoPrompt: 'Ne tür bir müzik oluşturmak istersin?',
   chooseTitle: 'Nasıl başlayacağını seç',
-  skillsTitle: 'Weë Music neler yapabilir',
+  skillsTitle: 'WeëMusic neler yapabilir',
   recentTitle: 'Son şarkılar',
   viewExample: 'Tasarım örneğini gör',
   honestyNote: 'Bugün şarkını hazırlayabilir, referans bir melodi kaydedebilir ve Weë Brain\'den yönlendirme isteyebilirsin. Şarkı oluşturma, bağlanıp doğrulandığında etkinleşecek.',
@@ -17,7 +17,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Kayıtlı ses ve şarkıların.',
   openProjects: 'Projelerim',
   openProjectsHelp: 'Şarkılarını projelerde düzenle.',
-  backToMusic: 'Weë Music\'e dön',
+  backToMusic: 'WeëMusic\'e dön',
   composerTitle: 'Müzik oluştur',
   modesLabel: 'Mod',
   modeSimple: 'Basit',
@@ -303,7 +303,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Ses işleme bekleyen bir özellik: burada yalnızca sözleşme hazırlanıyor.',
 
   voiceInterpretation: 'Yorum stili',
-  voiceNoClone: 'Weë Music gerçek kişilerin seslerini klonlamaz ya da taklit etmez: yalnızca genel vokal özelliklerini seçer.',
+  voiceNoClone: 'WeëMusic gerçek kişilerin seslerini klonlamaz ya da taklit etmez: yalnızca genel vokal özelliklerini seçer.',
   voiceStylePending: 'Yorum stili motora bağlıdır ve henüz kullanılamıyor.',
   styleTitle: 'Tür ve stil',
   transformTitle: 'Dönüşümler',

@@ -158,11 +158,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Delen',
   shareHint: 'Het deelmenu van je telefoon gaat open: kies de app die je wilt.',
   shareToWee: 'Delen op Weë',
-  shareWall: 'Mijn Wäll',
+  shareWall: 'Mijn Ẅall',
   shareCommunities: 'Community\'s',
   shareProfile: 'Business Profile',
   shareNothing: 'Maak eerst iets en deel het daarna vanaf hier.',
-  shareText: 'Gemaakt met Weë Fashion',
+  shareText: 'Gemaakt met WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Mijn gegevens uploaden',

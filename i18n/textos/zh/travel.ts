@@ -2,7 +2,7 @@
  * WEËTRAVEL — el workspace de viajes (prototipo navegable con datos DEMO), en chino simplificado.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila. Las marcas (Weë, WeëTravel, Weë Brain,
- * Weë Studio, Weëls, Travel Safe, DEMO) se quedan en alfabeto latino, con un espacio a cada lado frente a los hanzi,
+ * WeëStudio, Weëls, Travel Safe, DEMO) se quedan en alfabeto latino, con un espacio a cada lado frente a los hanzi,
  * igual que las cifras y los huecos. Puntuación de ancho completo. Sin plural: `_one` y `_other` dicen lo mismo.
  * Guardar para volver a ver es «收藏», como en saved.ts; los lugares, con su nombre habitual en chino (京都、里斯本…).
  */
@@ -742,9 +742,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: '今天最棒的是什么？',
   saveEntry: '保存日记',
   journalEmpty: '你的日记还是空的。写下第一篇吧。',
-  videoMemoriesDemo: 'DEMO：视频在 Weë Studio 里用你自己的照片和片段制作。',
+  videoMemoriesDemo: 'DEMO：视频在 WeëStudio 里用你自己的照片和片段制作。',
   videoOf: '{{viaje}}的旅行视频',
-  createInStudio: '在 Weë Studio 中制作',
+  createInStudio: '在 WeëStudio 中制作',
   countriesVisited_one: '去过 {{contador}} 个国家',
   countriesVisited_other: '去过 {{contador}} 个国家',
   recapTitle: '你的{{viaje}}之旅',

@@ -2,7 +2,7 @@
  * RUMANO — WeëTravel: el workspace de viajes (prototipo navegable con datos DEMO).
  *
  * Tipado contra el español; las claves que cuentan llevan `_few` (tres plurales en rumano) y el `other`
- * lleva «de» («20 de zile»). Tuteo. Los nombres de Weë (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls)
+ * lleva «de» («20 de zile»). Tuteo. Los nombres de Weë (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls)
  * y «Travel Safe» no se traducen.
  */
 import { ConPlurales } from '../ru/plurales';
@@ -761,9 +761,9 @@ export const travel: ConPlurales<typeof import('../es/travel').travel> = {
   journalPh: 'Care a fost cel mai frumos lucru de azi?',
   saveEntry: 'Salvează însemnarea',
   journalEmpty: 'Jurnalul tău e gol. Scrie prima însemnare.',
-  videoMemoriesDemo: 'DEMO: videoclipurile se creează în Weë Studio, cu fotografiile și clipurile tale.',
+  videoMemoriesDemo: 'DEMO: videoclipurile se creează în WeëStudio, cu fotografiile și clipurile tale.',
   videoOf: 'Videoclipul din {{viaje}}',
-  createInStudio: 'Creează în Weë Studio',
+  createInStudio: 'Creează în WeëStudio',
   countriesVisited_one: '{{contador}} țară vizitată',
   countriesVisited_few: '{{contador}} țări vizitate',
   countriesVisited_other: '{{contador}} de țări vizitate',

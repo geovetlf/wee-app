@@ -1,6 +1,6 @@
 /*
  * FILIPINO — Weë versión creator: su marco y su navegación. Tipado contra el español.
- * Los nombres de las secciones (Weë Studio, Weë Design…) son marca y no pasan por aquí. «creator» y «app» se quedan
+ * Los nombres de las secciones (WeëStudio, WeëDesign…) son marca y no pasan por aquí. «creator» y «app» se quedan
  * como préstamo (guía § 4: «creator», «app»), con la marca intacta y sin afijo: «creator na bersyon ng Weë».
  */
 export const profesional: typeof import('../es/profesional').profesional = {

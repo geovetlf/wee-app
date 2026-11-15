@@ -157,11 +157,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Partager',
   shareHint: 'Le partage de ton téléphone s’ouvre : choisis l’app que tu veux.',
   shareToWee: 'Partager sur Weë',
-  shareWall: 'Mon Wäll',
+  shareWall: 'Mon Ẅall',
   shareCommunities: 'Communautés',
   shareProfile: 'Business Profile',
   shareNothing: 'Crée d’abord quelque chose, puis partage-le d’ici.',
-  shareText: 'Créé avec Weë Fashion',
+  shareText: 'Créé avec WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Importer mes données',

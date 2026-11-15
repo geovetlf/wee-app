@@ -6,7 +6,7 @@
  * Tratamiento informal (tu). Lo legal va con el término exacto
  * ("Termini di servizio", "Informativa sulla privacy"); los nombres de Weë, los
  * especialistas y el símbolo ☰ se copian tal cual. "Cómo lo hice" se dice
- * como en el Wäll: "Come l’ho fatto". Apóstrofo tipográfico ’ siempre.
+ * como en el Ẅall: "Come l’ho fatto". Apóstrofo tipográfico ’ siempre.
  */
 export const help: typeof import('../es/help').help = {
   title: 'Aiuto',

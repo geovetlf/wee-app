@@ -2,7 +2,7 @@
  * HÚNGARO — Mis creaciones: la biblioteca de material de la cuenta y el
  * progreso de un trabajo de Weë AI. Tipado contra el español.
  *
- * Los nombres de experiencia (Weë Design, Weë Studio…) entran por hueco y
+ * Los nombres de experiencia (WeëDesign, WeëStudio…) entran por hueco y
  * nunca llevan sufijo pegado: van como sujeto o detrás de dos puntos.
  */
 export const creaciones: typeof import('../es/creaciones').creaciones = {

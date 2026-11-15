@@ -2,7 +2,7 @@
  * WEË STUDIO — el sitio donde se crea, en croata.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tuteo («ti»), imperativo de segunda persona en los botones. "Weë Studio" y
+ * Tuteo («ti»), imperativo de segunda persona en los botones. "WeëStudio" y
  * "Writer" son marca y van en latino tal cual; los formatos —PDF, MP4— no
  * cambian de idioma. Las unidades sí son croatas: los segundos van en «s».
  *
@@ -238,7 +238,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   soon: 'Uskoro',
   soonHint: 'Ovaj alat već ima svoje mjesto. Još ga treba povezati.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Tekst',
   textHint: 'Napiši bilo kakav sadržaj',
   exploreTitle: 'Istraži',

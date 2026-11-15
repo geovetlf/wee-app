@@ -4,7 +4,7 @@
  *
  * QUÉ NO ENTRA AQUÍ: el nombre de una creación, que es el propósito del paso
  * que la produjo y lo escribió Weë Brain en el idioma de la persona; ni el
- * nombre de una experiencia (Weë Design, Weë Studio…), que es marca y va por
+ * nombre de una experiencia (WeëDesign, WeëStudio…), que es marca y va por
  * interpolación sin traducirse.
  *
  * Los estados dicen lo que se sabe y nada más: «procesando» y «listo», nunca

@@ -24,7 +24,7 @@ interface Props {
 /**
  * MIS PROYECTOS.
  *
- * Al final de Weë Chef, después de las funciones: primero se cocina, luego se
+ * Al final de WeëChef, después de las funciones: primero se cocina, luego se
  * mira lo hecho. Va en fila que se desliza y no en rejilla porque aquí no se
  * busca nada concreto —para eso está "Ver todos"—, se echa un vistazo.
  *

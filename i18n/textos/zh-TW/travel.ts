@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila. TAIWÁN, NO UNA CONVERSIÓN: 影片 y no
  * 視頻, 社群 y no 社區, 搜尋, 資料, 使用者, 載入, 飯店, 計程車, 機車, 峇里島… Las marcas (Weë, WeëTravel, Weë Brain,
- * Weë Studio, Weëls, Travel Safe, DEMO) se quedan en alfabeto latino, con un espacio frente a los hanzi, igual que
+ * WeëStudio, Weëls, Travel Safe, DEMO) se quedan en alfabeto latino, con un espacio frente a los hanzi, igual que
  * las cifras y los huecos. Puntuación de ancho completo. Sin plural: `_one` y `_other` dicen lo mismo.
  */
 export const travel: typeof import('../es/travel').travel = {
@@ -742,9 +742,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: '今天最棒的是什麼？',
   saveEntry: '儲存日記',
   journalEmpty: '你的日記還是空的。寫下第一篇吧。',
-  videoMemoriesDemo: 'DEMO：影片會在 Weë Studio 裡用你自己的照片和片段製作。',
+  videoMemoriesDemo: 'DEMO：影片會在 WeëStudio 裡用你自己的照片和片段製作。',
   videoOf: '{{viaje}}的旅行影片',
-  createInStudio: '在 Weë Studio 中製作',
+  createInStudio: '在 WeëStudio 中製作',
   countriesVisited_one: '去過 {{contador}} 個國家',
   countriesVisited_other: '去過 {{contador}} 個國家',
   recapTitle: '你的{{viaje}}之旅',

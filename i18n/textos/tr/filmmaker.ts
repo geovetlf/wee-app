@@ -4,14 +4,14 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * Se tutea («sen») y todo va en mayúscula de frase. El vocabulario es el de Weë Studio en turco: la escena es «sahne»
+ * Se tutea («sen») y todo va en mayúscula de frase. El vocabulario es el de WeëStudio en turco: la escena es «sahne»
  * y el plano es «plan», como los tipos de plano de `studio.ts` (genel plan, yakın plan); la experiencia se llama
  * «Birden çok sahne», igual que `studio.xpMultiScene`. Una producción es un «yapım» (la palabra del cine y la
  * televisión turcos, «yerli yapım»), que no se confunde con «proje», que en Weë son los proyectos de Weë AI. La toma
  * es «çekim», como en la claqueta («Sahne 3, plan 2, çekim 1»). El storyboard es «Görsel senaryo», el nombre turco
  * del oficio; el panel Director, «Yönetmen», y dirigir una escena o un plano, «yönet».
  *
- * «Formato» es «Biçim», como en Weë Studio: aquí es la proporción y su resolución, y los formatos de destino se
+ * «Formato» es «Biçim», como en WeëStudio: aquí es la proporción y su resolución, y los formatos de destino se
  * leen como en Weë Business, «TikTok videosu», «Instagram videosu», «YouTube videosu» («Video de Instagram» y no
  * «Reels»: en Weë los vídeos cortos son Weëls). «YouTube Shorts» se queda sin «videosu», como en español: es el nombre
  * del formato de la plataforma, ya dice que es un vídeo, y con la coletilla sería la casilla más larga de una rejilla
@@ -29,10 +29,10 @@
  * {{numero}}», «Toplam: {{duracion}}», «Yönet: {{nombre}}»); en una frase, el número es ordinal con punto
  * («{{numero}}. çekim hazır») y el sufijo lo lleva el sustantivo que sigue («{{titulo}} yapımını aç», «{{lista}}
  * biçimine geçir»). Tras una cifra, singular: «{{contador}} sahne», «{{contador}} plan». Las marcas solo con las
- * terminaciones de la tabla del § 9 («Weë'ye», «Weë'nin», «Weë Studio'da», «Weë Studio'ya»); Credits no lleva
+ * terminaciones de la tabla del § 9 («Weë'ye», «Weë'nin», «WeëStudio'da», «WeëStudio'ya»); Credits no lleva
  * ninguna: «Credits bakiyen yetersiz», «harcanan Credits iade edildi».
  *
- * QUÉ NO ESTÁ AQUÍ: «Weë», «Weë Studio» y «Credits», que son marca; ni las proporciones (9:16) y resoluciones (1080p,
+ * QUÉ NO ESTÁ AQUÍ: «Weë», «WeëStudio» y «Credits», que son marca; ni las proporciones (9:16) y resoluciones (1080p,
  * 4K), que entran por los huecos tal cual.
  */
 export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
@@ -45,20 +45,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'Yapım oluştur',
   creatingProduction: 'Yapım oluşturuluyor…',
   openProduction: '{{titulo}} yapımını aç',
-  goToStudio: 'Weë Studio\'ya git',
+  goToStudio: 'WeëStudio\'ya git',
   loadMore: 'Daha fazla göster',
   backToList: 'Yapımlarına dön',
   updatedAgo: '{{cuando}} güncellendi',
 
   emptyListTitle: 'Henüz yapımın yok',
-  emptyListText: 'Weë Studio\'da başla: Videolar bölümüne gir, “Birden çok sahne” seçeneğine dokun ve ne anlatmak istediğini Weë\'ye anlat.',
+  emptyListText: 'WeëStudio\'da başla: Videolar bölümüne gir, “Birden çok sahne” seçeneğine dokun ve ne anlatmak istediğini Weë\'ye anlat.',
   emptyArchived: 'Arşivlenmiş yapımın yok.',
   emptyStoryboardTitle: 'Bu yapımda henüz sahne yok',
   emptyStoryboardText: 'İlk sahneyi ekle ve hikâyeni plan plan kur.',
   addFirstScene: 'İlk sahneyi ekle',
 
   yourIdea: 'Fikrin',
-  ideaFromStudio: 'Fikir Weë Studio\'da yazılır. Değiştirmek için oraya dön.',
+  ideaFromStudio: 'Fikir WeëStudio\'da yazılır. Değiştirmek için oraya dön.',
   whereWillItPlay: 'Nerede izlenecek?',
   otherFormat: 'Başka bir biçim',
   continueOne: 'Ya da yapımlarından biriyle devam et',

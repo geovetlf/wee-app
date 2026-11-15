@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * «Weë Design» es marca y no aparece aquí. Lo compartido con Weë Studio vive
+ * «WeëDesign» es marca y no aparece aquí. Lo compartido con WeëStudio vive
  * en `studio`. «Diseñar» se traduce «a proiecta» (dar forma, hacer el diseño);
  * «render» es «randare», el término asentado en el sector.
  */

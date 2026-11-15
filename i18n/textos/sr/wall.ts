@@ -1,5 +1,5 @@
 /*
- * SERBIO (ћирилица, екавски) — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * SERBIO (ћирилица, екавски) — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español. Las frases con sujeto variable («{{nombre}} reposteó»,
  * «Votaste», «Cómo lo hice») van en formas sin género, porque el pasado serbio lo marca.
@@ -83,8 +83,8 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Демо',
   demoBadgeLabel: 'Демо садржај',
-  immersiveEmpty: 'Wäll још нема објава',
-  immersiveError: 'Нисмо могли да учитамо Wäll',
+  immersiveEmpty: 'Ẅall још нема објава',
+  immersiveError: 'Нисмо могли да учитамо Ẅall',
   immersiveEnd: 'То је све за сада',
   agreePost: 'Слажем се',
   disagreePost: 'Не слажем се',

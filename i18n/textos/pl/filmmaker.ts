@@ -4,7 +4,7 @@ import { ConPlurales } from '../ru/plurales';
  * WEË FILMMAKER — «Varias escenas» (F1-C), en polaco. Tipado contra el español con `ConPlurales`: las seis
  * claves que cuentan (droppedTitle, scenes, shots, references, dialogueLines, soundCues) añaden `_few` y `_many`,
  * y su `_other` es la forma de las fracciones (1,5 sceny). Tuteo. La producción es «produkcja», el panel Director
- * es «Reżyseria», el plano es «ujęcie», la toma es «dubel» y el vídeo es «film». Weë y Weë Studio son marca:
+ * es «Reżyseria», el plano es «ujęcie», la toma es «dubel» y el vídeo es «film». Weë y WeëStudio son marca:
  * en latino y sin declinar. Las claves val*, op*, rec*, req* y per* son los `messageKey` de F1-A y F1-B.
  */
 export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> = {
@@ -17,20 +17,20 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   createProduction: 'Utwórz produkcję',
   creatingProduction: 'Tworzenie produkcji…',
   openProduction: 'Otwórz {{titulo}}',
-  goToStudio: 'Przejdź do Weë Studio',
+  goToStudio: 'Przejdź do WeëStudio',
   loadMore: 'Pokaż więcej',
   backToList: 'Wróć do swoich produkcji',
   updatedAgo: 'Zaktualizowana {{cuando}}',
 
   emptyListTitle: 'Nie masz jeszcze produkcji',
-  emptyListText: 'Zacznij w sekcji Weë Studio: wejdź w „Filmy”, wybierz „Kilka scen” i powiedz Weë, jaką historię chcesz opowiedzieć.',
+  emptyListText: 'Zacznij w sekcji WeëStudio: wejdź w „Filmy”, wybierz „Kilka scen” i powiedz Weë, jaką historię chcesz opowiedzieć.',
   emptyArchived: 'Nie masz zarchiwizowanych produkcji.',
   emptyStoryboardTitle: 'Ta produkcja nie ma jeszcze scen',
   emptyStoryboardText: 'Dodaj pierwszą i buduj swoją historię ujęcie po ujęciu.',
   addFirstScene: 'Dodaj pierwszą scenę',
 
   yourIdea: 'Twój pomysł',
-  ideaFromStudio: 'Pomysł wpisuje się w sekcji Weë Studio. Aby go zmienić, wróć tam.',
+  ideaFromStudio: 'Pomysł wpisuje się w sekcji WeëStudio. Aby go zmienić, wróć tam.',
   whereWillItPlay: 'Gdzie to będzie oglądane?',
   otherFormat: 'Inny format',
   continueOne: 'Albo kontynuuj jedną ze swoich produkcji',

@@ -41,7 +41,7 @@
  * unidad, igual que «Credits» (guía § 5).
  *
  * Se escriben igual que en español o en inglés porque no se traducen o ya son danés: TikTok, YouTube y YouTube
- * Shorts (plataformas), «Format», «Storyboard», «Standard» y «Dialog». Weë, Weë Studio y Credits son marca y no se
+ * Shorts (plataformas), «Format», «Storyboard», «Standard» y «Dialog». Weë, WeëStudio y Credits son marca y no se
  * declinan («din Weë-konto»).
  */
 export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
@@ -54,20 +54,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'Opret produktion',
   creatingProduction: 'Opretter produktionen…',
   openProduction: 'Åbn {{titulo}}',
-  goToStudio: 'Gå til Weë Studio',
+  goToStudio: 'Gå til WeëStudio',
   loadMore: 'Vis flere',
   backToList: 'Tilbage til dine produktioner',
   updatedAgo: 'Opdateret {{cuando}}',
 
   emptyListTitle: 'Ingen produktioner endnu',
-  emptyListText: 'Start i Weë Studio: Åbn Videoer, vælg ”Flere scener”, og fortæl Weë, hvad din historie skal handle om.',
+  emptyListText: 'Start i WeëStudio: Åbn Videoer, vælg ”Flere scener”, og fortæl Weë, hvad din historie skal handle om.',
   emptyArchived: 'Du har ingen arkiverede produktioner.',
   emptyStoryboardTitle: 'Denne produktion har ingen scener endnu',
   emptyStoryboardText: 'Tilføj den første, og byg din historie op klip for klip.',
   addFirstScene: 'Tilføj den første scene',
 
   yourIdea: 'Din idé',
-  ideaFromStudio: 'Idéen skriver du i Weë Studio, og det er også dér, du ændrer den.',
+  ideaFromStudio: 'Idéen skriver du i WeëStudio, og det er også dér, du ændrer den.',
   whereWillItPlay: 'Hvor skal videoen vises?',
   otherFormat: 'Andet format',
   continueOne: 'Eller fortsæt med en af dine produktioner',

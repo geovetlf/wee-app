@@ -7,7 +7,7 @@
  * («Glútenlaust», «Laktósalaust», «Grænmetisfæði», «Vegan»). En los ajustes, los valores de dieta y
  * dificultad concuerdan con «mataræði»/«erfiðleikastig» (neutro). «Hráefni» = ingrediente.
  *
- * QUÉ NO ESTÁ AQUÍ: "Weë Chef", que es marca, ni lo que comparte con Weë Studio (vive en `studio`).
+ * QUÉ NO ESTÁ AQUÍ: "WeëChef", que es marca, ni lo que comparte con WeëStudio (vive en `studio`).
  *
  * Traducción hecha por agentes de IA, SIN revisión humana nativa (2026-11-03).
  */

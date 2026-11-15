@@ -1,8 +1,8 @@
 /*
- * JEMER — Weë Music: portada, Composer, workstation y herramientas. Tipado contra el español.
+ * JEMER — WeëMusic: portada, Composer, workstation y herramientas. Tipado contra el español.
  *
  * Trato respetuoso neutro (អ្នក); botones breves en verbo (រក្សាទុក, ចាក់, នាំចេញ). Entre palabras jemeres va el ZWSP (U+200B)
- * para que el navegador pueda cortar línea; el espacio normal solo entre frases y junto a marcas y cifras. «Weë Music»,
+ * para que el navegador pueda cortar línea; el espacio normal solo entre frases y junto a marcas y cifras. «WeëMusic»,
  * «Weë Brain», «Credits», «WeeTalk», «iPhone» y los formatos (MP3, WAV, M4A, MIDI, R&B, dB) quedan en latino. Secciones de
  * la canción: វគ្គ (verso), បន្ទរ (coro), ស្ពាន (puente), ភ្លេងចន្លោះ (interludio). «Pistas separadas» = ខ្សែសំឡេងដាច់ដោយឡែក.
  * Sin plurales: el español no declara ninguno. Traducción hecha por agentes y SIN revisión humana nativa (L1, 2026-11-03).
@@ -13,7 +13,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'ប្រាប់​ខ្ញុំ​ពី​គំនិត​របស់អ្នក ឬ​ហាំ​បទ​ភ្លេង ហើយ​រៀបចំ​បទ​ចម្រៀង​របស់អ្នក​មួយ​ជំហាន​ម្តងៗ។',
   ctaCreate: 'បង្កើត​តន្ត្រី',
   chooseTitle: 'ជ្រើសរើស​របៀប​ចាប់ផ្តើម',
-  skillsTitle: 'អ្វី​ដែល Weë Music អាច​ធ្វើ​បាន',
+  skillsTitle: 'អ្វី​ដែល WeëMusic អាច​ធ្វើ​បាន',
   recentTitle: 'បទ​ចម្រៀង​ថ្មីៗ',
   viewExample: 'មើល​គំរូ​រចនា',
   honestyNote: 'ថ្ងៃនេះ អ្នក​អាច​រៀបចំ​បទ​ចម្រៀង ថត​បទ​ភ្លេង​យោង និង​សុំ​ការ​ណែនាំ​ពី Weë Brain។ ការ​បង្កើត​បទ​ចម្រៀង​នឹង​បើក នៅ​ពេល​វា​ត្រូវ​បាន​ភ្ជាប់ និង​ផ្ទៀងផ្ទាត់។',
@@ -21,7 +21,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'សំឡេង និង​បទ​ចម្រៀង​ដែល​អ្នក​បាន​រក្សាទុក។',
   openProjects: 'គម្រោង​របស់ខ្ញុំ',
   openProjectsHelp: 'រៀបចំ​បទ​ចម្រៀង​របស់អ្នក​ជា​គម្រោង។',
-  backToMusic: 'ត្រឡប់​ទៅ Weë Music',
+  backToMusic: 'ត្រឡប់​ទៅ WeëMusic',
   composerTitle: 'បង្កើត​តន្ត្រី',
   modesLabel: 'របៀប',
   modeSimple: 'សាមញ្ញ',
@@ -307,7 +307,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'ការ​កែច្នៃ​សំឡេង​ជា​សមត្ថភាព​ដែល​នៅ​រង់ចាំ៖ នៅ​ទីនេះ​គ្រាន់តែ​រៀបចំ​កិច្ចសន្យា​ប៉ុណ្ណោះ។',
 
   voiceInterpretation: 'រចនាប័ទ្ម​នៃ​ការ​ច្រៀង',
-  voiceNoClone: 'Weë Music មិន​ចម្លង ឬ​ក្លែង​សំឡេង​មនុស្ស​ទេ៖ វា​គ្រាន់តែ​ជ្រើសរើស​លក្ខណៈ​សំឡេង​ទូទៅ​ប៉ុណ្ណោះ។',
+  voiceNoClone: 'WeëMusic មិន​ចម្លង ឬ​ក្លែង​សំឡេង​មនុស្ស​ទេ៖ វា​គ្រាន់តែ​ជ្រើសរើស​លក្ខណៈ​សំឡេង​ទូទៅ​ប៉ុណ្ណោះ។',
   voiceStylePending: 'រចនាប័ទ្ម​នៃ​ការ​ច្រៀង​អាស្រ័យ​លើ​ម៉ាស៊ីន ហើយ​មិន​ទាន់​មាន​នៅ​ឡើយ​ទេ។',
   styleTitle: 'ប្រភេទ​តន្ត្រី និង​រចនាប័ទ្ម',
   transformTitle: 'ការ​បំប្លែង',

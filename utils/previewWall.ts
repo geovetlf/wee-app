@@ -128,7 +128,7 @@ const BORRADORES: Borrador[] = [
   },
   {
     autor: 'preview:tomas',
-    texto: 'Primer corto hecho entero con Weë Studio. Tres tomas, sin cámara.',
+    texto: 'Primer corto hecho entero con WeëStudio. Tres tomas, sin cámara.',
     horas: 20,
     imagen: foto('wee-studio-corto', 1000, 560),
     seccion: 'studio',

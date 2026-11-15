@@ -31,7 +31,7 @@ export const composer: ConPlurales<typeof import('../es/composer').composer> = {
   showOptions: 'Taispeáin na roghanna foilsithe',
   hideOptions: 'Folaigh na roghanna foilsithe',
   currentDestination: '{{destino}}, an ceann scríbe reatha',
-  generalWall: 'Wäll ginearálta',
+  generalWall: 'Ẅall ginearálta',
   placeholderPollExtra: 'Cuir rud éigin eile leis más mian leat (roghnach)…',
   placeholderQuestion: 'Cad ba mhaith leat a fhiafraí den phobal?',
   placeholderWeel: 'Inis cad a chruthaigh tú do do Weël agus cén IS a d\'úsáid tú…',

@@ -13,7 +13,7 @@ const isWeb = Platform.OS === 'web';
 /**
  * UNA PIEZA DE LA GALERÍA, DIGA LO QUE DIGA SU ETIQUETA.
  *
- * Weë Studio etiqueta por tipo —imagen, video, voz, documento— y Weë Design por
+ * WeëStudio etiqueta por tipo —imagen, video, voz, documento— y WeëDesign por
  * clase de diseño —interior, arquitectura, mobiliario—, porque en cada sitio se
  * busca por una cosa distinta. Pero eso es lo ÚNICO distinto: debajo son la
  * misma lámina con la misma etiqueta encima y el mismo título debajo.

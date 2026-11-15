@@ -14,8 +14,8 @@
  * producto») va el verbo desnudo («រចនាផលិតផលមួយ»), que en jemer vale igual de título y de petición; «No sé qué…» es
  * «ខ្ញុំមិនដឹងថា…ទេ».
  *
- * MARCAS Y PRÉSTAMOS. Weë, Weë Brain, Weë Chef…, Credits, Weëls intactos en latino, con un espacio normal a cada lado.
- * «Beauty» y «Writer» en el selector de Weë Studio quedan en latino, como en español. «AI» en latino junto a nombres
+ * MARCAS Y PRÉSTAMOS. Weë, Weë Brain, WeëChef…, Credits, Weëls intactos en latino, con un espacio normal a cada lado.
+ * «Beauty» y «Writer» en el selector de WeëStudio quedan en latino, como en español. «AI» en latino junto a nombres
  * («ដោយ AI»); «បញ្ញាសិប្បនិម្មិត» en prosa. «Prompt», «beat», «outfit», «blog», «Lomo saltado», CV, APA, MLA, YouTube,
  * JPG/PNG/WEBP quedan como están. Los GÉNEROS MUSICALES y «Drama» se transcriben al jemer (ប៉ុប, រ៉ុក, រេហ្គេតុន, បាឡាដ,
  * អេឡិចត្រូនិក, ដ្រាម៉ា) como hacen el hindi y el japonés y como lo exige el validador (sin letras jemeres no pasa).
@@ -69,7 +69,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'ទទួល​បន្ទុក​ដំណើរការ​ទាំងមូល',
   brainEj3Subtitle: 'ពី​គំនិត​ទៅ​ការរចនា វីដេអូ និង​តន្ត្រី',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'រចនា​អ្វី​ដែល​អ្នក​ស្រមៃ។',
   designIntro: 'បំប្លែង​គំនិត​របស់​អ្នក​ទៅជា​ការរចនា​ដ៏​អស្ចារ្យ​ដោយ​បញ្ញាសិប្បនិម្មិត។ ពី​ឡូហ្គោ​រហូតដល់​រថយន្ត ផលិតផល ឬ​ពិភព​ទាំងមូល។',
   designChip1: 'លឿន និង​ងាយស្រួល',
@@ -168,7 +168,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'កែ​មុខ',
   photoEj6Title: 'បំប្លែង​ដោយ AI',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'បង្កើត ស្តាប់ និង​រស់​ជាមួយ​តន្ត្រី​របស់​អ្នក​ដោយ AI',
   musicIntro: 'បំប្លែង​គំនិត​របស់​អ្នក​ទៅជា​បទចម្រៀង វីដេអូ និង​បទពិសោធន៍​ពិសេស។ គ្មាន​ដែនកំណត់​សម្រាប់​ការច្នៃប្រឌិត​របស់​អ្នក។',
   musicChip1: 'លឿន និង​សាមញ្ញ',
@@ -230,7 +230,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'បំប្លែង​តន្ត្រី​របស់​អ្នក​ទៅជា​វីដេអូ​ដ៏​អស្ចារ្យ៖ រចនាប័ទ្ម​ច្រើន សមកាលកម្ម​ស្វ័យប្រវត្តិ ទម្រង់​សម្រាប់​បណ្តាញសង្គម ឈុត និង​តួអង្គ។',
   musicClosingButton: 'បង្កើត​វីដេអូ​ឥឡូវនេះ',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'បង្កើត​រូបថត និង​វីដេអូ​ដោយ AI',
   studioIntro: 'ប្រាប់​ខ្ញុំ​ថា​អ្នក​ចង់​បង្កើត​អ្វី ហើយ​ខ្ញុំ​នឹង​ជួយ​អ្នក​មួយ​ជំហាន​ម្តងៗ។',
   studioChip1: 'ងាយស្រួល​ប្រើ',
@@ -323,7 +323,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'សារ​ដែល​បាន​ទទួល',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'ចុងភៅ​របស់​អ្នក នៅ​ជាមួយ​អ្នក​ជានិច្ច',
   chefIntro: 'ស្វែងរក​រូបមន្ត បង្កើត​ម៉ឺនុយ ប្រើ​អ្វី​ដែល​អ្នក​មាន និង​ញ៉ាំ​ឱ្យ​បាន​ល្អ​ជាង ងាយ​ជាង និង​ឆ្ងាញ់​ជាង។',
   chefChip1: 'រូបមន្ត​ងាយៗ',
@@ -353,7 +353,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'ខ្ញុំ​មិន​ដឹង​ថា​ចម្អិន​អ្វី​ទេ',
   chefAcIdkSubtitle: 'ខ្ញុំ​ស្នើ​អ្វី​ឆ្ងាញ់ៗ​ដល់​អ្នក',
   chefAcIdkGoal: 'ខ្ញុំ​មិន​ដឹង​ថា​ចម្អិន​អ្វី​ថ្ងៃនេះ​ទេ',
-  chefIdeaTitle: 'សួស្តី! ខ្ញុំ​ជា Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'សួស្តី! ខ្ញុំ​ជា WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'ប្រាប់​ខ្ញុំ​មក តើ​អ្នក​ចង់​ចម្អិន​អ្វី​ថ្ងៃនេះ?',
   chefIdeaPlaceholder: 'សរសេរ​គំនិត​របស់​អ្នក​នៅ​ទីនេះ…',
   chefIdeaChip1: 'ខ្ញុំ​ចង់​បាន​អាហារ​ពេល​ល្ងាច​រហ័ស',
@@ -565,7 +565,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'CV អាជីព',
   writerEj6Subtitle: 'ទំនើប និង​ស្អាត',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'រៀបចំ​ដំណើរកម្សាន្ត​របស់​អ្នក​ជាមួយ​អ្នក​ដែល​ធ្លាប់​ទៅ​រួច​ហើយ។',
   travelIntro: 'ប្រាប់​ខ្ញុំ​ថា​អ្នក​ទៅ​ណា ឬ​ថា​អ្នក​មិន​ទាន់​ដឹង​នៅឡើយ ហើយ​ខ្ញុំ​នឹង​រៀបចំ​ដំណើរ​ឱ្យ​អ្នក៖ មើល​អ្វី ញ៉ាំ​នៅ​ណា និង​ធ្វើដំណើរ​យ៉ាងដូចម្តេច។',
   travelChip1: 'គ្មាន​ការកក់',

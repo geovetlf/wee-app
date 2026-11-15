@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * «Weë Chef» es marca y no aparece aquí. Lo compartido con Weë Studio vive en
+ * «WeëChef» es marca y no aparece aquí. Lo compartido con WeëStudio vive en
  * `studio`. Los ajustes de dieta y dificultad concuerdan en femenino con
  * «dietă» y «dificultate», igual que en español («Vegetariana», «Media»).
  */

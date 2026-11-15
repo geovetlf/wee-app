@@ -9,7 +9,7 @@
  * son de producto, viven en `constants/businessModules.ts` y no pasan por el traductor; por eso «Business Profile» se
  * queda igual cuando es un destino para compartir: es el nombre que la persona ve en la tarjeta del módulo. Los
  * NOMBRES de las funciones de dentro —Business Plan, Business Coach, Pricing Assistant, Brand Kit, Customer
- * Insights, Business Ideas— también son de producto y se escriben igual en todos los idiomas, como Weë Studio
+ * Insights, Business Ideas— también son de producto y se escriben igual en todos los idiomas, como WeëStudio
  * (decisión del usuario, 2026-09-16); lo que hace cada una sí se traduce, en su pista. «SWOT» se queda como sigla:
  * «SWOT analizi». «Crear mi negocio» es «kurmak», como se monta un negocio o una tienda en turco («İşletmeni kur»).
  *
@@ -178,11 +178,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Paylaş',
   shareHint: 'Telefonunun paylaşım menüsü açılır: İstediğin uygulamayı seç.',
   shareToWee: 'Weë\'de paylaş',
-  shareWall: 'Wäll sayfam',
+  shareWall: 'Ẅall sayfam',
   shareCommunities: 'Topluluklar',
   shareProfile: 'Business Profile',
   shareNothing: 'Önce bir şey oluştur, sonra buradan paylaş.',
-  shareText: 'Weë Fashion ile oluşturuldu',
+  shareText: 'WeëFashion ile oluşturuldu',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Verilerimi yükle',

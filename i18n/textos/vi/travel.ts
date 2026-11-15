@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila. Trato «bạn»; Weë Brain habla como «mình»
  * solo donde el español usa primera persona. Plural: Intl solo tiene «other», así que _one y _other son idénticas.
- * Las marcas (Weë, WeëTravel, Weë Brain, Weë Studio, Weëls, Travel Safe) y «DEMO» no se traducen.
+ * Las marcas (Weë, WeëTravel, Weë Brain, WeëStudio, Weëls, Travel Safe) y «DEMO» no se traducen.
  */
 export const travel: typeof import('../es/travel').travel = {
   // Portada
@@ -741,9 +741,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Điều tuyệt nhất hôm nay là gì?',
   saveEntry: 'Lưu mục',
   journalEmpty: 'Nhật ký của bạn còn trống. Hãy viết mục đầu tiên.',
-  videoMemoriesDemo: 'DEMO: video được tạo trong Weë Studio, bằng ảnh và clip của chính bạn.',
+  videoMemoriesDemo: 'DEMO: video được tạo trong WeëStudio, bằng ảnh và clip của chính bạn.',
   videoOf: 'Video về {{viaje}}',
-  createInStudio: 'Tạo trong Weë Studio',
+  createInStudio: 'Tạo trong WeëStudio',
   countriesVisited_one: 'Đã đến {{contador}} quốc gia',
   countriesVisited_other: 'Đã đến {{contador}} quốc gia',
   recapTitle: 'Chuyến đi {{viaje}} của bạn',

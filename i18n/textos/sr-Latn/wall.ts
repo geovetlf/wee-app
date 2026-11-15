@@ -3,7 +3,7 @@
  * (i18n/textos/sr/). Cualquier corrección se hace en el cirílico y se vuelve a generar.
  */
 /*
- * SERBIO (ćirilica, ekavski) — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * SERBIO (ćirilica, ekavski) — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español. Las frases con sujeto variable («{{nombre}} reposteó»,
  * «Votaste», «Cómo lo hice») van en formas sin género, porque el pasado serbio lo marca.
@@ -87,8 +87,8 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demo',
   demoBadgeLabel: 'Demo sadržaj',
-  immersiveEmpty: 'Wäll još nema objava',
-  immersiveError: 'Nismo mogli da učitamo Wäll',
+  immersiveEmpty: 'Ẅall još nema objava',
+  immersiveError: 'Nismo mogli da učitamo Ẅall',
   immersiveEnd: 'To je sve za sada',
   agreePost: 'Slažem se',
   disagreePost: 'Ne slažem se',

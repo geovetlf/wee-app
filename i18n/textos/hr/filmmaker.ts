@@ -4,7 +4,7 @@ import { ConPlurales } from '../ru/plurales';
  * WEË FILMMAKER — «Varias escenas» (F1-C), en croata. Tipado contra el español con `ConPlurales`: las seis
  * claves que cuentan (droppedTitle, scenes, shots, references, dialogueLines, soundCues) añaden `_few`
  * (2-4, 22-24…). Tuteo. La producción es «produkcija», el plano es «kadar», la toma es «snimka», la escena
- * «scena», el guion «scenarij» y el panel Director es «Režija». Weë y Weë Studio son marca: en latino y sin declinar.
+ * «scena», el guion «scenarij» y el panel Director es «Režija». Weë y WeëStudio son marca: en latino y sin declinar.
  * Las claves val*, op*, rec*, req* y per* son los `messageKey` de F1-A y F1-B leídos como claves planas.
  */
 export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> = {
@@ -17,20 +17,20 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   createProduction: 'Stvori produkciju',
   creatingProduction: 'Stvaramo produkciju…',
   openProduction: 'Otvori {{titulo}}',
-  goToStudio: 'Idi u Weë Studio',
+  goToStudio: 'Idi u WeëStudio',
   loadMore: 'Prikaži više',
   backToList: 'Natrag na tvoje produkcije',
   updatedAgo: 'Ažurirana {{cuando}}',
 
   emptyListTitle: 'Još nemaš produkcija',
-  emptyListText: 'Počni u Weë Studio: uđi u Videozapise, odaberi „Više scena“ i reci Weë što želiš ispričati.',
+  emptyListText: 'Počni u WeëStudio: uđi u Videozapise, odaberi „Više scena“ i reci Weë što želiš ispričati.',
   emptyArchived: 'Nemaš arhiviranih produkcija.',
   emptyStoryboardTitle: 'Ova produkcija još nema scena',
   emptyStoryboardText: 'Dodaj prvu i gradi svoju priču kadar po kadar.',
   addFirstScene: 'Dodaj prvu scenu',
 
   yourIdea: 'Tvoja ideja',
-  ideaFromStudio: 'Ideja se piše u Weë Studio. Da je promijeniš, vrati se onamo.',
+  ideaFromStudio: 'Ideja se piše u WeëStudio. Da je promijeniš, vrati se onamo.',
   whereWillItPlay: 'Gdje će se gledati?',
   otherFormat: 'Drugi format',
   continueOne: 'Ili nastavi s jednom od svojih produkcija',

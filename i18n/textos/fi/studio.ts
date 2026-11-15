@@ -1,10 +1,10 @@
 /*
- * FINÉS — Weë Studio: el sitio donde se crea (cabecera, compositor, ajustes,
+ * FINÉS — WeëStudio: el sitio donde se crea (cabecera, compositor, ajustes,
  * las seis puertas, cámara y cinemática, Mis creaciones y 3D World).
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * Las marcas (Weë, Weë Studio, Credits) y lo que es/en dejan en inglés
+ * Las marcas (Weë, WeëStudio, Credits) y lo que es/en dejan en inglés
  * (Beauty, Fashion, 3D World) se quedan igual. Los compuestos con marca van
  * con guion («3D-maailma», «Credits-saldo»). Ninguna terminación de caso se
  * pega a un {{hueco}}: la palabra con caso va delante («hintaan {{credits}}
@@ -232,7 +232,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Tulossa',
   soonHint: 'Tämä työkalu on jo paikallaan. Se pitää vain ottaa käyttöön.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Teksti',
   textHint: 'Kirjoita mitä tahansa sisältöä',
   exploreTitle: 'Tutki',

@@ -7,7 +7,7 @@
  * Kalaallisut, NO danés. Decisiones:
  *   · Botones en imperativo 2sg (guía §2.2): transitivo «-guk/-ruk» con objeto definido, «-kkit» con objeto
  *     plural, «-git/-it» sin objeto; «…-mik pilersitsigit» para crear algo indefinido.
- *   · «Weë», «Weë Brain», «Weë AI», «Weë Travel», «Credits»: nunca con sufijo. Van como objeto o sujeto en
+ *   · «Weë», «Weë Brain», «Weë AI», «WeëTravel», «Credits»: nunca con sufijo. Van como objeto o sujeto en
  *     absolutivo («Weë oqaluttuarfiguk» cuéntaselo a Weë, «Weë Brain eqqarsarpoq»), en antipasiva cuando harían
  *     algo a otra cosa («AI-mik Weë toqqaasarpoq» Weë elige la IA), con «atorlugu» (usando Weë), en aposición
  *     («nipi Weë» voz de Weë) o tras dos puntos («Ingerlaffigiuk: {{especialista}}»).
@@ -150,10 +150,10 @@ export const weeai: typeof import('../es/weeai').weeai = {
   couldNotCalculateRetry: 'Akiata naatsorsornera iluatsinngilaq. Misileqqiguk.',
   expandSection: '{{titulo}}. Takuuk: {{contenido}}',
   collapseSection: '{{titulo}}. Isertoruk: {{contenido}}',
-  openTravel_one: '{{titulo}}. Ammaruk: Weë Travel — angalanerit allaguk aallartinnissamullu periuseq',
-  openTravel_other: '{{titulo}}. Ammaruk: Weë Travel — angalanerit allaguk aallartinnissamullu periutsit {{contador}}',
-  closeTravel_one: '{{titulo}}. Isertoruk: Weë Travel — angalanerit allaguk aallartinnissamullu periuseq',
-  closeTravel_other: '{{titulo}}. Isertoruk: Weë Travel — angalanerit allaguk aallartinnissamullu periutsit {{contador}}',
+  openTravel_one: '{{titulo}}. Ammaruk: WeëTravel — angalanerit allaguk aallartinnissamullu periuseq',
+  openTravel_other: '{{titulo}}. Ammaruk: WeëTravel — angalanerit allaguk aallartinnissamullu periutsit {{contador}}',
+  closeTravel_one: '{{titulo}}. Isertoruk: WeëTravel — angalanerit allaguk aallartinnissamullu periuseq',
+  closeTravel_other: '{{titulo}}. Isertoruk: WeëTravel — angalanerit allaguk aallartinnissamullu periutsit {{contador}}',
   tellWeeTheTrip: 'Angalanerit pillugu Weë oqaluttuarfiguk',
   theMotto: 'Inerneq illit toqqartarpat. AI-mik Weë toqqaasarpoq.',
   trySearchWords: 'Oqaatsit uku misilikkit: ilisarnaat, video, assi, allagaq, erinarsuut, isikkoq, nerisassiornermut ilitsersuut, illu niuernerluunniit. Imaluunniit Weë Brain apersoruk.',

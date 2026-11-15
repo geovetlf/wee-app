@@ -1,5 +1,5 @@
 /*
- * PERSA — Weë Writer, dentro de Weë Studio. El texto que escribe la persona
+ * PERSA — Weë Writer, dentro de WeëStudio. El texto que escribe la persona
  * NUNCA pasa por aquí: solo las herramientas que lo trabajan. Tipado contra el
  * español.
  */

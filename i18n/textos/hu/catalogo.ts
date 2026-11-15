@@ -13,7 +13,7 @@
  *     solo donde el español nombra la marca con «con Weë»; vocal anterior.
  *   · Números, duraciones, «↑ 40%», «125.4K» y nombres de platos/géneros que
  *     es y en dejan igual (Lomo saltado, Pop, Rock, Trap…) se copian tal cual.
- *   · «Beauty» y «Writer» como títulos de tarjeta de Weë Studio se quedan en
+ *   · «Beauty» y «Writer» como títulos de tarjeta de WeëStudio se quedan en
  *     inglés (son nombres de experiencia).
  */
 export const catalogo: typeof import('../es/catalogo').catalogo = {
@@ -63,7 +63,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Az egész folyamatot intézi',
   brainEj3Subtitle: 'Az ötlettől a tervekig, videókig és zenéig',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Tervezd meg, amit csak elképzelsz.',
   designIntro: 'Váltsd valóra az ötleteidet lenyűgöző tervekben mesterséges intelligenciával. Egy logótól egy autóig, egy termékig vagy egy egész világig.',
   designChip1: 'Gyors és egyszerű',
@@ -162,7 +162,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Arcretus',
   photoEj6Title: 'Átalakítás AI-jal',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Alkoss, hallgass és éld át a zenédet AI-jal',
   musicIntro: 'Váltsd az ötleteidet egyedi dalokká, videókká és élményekké. Határok nélkül a kreativitásodnak.',
   musicChip1: 'Gyors és egyszerű',
@@ -224,7 +224,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Váltsd a zenédet lenyűgöző videóvá: többféle stílus, automatikus szinkronizálás, közösségimédia-formátumok, jelenetek és karakterek.',
   musicClosingButton: 'Videó készítése most',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Készíts fotókat és videókat AI-jal',
   studioIntro: 'Mondd el, mit szeretnél létrehozni, és lépésről lépésre segítek.',
   studioChip1: 'Könnyen használható',
@@ -317,7 +317,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Beérkezett üzenet',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'A személyes séfed, mindig veled',
   chefIntro: 'Fedezz fel recepteket, állíts össze menüket, használd fel, amid van, és egyél jobban, egyszerűbben és finomabban.',
   chefChip1: 'Egyszerű receptek',
@@ -347,7 +347,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Nem tudom, mit főzzek',
   chefAcIdkSubtitle: 'Javaslok valami finomat',
   chefAcIdkGoal: 'Nem tudom, mit főzzek ma',
-  chefIdeaTitle: 'Szia! Én vagyok a Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Szia! Én vagyok a WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Mondd csak, mit főznél szívesen ma?',
   chefIdeaPlaceholder: 'Írd ide az ötletedet…',
   chefIdeaChip1: 'Gyors vacsorát szeretnék',
@@ -559,7 +559,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'Profi önéletrajz',
   writerEj6Subtitle: 'Modern és letisztult',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Tervezd meg az utadat valakivel, aki már utazott.',
   travelIntro: 'Mondd el, hová mész – vagy hogy még nem tudod –, és megtervezem az utat: mit nézz meg, hol egyél, és hogyan közlekedj.',
   travelChip1: 'Foglalás nélkül',

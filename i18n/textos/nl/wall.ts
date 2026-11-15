@@ -1,5 +1,5 @@
 /*
- * NEERLANDÉS — El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * NEERLANDÉS — El Ẅall: la publicación y todo lo que se puede hacer con ella.
  * Tipado contra el español.
  *
  * «Republicar» es «Opnieuw plaatsen» (el verbo de publicar es «plaatsen»); el cartel de quien lo hizo,
@@ -78,8 +78,8 @@ export const wall: typeof import('../es/wall').wall = {
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
   demoBadge: 'Demo',
   demoBadgeLabel: 'Democontent',
-  immersiveEmpty: 'Er staan nog geen berichten op de Wäll',
-  immersiveError: 'We konden de Wäll niet laden',
+  immersiveEmpty: 'Er staan nog geen berichten op de Ẅall',
+  immersiveError: 'We konden de Ẅall niet laden',
   immersiveEnd: 'Je bent helemaal bij',
   agreePost: 'Eens',
   disagreePost: 'Oneens',

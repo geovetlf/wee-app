@@ -175,11 +175,11 @@ export const business: ConPlurales<typeof import('../es/business').business> = {
   share: 'Podijeli',
   shareHint: 'Otvara se dijeljenje na tvom telefonu: izaberi aplikaciju koju želiš.',
   shareToWee: 'Podijeli na Weë',
-  shareWall: 'Moj Wäll',
+  shareWall: 'Moj Ẅall',
   shareCommunities: 'Zajednice',
   shareProfile: 'Business Profile',
   shareNothing: 'Prvo nešto kreiraj, pa to podijeli odavde.',
-  shareText: 'Kreirano uz Weë Fashion',
+  shareText: 'Kreirano uz WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Otpremi moje podatke',

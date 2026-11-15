@@ -7,7 +7,7 @@
  * aquí: salen de `constants/weeExperiences.ts`.
  *
  * «Ir a {{seccion}}» es «{{seccion}} bölümüne git»: el hueco es una marca
- * («Weë Studio») y el dativo lo lleva «bölüm», nunca el hueco (guía § 4); es
+ * («WeëStudio») y el dativo lo lleva «bölüm», nunca el hueco (guía § 4); es
  * la misma forma que `weeai.goToSpecialist`. «Buscar en internet» es
  * «İnternette ara», igual que `weeai.searchInternet`: es el mismo ajuste dicho
  * en dos sitios.

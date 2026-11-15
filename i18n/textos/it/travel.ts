@@ -1,7 +1,7 @@
 /*
  * WeëTravel — el workspace de viajes (prototipo navegable con datos DEMO). Italiano con tuteo («tu»).
  *
- * Tipado contra el español: si allí hay una clave que aquí falta, no compila. Weë, WeëTravel, Weë Brain, Weë Studio,
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila. Weë, WeëTravel, Weë Brain, WeëStudio,
  * Weëls, Travel Safe y DEMO no se traducen.
  */
 export const travel: typeof import('../es/travel').travel = {
@@ -740,9 +740,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Qual è stata la cosa più bella di oggi?',
   saveEntry: 'Salva pagina',
   journalEmpty: 'Il tuo diario è vuoto. Scrivi la prima pagina.',
-  videoMemoriesDemo: 'DEMO: i video si creano in Weë Studio, con le tue foto e le tue clip.',
+  videoMemoriesDemo: 'DEMO: i video si creano in WeëStudio, con le tue foto e le tue clip.',
   videoOf: 'Il video di {{viaje}}',
-  createInStudio: 'Crea in Weë Studio',
+  createInStudio: 'Crea in WeëStudio',
   countriesVisited_one: '{{contador}} paese visitato',
   countriesVisited_other: '{{contador}} paesi visitati',
   recapTitle: 'Il tuo viaggio a {{viaje}}',

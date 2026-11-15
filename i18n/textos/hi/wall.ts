@@ -1,5 +1,5 @@
 /*
- * HINDI — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * HINDI — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -97,9 +97,9 @@ export const wall: typeof import('../es/wall').wall = {
   promptCopied: 'कॉपी किया गया',
   demoBadge: 'डेमो',
   demoBadgeLabel: 'डेमो सामग्री',
-  /* ── El Wäll inmersivo: una publicación a la vez ── */
-  immersiveEmpty: 'Wäll पर अभी कोई पोस्ट नहीं है',
-  immersiveError: 'हम Wäll लोड नहीं कर सके',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Ẅall पर अभी कोई पोस्ट नहीं है',
+  immersiveError: 'हम Ẅall लोड नहीं कर सके',
   immersiveEnd: 'आपने सब देख लिया',
   agreePost: 'सहमत',
   disagreePost: 'असहमत',

@@ -62,7 +62,7 @@ export const business: typeof import('../es/business').business = {
    *
    * Los NOMBRES de los módulos —My Business, Products & Catalog, Create,
    * Social, Analyze, Grow, Business Profile, Promote— no están aquí: son
-   * nombres de producto y se escriben igual en los dos idiomas, como Weë Studio
+   * nombres de producto y se escriben igual en los dos idiomas, como WeëStudio
    * o Weë Writer. Viven en `constants/businessModules.ts`. Lo que sí se traduce
    * es todo lo demás: lo que hace cada uno, sus acciones y sus avisos.
    */
@@ -173,11 +173,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Bagikan',
   shareHint: 'Menu berbagi ponsel Anda akan terbuka: pilih aplikasi yang Anda mau.',
   shareToWee: 'Bagikan di Weë',
-  shareWall: 'Wäll saya',
+  shareWall: 'Ẅall saya',
   shareCommunities: 'Komunitas',
   shareProfile: 'Business Profile',
   shareNothing: 'Buat sesuatu dulu, lalu bagikan dari sini.',
-  shareText: 'Dibuat dengan Weë Fashion',
+  shareText: 'Dibuat dengan WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Unggah data saya',

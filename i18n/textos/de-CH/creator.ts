@@ -1,5 +1,5 @@
 /*
- * ALEMÁN SUIZO (de-CH) — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * ALEMÁN SUIZO (de-CH) — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign, WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Variante del alemán base (de/creator.ts): ortografía suiza (sin Eszett) y comillas «…»;
  * todo lo demás, igual que el alemán. Tipado contra el español: si allí hay una
@@ -50,10 +50,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Ich weiss nicht, wo ich anfangen soll',
   brainEx2: 'Erklär mir das einfach',
   brainEx3: 'Übersetze diesen Text',
-  areaStudioPhotos: 'Weë Studio · Fotos',
-  areaStudioVideos: 'Weë Studio · Videos',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Wohnen & Design',
+  areaStudioPhotos: 'WeëStudio · Fotos',
+  areaStudioVideos: 'WeëStudio · Videos',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Wohnen & Design',
   areaHomeName: 'Wohnen & Design',
   tellTheSpecialist: 'Sag {{especialista}}, was du erreichen willst: Es stellt dir zwei oder drei einfache Fragen und erledigt den Rest. Danach postest du direkt in deiner Community.',
   exampleQuoted: '«{{ejemplo}}»',

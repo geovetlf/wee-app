@@ -7,8 +7,8 @@
  * no compila hasta que exista también aquí.
  *
  * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS:
- *   · los nombres de Weë —Weë, Wäll, Weëls, WeeTalk, ËContact, ẄContact,
- *     Credits, Weë AI, Weë Studio…—, que son marca y se escriben igual en todos
+ *   · los nombres de Weë —Weë, Ẅall, Weëls, WeeTalk, ËContact, ẄContact,
+ *     Credits, Weë AI, WeëStudio…—, que son marca y se escriben igual en todos
  *     los idiomas. En sueco eso significa también no declinarlas: ni forma
  *     definida ni genitivo pegado a la marca; la frase lleva una preposición
  *     («på Weë», «i WeeTalk») o un compuesto con guion, según la guía;

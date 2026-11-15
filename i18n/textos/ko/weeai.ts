@@ -151,10 +151,10 @@ export const weeai: typeof import('../es/weeai').weeai = {
   couldNotCalculateRetry: '비용을 계산하지 못했어요. 다시 한번 시도해 주세요.',
   expandSection: '{{titulo}}. {{contenido}} 보기',
   collapseSection: '{{titulo}}. {{contenido}} 숨기기',
-  openTravel_one: '{{titulo}}. Weë Travel 열기: 여행 이야기 쓰기와 시작 방법 {{contador}}개',
-  openTravel_other: '{{titulo}}. Weë Travel 열기: 여행 이야기 쓰기와 시작 방법 {{contador}}개',
-  closeTravel_one: '{{titulo}}. Weë Travel 숨기기: 여행 이야기 쓰기와 시작 방법 {{contador}}개',
-  closeTravel_other: '{{titulo}}. Weë Travel 숨기기: 여행 이야기 쓰기와 시작 방법 {{contador}}개',
+  openTravel_one: '{{titulo}}. WeëTravel 열기: 여행 이야기 쓰기와 시작 방법 {{contador}}개',
+  openTravel_other: '{{titulo}}. WeëTravel 열기: 여행 이야기 쓰기와 시작 방법 {{contador}}개',
+  closeTravel_one: '{{titulo}}. WeëTravel 숨기기: 여행 이야기 쓰기와 시작 방법 {{contador}}개',
+  closeTravel_other: '{{titulo}}. WeëTravel 숨기기: 여행 이야기 쓰기와 시작 방법 {{contador}}개',
   tellWeeTheTrip: 'Weë에 여행 이야기하기',
   theMotto: '결과는 당신이 고르고, AI는 Weë가 골라요.',
   trySearchWords: '로고, 비디오, 사진, 텍스트, 노래, 스타일, 레시피, 집, 비즈니스 같은 말로 찾아보세요. Weë Brain에 물어봐도 좋아요.',
@@ -232,7 +232,7 @@ export const weeai: typeof import('../es/weeai').weeai = {
   durationSeconds: '{{segundos}}초',
   volumeDiscount: '수량 할인 −{{descuento}}%',
   createWork: '만들기',
-  /* ── Weë Travel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
+  /* ── WeëTravel: la portada de la demo YC (héroe, ideas, populares y plan completo) ── */
   travelHeroLine1: '여행 계획을',
   travelHeroLine2: '가 본 사람과',
   travelHeroAccent: '함께 세워요.',

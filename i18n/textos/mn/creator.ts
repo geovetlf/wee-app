@@ -1,6 +1,6 @@
 /*
- * MONGOL — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design,
- * Weë Studio…— son marca y no se traducen. Tipado contra el español.
+ * MONGOL — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign,
+ * WeëStudio…— son marca y no se traducen. Tipado contra el español.
  */
 export const creator: typeof import('../es/creator').creator = {
   design: 'Лого, постер, иллюстрац болон нийгмийн сүлжээнд зориулсан материал',
@@ -47,10 +47,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Хаанаас эхлэхээ мэдэхгүй байна',
   brainEx2: 'Үүнийг надад энгийнээр тайлбарлаач',
   brainEx3: 'Энэ текстийг орчуулаач',
-  areaStudioPhotos: 'Weë Studio · Зураг',
-  areaStudioVideos: 'Weë Studio · Видео',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Гэр & Дизайн',
+  areaStudioPhotos: 'WeëStudio · Зураг',
+  areaStudioVideos: 'WeëStudio · Видео',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Гэр & Дизайн',
   areaHomeName: 'Гэр & Дизайн',
   tellTheSpecialist: '{{especialista}} танд тусална: юу хийхийг хүсэж байгаагаа хэлэхэд л хоёр, гурван энгийн асуулт асуугаад үлдсэнийг нь өөрөө хийнэ. Дараа нь та нийгэмлэгтээ шууд нийтэлнэ.',
   exampleQuoted: '“{{ejemplo}}”',

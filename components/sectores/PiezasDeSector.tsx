@@ -65,7 +65,7 @@ export interface Ficha {
   texto: string;
   onPress: () => void;
   activa?: boolean;
-  /** Color propio del icono (las fichas blancas de Weë Travel, como en su referencia); sin él, el cuadrito dorado de siempre. */
+  /** Color propio del icono (las fichas blancas de WeëTravel, como en su referencia); sin él, el cuadrito dorado de siempre. */
   tinta?: string;
 }
 
@@ -81,7 +81,7 @@ export interface HeroProps {
   /** Las fichas en una fila que se desliza (Fashion), en vez de dos renglones bajo el texto. */
   fichasEnFila?: boolean;
   /**
-   * Proporciones de la referencia de Weë Travel (ref-travel.jpg): la descripción es un punto más pequeña y el héroe
+   * Proporciones de la referencia de WeëTravel (ref-travel.jpg): la descripción es un punto más pequeña y el héroe
    * más bajo, para que la caja dorada asome antes. Solo presentación.
    */
   compacto?: boolean;

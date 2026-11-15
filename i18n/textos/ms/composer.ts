@@ -7,7 +7,7 @@
  * Publicar es «Siarkan» y la publicación, «siaran» (guía § 4). La encuesta es
  * «undian» y cada opción, «pilihan»; la mención, «sebutan» y mencionar, «sebut».
  * El watermark es «tera air». «Face swap» se deja en latino. Las marcas —Weë,
- * Weël, Wäll, ËContact— no se declinan ni se traducen; el posesivo malayo va
+ * Weël, Ẅall, ËContact— no se declinan ni se traducen; el posesivo malayo va
  * detrás («ËContact anda») sin tocar la marca. Plural: solo «other», con
  * `{{contador}}` en las dos formas.
  */
@@ -34,7 +34,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Papar pilihan siaran',
   hideOptions: 'Sembunyikan pilihan siaran',
   currentDestination: '{{destino}}, destinasi semasa',
-  generalWall: 'Wäll umum',
+  generalWall: 'Ẅall umum',
   placeholderPollExtra: 'Tambah apa-apa lagi jika anda mahu (pilihan)…',
   placeholderQuestion: 'Apa yang anda mahu tanyakan kepada komuniti?',
   placeholderWeel: 'Ceritakan apa yang anda cipta untuk Weël anda dan AI yang digunakan…',

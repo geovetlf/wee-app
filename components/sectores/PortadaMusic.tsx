@@ -11,7 +11,7 @@ import { Bloque, DORADO, HeroDeSector, RejillaDeAccesos, TituloDeBloque } from '
 import { RellenoDeMarca } from '../GradienteDeMarca';
 
 /*
- * LA PORTADA DE WEË MUSIC, COMO EN LA DEMO YC. Weë Music NO está conectada a ninguna API musical (CLAUDE.md §5): el
+ * LA PORTADA DE WEË MUSIC, COMO EN LA DEMO YC. WeëMusic NO está conectada a ninguna API musical (CLAUDE.md §5): el
  * estudio de ejemplo es un dibujo que no suena, los accesos abren el composer de siempre (`MusicComposer`) con su punto
  * de partida y su modo, y las herramientas abren la workstation de ejemplo, exactamente como hacía la demo.
  */

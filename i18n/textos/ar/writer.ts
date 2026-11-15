@@ -1,5 +1,5 @@
 /*
- * ÁRABE — Weë Writer, dentro de Weë Studio. Tipado contra el español.
+ * ÁRABE — Weë Writer, dentro de WeëStudio. Tipado contra el español.
  *
  * El texto que escribe la persona nunca pasa por aquí: solo las herramientas.
  * Los botones son sustantivos de acción (تحسين، اختصار، تصحيح…). `words`

@@ -3,8 +3,8 @@ import React, { createContext, useContext, useMemo } from 'react';
 /**
  * LO QUE EL MARCO DE WEË AI LE CUENTA A LA CABECERA DE UNA SECCIÓN.
  *
- * Hay dos maneras de llegar a una sección de Weë AI: por su cuenta —Weë Studio,
- * Weë Design y Weë Chef, que son pantallas enteras— o dentro de `CreatorShell`,
+ * Hay dos maneras de llegar a una sección de Weë AI: por su cuenta —WeëStudio,
+ * WeëDesign y WeëChef, que son pantallas enteras— o dentro de `CreatorShell`,
  * que es el marco de las demás. La cabecera es la MISMA en los dos casos, pero
  * lo que la rodea no, y hay dos cosas que necesita saber de quien la envuelve:
  *

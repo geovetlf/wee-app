@@ -1,7 +1,7 @@
 /*
- * FILIPINO — Weë Music: portada, Composer, workstation y herramientas. Tipado contra el español.
+ * FILIPINO — WeëMusic: portada, Composer, workstation y herramientas. Tipado contra el español.
  *
- * «Weë Music» es marca y no se traduce; tampoco los nombres de los proveedores. Vocabulario (guía § 4 y § 11):
+ * «WeëMusic» es marca y no se traduce; tampoco los nombres de los proveedores. Vocabulario (guía § 4 y § 11):
  * «kanta», «musika», «boses», «melodiya», «liriko» (forma adaptada, una sola para todo el módulo), «seksyon»,
  * «engine» y «engine ng musika», «draft», «device», «provider», «reference», «hiwa-hiwalay na track» (stems).
  * Las partes de la canción van en su forma filipina (Panimula, Berso, Koro, Tulay, Pangwakas). Se quedan como en inglés,
@@ -15,7 +15,7 @@ export const music: typeof import('../es/music').music = {
   heroLine: 'Ikuwento mo ang ideya mo o kantahin ang isang melodiya, at ihanda ang kanta mo, hakbang-hakbang.',
   ctaCreate: 'Gumawa ng musika',
   chooseTitle: 'Piliin kung paano magsisimula',
-  skillsTitle: 'Ang kayang gawin ng Weë Music',
+  skillsTitle: 'Ang kayang gawin ng WeëMusic',
   recentTitle: 'Mga kamakailang kanta',
   viewExample: 'Tingnan ang halimbawa ng disenyo',
   honestyNote: 'Sa ngayon, puwede mong ihanda ang kanta mo, mag-record ng reference na melodiya at humingi ng gabay sa Weë Brain. Bubuksan ang paggawa ng kanta kapag nakakonekta at na-validate na ito.',
@@ -23,7 +23,7 @@ export const music: typeof import('../es/music').music = {
   openLibraryHelp: 'Ang mga na-save mong audio at kanta.',
   openProjects: 'Mga proyekto ko',
   openProjectsHelp: 'Ayusin ang mga kanta mo sa mga proyekto.',
-  backToMusic: 'Bumalik sa Weë Music',
+  backToMusic: 'Bumalik sa WeëMusic',
   composerTitle: 'Gumawa ng musika',
   modesLabel: 'Paraan',
   modeSimple: 'Payak',
@@ -309,7 +309,7 @@ export const music: typeof import('../es/music').music = {
   processingNote: 'Hindi pa tapos ang pagpoproseso ng audio: ang kontrata lang ang inihahanda dito.',
 
   voiceInterpretation: 'Istilo ng pag-awit',
-  voiceNoClone: 'Hindi nagko-clone o gumagaya ng boses ng tao ang Weë Music: mga pangkalahatang katangian lang ng boses ang pinipili nito.',
+  voiceNoClone: 'Hindi nagko-clone o gumagaya ng boses ng tao ang WeëMusic: mga pangkalahatang katangian lang ng boses ang pinipili nito.',
   voiceStylePending: 'Nakadepende sa engine ang istilo ng pag-awit at hindi pa ito available.',
   styleTitle: 'Uri ng musika at istilo',
   transformTitle: 'Mga transpormasyon',

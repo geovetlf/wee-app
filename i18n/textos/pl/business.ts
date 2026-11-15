@@ -180,11 +180,11 @@ export const business: ConPlurales<typeof import('../es/business').business> = {
   share: 'Udostępnij',
   shareHint: 'Otworzy się menu udostępniania twojego telefonu: wybierz dowolną aplikację.',
   shareToWee: 'Udostępnij w aplikacji Weë',
-  shareWall: 'Mój Wäll',
+  shareWall: 'Mój Ẅall',
   shareCommunities: 'Społeczności',
   shareProfile: 'Business Profile',
   shareNothing: 'Najpierw coś stwórz, a potem udostępnij to stąd.',
-  shareText: 'Stworzone z Weë Fashion',
+  shareText: 'Stworzone z WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Prześlij swoje dane',

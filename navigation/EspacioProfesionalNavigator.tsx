@@ -94,8 +94,8 @@ const AjustesDeCreator: React.FC<any> = (props) => {
 };
 
 /*
- * WEË STUDIO DESDE OTRA SECCIÓN. Algunas pantallas compartidas (los recuerdos de Weë Travel) piden la ruta
- * `Studio` de la versión app; dentro de creator Weë Studio es su sección, así que se abre ahí, en el marco, sin
+ * WEË STUDIO DESDE OTRA SECCIÓN. Algunas pantallas compartidas (los recuerdos de WeëTravel) piden la ruta
+ * `Studio` de la versión app; dentro de creator WeëStudio es su sección, así que se abre ahí, en el marco, sin
  * tocar esas pantallas.
  */
 const StudioEnCreator: React.FC<any> = ({ navigation }) => {
@@ -121,7 +121,7 @@ const PilaProfesional: React.FC = () => {
     >
       <Pila.Screen name={RUTA_DE_INICIO} component={ProInicioScreen} />
       <Pila.Screen name="Specialist" component={EspecialistaDeCreator} />
-      {/* Weë Travel completo: las pantallas de sus seis módulos (screens/travel), la misma ruta que en la versión app, dentro de este marco. */}
+      {/* WeëTravel completo: las pantallas de sus seis módulos (screens/travel), la misma ruta que en la versión app, dentro de este marco. */}
       <Pila.Screen name="Travel" component={TravelScreen} />
       <Pila.Screen name="Studio" component={StudioEnCreator} />
       <Pila.Screen name="CreatorFlow" component={FlujoDeCreator} />

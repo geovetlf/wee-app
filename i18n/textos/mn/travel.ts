@@ -2,7 +2,7 @@
  * MONGOL — WeëTravel, el workspace de viajes (prototipo navegable con datos DEMO). Tipado contra el español.
  * Trato de «та». El mongol no distingue plural con número: `_one` y `_other` dicen lo mismo, con `{{contador}}`.
  * Ningún sufijo de caso va pegado a un {{hueco}}: se reformula con un sustantivo puente («Газар: {{lugar}}»).
- * Weë, WeëTravel, Weë Brain, Weë Studio, Weëls, WEË BRAIN, Travel Safe y DEMO son marca/etiqueta y no se tocan.
+ * Weë, WeëTravel, Weë Brain, WeëStudio, Weëls, WEË BRAIN, Travel Safe y DEMO son marca/etiqueta y no se tocan.
  */
 export const travel: typeof import('../es/travel').travel = {
   // Portada
@@ -740,9 +740,9 @@ export const travel: typeof import('../es/travel').travel = {
   journalPh: 'Өнөөдөр хамгийн сайхан нь юу байв?',
   saveEntry: 'Бичлэг хадгалах',
   journalEmpty: 'Таны тэмдэглэл хоосон байна. Анхны бичлэгээ хийгээрэй.',
-  videoMemoriesDemo: 'DEMO: видеог Weë Studio дээр таны өөрийн зураг, клипээр бүтээнэ.',
+  videoMemoriesDemo: 'DEMO: видеог WeëStudio дээр таны өөрийн зураг, клипээр бүтээнэ.',
   videoOf: 'Аяллын видео: {{viaje}}',
-  createInStudio: 'Weë Studio дээр бүтээх',
+  createInStudio: 'WeëStudio дээр бүтээх',
   countriesVisited_one: 'Очсон улс: {{contador}}',
   countriesVisited_other: 'Очсон улс: {{contador}}',
   recapTitle: 'Таны аялал: {{viaje}}',
