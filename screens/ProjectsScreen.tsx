@@ -7,11 +7,12 @@ import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
 import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
 import { useDireccion } from '../hooks/useDireccion';
+import { MENU_ITEM } from '../constants/weeMenu';
 import { formatearFecha } from '../i18n/formato';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  TarjetaDeAviso, SelectorDeOrden, VacioDeBiblioteca, BotonPrincipal,
+  TarjetaDeAviso, SelectorDeOrden, VacioDeBiblioteca, BotonPrincipal, BotonSecundario,
 } from '../components/biblioteca/PiezasDeBiblioteca';
 import { CabeceraDeBiblioteca } from '../components/biblioteca/CabeceraDeBiblioteca';
 import { PALETA_BIBLIOTECA as P, SOMBRA_SUAVE } from '../components/biblioteca/paleta';
@@ -341,6 +342,12 @@ const ProjectsScreen: React.FC = () => {
         <CabeceraDeBiblioteca titulo={t('weeai.myProjects')} />
 
         <TarjetaDeAviso icono="folder-open-outline" titulo={t('projects.introTitle')} texto={t('projects.introText', { accion: t('weeai.saveToProject') })} />
+
+        {/*
+          Mis creaciones: la biblioteca de material de la cuenta. Ya no tiene fila en el menú ☰ (rediseño del
+          2026-11-15): Proyectos es su puerta principal, junto con el centro creativo de WeëAI. Es la pantalla de siempre.
+        */}
+        <BotonSecundario texto={t(MENU_ITEM.creations.clave)} icono="images-outline" onPress={() => navigation.navigate('MisCreaciones')} />
 
         {loading ? (
           <ActivityIndicator color={P.morado} style={{ paddingVertical: 32 }} />

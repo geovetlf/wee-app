@@ -284,6 +284,24 @@ const WeeCreatorScreen: React.FC = () => {
           </View>
         )}
 
+        {/*
+          Mis creaciones: la biblioteca de material de la cuenta. Ya no tiene fila en el menú ☰ (rediseño del
+          2026-11-15), así que su puerta está aquí, en el centro creativo, y en Proyectos. Es la pantalla de siempre.
+        */}
+        <TouchableOpacity
+          style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+          onPress={() => navigation.navigate(user ? 'MisCreaciones' : 'Login')}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={t('creaciones.title')}
+        >
+          <Text style={styles.jobEmoji}>🖼️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.jobGoal, { color: theme.colors.text }]}>{t('creaciones.title')}</Text>
+          </View>
+          <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
+
         {/* Mis proyectos */}
         <TouchableOpacity
           style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}
