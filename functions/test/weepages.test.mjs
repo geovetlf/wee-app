@@ -78,8 +78,9 @@ check('4j) «Impulsar» solo lo ve el dueño y no cobra ni inventa precio', /esM
 
 /* 5. Navegación */
 check('5a) WeëPages está en el catálogo del menú', /pages: \{ id: 'pages', icono: 'documento', clave: 'menu\.pages'/.test(leer('constants/weeMenu.ts')));
-check('5b) y en el ☰ del teléfono, junto a la agenda', /fila\('pages', goPages\)/.test(leer('components/DrawerMenu.tsx')) && /navigateRoot\('WeePages'\)/.test(leer('components/DrawerMenu.tsx')));
-check('5c) y en la barra lateral de escritorio', /<Opcion id="pages"/.test(leer('components/Sidebar.tsx')));
+check('5b) y en el ☰ del teléfono, como fila propia del orden nuevo (tras Proyectos)', /pages: goPages/.test(leer('components/DrawerMenu.tsx')) && /const goPages = conCuenta\('WeePages'\)/.test(leer('components/DrawerMenu.tsx'))
+  && /'projects', 'pages'\]/.test(leer('constants/weeMenu.ts')));
+check('5c) y en la barra lateral de escritorio, del mismo catálogo', /pages: \{ onPress: conCuenta\('WeePages'\)/.test(leer('components/Sidebar.tsx')) && /WEE_MENU\.map\(/.test(leer('components/Sidebar.tsx')));
 check('5d) las dos rutas existen', /name="WeePages"/.test(leer('navigation/MainStackNavigator.tsx')) && /name="WeePage"/.test(leer('navigation/MainStackNavigator.tsx')));
 
 console.log(fallos ? `\n${fallos} comprobación(es) fallaron` : '\nWeëPages: entidades de la cuenta, escritas solo por el servidor');

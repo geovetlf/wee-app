@@ -771,16 +771,17 @@ check('171e) y conserva "question", que es otra cosa', /export type ComposerKind
  * compilador dijera nada.
  */
 check('171f) nadie repite la lista de kinds a mano', ![home, homeWeb].some((f) => /'post' \| 'image' \| 'video' \| 'question'/.test(f)));
-check('171g) los dos la importan de su única fuente', [home, homeWeb].every((f) => /import ComposerEntry, \{ ComposerKind \} from/.test(f)));
-check('171h) y tipan su handler con ella', [home, homeWeb].every((f) => /\(kind: ComposerKind\) =>/.test(f)));
+/* Rediseño del 2026-11-15: el Home ya no monta la puerta de publicar. Se publica desde el + (hoja Crear); las encuestas siguen en el compositor. */
+check('171g) ninguna pantalla del Home importa ya la puerta de publicar; su tipo sigue saliendo de su única fuente', [home, homeWeb].every((f) => !/ComposerEntry|ComposerKind/.test(f)) && /export type ComposerKind/.test(entrada));
+check('171h) y la hoja Crear tipa su handler con su propio tipo de kinds', /const crear = \(kind: CreateKind\) =>/.test(read('navigation/NavegacionGlobal.tsx')));
 check('171i) así el kind de la píldora llega entero al compositor', /kind: 'poll'/.test(entrada) && /const abreEncuesta = presetKind === 'poll';/.test(crear));
 
-check('172) el Wäll usa esa misma entrada', /<ComposerEntry/.test(home) && /onCompose=\{handleCompose\}/.test(home));
-check('173) y lo único que hace es llevar el kind al compositor', /navigate\('Create', \{ kind|irAlCompositor\(\{ kind \}\)/.test(home));
-check('174) el Home nativo, igual', /<ComposerEntry/.test(home) && /navigate\('Create', \{ kind \}\)/.test(home));
+check('172) desde el Wäll se publica por la hoja Crear del +, la de siempre', /<CreateSheet/.test(read('navigation/NavegacionGlobal.tsx')) && /onSelect=\{crear\}/.test(read('navigation/NavegacionGlobal.tsx')));
+check('173) y lo único que hace es llevar el kind al compositor', /irARaiz\('Create', \{ kind \}\)/.test(read('navigation/NavegacionGlobal.tsx')));
+check('174) el Home nativo no trae otra puerta de publicar', !/<ComposerEntry/.test(home) && !/navigate\('Create', \{ kind \}\)/.test(home));
 // En la web el compositor se pide al navegador de arriba —hay otra ruta `Create`
 // en la barra de pestañas que no tiene pantalla—, pero el kind viaja igual.
-check('175) y el Home web, igual', /<ComposerEntry/.test(homeWeb) && /irAlCompositor\(\{ kind \}\)/.test(homeWeb));
+check('175) y el Home web, tampoco', !/<ComposerEntry/.test(homeWeb) && !/irAlCompositor\(\{ kind \}\)/.test(homeWeb));
 // Nombrar la encuesta en un comentario está bien; implementarla, no.
 check('176) ninguno tiene lógica propia de encuestas', ![home, homeWeb].some((f) => /PostPoll|construirPoll|validarEncuesta|encuestaVacia|setPoll|poll\./.test(f)));
 

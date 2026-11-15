@@ -143,8 +143,9 @@ console.log('\n── D · Nada más se movió ──');
   check('16) la condición del perfil activo no cambió',
     /\{!user \? t\('menu\.tapToSignIn'\) : activeProfileType === 'hidi' \? t\('menu\.activeWee'\) : t\('menu\.activeReal'\)\}/.test(LATERAL));
   check('16) y la identidad activa se sigue leyendo de su contexto',
-    /const \{ userProfile, activeProfileType, hasWeeProfile \} = useUserProfile\(\);/.test(LATERAL)
-    && /const \{ hasWeeProfile, activeProfileType, switchIdentity \} = useUserProfile\(\);/.test(CABECERA));
+    /* Rediseño del 2026-11-15: la barra lateral lleva el selector de identidad (pide `switchIdentity`) y la cabecera de portada pinta el avatar (pide `userProfile`). */
+    /const \{ userProfile, activeProfileType, hasWeeProfile, switchIdentity \} = useUserProfile\(\);/.test(LATERAL)
+    && /const \{ userProfile, hasWeeProfile, activeProfileType, switchIdentity \} = useUserProfile\(\);/.test(CABECERA));
 
   /* 17 · La autenticación, intacta en las dos. */
   check('17) la autenticación no se tocó',

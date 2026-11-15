@@ -43,7 +43,6 @@ const EXCEPCIONES = {
   // Indicadores pequeños: puntos de no leído, contadores, insignias, carruseles
   'components/BarraInferior.tsx#aviso': PUNTO,
   'components/HeroCarousel.tsx#dot': PUNTO,
-  'components/DrawerMenu.tsx#tag': 'la etiqueta «Nuevo» junto a Crear Perfil Weë: insignia informativa, no botón (regla 2)',
   'components/avatars/AvatarPicker.tsx#editBadge': 'el lapicito sobre el avatar: insignia de 24 px pegada a la foto (regla 2)',
   'components/creator/PlanCard.tsx#stepDot': 'el número de cada paso del plan: indicador, no acción (regla 2)',
   'components/creator/RejillaDeCreaciones.tsx#statusBadge': 'insignia de estado de una creación (en curso / fallo): estado, no acción',

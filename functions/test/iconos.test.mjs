@@ -181,10 +181,9 @@ console.log('\n── D · Enchufados en el Burger ──');
    * CONTROL: el Burger sigue siendo el mismo. Ni el orden de las secciones, ni
    * los nombres, ni las rutas: esto solo cambió los dibujos.
    */
-  check('17) control: el menú conserva sus secciones y su orden',
-    /renderSectionLabel\(t\('menu\.sectionProfile'\)\)/.test(cajon)
-    && /renderSectionLabel\(t\('menu\.sectionExplore'\)\)/.test(cajon)
-    && cajon.indexOf("menu.sectionProfile") < cajon.indexOf("menu.sectionExplore"));
+  check('17) control: el menú pinta el orden del catálogo (rediseño del 2026-11-15: doce entradas, sin rótulos de grupo)',
+    /WEE_MENU\.map\(/.test(cajon) && /WEE_MENU\.map\(/.test(barra)
+    && /items: \['home', 'weels', 'explore', 'communities', 'projects', 'pages'\] \},\s*\{ items: \['mywees'\], destacado: true \},\s*\{ items: \['saved', 'history', 'credits', 'settings'\], divisor: true \},\s*\{ items: \['help'\], divisor: true \}/.test(menu));
   /*
    * Las opciones siguen llamándose igual, pero el texto vive ya en el
    * diccionario. Se comprueba ahí, que es donde está, y además que la tabla
@@ -216,16 +215,17 @@ console.log('\n── D · Enchufados en el Burger ──');
     ![cajon, barra].some((f) => /MENU_ITEM\[id\]\.emoji|MENU_ITEM\.\w+\.emoji|\bexp\.emoji\b/.test(f)));
   check('19d) y la barra pinta con IconoWee, el mismo componente que el cajón',
     /from '\.\/icons\/IconoWee'/.test(barra) && /<IconoWee/.test(barra)
-    && /MENU_ITEM\.creator\.icono/.test(barra) && /\bexp\.icono\b/.test(barra));
+    /* Las experiencias ya no son filas del menú; la fila propia del escritorio es Mensajes, con su dibujo del catálogo. */
+    && /MENU_ITEM\.weetalk\.icono/.test(barra) && !/\bexp\.icono\b/.test(barra));
   /*
    * La única fila que sigue con emoji es Buscar, y no es un olvido: solo existe
    * en escritorio —en el móvil la da la barra inferior— y trazosDeWee no tiene
    * lupa. Se fija aquí para que, el día que se dibuje, esto salte y se cambie
    * también.
    */
-  check('19e) y la única excepción sigue siendo Buscar, que no tiene dibujo',
-    /emoji="🔍" label={t\('nav\.search'\)}/.test(barra)
-    && !/'lupa'|'buscar'/.test(leer('components/icons/trazosDeWee.ts')));
+  check('19e) y ya no queda ninguna excepción: Buscar es «Explorar», con su dibujo (la brújula), y la barra no pinta ningún emoji',
+    !/emoji=/.test(barra) && /explore: \{ id: 'explore', icono: 'brujula'/.test(menu)
+    && /\n {2}brujula:/.test(leer('components/icons/trazosDeWee.ts')));
 }
 
 console.log('\n' + (failures ? `✘ ${failures} fallo(s)` : '✔ todo bien'));

@@ -434,9 +434,9 @@ console.log('\n── J · El menú Burger ──');
    * aquí es que sigue siendo así —una lista, no una lista escrita a mano— y que
    * Travel entra en esa lista.
    */
-  check('49) el menú recorre la fuente única, sin lista propia', /WEE_EXPERIENCES\.map\(\(exp\) =>/.test(menu));
+  check('49) las experiencias se recorren desde su fuente única en el centro creativo; el menú recorre su catálogo y ya no las lista', /WEE_EXPERIENCES/.test(leer('screens/WeeCreatorScreen.tsx')) && /WEE_MENU\.map\(/.test(menu) && !/WEE_EXPERIENCES/.test(menu));
   check('49) y no hay ninguna entrada de Travel escrita a mano', !/travel/i.test(soloCodigo(menu)));
-  check('49) la barra lateral hace lo mismo', /WEE_EXPERIENCES\.map\(\(exp\) =>/.test(barra) && !/travel/i.test(soloCodigo(barra)));
+  check('49) la barra lateral hace lo mismo', /WEE_MENU\.map\(/.test(barra) && !/WEE_EXPERIENCES/.test(barra) && !/travel/i.test(soloCodigo(barra)));
 
   const ts = require('typescript');
   const js = ts.transpileModule(leerCrudo('constants/weeExperiences.ts'), {
@@ -466,7 +466,7 @@ console.log('\n── J · El menú Burger ──');
   check('52) las otras seis no se movieron de sitio', orden.filter((id) => id !== 'travel').join(',') === 'brain,studio,design,music,chef,business');
 
   // La ruta: la de siempre, con su identificador.
-  check('53) el menú abre la pantalla de especialista', /navigateRoot\('Specialist', \{ id: category \}\)/.test(menu));
+  check('53) el centro creativo abre la pantalla de especialista, y el menú lleva al centro creativo', /navigation\.navigate\('Specialist', \{ id: cat\.id \}\)/.test(leer('screens/WeeCreatorScreen.tsx')) && /navigateRoot\('WeeCreator'\)/.test(menu));
   check('53) y esa ruta existe una sola vez', (rutas.match(/<Stack\.Screen name="Specialist"/g) || []).length === 1);
   /* El menú sigue abriendo la portada de siempre; el workspace (2026-11-06) es la única ruta propia y se entra desde ella. */
   check('53) el menú no abre otra portada de Travel: la única ruta propia es el workspace', (rutas.match(/name="Travel"/g) || []).length === 1 && !/TravelHome/.test(rutas) && !/navigateRoot\('Travel'/.test(menu));
@@ -907,8 +907,10 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * arreglarla ahí lo arregla en todas partes. Lo que se vigila es que no
    * aparezca un segundo compositor por su cuenta.
    */
-  const pantallasQueCrean = ['components/Sidebar.tsx', 'screens/HomeScreen.tsx', 'screens/CommunityScreen.tsx', 'screens/LandingScreen.tsx'];
-  check('108) todas las superficies publican por la misma pantalla', pantallasQueCrean.every((f) => /navigate\('Create'/.test(soloCodigo(leer(f)))));
+  /* Rediseño del 2026-11-15: el Home ya no trae puerta de publicar; desde él se publica con el + de la barra global. */
+  const pantallasQueCrean = ['components/Sidebar.tsx', 'screens/HomeScreen.tsx', 'screens/CommunityScreen.tsx'];
+  check('108) todas las superficies publican por la misma pantalla (y el Home, por el + de la barra global)', pantallasQueCrean.every((f) => /navigate\('Create'/.test(soloCodigo(leer(f))))
+    && /irARaiz\('Create', \{ kind \}\)/.test(soloCodigo(leer('navigation/NavegacionGlobal.tsx'))) && !/navigate\('Create'/.test(soloCodigo(leer('screens/LandingScreen.tsx'))));
   check('108) y ninguna trae compositor propio', pantallasQueCrean.every((f) => !/<TextInput/.test(soloCodigo(leer(f)))));
 
   /*

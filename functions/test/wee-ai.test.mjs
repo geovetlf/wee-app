@@ -67,12 +67,15 @@ console.log('\n── A · El nombre visible es Weë AI ──');
    *
    * Entre el id y la etiqueta puede haber más campos —hoy el icono dibujado—.
    */
-  check('1) la entrada del menú se llama Weë AI', /creator: \{ id: 'creator',[^}]*label: 'Weë AI' \}/.test(menu));
+  /* Rediseño del 2026-11-15: el nombre VISIBLE del área es «WeëAI». Las pantallas de dentro conservan su rótulo hasta que se decida extenderlo. */
+  check('1) la entrada del menú se llama WeëAI', /creator: \{ id: 'creator',[^}]*label: 'WeëAI' \}/.test(menu));
   /* Y no se ha colado el nombre viejo ni ninguna leyenda debajo. */
   check('1) sin la leyenda secundaria debajo del nombre',
     !/Tú eliges el resultado/.test(leer('components/DrawerMenu.tsx'))
     && !/creatorHint|creatorTitles/.test(leer('components/DrawerMenu.tsx')));
-  check('1) y el ☰ y la barra lateral la usan tal cual', /label=\{MENU_ITEM\.creator\.label\}/.test(leer('components/Sidebar.tsx')) && /MENU_ITEM/.test(leer('components/DrawerMenu.tsx')));
+  check('1) y el ☰ y la barra lateral la pintan con la MISMA pieza: la tarjeta de WeëAI, que toma el nombre de su clave',
+    /<TarjetaWeeAi variante="menu"/.test(leer('components/Sidebar.tsx')) && /<TarjetaWeeAi variante="menu"/.test(leer('components/DrawerMenu.tsx'))
+    && /\{t\('nav\.weeAi'\)\}/.test(leer('components/inicio/TarjetaWeeAi.tsx')) && /weeAi: 'WeëAI'/.test(leer('i18n/textos/es/nav.ts')) && /weeAi: 'WeëAI'/.test(leer('i18n/textos/en/nav.ts')));
 
   /* El marco de las pantallas: la miga de pan por defecto y el rótulo de arriba. */
   check('2) la miga de pan del marco dice Weë AI', new RegExp(`breadcrumb = '${NUEVO}'`).test(leer('components/creator/CreatorShell.tsx')));
@@ -88,9 +91,10 @@ console.log('\n── A · El nombre visible es Weë AI ──');
    * fase 5C. Se mira la clave Y la frase, en los dos idiomas, porque el nombre
    * del sitio no se traduce.
    */
-  check('3) la tarjeta de la columna derecha, con su etiqueta para quien no ve',
-    /accessibilityLabel=\{t\('nav\.openWeeAi'\)\}/.test(leer('components/RightSidebar.tsx'))
-    && /\{t\('nav\.goToWeeAi'\)\}/.test(leer('components/RightSidebar.tsx'))
+  check('3) la tarjeta de WeëAI (portada y menú; ya no se repite en la columna derecha), con su etiqueta para quien no ve',
+    /accessibilityLabel=\{t\('nav\.openWeeAi'\)\}/.test(leer('components/inicio/TarjetaWeeAi.tsx'))
+    && !/WeeCreator/.test(leer('components/RightSidebar.tsx'))
+    && /\{t\('nav\.goToWeeAi'\)\}/.test(leer('screens/HistorialScreen.tsx'))
     && /openWeeAi: 'Abrir Weë AI'/.test(leer('i18n/textos/es/nav.ts'))
     && /goToWeeAi: 'Ir a Weë AI'/.test(leer('i18n/textos/es/nav.ts'))
     && /goToWeeAi: 'Go to Weë AI'/.test(leer('i18n/textos/en/nav.ts')));
@@ -216,7 +220,8 @@ console.log('\n── D · Una sola experiencia, sin duplicados ──');
   const menu = leer('constants/weeMenu.ts');
   check('13) una sola pantalla para esta área', fs.readdirSync(ruta('screens')).filter((f) => /^Wee.*Creator.*Screen\.tsx$|^WeeAi.*Screen\.tsx$|^WeeAI.*Screen\.tsx$/i.test(f)).length === 1);
   check('14) una sola ruta, y ninguna nueva con el nombre nuevo', (pila.match(/name="WeeCreator"/g) || []).length === 1 && !/name="WeeAi"|name="WeeAI"|name="WeeAiScreen"/i.test(pila));
-  check('15) una sola entrada de menú para el área', (menu.match(/^\s*creator: \{ id: 'creator'/gm) || []).length === 1 && !/weeAi|wee_ai|weeai/i.test(menu));
+  /* La clave del nombre visible (`nav.weeAi`) no es una segunda entrada: se aparta antes de buscar ids nuevos. */
+  check('15) una sola entrada de menú para el área', (menu.match(/^\s*creator: \{ id: 'creator'/gm) || []).length === 1 && !/weeAi|wee_ai|weeai/i.test(menu.replace(/'nav\.weeAi'/g, '')));
   /* Y las once experiencias siguen siendo once: Weë AI no es una más. */
   const experiencias = leer('constants/weeExperiences.ts');
   const cuantas = (experiencias.match(/^ {4}id: '/gm) || []).length;

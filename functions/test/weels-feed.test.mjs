@@ -170,11 +170,12 @@ check('C1) Android: ver Weëls (menú, «Ver todos», un vídeo) lleva SIEMPRE a
   /navigate\('Reels'/.test(abrirAndroid) && !llevaAlCompositor(abrirAndroid), abrirAndroid.slice(0, 160));
 check('C2) web: lo mismo', /navigate\('Reels'/.test(abrirWeb) && !llevaAlCompositor(abrirWeb), abrirWeb.slice(0, 160));
 check('C3) el menú «Weëls» entra por el visor (`openWeels`), no por el compositor', /openWeels: true/.test(menu) && /abrirElVisor\(\);/.test(landing));
-check('C4) crear Weël sigue siendo una acción propia: `Create` con `kind: weel` (Android y web)',
-  /navigate\(user \? 'Create' : 'Login', user \? \{ kind: 'weel' \} : undefined\)/.test(landing) && /irAlCompositor\(\{ kind: 'weel' \}\)/.test(web));
+check('C4) crear Weël sigue siendo una acción propia: la hoja Crear del + lo ofrece y lleva a `Create` con su `kind` (el Home ya no tiene fila de Weëls)',
+  /kind: 'weel'/.test(leer('components/CreateSheet.tsx')) && /irARaiz\('Create', \{ kind \}\)/.test(leer('navigation/NavegacionGlobal.tsx'))
+  && !/WeelsRow/.test(landing) && !/WeelsRow/.test(web));
 const compositor = sinComentarios(leer('screens/CreateScreen.tsx'));
-check('C5) el Wall conserva su compositor: «Crear publicación» del Home va a `Create` con su `kind`, y el compositor sigue teniendo encuestas',
-  /navigate\('Create', \{ kind \}\)/.test(landing) && /poll/.test(compositor) && /presetKind === 'weel'/.test(compositor));
+check('C5) publicar conserva su compositor: el + de la barra va a `Create` con su `kind` (pidiendo cuenta), y el compositor sigue teniendo encuestas',
+  /if \(!user\) return irARaiz\('Register'\);\s*setTimeout\(\(\) => irARaiz\('Create', \{ kind \}\)/.test(leer('navigation/NavegacionGlobal.tsx')) && /poll/.test(compositor) && /presetKind === 'weel'/.test(compositor));
 check('C6) la ruta `Reels` acepta abrirse sin parámetros (el feed entero)', /Reels: \{\s*initialPost\?: Post;\s*initialVideoPosts\?: Post\[\];[\s\S]*?\} \| undefined;/.test(leer('navigation/MainStackNavigator.tsx')));
 check('CONTROL: un visor que manda al compositor se vería',
   llevaAlCompositor("const abrirElVisor = useCallback(() => { if (n === 0) return crearWeel(); navigate('Reels') }") && !llevaAlCompositor("navigate('Reels', undefined)"));

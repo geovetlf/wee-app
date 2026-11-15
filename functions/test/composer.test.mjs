@@ -58,8 +58,10 @@ console.log('\n── A · El compositor social, el mismo para todo Weë ──'
    * arreglarla ahí lo arregla en todas partes. Lo que se vigila es que no
    * aparezca un segundo compositor por su cuenta.
    */
-  const pantallasQueCrean = ['components/Sidebar.tsx', 'screens/HomeScreen.tsx', 'screens/CommunityScreen.tsx', 'screens/LandingScreen.tsx'];
-  check('108) todas las superficies publican por la misma pantalla', pantallasQueCrean.every((f) => /navigate\('Create'/.test(soloCodigo(leer(f)))));
+  /* Rediseño del 2026-11-15: el Home ya no trae puerta de publicar; desde él se publica con el + de la barra global. */
+  const pantallasQueCrean = ['components/Sidebar.tsx', 'screens/HomeScreen.tsx', 'screens/CommunityScreen.tsx'];
+  check('108) todas las superficies publican por la misma pantalla (y el Home, por el + de la barra global)', pantallasQueCrean.every((f) => /navigate\('Create'/.test(soloCodigo(leer(f))))
+    && /irARaiz\('Create', \{ kind \}\)/.test(soloCodigo(leer('navigation/NavegacionGlobal.tsx'))) && !/navigate\('Create'/.test(soloCodigo(leer('screens/LandingScreen.tsx'))));
   check('108) y ninguna trae compositor propio', pantallasQueCrean.every((f) => !/<TextInput/.test(soloCodigo(leer(f)))));
 
   /*
@@ -388,7 +390,9 @@ console.log('\n── 127 · El workspace "Nueva publicación", rediseñado ─�
   check('127a) Create sigue registrada una sola vez y monta el mismo CreateScreen',
     (pila.match(/name="Create"\s*component=\{CreateWrapper\}/g) || []).length === 1 && (pila.match(/<CreateScreen \/>/g) || []).length === 2 && !/CreateScreen/.test(pestanas));
   check('127a) y no hay un segundo compositor en el cliente', !fs.readdirSync(path.resolve(here, '../../screens')).some((f) => /Create.*Screen\.tsx$/.test(f) && f !== 'CreateScreen.tsx'));
-  check('127a) el Home sigue llegando directo, sin chevron ni pliegue', /const desplegable = !compact && !directo;/.test(leer('components/creator/ComposerEntry.tsx')) && /variante="home" directo/.test(leer('screens/LandingScreen.tsx')));
+  check('127a) desde el Home se llega directo por el + (la hoja Crear, sin pasos intermedios); la puerta de publicar ya no se monta en él y conserva su modo directo',
+    /const desplegable = !compact && !directo;/.test(leer('components/creator/ComposerEntry.tsx')) && !/ComposerEntry/.test(leer('screens/LandingScreen.tsx'))
+    && /<CreateSheet/.test(leer('navigation/NavegacionGlobal.tsx')) && /irARaiz\('Create', \{ kind \}\)/.test(leer('navigation/NavegacionGlobal.tsx')));
   /* La puerta sigue sabiendo plegarse, aunque hoy el Home la pida directa. */
   check('127a) y la puerta conserva su forma plegable', /const desplegable = !compact && !directo;/.test(leer('components/creator/ComposerEntry.tsx')));
 
@@ -437,7 +441,7 @@ console.log('\n── 127 · El workspace "Nueva publicación", rediseñado ─�
    * usa el menú ☰—, encima del compositor. Sin sistema nuevo ni campo nuevo.
    */
   check('127f) Mis proyectos abre la ruta Projects que ya existe', /texto="Mis proyectos" onPress=\{abrirProyectos\}/.test(acciones) && /abrirProyectos = \(\) => \(navigation as any\)\.navigate\('Projects'\)/.test(crudo));
-  check('127f) y esa ruta está registrada, y es la del menú', /name="Projects" component=\{ProjectsScreen\}/.test(pila) && /navigateRoot\('Projects'\)/.test(leer('components/DrawerMenu.tsx')));
+  check('127f) y esa ruta está registrada, y es la del menú', /name="Projects" component=\{ProjectsScreen\}/.test(pila) && /const goProjects = conCuenta\('Projects'\)/.test(leer('components/DrawerMenu.tsx')));
   check('127f) sin inventar otro sistema de proyectos', !/projectsService|projectId/.test(crudo));
 
   /* PUBLICAR EN: rótulo pequeño, chips, selección múltiple con estado sutil. */

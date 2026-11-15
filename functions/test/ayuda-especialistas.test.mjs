@@ -51,7 +51,9 @@ const OCULTAS = ALL_EXPERIENCES.filter((e) => !WEE_EXPERIENCES.includes(e)).map(
 
 console.log('\n── A · Una sola fuente ──');
 {
-  check('1) el menú ☰ y la barra lateral pintan WEE_EXPERIENCES', /WEE_EXPERIENCES/.test(leer('components/DrawerMenu.tsx')) && /WEE_EXPERIENCES/.test(leer('components/Sidebar.tsx')));
+  check('1) el centro creativo de WeëAI pinta WEE_EXPERIENCES (el ☰ y la barra lateral ya no las listan: llevan a él con su tarjeta)',
+    /WEE_EXPERIENCES/.test(leer('screens/WeeCreatorScreen.tsx')) && !/WEE_EXPERIENCES/.test(leer('components/DrawerMenu.tsx')) && !/WEE_EXPERIENCES/.test(leer('components/Sidebar.tsx'))
+    && /navigateRoot\('WeeCreator'\)/.test(leer('components/DrawerMenu.tsx')) && /navigation\.navigate\('WeeCreator'\)/.test(leer('components/Sidebar.tsx')));
   const ayuda = leer('screens/HelpScreen.tsx');
   check('2) y la Ayuda toma de ahí el número y los nombres',
     /contador: WEE_EXPERIENCES\.length/.test(ayuda) && /lista: formato\.lista\(WEE_EXPERIENCES\.map\(\(e\) => e\.name\)\)/.test(ayuda)

@@ -20,7 +20,10 @@ const AUTH = leer('contexts/AuthContext.tsx');
 
 check('1) Buscar no pide cuenta en la barra inferior', !/tabPress|Register|Login/.test(bloque('Search')));
 const GLOBAL = leer('navigation/NavegacionGlobal.tsx');
-check('1b) ni en la barra global: Buscar se abre sin cuenta', /destino !== 'Search' && !user/.test(GLOBAL));
+check('1b) en la barra global: Inicio y WeëAI se abren sin cuenta; Mensajes y Mi Weë la piden (Buscar ya no es destino de la barra: es la lupa de la cabecera)',
+  /if \(destino === 'WeeAI'\) return irARaiz\('WeeCreator'\);/.test(GLOBAL) && /if \(destino !== 'Home' && !user\) return irARaiz\('Register'\);/.test(GLOBAL)
+  && GLOBAL.indexOf("destino === 'WeeAI'") < GLOBAL.indexOf("destino !== 'Home' && !user")
+  && /onSearchPress=\{\(\) => navigation\.navigate\('Search'\)\}/.test(leer('screens/WebLandingScreen.tsx')));
 check('1c) la hoja de Crear se abre sin cuenta y la cuenta se pide al elegir', GLOBAL.includes("destino === 'Create') return setHoja(true)") && GLOBAL.includes("if (!user) return irARaiz('Register')"));
 check('2) WeeTalk y Perfil la siguen pidiendo: son de una persona', /navigate\('Register'\)/.test(bloque('Inbox')) && /navigate\('Register'\)/.test(bloque('Profile')));
 check('3) publicar la sigue pidiendo en la portada web', /navigate\('Register'\)|navigate\('Login'\)/.test(leer('screens/WebLandingScreen.tsx')));
