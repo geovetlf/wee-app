@@ -112,18 +112,18 @@ check('C8) si falta una clave en hebreo, se lee la inglesa (respaldo clave a cla
 check('C9) el tipo ConPlurales del hebreo admite _two (y solo eso)', /_two/.test(leer('i18n/textos/he/plurales.ts')) && !/_few|_many|_zero/.test(leer('i18n/textos/he/plurales.ts').replace(/\/\*[\s\S]*?\*\//g, '')));
 
 console.log('\n── D · lo escrito es hebreo de Weë ──');
-const MARCAS = ['Weë AI', 'WEË AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Writer', 'Weë Music', 'Weë Chef', 'Weë Fashion', 'Weë Travel', 'Weë Photo', 'Weë Beauty', 'Weë Home', 'Weëls', 'Wäll', 'WeeTalk', 'ËContact', 'ẄContact', 'Credits'];
+const MARCAS = ['WeëStudio', 'WeëDesign', 'WeëChef', 'WeëMusic', 'WeëFashion', 'WeëTravel', 'WeëAI', 'MyWeës', 'Weë AI', 'WEË AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Writer', 'Weë Music', 'Weë Chef', 'Weë Fashion', 'Weë Travel', 'Weë Photo', 'Weë Beauty', 'Weë Home', 'Weëls', 'Ẅall', 'WeeTalk', 'ËContact', 'ẄContact', 'Credits'];
 const cuenta = (texto, m) => texto.split(m).length - 1;
 const esDe = (k) => ES[k] ?? ES[`${base(k)}_other`];
 const perdidas = HE.flatMap(([k, v]) => MARCAS.filter((m) => cuenta(v, m) < cuenta(esDe(k), m)).map((m) => [k, m]));
 check('D1) cada marca que dice el español la dice el hebreo, igual escrita y en latino', perdidas.length === 0, muestra(perdidas, ([k, m]) => `${k}: ${m}`));
 const translit = HE.filter(([, v]) => /רילס|ווילס|קרדיטס|וויטוק|ווי טוק/.test(v) || /(?<![\p{L}])Reels(?![\p{L}])/u.test(v));
 check('D2) ninguna marca transliterada («רילס», «קרדיטס») ni «Reels»', translit.length === 0, muestra(translit));
-const pegadas = HE.filter(([, v]) => /(?<![\p{L}\-])[בלמהושכ](?:Weë|Wäll|WeeTalk|Credits|ËContact|ẄContact)/u.test(v));
+const pegadas = HE.filter(([, v]) => /(?<![\p{L}\-])[בלמהושכ](?:Weë|Ẅall|WeeTalk|Credits|ËContact|ẄContact)/u.test(v));
 check('D3) un prefijo hebreo nunca va pegado a una marca: siempre con guion («ב-Weë», «ה-Credits»)', pegadas.length === 0, muestra(pegadas));
 const businessDeMas = HE.filter(([k, v]) => cuenta(v, 'Weë Business') > cuenta(esDe(k), 'Weë Business'));
 check('D4) «Weë Business» no aparece donde el español no lo nombra (la sección vigente es Weë Fashion)', businessDeMas.length === 0, muestra(businessDeMas));
-check('D5) el texto de compartir de la sección dice «Weë Fashion»', /Weë Fashion/.test(he.business.shareText), he.business.shareText);
+check('D5) el texto de compartir de la sección dice «Weë Fashion»', /WeëFashion/.test(he.business.shareText), he.business.shareText);
 const niqud = HE.filter(([, v]) => /[֑-ֽֿ-ׇ]/.test(v));
 check('D6) sin niqud ni cantilación: la interfaz se escribe sin vocales', niqud.length === 0, muestra(niqud));
 const finalesMal = HE.filter(([, v]) => /[ךםןףץ](?=\p{Script=Hebrew})/u.test(v));

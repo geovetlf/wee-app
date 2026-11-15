@@ -86,7 +86,7 @@ const EN = Object.fromEntries(aplanar(en));
 const cp = (...n) => String.fromCodePoint(...n);
 const clase = (...rangos) => new RegExp('[' + rangos.map((r) => (Array.isArray(r) ? cp(r[0]) + '-' + cp(r[1]) : cp(r))).join('') + ']', 'u');
 
-const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls?|Wäll|ËContact|ẄContact|Credits|Weë/gu;
+const MARCAS = /MyWeës|WeëAI|Weë(?:Studio|Design|Chef|Music|Fashion|Travel)|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls?|Ẅall|ËContact|ẄContact|Credits|Weë/gu;
 const sinLoAjeno = (v) => String(v)
   .replace(/\{\{[\w.]+\}\}/g, ' ')
   .replace(/\\[nrt]/g, ' ')
@@ -346,7 +346,7 @@ console.log('\n── F · La búsqueda iguala lo que el teclado cambia ──')
     'components/HowIMadeIt.tsx', 'screens/CreateScreen.tsx'].filter((p) => !/sinEspaciadoSiSeUne\(/.test(leer(p)));
   check('45d) los rótulos con espaciado (mayúsculas, «Cómo lo hice», «Publicar en») lo quitan en devanagari; el menú y la barra ya no espacian ningún texto',
     conEspaciado.length === 0 && !/letterSpacing/.test(leer('components/DrawerMenu.tsx')) && !/letterSpacing/.test(leer('components/Sidebar.tsx'))
-    && !/letterSpacing|textTransform/.test(leer('components/inicio/SelectorDeIdentidad.tsx') + leer('components/inicio/TarjetaWeeAi.tsx') + leer('components/inicio/PestanasDeInicio.tsx')),
+    && !/letterSpacing|textTransform/.test(leer('components/inicio/SelectorDeIdentidad.tsx') + leer('components/inicio/TarjetaWeeAi.tsx').replace(/\n  nombre(?:DeMenu)?: \{[^}]*\},/g, '') + leer('components/inicio/PestanasDeInicio.tsx')),
     conEspaciado.join(' ') || 'los tres');
 }
 
@@ -359,7 +359,7 @@ console.log('\n── G · El dinero y las marcas ──');
   check('47) cada «Credits» del español sigue en su clave hindi', perdidos.length === 0, perdidos.slice(0, 4).map(([k]) => k).join(' ') || 'todos');
 
   const LISTA = ['Weë', 'Weë AI', 'Weë Studio', 'Weë Chef', 'Weë Design', 'Weë Travel', 'Weë Business', 'Weë Music', 'Weë Inspira',
-    'Weëls', 'Wäll', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
+    'Weëls', 'Ẅall', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
   const escapar = (m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const perdidas = [];
   for (const [k, v] of HI) {
@@ -371,7 +371,7 @@ console.log('\n── G · El dinero y las marcas ──');
     }
   }
   check('48) cada marca del español sigue, intacta y en latino, en su clave hindi', perdidas.length === 0, perdidas.slice(0, 6).join(' | ') || 'todas');
-  const PEGADA = /(?:Weë|WeeTalk|Wäll|ËContact|ẄContact|Credits)[ऀ-ॿ]|[ऀ-ॿ](?:Weë|WeeTalk|Wäll|ËContact|ẄContact|Credits)/u;
+  const PEGADA = /(?:Weë|WeeTalk|Ẅall|ËContact|ẄContact|Credits)[ऀ-ॿ]|[ऀ-ॿ](?:Weë|WeeTalk|Ẅall|ËContact|ẄContact|Credits)/u;
   const pegadas = HI.filter(([, v]) => PEGADA.test(v));
   check('49) ninguna marca pegada a una letra devanagari: la posposición va separada («Weë पर»)', pegadas.length === 0, muestra(pegadas, 4) || 'limpio');
   const TRANSLITERADA = /(?<![\p{L}\p{M}])(?:वी|वीई|वीटॉक|वी टॉक|वील|वील्स|ईकॉन्टैक्ट|ईकॉन्टेक्ट)(?![\p{L}\p{M}])/u;

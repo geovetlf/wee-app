@@ -75,7 +75,7 @@ const TR = aplanar(tr);
 const ES = Object.fromEntries(aplanar(es));
 const EN = Object.fromEntries(aplanar(en));
 
-const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls|Wäll|ËContact|ẄContact|Credits|Weë/gu;
+const MARCAS = /MyWeës|WeëAI|Weë(?:Studio|Design|Chef|Music|Fashion|Travel)|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls|Ẅall|ËContact|ẄContact|Credits|Weë/gu;
 const sinLoAjeno = (v) => String(v)
   .replace(/\{\{[\w.]+\}\}/g, ' ')
   .replace(/\\[nrt]/g, ' ')
@@ -368,7 +368,7 @@ console.log('\n── G · El dinero y las marcas ──');
   check('39) cada «Credits» del español sigue en su clave turca', perdidos.length === 0, perdidos.slice(0, 4).map(([k]) => k).join(' ') || 'todos');
 
   const LISTA = ['Weë', 'Weë AI', 'Weë Studio', 'Weë Chef', 'Weë Design', 'Weë Travel', 'Weë Business', 'Weë Music', 'Weë Inspira',
-    'Weëls', 'Wäll', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
+    'Weëls', 'Ẅall', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
   const escapar = (m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const perdidas = [];
   for (const [k, v] of TR) {
@@ -383,7 +383,7 @@ console.log('\n── G · El dinero y las marcas ──');
   }
   check('40) cada marca del español sigue, intacta, en su clave turca', perdidas.length === 0, perdidas.slice(0, 6).join(' | ') || 'todas');
   /* Una marca nunca lleva una terminación pegada sin apóstrofo: «Weëde», «WeeTalkta». */
-  const PEGADA = /(?:Weë|WeeTalk|Weëls|Wäll|ËContact|ẄContact|Credits|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Inspira))(?=[a-zçğıöşü])/u;
+  const PEGADA = /(?:Weë|WeeTalk|Weëls|Ẅall|ËContact|ẄContact|Credits|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Inspira))(?=[a-zçğıöşü])/u;
   /* «Weëls» y su singular «Weël» son la marca entera, no «Weë» con algo pegado. */
   /* «MyWeës» (rediseño del 2026-11-15) también es una marca entera, como «Weëls»: no es «Weë» con una terminación turca. */
   const pegadas = TR.filter(([, v]) => PEGADA.test(v.replace(/MyWeës|Weëls?/g, '·')));

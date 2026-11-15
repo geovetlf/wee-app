@@ -82,7 +82,7 @@ const DA = aplanar(da);
 const ES = Object.fromEntries(aplanar(es));
 const EN = Object.fromEntries(aplanar(en));
 
-const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira|Filmmaker)|WeeTalk|Weëls?|Wäll|ËContact|ẄContact|Credits|Weë/gu;
+const MARCAS = /MyWeës|WeëAI|Weë(?:Studio|Design|Chef|Music|Fashion|Travel)|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira|Filmmaker)|WeeTalk|Weëls?|Ẅall|ËContact|ẄContact|Credits|Weë/gu;
 /* Lo que no es danés y está bien que esté: marcas, huecos y los nombres de función de Weë Business. */
 const NOMBRES_DE_PRODUCTO = /WhatsApp|Business Plan|Business Coach|Pricing Assistant|Brand Kit|Customer Insights|Business Ideas|Business Profile|My Business|Products & Catalog|YouTube Shorts|YouTube|TikTok|Instagram|Facebook|LinkedIn|Pinterest|Spotify|Google|Apple|World Encode Entity/g;
 const sinLoAjeno = (v) => String(v)
@@ -441,7 +441,7 @@ console.log('\n── H · El dinero y las marcas ──');
   const perdidos = DA.filter(([k, v]) => /Credits/.test(ES[k] || '') && !/Credits/.test(v));
   check('42) cada «Credits» del español sigue en su clave danesa', perdidos.length === 0, perdidos.slice(0, 4).map(([k]) => k).join(' ') || 'todos');
   const LISTA = ['Weë', 'Weë AI', 'Weë Studio', 'Weë Chef', 'Weë Design', 'Weë Travel', 'Weë Business', 'Weë Music', 'Weë Inspira',
-    'Weëls', 'Wäll', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
+    'Weëls', 'Ẅall', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
   const escapar = (m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const perdidas = [];
   for (const [k, v] of DA) {
@@ -455,8 +455,8 @@ console.log('\n── H · El dinero y las marcas ──');
     }
   }
   check('43) cada marca del español sigue, intacta, en su clave danesa', perdidas.length === 0, perdidas.slice(0, 6).join(' | ') || 'todas');
-  const PEGADA = /(?:Weë|WeeTalk|Wäll|ËContact|ẄContact|Credits|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Inspira))(?=[a-zæøå])/u;
-  const pegadas = DA.filter(([, v]) => PEGADA.test(v.replace(/Weëls?/g, '·')));
+  const PEGADA = /(?:Weë|WeeTalk|Ẅall|ËContact|ẄContact|Credits|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Inspira))(?=[a-zæøå])/u;
+  const pegadas = DA.filter(([, v]) => PEGADA.test(v.replace(/MyWeës|Weëls?/g, '·')));
   check('44) ninguna marca declinada ni con una terminación pegada («Weës», «WeeTalken»)', pegadas.length === 0, muestra(pegadas) || 'limpio');
   const TRADUCIDA = /Weë (?:Musik|Rejse|Rejser|Kok|Virksomhed|Forretning|Hjerne|Forfatter|Skribent|Foto|Skønhed|Hjem|Kreditter)(?![\p{L}])/u;
   const traducidas = DA.filter(([, v]) => TRADUCIDA.test(v));

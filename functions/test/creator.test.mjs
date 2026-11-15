@@ -1179,9 +1179,9 @@ console.log('\n── Weë Studio · tres áreas, ninguna capacidad perdida ─�
 
     // Lo que se lee arriba dice dónde está la persona; el id no cambia.
     check('13) la mesa de trabajo se presenta como área de Studio',
-      crEs(exp.EXPERIENCE_AREA.photo.claveEtiqueta) === 'Weë Studio · Fotos'
-      && crEs(exp.EXPERIENCE_AREA.beauty.claveEtiqueta) === 'Weë Studio · Beauty'
-      && crEs(exp.EXPERIENCE_AREA.studio.claveEtiqueta) === 'Weë Studio · Videos',
+      crEs(exp.EXPERIENCE_AREA.photo.claveEtiqueta) === 'WeëStudio · Fotos'
+      && crEs(exp.EXPERIENCE_AREA.beauty.claveEtiqueta) === 'WeëStudio · Beauty'
+      && crEs(exp.EXPERIENCE_AREA.studio.claveEtiqueta) === 'WeëStudio · Videos',
       exp.EXPERIENCE_AREA.photo.claveEtiqueta);
     check('13) y la barra lateral marca Studio', ['photo', 'studio', 'beauty'].every((id) => exp.EXPERIENCE_AREA[id].section === 'studio'));
     check('13) la pantalla usa ese contexto', /const area = EXPERIENCE_AREA\[experience\.id\];/.test(mesa) && /activeId=\{area \? area\.section : experience\.id\}/.test(mesa));
@@ -1515,7 +1515,7 @@ console.log('\n── Hogar & Diseño, dentro de Weë Design ──');
   // F, G y H) Cómo se presenta y cómo se llama.
   check('F) EXPERIENCE_AREA coloca home dentro de Design', exp.EXPERIENCE_AREA.home?.section === 'design', exp.EXPERIENCE_AREA.home?.section);
   check('F) con el contexto completo en la cabecera',
-    crEs(exp.EXPERIENCE_AREA.home?.claveEtiqueta || '') === 'Weë Design · Hogar & Diseño',
+    crEs(exp.EXPERIENCE_AREA.home?.claveEtiqueta || '') === 'WeëDesign · Hogar & Diseño',
     exp.EXPERIENCE_AREA.home?.claveEtiqueta);
   /* El traductor entra por parámetro; aquí se le pasa el diccionario español. */
   check('G) y el nombre visible es Hogar & Diseño',

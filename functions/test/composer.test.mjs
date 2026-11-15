@@ -247,10 +247,10 @@ console.log('\n── B · Un post, varios sitios donde se lee ──');
   // Los nombres salen de la fuente única, y cada uno es el suyo.
   const nombres = Object.fromEntries(feed.destinosDisponibles().map((d) => [d.id, d.nombre]));
   check('117) el muro general se llama por su nombre', nombres.general === 'Muro general');
-  check('117) Travel dice "Weë Travel"', nombres.travel === 'Weë Travel');
-  check('117) Studio dice "Weë Studio"', nombres.studio === 'Weë Studio');
-  check('117) Design dice "Weë Design"', nombres.design === 'Weë Design');
-  check('117) Chef dice "Weë Chef"', nombres.chef === 'Weë Chef');
+  check('117) Travel dice "Weë Travel"', nombres.travel === 'WeëTravel');
+  check('117) Studio dice "Weë Studio"', nombres.studio === 'WeëStudio');
+  check('117) Design dice "Weë Design"', nombres.design === 'WeëDesign');
+  check('117) Chef dice "Weë Chef"', nombres.chef === 'WeëChef');
   check('117) y están los ocho que se aprobaron', ['general', 'travel', 'design', 'studio', 'chef', 'business', 'music', 'writer'].every((id) => !!nombres[id]) && feed.destinosDisponibles().length === 8);
   check('117) sin inventar secciones que no existen', !['kids', 'health', 'education', 'community', 'photography'].some((id) => nombres[id]));
 

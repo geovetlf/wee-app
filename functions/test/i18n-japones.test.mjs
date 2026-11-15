@@ -87,7 +87,7 @@ const EN = Object.fromEntries(aplanar(en));
  * nombre de variable), los escapes (`\n` son dos caracteres, y la `n` es una
  * letra latina), y las marcas de Weë, que van en latino por regla.
  */
-const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls|Wäll|ËContact|ẄContact|Credits|Weë/gu;
+const MARCAS = /MyWeës|WeëAI|Weë(?:Studio|Design|Chef|Music|Fashion|Travel)|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls|Ẅall|ËContact|ẄContact|Credits|Weë/gu;
 const sinLoAjeno = (v) => String(v)
   .replace(/\{\{[\w.]+\}\}/g, ' ')
   .replace(/\\[nrt]/g, ' ')
@@ -471,11 +471,11 @@ console.log('\n── I · Las marcas de Weë, exactamente como son ──');
    * dejaría pasar exactamente el error que se busca.
    */
   const LISTA = ['WEE', 'Weë', 'WeëAI', 'Weë AI', 'Weë Studio', 'Weë Chef', 'Weë Design', 'Weë Travel', 'Weë Business',
-    'Weë Music', 'Weë Inspira', 'Weëls', 'Wäll', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain',
+    'Weë Music', 'Weë Inspira', 'Weëls', 'Ẅall', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain',
     'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
   const bienEscrita = LISTA.every((m) => m === m.normalize('NFC'))
-    && 'Weë'.codePointAt(2) === 0xEB && 'Wäll'.codePointAt(1) === 0xE4 && 'ËContact'.codePointAt(0) === 0xCB && 'ẄContact'.codePointAt(0) === 0x1E84;
-  check('47) la lista de marcas está escrita con sus caracteres de verdad (NFC, ë U+00EB, ä U+00E4, Ë U+00CB, Ẅ U+1E84)', bienEscrita);
+    && 'Weë'.codePointAt(2) === 0xEB && 'Ẅall'.codePointAt(0) === 0x1E84 && 'ËContact'.codePointAt(0) === 0xCB && 'ẄContact'.codePointAt(0) === 0x1E84;
+  check('47) la lista de marcas está escrita con sus caracteres de verdad (NFC, ë U+00EB, Ë U+00CB, Ẅ U+1E84)', bienEscrita);
   /* Cada marca que el español dice en una clave, el japonés la dice igual, byte a byte. */
   const escapar = (m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const perdidas = [];

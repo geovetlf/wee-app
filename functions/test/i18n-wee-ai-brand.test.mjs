@@ -178,7 +178,7 @@ console.log('\n── D · Los identificadores, donde estaban ──');
   const experiencias = leer('constants/weeExperiences.ts');
   check('10) las once experiencias siguen siendo once y con sus nombres',
     (experiencias.match(/^ {4}id: '/gm) || []).length === 11
-    && /name: 'Weë Design'/.test(experiencias) && /name: 'Weë Brain'/.test(experiencias));
+    && /name: 'WeëDesign'/.test(experiencias) && /name: 'Weë Brain'/.test(experiencias));
   check('10) y ninguna se llama como el área', !/name: 'Weë AI'|name: 'WEË AI'/.test(experiencias));
 }
 

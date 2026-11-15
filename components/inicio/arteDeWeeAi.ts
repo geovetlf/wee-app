@@ -36,11 +36,11 @@ const luzDeOndas = (p: PaletaDelArte): number => Math.min(p.luzDelArco, 1.6);
 export const svgDelHalo = (p: PaletaDelArte): string =>
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" width="400" height="200" preserveAspectRatio="none">'
   + '<defs>'
-  + '<linearGradient id="lavado" x1="0" y1="0" x2="0" y2="1">'
+  + '<linearGradient id="g1" gradientTransform="rotate(90)">'
   + '<stop offset="0" stop-color="' + p.lavadoArriba + '"/><stop offset="1" stop-color="' + p.lavadoAbajo + '"/>'
   + '</linearGradient>'
   /* El anillo cálido: nace hacia el centro de la tarjeta. */
-  + '<radialGradient id="calido" cx="282" cy="152" r="112" gradientUnits="userSpaceOnUse">'
+  + '<radialGradient id="g2" cx="282" cy="152" r="112" gradientUnits="userSpaceOnUse">'
   + '<stop offset="0.66" stop-color="' + p.arcoRosa + '" stop-opacity="0"/>'
   + '<stop offset="0.78" stop-color="' + p.arcoRosa + '" stop-opacity="' + op(0.30, p.luzDelArco) + '"/>'
   + '<stop offset="0.86" stop-color="' + p.arcoDorado + '" stop-opacity="' + op(0.42, p.luzDelArco) + '"/>'
@@ -48,21 +48,21 @@ export const svgDelHalo = (p: PaletaDelArte): string =>
   + '<stop offset="1" stop-color="' + p.arcoDorado + '" stop-opacity="0"/>'
   + '</radialGradient>'
   /* El anillo violeta: el mismo gesto, corrido hacia el final, para que el arco acabe en violeta. */
-  + '<radialGradient id="violeta" cx="336" cy="164" r="118" gradientUnits="userSpaceOnUse">'
+  + '<radialGradient id="g3" cx="336" cy="164" r="118" gradientUnits="userSpaceOnUse">'
   + '<stop offset="0.64" stop-color="' + p.arcoVioleta + '" stop-opacity="0"/>'
   + '<stop offset="0.80" stop-color="' + p.arcoVioleta + '" stop-opacity="' + op(0.30, p.luzDelArco) + '"/>'
   + '<stop offset="0.90" stop-color="' + p.arcoRosa + '" stop-opacity="' + op(0.20, p.luzDelArco) + '"/>'
   + '<stop offset="1" stop-color="' + p.arcoRosa + '" stop-opacity="0"/>'
   + '</radialGradient>'
   /* El velo: de media tarjeta hacia abajo el arco se apaga, para que la puerta descanse sobre una superficie limpia. */
-  + '<linearGradient id="velo" x1="0" y1="0" x2="0" y2="1">'
+  + '<linearGradient id="g4" gradientTransform="rotate(90)">'
   + '<stop offset="0.36" stop-color="' + p.lavadoAbajo + '" stop-opacity="0"/><stop offset="0.74" stop-color="' + p.lavadoAbajo + '" stop-opacity="1"/>'
   + '</linearGradient>'
   + '</defs>'
-  + '<rect width="400" height="200" fill="url(#lavado)"/>'
-  + '<rect width="400" height="200" fill="url(#calido)"/>'
-  + '<rect width="400" height="200" fill="url(#violeta)"/>'
-  + '<rect width="400" height="200" fill="url(#velo)"/>'
+  + '<rect width="400" height="200" fill="url(#g1)"/>'
+  + '<rect width="400" height="200" fill="url(#g2)"/>'
+  + '<rect width="400" height="200" fill="url(#g3)"/>'
+  + '<rect width="400" height="200" fill="url(#g4)"/>'
   + '</svg>';
 
 /** Las ondas del menú. Lienzo de 200×120; se ancla a la esquina inferior del final de la tarjeta. */

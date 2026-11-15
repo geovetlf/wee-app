@@ -762,7 +762,7 @@ console.log('\n── R · el contexto se lee, no se supone ──');
 
   const post = (extra = {}) => ({ content: '', aiTools: [], tags: [], hashtags: [], ...extra });
 
-  check('R) una publicación de Weë Studio se reconoce', feed.seccionDe(post({ aiTools: ['Weë Studio'] }))?.nombre === 'Weë Studio');
+  check('R) una publicación de Weë Studio se reconoce', feed.seccionDe(post({ aiTools: ['Weë Studio'] }))?.nombre === 'WeëStudio');
   check('R) y una de Weë Design', feed.seccionDe(post({ aiTools: ['Weë Design'] }))?.id === 'design');
   check('R) y una de Hogar & Diseño, que por dentro es Design', feed.seccionDe(post({ aiTools: ['Weë Design · Hogar & Diseño'] }))?.id === 'design');
   check('R) la diéresis y las mayúsculas dan igual', feed.seccionDe(post({ aiTools: ['WEE CHEF'] }))?.id === 'chef');
@@ -821,7 +821,7 @@ console.log('\n── T · de dónde viene: declarado, no adivinado ──');
   const post = (extra = {}) => ({ content: '', aiTools: [], tags: [], hashtags: [], ...extra });
 
   // 1–5) Cada sección se representa con la misma estructura, sin código propio.
-  for (const [id, nombre] of [['travel', 'Weë Travel'], ['studio', 'Weë Studio'], ['design', 'Weë Design'], ['chef', 'Weë Chef'], ['writer', 'Weë Writer']]) {
+  for (const [id, nombre] of [['travel', 'WeëTravel'], ['studio', 'WeëStudio'], ['design', 'WeëDesign'], ['chef', 'WeëChef'], ['writer', 'Weë Writer']]) {
     check(`T) una publicación de ${nombre} lo dice`, feed.seccionDe(post({ sourceSection: id }))?.nombre === nombre);
   }
 
@@ -843,11 +843,11 @@ console.log('\n── T · de dónde viene: declarado, no adivinado ──');
   // 11b) Weë Business pasó a llamarse Weë Fashion (2026-10-14): el identificador `business` no se movió.
   check('T) una publicación de Weë Fashion lo dice, con el id de siempre', (() => {
     const s = feed.seccionDe(post({ sourceSection: 'business' }));
-    return s?.id === 'business' && s?.nombre === 'Weë Fashion';
+    return s?.id === 'business' && s?.nombre === 'WeëFashion';
   })());
   check('T) una histórica firmada con el nombre de antes sigue en su sección, y se lee con el nombre de hoy', (() => {
     const s = feed.seccionDe(post({ aiTools: ['Weë Business'] }));
-    return s?.id === 'business' && s?.nombre === 'Weë Fashion';
+    return s?.id === 'business' && s?.nombre === 'WeëFashion';
   })());
   check('T) y la firmada con el nombre nuevo también', feed.seccionDe(post({ aiTools: ['Weë Fashion'] }))?.id === 'business');
   check('T) control: el nombre de antes solo vale para su sección', feed.seccionDe(post({ aiTools: ['Weë Business'] }))?.id !== 'chef');
@@ -922,7 +922,7 @@ console.log('\n── U · el lugar del contenido no es dónde está el teléfon
   const feed = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
   const deParis = { content: 'Esta foto es de hace años', aiTools: [], sourceSection: 'travel', placeLabel: 'París' };
   check('U) una foto de París publicada desde Lima dice París', deParis.placeLabel === 'París');
-  check('U) y su contexto sigue siendo Weë Travel, que es otra cosa', feed.seccionDe(deParis)?.nombre === 'Weë Travel');
+  check('U) y su contexto sigue siendo Weë Travel, que es otra cosa', feed.seccionDe(deParis)?.nombre === 'WeëTravel');
   check('U) sin que nadie escriba "Lima" en ningún sitio', !JSON.stringify(deParis).includes('Lima'));
 
   // 19–20) Sin lugar no se pierde nada.
@@ -1062,7 +1062,7 @@ console.log('\n── Y · en Lima, publicando París ──');
     place: lugares.lugarPropio('París'),
   };
 
-  check('Y) el contexto es Weë Travel', feed.seccionDe(publicacion)?.nombre === 'Weë Travel');
+  check('Y) el contexto es Weë Travel', feed.seccionDe(publicacion)?.nombre === 'WeëTravel');
   check('Y) el lugar es París', lugares.etiquetaDeLugar(publicacion) === 'París');
   check('Y) y son dos campos distintos', publicacion.sourceSection !== publicacion.place.label);
   check('Y) "Lima" no aparece por ningún lado', !JSON.stringify(publicacion).includes('Lima'));
@@ -1278,7 +1278,7 @@ console.log('\n── AD · en Lima, publicando París ──');
 
   check('AD) el lugar es París con identidad estable', publicacion.place.id === 'FR-PAR');
   check('AD) se lee "París, Francia"', lugares.etiquetaDeLugar(publicacion) === 'París, Francia');
-  check('AD) el contexto sigue siendo Weë Travel', feed.seccionDe(publicacion)?.nombre === 'Weë Travel');
+  check('AD) el contexto sigue siendo Weë Travel', feed.seccionDe(publicacion)?.nombre === 'WeëTravel');
   check('AD) y son campos distintos', publicacion.sourceSection === 'travel' && publicacion.place.countryCode === 'FR');
   check('AD) "Lima" no aparece por ningún lado', !JSON.stringify(publicacion).includes('Lima') && !JSON.stringify(publicacion).includes('PE-'));
   check('AD) ni una coordenada', !/latitude|longitude|-12\.|-77\.|48\.85|2\.35/.test(JSON.stringify(publicacion)));

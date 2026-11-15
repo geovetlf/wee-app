@@ -104,7 +104,7 @@ const oneSinContador = XX.filter(([k, v]) => /_one$/.test(k) && /\{\{\s*contador
 check('C7) las _one que en español llevan {{contador}} lo llevan también', oneSinContador.length === 0, muestra(oneSinContador));
 
 console.log('\n── D · lo escrito es jemer de Weë ──');
-const MARCAS = ['Weë AI', 'WEË AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Writer', 'Weë Music', 'Weë Chef', 'Weë Fashion', 'Weë Travel', 'Weë Photo', 'Weë Beauty', 'Weë Home', 'Weëls', 'Wäll', 'WeeTalk', 'ËContact', 'ẄContact', 'Credits'];
+const MARCAS = ['WeëStudio', 'WeëDesign', 'WeëChef', 'WeëMusic', 'WeëFashion', 'WeëTravel', 'WeëAI', 'MyWeës', 'Weë AI', 'WEË AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Writer', 'Weë Music', 'Weë Chef', 'Weë Fashion', 'Weë Travel', 'Weë Photo', 'Weë Beauty', 'Weë Home', 'Weëls', 'Ẅall', 'WeeTalk', 'ËContact', 'ẄContact', 'Credits'];
 const cuenta = (texto, m) => texto.split(m).length - 1;
 const perdidas = XX.flatMap(([k, v]) => MARCAS.filter((m) => cuenta(v, m) < cuenta(ES[k], m)).map((m) => [k, m]));
 check('D1) cada marca que dice el español la dice el jemer, igual escrita', perdidas.length === 0, muestra(perdidas, ([k, m]) => `${k}: ${m}`));
@@ -112,7 +112,7 @@ const reels = XX.filter(([, v]) => palabra('Reels?', 'u').test(v));
 check('D2) «Weëls» nunca se cambia por «Reels»', reels.length === 0, muestra(reels));
 const businessDeMas = XX.filter(([k, v]) => cuenta(v, 'Weë Business') > cuenta(ES[k], 'Weë Business'));
 check('D3) «Weë Business» no aparece donde el español no lo nombra (la sección vigente es Weë Fashion)', businessDeMas.length === 0, muestra(businessDeMas));
-check('D4) el texto de compartir de la sección dice «Weë Fashion»', /Weë Fashion/.test(km.business.shareText), km.business.shareText);
+check('D4) el texto de compartir de la sección dice «Weë Fashion»', /WeëFashion/.test(km.business.shareText), km.business.shareText);
 const jemeres = XX.reduce((n, [, v]) => n + (v.match(/\p{Script=Khmer}/gu) || []).length, 0);
 check('D5) es jemer: decenas de miles de letras de la escritura jemer', jemeres > 50000, String(jemeres));
 const vecinas = XX.filter(([, v]) => /\p{Script=Thai}|\p{Script=Lao}|\p{Script=Myanmar}/u.test(v));

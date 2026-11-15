@@ -227,7 +227,7 @@ console.log('\n── F · Ni un sistema paralelo, ni un término prohibido ─�
   check('13) ni el texto suelto de ninguna pantalla', enTexto.length === 0, enTexto.join(' | '));
   check('14) y la marca correcta sí está donde toca',
     ES('menu.creator') === 'Weë AI' && EN('menu.creator') === 'Weë AI'
-    && leer('utils/feedFilters.ts').includes("label: 'Weë Studio' }"));
+    && leer('utils/feedFilters.ts').includes("label: 'WeëStudio' }"));
 }
 
 // ════════════════════════════════════════════════════════════════════════════

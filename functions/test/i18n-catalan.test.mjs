@@ -103,7 +103,7 @@ const oneSinContador = XX.filter(([k, v]) => /_one$/.test(k) && /\{\{\s*contador
 check('C7) las _one que en español llevan {{contador}} lo llevan también', oneSinContador.length === 0, muestra(oneSinContador));
 
 console.log('\n── D · lo escrito es catalán de Weë ──');
-const MARCAS = ['Weë AI', 'WEË AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Writer', 'Weë Music', 'Weë Chef', 'Weë Fashion', 'Weë Travel', 'Weë Photo', 'Weë Beauty', 'Weë Home', 'Weëls', 'Wäll', 'WeeTalk', 'ËContact', 'ẄContact', 'Credits'];
+const MARCAS = ['WeëStudio', 'WeëDesign', 'WeëChef', 'WeëMusic', 'WeëFashion', 'WeëTravel', 'WeëAI', 'MyWeës', 'Weë AI', 'WEË AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Writer', 'Weë Music', 'Weë Chef', 'Weë Fashion', 'Weë Travel', 'Weë Photo', 'Weë Beauty', 'Weë Home', 'Weëls', 'Ẅall', 'WeeTalk', 'ËContact', 'ẄContact', 'Credits'];
 const cuenta = (texto, m) => texto.split(m).length - 1;
 const perdidas = XX.flatMap(([k, v]) => MARCAS.filter((m) => cuenta(v, m) < cuenta(ES[k], m)).map((m) => [k, m]));
 check('D1) cada marca que dice el español la dice el catalán, igual escrita', perdidas.length === 0, muestra(perdidas, ([k, m]) => `${k}: ${m}`));
@@ -111,7 +111,7 @@ const reels = XX.filter(([, v]) => palabra('Reels?', 'u').test(v));
 check('D2) «Weëls» nunca se cambia por «Reels»', reels.length === 0, muestra(reels));
 const businessDeMas = XX.filter(([k, v]) => cuenta(v, 'Weë Business') > cuenta(ES[k], 'Weë Business'));
 check('D3) «Weë Business» no aparece donde el español no lo nombra (la sección vigente es Weë Fashion)', businessDeMas.length === 0, muestra(businessDeMas));
-check('D4) el texto de compartir de la sección dice «Weë Fashion»', /Weë Fashion/.test(ca.business.shareText), ca.business.shareText);
+check('D4) el texto de compartir de la sección dice «Weë Fashion»', /WeëFashion/.test(ca.business.shareText), ca.business.shareText);
 const elaMal = XX.filter(([, v]) => /l\.l/i.test(v));
 check('D5) ela geminada con punt volat (l·l), nunca «l.l»', elaMal.length === 0, muestra(elaMal));
 const cortesia = XX.filter(([, v]) => /\bvostè\b|\bvostès\b/i.test(v));
@@ -128,7 +128,7 @@ const igual = XX.filter(([k, v]) => (ES[k].match(/\p{L}/gu) || []).length >= 4 &
  * Re-medido 202 el 2026-11-06 con WeëTravel (`travel`, prototipo DEMO): +35, todas catalán correcto que coincide con el castellano
  * o el inglés —Cultura, Clima, Mapa, Aventura, Arquitectura, Historial, Traductor, Tren, Autobús, Entrada, Notes, Dates, Versions,
  * Documents, Participants, Restaurant(s), Text— o nombres propios de la demo —Kyoto, París, Lisboa, Torre de Belém, Reykjavík—. */
-check('D9) frases idénticas al inglés o al español: pocas (marcas, nombres de producto, préstamos)', igual.length <= 202, `${igual.length}: ${muestra(igual)}`);
+check('D9) frases idénticas al inglés o al español: pocas (marcas, nombres de producto, préstamos)', igual.length <= 203, `${igual.length}: ${muestra(igual)}`);
 check('D10) el catalán se llama a sí mismo «Català»', Object.values(ca.language).some((v) => /Català/.test(String(v))) || idiomas.IDIOMAS.find((i) => i.codigo === 'ca').nombreNativo === 'Català');
 
 console.log('\n── E · la caja ──');

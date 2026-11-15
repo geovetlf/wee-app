@@ -63,9 +63,9 @@ const FIL = new Map(aplanar(fil));
 const DATOS = new Set(['publica.codigo', 'publica.locale']);
 const frases = [...FIL].filter(([k]) => !DATOS.has(k));
 
-const MARCAS = ['WEË AI ENGINE', 'Weë AI Engine', 'Weë AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Photo', 'Weë Writer', 'Weë Music',
+const MARCAS = ['WeëStudio', 'WeëDesign', 'WeëChef', 'WeëMusic', 'WeëFashion', 'WeëTravel', 'WeëAI', 'MyWeës', 'WEË AI ENGINE', 'Weë AI Engine', 'Weë AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Photo', 'Weë Writer', 'Weë Music',
   'Weë Beauty', 'Weë Chef', 'Weë Home', 'Weë Business', 'Weë Travel', 'Weë Filmmaker', 'Weë Inspira', 'Weë Credits', 'Weë Biz',
-  'Weëls', 'Weël', 'WeeTalk', 'ËContact', 'ẄContact', 'Wäll', 'Credits', 'World Encode Entity', 'Weë'];
+  'Weëls', 'Weël', 'WeeTalk', 'ËContact', 'ẄContact', 'Ẅall', 'Credits', 'World Encode Entity', 'Weë'];
 const reMarca = new RegExp(MARCAS.map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
 /* Lo que no es texto filipino dentro de una cadena: marcas, huecos, emojis, URLs. Se quita antes de mirar el idioma. */
 const soloTexto = (s) => s.replace(reMarca, ' ').replace(/\{\{[^}]+\}\}/g, ' ').replace(/https?:\/\/\S+/g, ' ');
@@ -192,12 +192,12 @@ console.log('\n── C · Marcas de Weë ──');
   const marcasDe = (s) => (s.replace(/WEË AI(?! ENGINE)/g, 'Weë AI').match(reMarca) || []).sort().join('|');
   const cambiadas = frases.filter(([k, v]) => ES.has(k) && marcasDe(ES.get(k)) !== marcasDe(v));
   check('7) cada marca del español sigue, intacta, en su clave', cambiadas.length === 0, cambiadas.slice(0, 6).map(([k]) => k).join(' '));
-  const conAfijo = (v) => /\p{L}+-(Weë|Wäll|WeeTalk|ËContact|ẄContact|Credits|Weëls?)/u.test(v)
-    || /(Weë|Wäll|WeeTalk|ËContact|ẄContact|Credits|Weëls?)(-?ng|’y|’t)(?!\p{L})/u.test(v);
+  const conAfijo = (v) => /\p{L}+-(Weë|Ẅall|WeeTalk|ËContact|ẄContact|Credits|Weëls?)/u.test(v)
+    || /(Weë|Ẅall|WeeTalk|ËContact|ẄContact|Credits|Weëls?)(-?ng|’y|’t)(?!\p{L})/u.test(v);
   const afijos = frases.filter(([, v]) => conAfijo(v));
   check('8) ninguna marca con afijo ni enlace pegado («i-Weë», «Weëng», «mag-WeeTalk»)', afijos.length === 0, afijos.slice(0, 5).map(([k, v]) => `${k}=«${v}»`).join(' · '));
   check('8) CONTROL: «I-share sa i-WeeTalk» y «ang Weëng app» caen', conAfijo('I-share sa i-WeeTalk') && conAfijo('ang Weëng app') && !conAfijo('I-share sa WeeTalk'));
-  const persona = (v) => /(^|[^\p{L}])(si|ni|kay|sina|nina|kina)\s+(Weë|WeeTalk|ËContact|Wäll|Credits)/iu.test(v) || /\bmga\s+(Weëls|Credits)\b/u.test(v);
+  const persona = (v) => /(^|[^\p{L}])(si|ni|kay|sina|nina|kina)\s+(Weë|WeeTalk|ËContact|Ẅall|Credits)/iu.test(v) || /\bmga\s+(Weëls|Credits)\b/u.test(v);
   const personas = frases.filter(([, v]) => persona(v));
   check('9) ningún marcador de persona ante una marca, ni «mga Weëls» / «mga Credits»', personas.length === 0, personas.slice(0, 5).map(([k, v]) => `${k}=«${v}»`).join(' · '));
   check('9) CONTROL: «Ako si Weë Brain» cae; «Ako ang Weë Brain» no', persona('Ako si Weë Brain') && !persona('Ako ang Weë Brain'));

@@ -672,8 +672,8 @@ console.log('\n── J · Fase 2 · los módulos migrados ──');
     (exps.match(/claveDescripcion: 'creator\./g) || []).length === 11);
   /* CONTROL: los NOMBRES de las experiencias siguen sin traducir. */
   check('57) control: Weë Design sigue llamándose Weë Design',
-    /name: 'Weë Design'/.test(exps) && /name: 'Weë Studio'/.test(exps)
-    && (exps.match(/^    name: 'Weë /gm) || []).length === 11
+    /name: 'WeëDesign'/.test(exps) && /name: 'WeëStudio'/.test(exps)
+    && (exps.match(/^    name: 'Weë/gm) || []).length === 11
     && !/^    name: 'creator\./m.test(exps));
   /* Y el nombre del ÁREA sí es descriptivo: "Hogar & Diseño" se lee y se traduce. */
   check('57) pero el nombre del área sí se traduce',

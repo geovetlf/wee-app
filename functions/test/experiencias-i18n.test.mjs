@@ -302,7 +302,7 @@ console.log('\n── F · Lo que NO se traduce ──');
   check('20) donde el español nombra a Weë, el inglés también', perdidas.length === 0, perdidas.join(' '));
   check('21) y los nombres de las once experiencias siguen sin traducir',
     EXP.ALL_EXPERIENCES.length === 11
-    && EXP.ALL_EXPERIENCES.every((e) => /^Weë /.test(e.name))
+    && EXP.ALL_EXPERIENCES.every((e) => /^Weë/.test(e.name))
     && !EXP.ALL_EXPERIENCES.some((e) => e.name.startsWith('creator.')));
 
   /* Lo que escribe una persona —o su negocio— no pasa por el traductor. */

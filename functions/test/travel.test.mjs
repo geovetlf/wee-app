@@ -94,7 +94,7 @@ console.log('\n── A · La undécima experiencia ──');
   }).outputText;
   const exp = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
 
-  check('2) la app la tiene entre las suyas', exp.getExperienceById('travel')?.name === 'Weë Travel');
+  check('2) la app la tiene entre las suyas', exp.getExperienceById('travel')?.name === 'WeëTravel');
   check('2) y es una sección visible del menú', exp.WEE_EXPERIENCES.some((e) => e.id === 'travel'));
   check('2) las diez de antes siguen todas', ['design', 'studio', 'photo', 'writer', 'music', 'beauty', 'chef', 'home', 'business', 'brain'].every((id) => !!exp.getExperienceById(id)));
   check('3) quien escribe "itinerario" llega a Weë Travel', exp.matchExperiences('itinerario')[0]?.id === 'travel');
@@ -389,7 +389,7 @@ console.log('\n── H · Del resultado a la publicación ──');
 
   check('42) al publicar queda apuntado de dónde viene', /sourceSection: EXPERIENCE_AREA\[experience\.id\]\?\.section \?\? experience\.id/.test(soloCodigo(flujo)));
   check('42) travel no se redirige a otra sección', !/travel/.test(soloCodigo(leer('constants/weeExperiences.ts')).slice(soloCodigo(leer('constants/weeExperiences.ts')).indexOf('EXPERIENCE_AREA'))));
-  check('43) y el muro sabe cómo se llama', /travel: 'Weë Travel'/.test(seccionFeed));
+  check('43) y el muro sabe cómo se llama', /travel: 'WeëTravel'/.test(seccionFeed));
 
   const ts = require('typescript');
   const js = ts.transpileModule(seccionFeed.replace(/^import .*$/m, ''), {
@@ -397,7 +397,7 @@ console.log('\n── H · Del resultado a la publicación ──');
   }).outputText;
   const feed = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
 
-  check('43) la etiqueta sale de lo que la publicación declara', feed.seccionDe({ sourceSection: 'travel' })?.nombre === 'Weë Travel');
+  check('43) la etiqueta sale de lo que la publicación declara', feed.seccionDe({ sourceSection: 'travel' })?.nombre === 'WeëTravel');
   check('43) y también de un trabajo publicado desde la sección', feed.seccionDe({ aiTools: ['Weë Travel'] })?.id === 'travel');
   check('43) nadie acaba etiquetado por escribir "viaje"', feed.seccionDe({ content: 'Qué viaje tan bonito' }) === undefined);
   check('44) el muro sí recoge lo que habla de viajes', feed.belongsToSection({ content: 'Mi itinerario por Japón' }, feed.SECTION_MARKERS.travel));
@@ -447,7 +447,7 @@ console.log('\n── J · El menú Burger ──');
   const enElMenu = exp.WEE_EXPERIENCES.filter((e) => e.id === 'travel');
   check('50) Weë Travel está en el menú', enElMenu.length === 1, String(enElMenu.length));
   check('50) una sola vez, sin duplicados', exp.ALL_EXPERIENCES.filter((e) => e.id === 'travel').length === 1);
-  check('51) se lee "Weë Travel", ni "Travel" ni "Viajes"', enElMenu[0].name === 'Weë Travel');
+  check('51) se lee "Weë Travel", ni "Travel" ni "Viajes"', enElMenu[0].name === 'WeëTravel');
   check('51) con el avión delante', enElMenu[0].emoji === '✈️');
   check('51) y no está escondida como área de otra sección', !exp.EXPERIENCE_AREA.travel);
 
@@ -1075,10 +1075,10 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
   // 16) Los nombres salen de la fuente única, y cada uno es el suyo.
   const nombres = Object.fromEntries(feed.destinosDisponibles().map((d) => [d.id, d.nombre]));
   check('117) el muro general se llama por su nombre', nombres.general === 'Muro general');
-  check('117) Travel dice "Weë Travel"', nombres.travel === 'Weë Travel');
-  check('117) Studio dice "Weë Studio"', nombres.studio === 'Weë Studio');
-  check('117) Design dice "Weë Design"', nombres.design === 'Weë Design');
-  check('117) Chef dice "Weë Chef"', nombres.chef === 'Weë Chef');
+  check('117) Travel dice "Weë Travel"', nombres.travel === 'WeëTravel');
+  check('117) Studio dice "Weë Studio"', nombres.studio === 'WeëStudio');
+  check('117) Design dice "Weë Design"', nombres.design === 'WeëDesign');
+  check('117) Chef dice "Weë Chef"', nombres.chef === 'WeëChef');
   check('117) y están los ocho que se aprobaron', ['general', 'travel', 'design', 'studio', 'chef', 'business', 'music', 'writer'].every((id) => !!nombres[id]) && feed.destinosDisponibles().length === 8);
   check('117) sin inventar secciones que no existen', !['kids', 'health', 'education', 'community', 'photography'].some((id) => nombres[id]));
 

@@ -122,7 +122,7 @@ check('C8) si falta una clave en árabe, se lee la inglesa (respaldo clave a cla
 check('C9) el tipo ConPlurales del árabe admite _zero y _two (el del ruso solo _few/_many)', /_zero/.test(leer('i18n/textos/ar/plurales.ts')) && /_two/.test(leer('i18n/textos/ar/plurales.ts')));
 
 console.log('\n── D · lo escrito es árabe de Weë ──');
-const MARCAS = ['Weë AI', 'WEË AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Writer', 'Weë Music', 'Weë Chef', 'Weë Fashion', 'Weë Travel', 'Weë Photo', 'Weë Beauty', 'Weë Home', 'Weëls', 'Wäll', 'WeeTalk', 'ËContact', 'ẄContact', 'Credits'];
+const MARCAS = ['WeëStudio', 'WeëDesign', 'WeëChef', 'WeëMusic', 'WeëFashion', 'WeëTravel', 'WeëAI', 'MyWeës', 'Weë AI', 'WEË AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Writer', 'Weë Music', 'Weë Chef', 'Weë Fashion', 'Weë Travel', 'Weë Photo', 'Weë Beauty', 'Weë Home', 'Weëls', 'Ẅall', 'WeeTalk', 'ËContact', 'ẄContact', 'Credits'];
 const cuenta = (texto, m) => texto.split(m).length - 1;
 const esDe = (k) => ES[k] ?? ES[`${base(k)}_other`];
 const perdidas = AR.flatMap(([k, v]) => MARCAS.filter((m) => cuenta(v, m) < cuenta(esDe(k), m)).map((m) => [k, m]));
@@ -131,7 +131,7 @@ const translit = AR.filter(([, v]) => /ويي|ريلز|ويلز|كريدت|كر�
 check('D2) ninguna marca transliterada («ويي», «كريدت») ni «Reels»', translit.length === 0, muestra(translit));
 const businessDeMas = AR.filter(([k, v]) => cuenta(v, 'Weë Business') > cuenta(esDe(k), 'Weë Business'));
 check('D3) «Weë Business» no aparece donde el español no lo nombra (la sección vigente es Weë Fashion)', businessDeMas.length === 0, muestra(businessDeMas));
-check('D4) el texto de compartir de la sección dice «Weë Fashion»', /Weë Fashion/.test(ar.business.shareText), ar.business.shareText);
+check('D4) el texto de compartir de la sección dice «Weë Fashion»', /WeëFashion/.test(ar.business.shareText), ar.business.shareText);
 const digitos = AR.filter(([, v]) => /[٠-٩۰-۹]/.test(v));
 check('D5) ningún dígito árabe oriental escrito a mano (los números los formatea Intl con el locale)', digitos.length === 0, muestra(digitos));
 const bidi = AR.filter(([, v]) => /[‎‏‪-‮]/.test(v));

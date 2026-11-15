@@ -108,7 +108,7 @@ const sinUna = { ...DICCIONARIOS, fa: { ...fa, common: { ...fa.common, cancel: u
 check('C7) si falta una clave en persa, se lee la inglesa (respaldo clave a clave)', traducir.crearTraductor('fa-IR', sinUna)('common.cancel') === en.common.cancel);
 
 console.log('\n── D · lo escrito es persa de Weë ──');
-const MARCAS = ['Weë AI', 'WEË AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Writer', 'Weë Music', 'Weë Chef', 'Weë Fashion', 'Weë Travel', 'Weë Photo', 'Weë Beauty', 'Weë Home', 'Weëls', 'Wäll', 'WeeTalk', 'ËContact', 'ẄContact', 'Credits'];
+const MARCAS = ['WeëStudio', 'WeëDesign', 'WeëChef', 'WeëMusic', 'WeëFashion', 'WeëTravel', 'WeëAI', 'MyWeës', 'Weë AI', 'WEË AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Writer', 'Weë Music', 'Weë Chef', 'Weë Fashion', 'Weë Travel', 'Weë Photo', 'Weë Beauty', 'Weë Home', 'Weëls', 'Ẅall', 'WeeTalk', 'ËContact', 'ẄContact', 'Credits'];
 const cuenta = (texto, m) => texto.split(m).length - 1;
 const esDe = (k) => ES[k] ?? ES[`${k.replace(/_(one|other)$/, '')}_other`];
 const perdidas = FA.flatMap(([k, v]) => MARCAS.filter((m) => cuenta(v, m) < cuenta(esDe(k), m)).map((m) => [k, m]));
@@ -117,7 +117,7 @@ const translit = FA.filter(([, v]) => /ریلز|کردیت|کریدیت|وی‌�
 check('D2) ninguna marca transliterada («ریلز», «کردیت») ni «Reels»', translit.length === 0, muestra(translit));
 const businessDeMas = FA.filter(([k, v]) => cuenta(v, 'Weë Business') > cuenta(esDe(k), 'Weë Business'));
 check('D3) «Weë Business» no aparece donde el español no lo nombra (la sección vigente es Weë Fashion)', businessDeMas.length === 0, muestra(businessDeMas));
-check('D4) el texto de compartir de la sección dice «Weë Fashion»', /Weë Fashion/.test(fa.business.shareText), fa.business.shareText);
+check('D4) el texto de compartir de la sección dice «Weë Fashion»', /WeëFashion/.test(fa.business.shareText), fa.business.shareText);
 const arabes = FA.filter(([, v]) => /[يك]/.test(v));
 check('D5) ی/ک persas (U+06CC/U+06A9): ninguna ي/ك árabe', arabes.length === 0, muestra(arabes));
 const zwnj = FA.reduce((n, [, v]) => n + (v.match(/‌/g) || []).length, 0);

@@ -194,7 +194,7 @@ console.log('\n── E · Las pastillas: marca fuera, interfaz dentro ──');
    * escriben como Weë las escribe en todas partes.
    */
   check('21) y las seis marcas siguen escritas tal cual, con la grafía aprobada',
-    ['Weë Studio', 'Weë Travel', 'Weë Music', 'Weë Chef', 'Weë Design', 'Weë Fashion']
+    ['WeëStudio', 'WeëTravel', 'WeëMusic', 'WeëChef', 'WeëDesign', 'WeëFashion']
       .every((n) => C.filtros.includes(`label: '${n}' }`)));
   check('21) y no queda ninguna de las viejas',
     !/WeeStudio|WeeTravel|WeeMusic|WeeChef|WeeDesign|WEEBusiness/.test(C.filtros));

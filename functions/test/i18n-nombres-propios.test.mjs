@@ -52,7 +52,7 @@ const check = (name, cond, extra = '') => {
  */
 const deClaudeMd = (leer('CLAUDE.md').match(/los nombres de Weë \(([^)]*)\)/) || [, ''])[1]
   .split(',').map((s) => s.trim()).filter(Boolean);
-const deExperiencias = [...new Set([...leer('constants/weeExperiences.ts').matchAll(/'(Weë [A-Za-z]+)'/g)].map((m) => m[1]))];
+const deExperiencias = [...new Set([...leer('constants/weeExperiences.ts').matchAll(/'(Weë ?[A-Za-z]+)'/g)].map((m) => m[1]))];
 const OFICIALES = [...new Set([...deClaudeMd, ...deExperiencias])].sort((a, b) => b.length - a.length);
 
 console.log('\n── La lista oficial ──');
