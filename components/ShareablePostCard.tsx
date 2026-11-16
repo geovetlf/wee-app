@@ -152,10 +152,6 @@ const ShareablePostCard: React.FC<ShareablePostCardProps> = ({
               <Text style={styles.statText}>{formatNumber(post.agreementCount || 0, locale)}</Text>
             </View>
             <View style={styles.stat}>
-              <Ionicons name="thumbs-down" size={16} color="#EF4444" />
-              <Text style={styles.statText}>{formatNumber(post.disagreementCount || 0, locale)}</Text>
-            </View>
-            <View style={styles.stat}>
               <Ionicons name="chatbubble" size={16} color="#6B7280" />
               <Text style={styles.statText}>{formatNumber(post.comments || 0, locale)}</Text>
             </View>

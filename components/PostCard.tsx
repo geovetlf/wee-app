@@ -21,11 +21,12 @@ import {
 import { Image } from 'expo-image';
 import { Video, ResizeMode, AVPlaybackStatus, Audio } from 'expo-av';
 
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from './icons/IconoDeTrazo';
 import IconoMeGusta from './IconoMeGusta';
 import HowIMadeIt from './HowIMadeIt';
 import WeeTag from './WeeTag';
-import { seccionDe } from '../utils/sectionFeed';
+import ReaccionesNuevas from './wall/ReaccionesNuevas';
+import { REACCIONES_NUEVAS_EN_LA_UI } from '../constants/reacciones';
 import { banderaDe, etiquetaDeLugar } from '../data/places';
 import { esPublicacionDePreview } from '../utils/previewWall';
 import ViewShot from 'react-native-view-shot';
@@ -185,6 +186,8 @@ const PostCard: React.FC<PostCardProps> = ({
 }) => {
   const { t, locale, idioma } = useIdioma();
   const { theme } = useTheme();
+  /* Monocromo (2026-11-16): la tinta del tema reemplaza al verde, al rojo y al dorado de los estados; el dorado→naranja queda para las acciones principales. */
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
   const { user } = useAuth();
   const { userProfile: activeProfile, realProfile, weeProfile } = useUserProfile();
   const navigation = useNavigation<PostCardNavigationProp>();
@@ -220,12 +223,14 @@ const PostCard: React.FC<PostCardProps> = ({
    * de perfil, y el voto propio desaparecía al mirarlo desde la otra pantalla,
    * que ya usaba la cuenta. Es la misma unidad que las encuestas.
    */
-  const { stats: voteStats, voteAgree, voteDisagree, isLoading: isVoting } = useVote({
+  const { stats: voteStats, voteAgree, toggleVote, isLoading: isVoting } = useVote({
     postId: post.id!,
     userId: user?.uid,
     initialStats: {
       agreementCount: post.agreementCount || 0,
       disagreementCount: post.disagreementCount || 0,
+      fireCount: post.fireCount || 0,
+      laughCount: post.laughCount || 0,
     },
   });
 
@@ -247,7 +252,6 @@ const PostCard: React.FC<PostCardProps> = ({
    * cuando es explícito. Una publicación de WeëStudio sigue estando en el muro
    * general como todas; esto solo cuenta de dónde salió.
    */
-  const seccion = useMemo(() => seccionDe(post), [post]);
 
   /*
    * El lugar del que habla la publicación. El estructurado manda y el texto de
@@ -586,17 +590,19 @@ const PostCard: React.FC<PostCardProps> = ({
     }
   };
 
+  // Fuego / Risa: misma regla que «de acuerdo» (sin sesión, a registrarse). Si las reglas rechazan el voto, el hook devuelve el estado anterior
+  // sin enseñar ningún error técnico.
+  const handleVoteNueva = async (tipo: 'fire' | 'laugh') => {
+    if (!user) { navigateToRegister(); return; }
+    await toggleVote(tipo);
+  };
+
   // Manejar voto de acuerdo
   const handleVoteAgree = async () => {
     if (!user) { navigateToRegister(); return; }
     await voteAgree();
   };
 
-  // Manejar voto en desacuerdo
-  const handleVoteDisagree = async () => {
-    if (!user) { navigateToRegister(); return; }
-    await voteDisagree();
-  };
 
   // Calcular porcentaje de acuerdo para mostrar
   const getAgreementDisplay = () => {
@@ -816,7 +822,7 @@ const PostCard: React.FC<PostCardProps> = ({
             return (
               <Text
                 key={index}
-                style={{ color: theme.colors.accent }}
+                style={{ color: tinta, fontWeight: '600' }}
                 onPress={() => handleTextPress(word)}
               >
                 {word}{index < words.length - 1 ? ' ' : ''}
@@ -966,22 +972,11 @@ const PostCard: React.FC<PostCardProps> = ({
           {showPauseIcon && (
             <View style={styles.videoPlayOverlay}>
               <View style={styles.videoPlayButton}>
-                <Ionicons name={userPaused ? 'pause' : 'play'} size={scale(40)} color="white" />
+                <IconoDeTrazo name={userPaused ? 'pause' : 'play'} size={scale(40)} color="white" />
               </View>
             </View>
           )}
         </TouchableOpacity>
-
-        {/*
-          Cuando el adelanto deja algo fuera hay que decirlo, o parece un vídeo
-          mal cortado en vez de una entrada a Weëls.
-        */}
-        {ventanaDelVideo.recorta && (
-          <View style={styles.videoChip} pointerEvents="none">
-            <Ionicons name="play" size={scale(11)} color="white" />
-            <Text style={styles.videoChipTexto}>{t('wall.viewInWeels')}</Text>
-          </View>
-        )}
 
         {/* Mute/Unmute button */}
         {!mediosRotos[displayPost.videoUrl] && (
@@ -990,7 +985,7 @@ const PostCard: React.FC<PostCardProps> = ({
           onPress={toggleMute}
           activeOpacity={0.8}
         >
-          <Ionicons
+          <IconoDeTrazo
             name={isMuted ? 'volume-mute' : 'volume-high'}
             size={scale(18)}
             color="white"
@@ -1133,7 +1128,7 @@ const PostCard: React.FC<PostCardProps> = ({
                 styles.pageIndicator,
                 {
                   backgroundColor: index === currentImageIndex
-                    ? theme.colors.accent
+                    ? tinta
                     : theme.colors.surface,
                   opacity: index === currentImageIndex ? 1 : 0.5,
                 }
@@ -1177,13 +1172,13 @@ const PostCard: React.FC<PostCardProps> = ({
   // Si es un repost y todavía está cargando el original, mostrar loading
   if (isRepost && (loadingOriginal || !originalPost)) {
     return (
-      <View style={[styles.container, enMuro ? [styles.enMuro, { borderBottomColor: theme.colors.border }] : { backgroundColor: theme.colors.card, padding: SPACING.lg }]}>
+      <View style={[styles.container, enMuro ? [styles.enMuro] : { backgroundColor: theme.colors.card, padding: SPACING.lg }]}>
         <TouchableOpacity
           style={[styles.repostHeader, { borderBottomColor: theme.colors.border }]}
           onPress={handleRepostAuthorPress}
           activeOpacity={0.7}
         >
-          <Ionicons name="repeat" size={16} color={theme.colors.textSecondary} />
+          <IconoDeTrazo name="repeat" size={16} color={theme.colors.textSecondary} />
           <Text style={[styles.repostText, { color: theme.colors.textSecondary }]}>
             {t('wall.repostedBy', { nombre: repostAuthor?.displayName || t('common.user') })}
           </Text>
@@ -1223,8 +1218,8 @@ const PostCard: React.FC<PostCardProps> = ({
         disabled={isReposting}
         accessibilityLabel={hasReposted ? t('wall.undoRepostConfirm') : t('wall.repost')}
       >
-        <Ionicons name="repeat" size={20} color={hasReposted ? theme.colors.accent : theme.colors.textSecondary} />
-        <Text style={[styles.menuOptionText, { color: hasReposted ? theme.colors.accent : theme.colors.text }]}>
+        <IconoDeTrazo name="repeat" size={20} color={hasReposted ? tinta : theme.colors.textSecondary} />
+        <Text style={[styles.menuOptionText, { color: tinta }]}>
           {hasReposted ? t('wall.undoRepost') : t('wall.repost')}
           {repostsCount > 0 ? `  ·  ${formatNumber(repostsCount, locale)}` : ''}
         </Text>
@@ -1237,7 +1232,7 @@ const PostCard: React.FC<PostCardProps> = ({
           onPress={enviarDesdeElMenu}
           accessibilityLabel={t('wall.sendByWeeTalk')}
         >
-          <Ionicons name="paper-plane-outline" size={20} color={theme.colors.textSecondary} />
+          <IconoDeTrazo name="paper-plane-outline" size={20} color={theme.colors.textSecondary} />
           <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>{t('wall.sendByWeeTalk')}</Text>
         </TouchableOpacity>
       )}
@@ -1250,15 +1245,15 @@ const PostCard: React.FC<PostCardProps> = ({
           accessibilityRole="button"
           accessibilityLabel={t('boost.title')}
         >
-          <Ionicons name="rocket-outline" size={20} color={theme.colors.text} />
+          <IconoDeTrazo name="rocket-outline" size={20} color={theme.colors.text} />
           <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>{t('boost.title')}</Text>
         </TouchableOpacity>
       )}
 
       {isOwnPost && (
         <TouchableOpacity style={[styles.menuOption, puedeDenunciar && separadorDelMenu]} onPress={handleDeletePost}>
-          <Ionicons name="trash-outline" size={20} color="#FF3B30" />
-          <Text style={[styles.menuOptionText, { color: '#FF3B30' }]}>{t('wall.deletePost')}</Text>
+          <IconoDeTrazo name="trash-outline" size={20} color={tinta} />
+          <Text style={[styles.menuOptionText, { color: tinta }]}>{t('wall.deletePost')}</Text>
         </TouchableOpacity>
       )}
 
@@ -1269,7 +1264,7 @@ const PostCard: React.FC<PostCardProps> = ({
           accessibilityRole="button"
           accessibilityLabel={t('moderation.report')}
         >
-          <Ionicons name="flag-outline" size={20} color={theme.colors.textSecondary} />
+          <IconoDeTrazo name="flag-outline" size={20} color={theme.colors.textSecondary} />
           <Text style={[styles.menuOptionText, { color: theme.colors.text }]}>{t('moderation.report')}</Text>
         </TouchableOpacity>
       )}
@@ -1286,13 +1281,9 @@ const PostCard: React.FC<PostCardProps> = ({
           tarjeta de siempre, con su fondo y su sombra.
         */
         enMuro
-          ? [styles.enMuro, { borderBottomColor: theme.colors.border }]
+          ? [styles.enMuro]
           : {
               backgroundColor: theme.colors.card,
-              shadowColor: theme.dark ? theme.colors.glow : '#000',
-              shadowOffset: { width: 0, height: scale(2) },
-              shadowOpacity: theme.dark ? 0.2 : 0.08,
-              shadowRadius: theme.dark ? scale(12) : scale(8),
             },
       ]}
     >
@@ -1303,7 +1294,7 @@ const PostCard: React.FC<PostCardProps> = ({
           onPress={handleRepostAuthorPress}
           activeOpacity={0.7}
         >
-          <Ionicons name="repeat" size={16} color={theme.colors.textSecondary} />
+          <IconoDeTrazo name="repeat" size={16} color={theme.colors.textSecondary} />
           <Text style={[styles.repostText, { color: theme.colors.textSecondary }]}>
             {t('wall.repostedBy', { nombre: repostAuthor.displayName })}
           </Text>
@@ -1335,7 +1326,7 @@ const PostCard: React.FC<PostCardProps> = ({
             ? undefined
             : enMuro
               ? styles.repostEnElMuro
-              : [styles.originalPostContainer, { borderColor: theme.colors.border }]
+              : [styles.originalPostContainer, { backgroundColor: theme.colors.surface }]
         }
       >
         {/* Header del post */}
@@ -1349,7 +1340,7 @@ const PostCard: React.FC<PostCardProps> = ({
           {loadingAuthor ? (
             // Placeholder mientras carga el autor
             <View style={[styles.avatar, { backgroundColor: theme.colors.surface }]}>
-              <Ionicons name="person" size={scale(20)} color={theme.colors.textSecondary} />
+              <IconoDeTrazo name="person" size={scale(20)} color={theme.colors.textSecondary} />
             </View>
           ) : postAuthor ? (
             // Avatar real del autor con indicador de anonimato
@@ -1360,14 +1351,14 @@ const PostCard: React.FC<PostCardProps> = ({
                 avatarId={postAuthor.avatarId || 'male'}
                 photoURL={typeof postAuthor.photoURL === 'string' ? postAuthor.photoURL : undefined}
                 photoURLThumbnail={typeof postAuthor.photoURLThumbnail === 'string' ? postAuthor.photoURLThumbnail : undefined}
-                backgroundColor={theme.colors.accent}
+                backgroundColor={theme.colors.surface}
                 showBorder={false}
               />
             </View>
           ) : (
             // Fallback si no se encuentra el autor
-            <View style={[styles.avatar, { backgroundColor: theme.colors.accent }]}>
-              <Text style={styles.avatarText}>👤</Text>
+            <View style={[styles.avatar, { backgroundColor: theme.colors.surface }]}>
+              <IconoDeTrazo name="person" size={scale(20)} color={tinta} />
             </View>
           )}
 
@@ -1384,19 +1375,13 @@ const PostCard: React.FC<PostCardProps> = ({
               </Text>
               {/*
                 El contexto: de dónde viene esta publicación. La comunidad lleva a
-                la comunidad; la sección es solo una etiqueta, porque el muro de la
-                sección no es el destino de nadie: el destino es este.
+                la comunidad. La etiqueta de la experiencia (WeëStudio, WeëFashion…) ya no se
+                pinta: el campo sigue guardado en la publicación.
               */}
               {community && (
                 <>
                   <Text style={[styles.metaSeparator, { color: theme.colors.textSecondary }]}>•</Text>
                   <WeeTag nombre={nombreDeComunidad(community, t, locale)} icono={community.icon} onPress={handleCommunityPress} />
-                </>
-              )}
-              {!community && seccion && (
-                <>
-                  <Text style={[styles.metaSeparator, { color: theme.colors.textSecondary }]}>•</Text>
-                  <WeeTag nombre={seccion.nombre} icono="sparkles-outline" />
                 </>
               )}
               {/*
@@ -1424,7 +1409,7 @@ const PostCard: React.FC<PostCardProps> = ({
           onPress={() => setMenuVisible(true)}
           activeOpacity={0.7}
         >
-          <Ionicons name="ellipsis-vertical" size={20} color={theme.colors.textSecondary} />
+          <IconoDeTrazo name="ellipsis-vertical" size={20} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -1451,9 +1436,9 @@ const PostCard: React.FC<PostCardProps> = ({
               {displayPost.tags.map((tag, index) => (
                 <View
                   key={index}
-                  style={[styles.tagChip, { backgroundColor: theme.colors.accent + '15' }]}
+                  style={[styles.tagChip, { backgroundColor: theme.colors.surface }]}
                 >
-                  <Text style={[styles.tagText, { color: theme.colors.accent }]}>
+                  <Text style={[styles.tagText, { color: tinta }]}>
                     #{tag}
                   </Text>
                 </View>
@@ -1483,32 +1468,17 @@ const PostCard: React.FC<PostCardProps> = ({
           disabled={isVoting}
           activeOpacity={0.7}
         >
-          <IconoMeGusta size={ICON_SIZE.md} color={theme.colors.textSecondary} activo={voteStats.userVote === 'agree'} colorActivo="#22C55E" />
+          <IconoMeGusta size={ICON_SIZE.md} color={theme.colors.textSecondary} activo={voteStats.userVote === 'agree'} colorActivo={tinta} />
           <Text style={[styles.actionText, {
-            color: voteStats.userVote === 'agree' ? '#22C55E' : theme.colors.textSecondary
+            color: voteStats.userVote === 'agree' ? tinta : theme.colors.textSecondary
           }]}>
             {formatNumber(voteStats.agreementCount, locale)}
           </Text>
         </TouchableOpacity>
 
-        {/* En desacuerdo (manito abajo) */}
-        <TouchableOpacity
-          style={styles.actionButton} hitSlop={AREA_TACTIL}
-          onPress={handleVoteDisagree}
-          disabled={isVoting}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name={voteStats.userVote === 'disagree' ? "thumbs-down" : "thumbs-down-outline"}
-            size={ICON_SIZE.md}
-            color={voteStats.userVote === 'disagree' ? '#EF4444' : theme.colors.textSecondary}
-          />
-          <Text style={[styles.actionText, {
-            color: voteStats.userVote === 'disagree' ? '#EF4444' : theme.colors.textSecondary
-          }]}>
-            {formatNumber(voteStats.disagreementCount, locale)}
-          </Text>
-        </TouchableOpacity>
+        {/* 👎 ya no se muestra (decisión del dueño, 2026-11-16): los votos guardados NO se borran. */}
+        {/* Fuego y risa: activas (reglas 2026-11-16); REACCIONES_NUEVAS_EN_LA_UI las apaga si producción aún no tiene las reglas. */}
+        {REACCIONES_NUEVAS_EN_LA_UI ? <ReaccionesNuevas stats={voteStats} bloqueado={isVoting} onVotar={handleVoteNueva} /> : null}
 
         {/* Comentarios */}
         <TouchableOpacity
@@ -1517,7 +1487,7 @@ const PostCard: React.FC<PostCardProps> = ({
           accessibilityLabel={t('wall.comment')}
           activeOpacity={0.7}
         >
-          <Ionicons
+          <IconoDeTrazo
             name="chatbubble-outline"
             size={ICON_SIZE.md}
             color={theme.colors.textSecondary}
@@ -1534,10 +1504,10 @@ const PostCard: React.FC<PostCardProps> = ({
           activeOpacity={0.7}
           accessibilityLabel={t(isBookmarked ? 'wall.unsave' : 'wall.save')}
         >
-          <Ionicons
+          <IconoDeTrazo
             name={isBookmarked ? 'bookmark' : 'bookmark-outline'}
             size={ICON_SIZE.md}
-            color={isBookmarked ? theme.colors.accent : theme.colors.textSecondary}
+            color={isBookmarked ? tinta : theme.colors.textSecondary}
           />
         </TouchableOpacity>
 
@@ -1549,7 +1519,7 @@ const PostCard: React.FC<PostCardProps> = ({
           activeOpacity={0.7}
           accessibilityLabel={t('common.share')}
         >
-          <Ionicons
+          <IconoDeTrazo
             name="share-social-outline"
             size={ICON_SIZE.md}
             color={theme.colors.textSecondary}
@@ -1673,11 +1643,11 @@ const styles = StyleSheet.create({
    * cruza el muro entero.
    */
   enMuro: {
-    marginBottom: 0,
+    marginBottom: SPACING.xs,
     borderRadius: 0,
     paddingHorizontal: MURO_HORIZONTAL_PADDING,
     paddingVertical: SPACING.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    /* Sin raya entre publicaciones (2026-11-16): las separa el aire. */
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
@@ -1703,7 +1673,6 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHT.regular,
   },
   originalPostContainer: {
-    borderWidth: 1,
     borderRadius: BORDER_RADIUS.md,
     padding: SPACING.md,
     marginTop: SPACING.xs,
@@ -1981,25 +1950,7 @@ const styles = StyleSheet.create({
   videoTouchable: {
     ...StyleSheet.absoluteFillObject,
   },
-  /* "Ver en Weëls": el aviso de que el adelanto deja algo fuera. */
-  videoChip: {
-    position: 'absolute',
-    bottom: SPACING.md,
-    left: SPACING.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: scale(5),
-    paddingHorizontal: SPACING.sm,
-    paddingVertical: scale(5),
-    borderRadius: BORDER_RADIUS.full,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  videoChipTexto: {
-    color: 'white',
-    fontSize: FONT_SIZE.xs,
-    fontWeight: FONT_WEIGHT.medium,
-  },
-  /*
+    /*
    * El reproductor se ancla a las cuatro esquinas de su caja, no con un 100%.
    *
    * En la web `expo-av` le pone al elemento su tamaño NATURAL —un vídeo de

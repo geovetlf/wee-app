@@ -92,7 +92,7 @@ const PublicacionInmersiva: React.FC<Props> = ({ post, activa, alto, ancho, marg
   const { community } = useCommunityById(visible.communityId);
   const seccion = useMemo(() => seccionDe(visible), [visible]);
 
-  const { stats, voteAgree, voteDisagree } = useVote({
+  const { stats, voteAgree } = useVote({
     postId: visible.id!,
     userId: user?.uid,
     initialStats: { agreementCount: visible.agreementCount || 0, disagreementCount: visible.disagreementCount || 0 },
@@ -279,7 +279,6 @@ const PublicacionInmersiva: React.FC<Props> = ({ post, activa, alto, ancho, marg
       {/* ── La columna de acciones ───────────────────────────────────────── */}
       <View style={[s.rail, dir.alFinal(scale(8)), { bottom: margenInferior + scale(30) }]}>
         <BotonDelRail icono="thumbs-up" meGusta activo={stats.userVote === 'agree'} etiqueta={t('wall.agreePost')} cuenta={formatNumber(stats.agreementCount, locale)} onPress={conSesion(() => { void voteAgree(); })} />
-        <BotonDelRail icono="thumbs-down" etiqueta={t('wall.disagreePost')} cuenta={formatNumber(stats.disagreementCount, locale)} onPress={conSesion(() => { void voteDisagree(); })} />
         <BotonDelRail icono="chatbubble-ellipses" etiqueta={t('wall.comment')} cuenta={formatNumber(visible.comments || 0, locale)} onPress={conSesion(() => abrirComentarios(visible))} />
         <BotonDelRail icono={guardada ? 'bookmark' : 'bookmark-outline'} etiqueta={guardada ? t('wall.unsave') : t('wall.save')} activo={guardada} onPress={conSesion(() => { void alternarGuardado(visible.id!); })} />
         <BotonDelRail icono="paper-plane" etiqueta={t('wall.sharePost')} onPress={() => { void compartir(); }} />

@@ -370,17 +370,7 @@ const ReelItem: React.FC<ReelItemProps> = React.memo(({ post, isActive, precarga
               </Text>
             </TouchableOpacity>
 
-            {/* Disagree */}
-            <TouchableOpacity style={styles.sidebarBtn} onPress={voteDisagree}>
-              <Ionicons
-                name={voteStats.userVote === 'disagree' ? 'thumbs-down' : 'thumbs-down-outline'}
-                size={scale(26)}
-                color={voteStats.userVote === 'disagree' ? '#EF4444' : 'white'}
-              />
-              <Text style={styles.sidebarCount}>
-                {formatNumber(voteStats.disagreementCount, locale)}
-              </Text>
-            </TouchableOpacity>
+            {/* 👎 ya no se muestra (decisión del dueño, 2026-11-16). */}
 
             {/* Comment */}
             <TouchableOpacity style={styles.sidebarBtn} onPress={() => onComment(post.id!)}>

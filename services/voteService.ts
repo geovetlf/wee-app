@@ -17,7 +17,20 @@ import {
 import { db } from '../config/firebase';
 
 // Tipos para votación
-export type VoteType = 'agree' | 'disagree';
+/*
+ * Las reacciones de una PUBLICACIÓN: «de acuerdo», «en desacuerdo» (que ya no se pinta, pero sus votos guardados siguen contando)
+ * y, desde 2026-11-16, Fuego y Risa. Los votos de COMENTARIOS siguen siendo solo agree/disagree (las reglas no admiten otra cosa ahí).
+ */
+export type VoteType = 'agree' | 'disagree' | 'fire' | 'laugh';
+export type CommentVoteType = 'agree' | 'disagree';
+
+/** Contador de la publicación que mueve cada tipo de voto (las reglas solo admiten estos cuatro). */
+export const CONTADOR_DE_VOTO: Record<VoteType, 'agreementCount' | 'disagreementCount' | 'fireCount' | 'laughCount'> = {
+  agree: 'agreementCount',
+  disagree: 'disagreementCount',
+  fire: 'fireCount',
+  laugh: 'laughCount',
+};
 
 export interface Vote {
   id?: string;
@@ -30,6 +43,8 @@ export interface Vote {
 export interface VoteStats {
   agreementCount: number;
   disagreementCount: number;
+  fireCount?: number;
+  laughCount?: number;
   totalVotes: number;
   agreementPercentage: number; // 0-100
   userVote: VoteType | null;
@@ -62,17 +77,12 @@ export const voteService = {
         }
 
         // Cambio de voto: actualizar contadores
-        if (oldType === 'agree') {
-          batch.update(postRef, {
-            agreementCount: increment(-1),
-            disagreementCount: increment(1),
-          });
-        } else {
-          batch.update(postRef, {
-            agreementCount: increment(1),
-            disagreementCount: increment(-1),
-          });
-        }
+        // Un voto de un tipo desconocido (no debería existir) no toca ningún contador.
+        const campoViejo = CONTADOR_DE_VOTO[oldType];
+        batch.update(postRef, {
+          ...(campoViejo ? { [campoViejo]: increment(-1) } : {}),
+          [CONTADOR_DE_VOTO[type]]: increment(1),
+        });
 
         // Actualizar el voto
         batch.update(voteRef, {
@@ -89,15 +99,7 @@ export const voteService = {
         });
 
         // Incrementar contador correspondiente
-        if (type === 'agree') {
-          batch.update(postRef, {
-            agreementCount: increment(1),
-          });
-        } else {
-          batch.update(postRef, {
-            disagreementCount: increment(1),
-          });
-        }
+        batch.update(postRef, { [CONTADOR_DE_VOTO[type]]: increment(1) });
       }
 
       await batch.commit();
@@ -135,15 +137,8 @@ export const voteService = {
       const batch = writeBatch(db);
 
       // Decrementar el contador correspondiente
-      if (voteType === 'agree') {
-        batch.update(postRef, {
-          agreementCount: increment(-1),
-        });
-      } else {
-        batch.update(postRef, {
-          disagreementCount: increment(-1),
-        });
-      }
+      const campo = CONTADOR_DE_VOTO[voteType];
+      if (campo) batch.update(postRef, { [campo]: increment(-1) });
 
       // Eliminar el voto
       batch.delete(voteRef);
@@ -209,6 +204,8 @@ export const voteService = {
       const postData = postSnap.data();
       const agreementCount = postData.agreementCount || 0;
       const disagreementCount = postData.disagreementCount || 0;
+      const fireCount = postData.fireCount || 0;
+      const laughCount = postData.laughCount || 0;
       const totalVotes = agreementCount + disagreementCount;
       const agreementPercentage = voteService.getAgreementPercentage(agreementCount, disagreementCount);
 
@@ -220,6 +217,8 @@ export const voteService = {
       return {
         agreementCount,
         disagreementCount,
+        fireCount,
+        laughCount,
         totalVotes,
         agreementPercentage,
         userVote,
@@ -259,6 +258,8 @@ export const voteService = {
       const postData = snapshot.data();
       const agreementCount = postData.agreementCount || 0;
       const disagreementCount = postData.disagreementCount || 0;
+      const fireCount = postData.fireCount || 0;
+      const laughCount = postData.laughCount || 0;
       const totalVotes = agreementCount + disagreementCount;
       const agreementPercentage = voteService.getAgreementPercentage(agreementCount, disagreementCount);
 
@@ -270,6 +271,8 @@ export const voteService = {
       callback({
         agreementCount,
         disagreementCount,
+        fireCount,
+        laughCount,
         totalVotes,
         agreementPercentage,
         userVote,
@@ -284,10 +287,10 @@ export const voteService = {
    * que se lee de un tirón sin consultar nada. Es la lectura que le faltaba a
    * `voteOnComment`: sin ella los pulgares se pintan igual hayas votado o no.
    */
-  getUserCommentVote: async (commentId: string, userId: string): Promise<VoteType | null> => {
+  getUserCommentVote: async (commentId: string, userId: string): Promise<CommentVoteType | null> => {
     try {
       const voteSnap = await getDoc(doc(db, 'commentVotes', `comment_${userId}_${commentId}`));
-      return voteSnap.exists() ? (voteSnap.data().type as VoteType) : null;
+      return voteSnap.exists() ? (voteSnap.data().type as CommentVoteType) : null;
     } catch (error) {
       console.error('Error getting user comment vote:', error);
       return null;
@@ -295,7 +298,7 @@ export const voteService = {
   },
 
   // Votar en un comentario (misma lógica pero para comentarios)
-  voteOnComment: async (commentId: string, userId: string, type: VoteType): Promise<void> => {
+  voteOnComment: async (commentId: string, userId: string, type: CommentVoteType): Promise<void> => {
     try {
       const voteId = `comment_${userId}_${commentId}`;
       const voteRef = doc(db, 'commentVotes', voteId);

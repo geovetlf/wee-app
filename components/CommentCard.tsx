@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserById } from '../hooks/useUserById';
 import { referenciaPublicaDe } from '../utils/identidadPublica';
 import { Comment } from '../services/firestoreService';
-import { voteService, VoteType } from '../services/voteService';
+import { voteService, CommentVoteType } from '../services/voteService';
 import { getRelativeTime } from '../utils/formatoCorto';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
@@ -45,7 +45,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) =>
    * tocar y se manda por detrás; si el envío falla se vuelve a lo que había,
    * que es mejor que un pulgar que tarda medio segundo en encenderse.
    */
-  const [voto, setVoto] = useState<VoteType | null>(null);
+  const [voto, setVoto] = useState<CommentVoteType | null>(null);
   const [aFavor, setAFavor] = useState(comment.agreementCount || 0);
   const [enContra, setEnContra] = useState(comment.disagreementCount || 0);
 
@@ -66,7 +66,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) =>
     setEnContra(comment.disagreementCount || 0);
   }, [comment.agreementCount, comment.disagreementCount]);
 
-  const votar = async (tipo: VoteType) => {
+  const votar = async (tipo: CommentVoteType) => {
     if (!user || !comment.id || voto === tipo) return;
     const antes = { voto, aFavor, enContra };
     setVoto(tipo);
@@ -90,7 +90,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) =>
     return new Date();
   };
 
-  const pulgar = (tipo: VoteType, cuenta: number, etiqueta: string) => {
+  const pulgar = (tipo: CommentVoteType, cuenta: number, etiqueta: string) => {
     const puesto = voto === tipo;
     return (
       <TouchableOpacity

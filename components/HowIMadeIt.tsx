@@ -1,7 +1,7 @@
 import { nombreDeHoyDeHerramienta } from '../utils/sectionFeed';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from './icons/IconoDeTrazo';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { sinEspaciadoSiSeUne } from '../i18n/caja';
@@ -66,9 +66,9 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
   };
 
   return (
-    <View style={[styles.box, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+    <View style={[styles.box, { backgroundColor: theme.colors.surface }]}>
       <View style={styles.headerRow}>
-        <Ionicons name="sparkles-outline" size={scale(15)} color={theme.colors.textSecondary} />
+        <IconoDeTrazo name="sparkles-outline" size={scale(15)} color={theme.colors.textSecondary} />
         <Text style={[styles.title, { color: theme.colors.text }, sinEspaciadoSiSeUne(t('wall.howIMadeIt'))]}>{t('wall.howIMadeIt')}</Text>
       </View>
 
@@ -89,7 +89,7 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
             <Text style={[styles.promptToggleText, { color: theme.colors.text }]}>
               {promptOpen ? t('wall.hidePrompt') : t('wall.showPrompt')}
             </Text>
-            <Ionicons name={promptOpen ? 'chevron-up' : 'chevron-down'} size={scale(16)} color={theme.colors.textSecondary} />
+            <IconoDeTrazo name={promptOpen ? 'chevron-up' : 'chevron-down'} size={scale(16)} color={theme.colors.textSecondary} />
           </TouchableOpacity>
           {promptOpen && (
             <View style={[styles.promptBox, { backgroundColor: theme.colors.surface }]}>
@@ -100,7 +100,7 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
                   onPress={copyPrompt}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={scale(14)} color="white" />
+                  <IconoDeTrazo name={copied ? 'checkmark' : 'copy-outline'} size={scale(14)} color={theme.colors.background} />
                   <Text style={styles.copyText}>{copied ? t('wall.promptCopied') : t('wall.copyPrompt')}</Text>
                 </TouchableOpacity>
               ) : (
@@ -126,7 +126,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
     gap: SPACING.sm,
   },
   headerRow: {

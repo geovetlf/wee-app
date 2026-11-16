@@ -197,7 +197,9 @@ export interface Post {
 
   // === NUEVO: Sistema de votación (% de acuerdo) ===
   agreementCount: number; // Votos "de acuerdo"
-  disagreementCount: number; // Votos "en desacuerdo"
+  disagreementCount: number; // Votos "en desacuerdo" (el 👎 ya no se pinta; los guardados cuentan)
+  fireCount?: number; // Reacción Fuego (reglas 2026-11-16); ausente en publicaciones anteriores
+  laughCount?: number; // Reacción Risa (ídem)
 
   // === DEPRECADO: Sistema de likes (mantener para retrocompatibilidad) ===
   likes: number; // @deprecated - usar agreementCount/disagreementCount
