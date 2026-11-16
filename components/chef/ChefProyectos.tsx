@@ -11,6 +11,7 @@ import { textoDeObjetivo } from '../../i18n/servidor';
 import { CreatorJob, claveDelEstado } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -33,6 +34,7 @@ interface Props {
  */
 const ChefProyectos: React.FC<Props> = ({ proyectos, onAbrir, onVerTodos }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
   const dir = useDireccion();
   const pro = useEnEspacioProfesional();
@@ -58,7 +60,7 @@ const ChefProyectos: React.FC<Props> = ({ proyectos, onAbrir, onVerTodos }) => {
       )}
 
       {proyectos.length === 0 ? (
-        <View style={[styles.vacio, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }, pro && styles.vacioPro]}>
+        <View style={[styles.vacio, { borderColor: c.superficieAlta, backgroundColor: c.superficieAlta }, pro && styles.vacioPro]}>
           <Text style={[styles.vacioTexto, { color: theme.colors.text }]}>{t('chef.projectsEmpty')}</Text>
           <Text style={[styles.vacioPista, { color: theme.colors.textSecondary }]}>{t('chef.projectsEmptyHint')}</Text>
         </View>
@@ -74,7 +76,7 @@ const ChefProyectos: React.FC<Props> = ({ proyectos, onAbrir, onVerTodos }) => {
               /* El objetivo lo escribió la persona: es contenido, no interfaz, y no pasa por el traductor. */
               accessibilityLabel={textoDeObjetivo(t, job.experienceId, job.goal)}
             >
-              <View style={[styles.lamina, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <View style={[styles.lamina, { backgroundColor: c.superficieAlta, borderColor: c.superficieAlta }]}>
                 {job.results?.find((r) => r.url)?.url ? (
                   <Image source={{ uri: job.results.find((r) => r.url)?.url }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} />
                 ) : (
@@ -111,7 +113,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: scale(110),
     borderRadius: scale(16),
-    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.xs,
@@ -122,7 +123,6 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACING.xl,
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: StyleSheet.hairlineWidth,
     gap: SPACING.xs,
   },
   vacioTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold },

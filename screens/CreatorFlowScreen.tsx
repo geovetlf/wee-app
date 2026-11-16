@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { textoDeFechas, textoDelServidor, textoDeObjetivo, textoDeOpcion, textoDePregunta } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,6 +24,7 @@ import type { MainStackParamList } from '../navigation/MainStackNavigator';
 import { claveDelValor, filtrarCreativo } from '../constants/camaraCinematica';
 import FichaDeContexto from '../components/creator/FichaDeContexto';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { useEstiloWeeAi } from '../hooks/useEstiloWeeAi';
 import { scale } from '../utils/scale';
 import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
@@ -51,6 +52,7 @@ const CreatorFlowScreen: React.FC = () => {
     * Brain, en el servidor. Esta pantalla lo reúne y lo lleva.
     */
   const params: ContextoDeExperiencia = route.params ?? {};
+  const estiloWeeAi = useEstiloWeeAi();
 
   const experience = getExperienceById(params.experienceId || '') || WEE_EXPERIENCES[0];
   /*
@@ -650,7 +652,7 @@ const CreatorFlowScreen: React.FC = () => {
           </View>
         )}
 
-        {status === 'running' && job && <JobProgress experienceName={nombre} job={job} />}
+        {status === 'running' && job && <JobProgress experienceName={nombre} job={job} onKeepBrowsing={() => navigation.navigate('Historial')} />}
 
         {status === 'done' && job && (
           <ResultCard
@@ -682,9 +684,27 @@ const CreatorFlowScreen: React.FC = () => {
           />
         )}
 
+        {/* Quien viene de una plantilla: crédito a su autor y otra foto SIN perder la plantilla (misma ruta, mismo prompt). */}
+        {status === 'done' && job && params.plantilla ? (
+          <View style={styles.plantillaDe}>
+            <Text style={[styles.errorText, { color: theme.colors.textSecondary }]}>
+              {params.plantilla.autor ? t('weeai.templateBy', { autor: params.plantilla.autor }) : params.plantilla.titulo}
+            </Text>
+            <TouchableOpacity
+              onPress={() => navigation.replace('CreatorFlow', { experienceId: experience.id, goal: params.goal, plantilla: params.plantilla })}
+              accessibilityRole="button"
+              activeOpacity={0.7}
+              style={[styles.otraFoto, { backgroundColor: estiloWeeAi.superficie }]}
+            >
+              <Text style={[styles.errorText, { color: theme.colors.text, fontWeight: FONT_WEIGHT.semibold }]}>{t('weeai.tryOtherPhoto')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {status === 'failed' && job && !error && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <Text style={[styles.errorText, { color: theme.colors.text }]}>{job.progressText ? textoDelServidor(job.progressText, { t, locale, experiencia: experience.id }) : t('weeai.itDidNotWork')}</Text>
+            {/* El engine marca como «rechazo de entrada» lo que el proveedor no acepta (rostros reales, contenido sensible): aquí se dice qué hacer. */}
+            <Text style={[styles.errorText, { color: theme.colors.text }]}>{job.progressText && /rostros reales|rechazo de entrada|face|portrait|sensitive/i.test(job.progressText) ? t('weeai.inputRejected') : job.progressText ? textoDelServidor(job.progressText, { t, locale, experiencia: experience.id }) : t('weeai.itDidNotWork')}</Text>
             <TouchableOpacity
               onPress={() => start(job.goal)}
               style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
@@ -759,6 +779,8 @@ const CreatorFlowScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   /* La tira de lo que se trajo, arriba del todo y sin robar sitio. */
+  plantillaDe: { gap: SPACING.sm, marginTop: SPACING.md, alignItems: 'flex-start' },
+  otraFoto: { minHeight: 44, borderRadius: BORDER_RADIUS.full, justifyContent: 'center', paddingHorizontal: SPACING.lg },
   contextoTraido: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.md },
   container: {
     flex: 1,
@@ -884,4 +906,4 @@ const styles = StyleSheet.create({
  * Weë AI es de la cuenta, no de un perfil: el taller se ve claro con el Perfil
  * Real y con el Perfil Weë. Lo de fuera —el cajón incluido— no se toca.
  */
-export default enTemaClaro(CreatorFlowScreen);
+export default enTemaOscuro(CreatorFlowScreen);

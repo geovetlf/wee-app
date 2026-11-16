@@ -1,9 +1,10 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from '../components/icons/IconoDeTrazo';
 import IconoDireccional from '../components/IconoDireccional';
+
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
 import { useDireccion } from '../hooks/useDireccion';
@@ -14,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   TarjetaDeAviso, SelectorDeOrden, VacioDeBiblioteca, BotonPrincipal, BotonSecundario,
 } from '../components/biblioteca/PiezasDeBiblioteca';
+import { useEstiloWeeAi } from '../hooks/useEstiloWeeAi';
 import { CabeceraDeBiblioteca } from '../components/biblioteca/CabeceraDeBiblioteca';
 import { PALETA_BIBLIOTECA as P, SOMBRA_SUAVE } from '../components/biblioteca/paleta';
 import { confirmAction, notify } from '../utils/notify';
@@ -55,6 +57,9 @@ interface ResumenDeProyecto { creaciones: number; portada: string | null }
 type OrdenDeProyectos = 'updated' | 'name';
 const ProjectsScreen: React.FC = () => {
   const { theme } = useTheme();
+  /* Monocromo (2026-11-16): la tinta del tema (#0A0A0A / #FAFAFA) dice el estado activo; el dorado→naranja queda para la acción principal. */
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
+  const c = useEstiloWeeAi();
   const t = useT();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
@@ -202,7 +207,7 @@ const ProjectsScreen: React.FC = () => {
   if (pro) {
   return (
     <CreatorShell activeId="projects" overline="🤖 Weë AI" title={`📁 ${t('weeai.myProjects')}`} breadcrumb="Weë AI">
-      <View style={[styles.intro, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}>
+      <View style={[styles.intro, { backgroundColor: c.superficie }]}>
         <Text style={[styles.introTitle, { color: theme.colors.text }]}>{t('projects.introTitle')}</Text>
         {/*
           La entradilla cita el botón que hay que buscar en el resultado. Va por
@@ -218,13 +223,13 @@ const ProjectsScreen: React.FC = () => {
         <SectionTitle title={t('projects.sectionTitle')} action={t(creating ? 'common.cancel' : 'weeai.newProject')} onAction={() => setCreating((v) => !v)} />
 
         {creating && (
-          <View style={[styles.newBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}>
+          <View style={[styles.newBox, { backgroundColor: c.superficie }]}>
             <View style={styles.emojis}>
               {PROJECT_EMOJIS.map((item) => (
                 <TouchableOpacity
                   key={item}
                   onPress={() => setEmoji(item)}
-                  style={[styles.emojiButton, { borderColor: emoji === item ? theme.colors.accent : theme.colors.border }]}
+                  style={[styles.emojiButton, { borderColor: emoji === item ? theme.colors.accent : c.superficieAlta }]}
                   accessibilityLabel={t('projects.emojiLabel', { emoji: item })}
                 >
                   <Text style={styles.emojiText}>{item}</Text>
@@ -233,7 +238,7 @@ const ProjectsScreen: React.FC = () => {
             </View>
             <View style={styles.newRow}>
               <TextInput
-                style={[styles.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
+                style={[styles.input, { color: theme.colors.text, borderColor: c.superficieAlta }]}
                 value={name}
                 onChangeText={setName}
                 placeholder={t('projects.namePlaceholder')}
@@ -251,9 +256,9 @@ const ProjectsScreen: React.FC = () => {
         )}
 
         {loading ? (
-          <ActivityIndicator color={theme.colors.accent} />
+          <ActivityIndicator color={tinta} />
         ) : projects.length === 0 ? (
-          <View style={[styles.empty, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+          <View style={[styles.empty, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}>
             <Text style={styles.emptyEmoji}>📁</Text>
             <Text style={[styles.emptyTitle, { color: theme.colors.text }]}>{t('projects.emptyTitle')}</Text>
             <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>{t('projects.emptyText')}</Text>
@@ -269,10 +274,10 @@ const ProjectsScreen: React.FC = () => {
                 <TouchableOpacity
                   onPress={() => navigation.navigate('Project', { id: project.id })}
                   activeOpacity={0.8}
-                  style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                  style={[styles.card, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}
                   accessibilityLabel={project.name}
                 >
-                  <View style={[styles.cardEmoji, { backgroundColor: theme.colors.accent + '33' }]}>
+                  <View style={[styles.cardEmoji, { backgroundColor: c.superficie }]}>
                     <Text style={styles.cardEmojiText}>{project.emoji}</Text>
                   </View>
                   <Text style={[styles.cardName, { color: theme.colors.text }]} numberOfLines={2}>{project.name}</Text>
@@ -302,7 +307,7 @@ const ProjectsScreen: React.FC = () => {
       <View style={styles.appNuevoCabeza}>
         <Text style={[styles.appNuevoTitulo, dir.texto]}>{t('weeai.newProject')}</Text>
         <TouchableOpacity onPress={() => setCreating(false)} style={styles.appIcono} accessibilityRole="button" accessibilityLabel={t('common.close')}>
-          <Ionicons name="close" size={20} color={P.textoSuave} />
+          <IconoDeTrazo name="close" size={20} color={P.textoSuave} />
         </TouchableOpacity>
       </View>
       <View style={styles.emojis}>
@@ -383,7 +388,7 @@ const ProjectsScreen: React.FC = () => {
 
             <View style={styles.appHerramientas}>
               <View style={styles.appBuscador}>
-                <Ionicons name="search-outline" size={18} color={P.textoSuave} />
+                <IconoDeTrazo name="search-outline" size={18} color={P.textoSuave} />
                 <TextInput
                   style={[styles.appBuscadorCampo, dir.texto]}
                   value={busqueda}
@@ -395,7 +400,7 @@ const ProjectsScreen: React.FC = () => {
                 />
                 {!!busqueda && (
                   <TouchableOpacity onPress={() => setBusqueda('')} accessibilityRole="button" accessibilityLabel={t('common.close')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                    <Ionicons name="close-circle" size={18} color={P.textoSuave} />
+                    <IconoDeTrazo name="close-circle" size={18} color={P.textoSuave} />
                   </TouchableOpacity>
                 )}
               </View>
@@ -448,10 +453,10 @@ const ProjectsScreen: React.FC = () => {
                                 accessibilityLabel={t('weeai.projectName')}
                               />
                               <TouchableOpacity onPress={() => guardarNombre(project)} style={[styles.appIcono, styles.appIconoLleno]} accessibilityRole="button" accessibilityLabel={t('projects.saveName')}>
-                                <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                                <IconoDeTrazo name="checkmark" size={20} color={P.sobreMorado} />
                               </TouchableOpacity>
                               <TouchableOpacity onPress={() => setRenombrando(null)} style={styles.appIcono} accessibilityRole="button" accessibilityLabel={t('common.close')}>
-                                <Ionicons name="close" size={20} color={P.textoSuave} />
+                                <IconoDeTrazo name="close" size={20} color={P.textoSuave} />
                               </TouchableOpacity>
                             </View>
                           ) : (
@@ -466,20 +471,20 @@ const ProjectsScreen: React.FC = () => {
                                   accessibilityLabel={t('projects.moreActions')}
                                   accessibilityState={{ expanded: conMenu }}
                                 >
-                                  <Ionicons name="ellipsis-horizontal" size={20} color={P.texto} />
+                                  <IconoDeTrazo name="ellipsis-horizontal" size={20} color={P.texto} />
                                 </TouchableOpacity>
                                 {conMenu && (
                                   <View style={[styles.appMenu, dir.alFinal(0)]} accessibilityRole="menu">
                                     <TouchableOpacity onPress={() => { setMenuDe(null); navigation.navigate('Project', { id: project.id }); }} style={styles.appMenuOpcion} accessibilityRole="menuitem">
-                                      <Ionicons name="folder-open-outline" size={18} color={P.texto} />
+                                      <IconoDeTrazo name="folder-open-outline" size={18} color={P.texto} />
                                       <Text style={[styles.appMenuTexto, dir.texto]}>{t('projects.open')}</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => empezarARenombrar(project)} style={styles.appMenuOpcion} accessibilityRole="menuitem">
-                                      <Ionicons name="pencil-outline" size={18} color={P.texto} />
+                                      <IconoDeTrazo name="pencil-outline" size={18} color={P.texto} />
                                       <Text style={[styles.appMenuTexto, dir.texto]}>{t('projects.rename')}</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity onPress={() => eliminarProyecto(project)} style={styles.appMenuOpcion} accessibilityRole="menuitem">
-                                      <Ionicons name="trash-outline" size={18} color={P.error} />
+                                      <IconoDeTrazo name="trash-outline" size={18} color={P.error} />
                                       <Text style={[styles.appMenuTexto, { color: P.error }, dir.texto]}>{t('projects.deleteProject')}</Text>
                                     </TouchableOpacity>
                                   </View>
@@ -492,7 +497,7 @@ const ProjectsScreen: React.FC = () => {
                           </Text>
                           <View style={styles.appPieTarjeta}>
                             <View style={styles.appFecha}>
-                              <Ionicons name="time-outline" size={14} color={P.textoSuave} />
+                              <IconoDeTrazo name="time-outline" size={14} color={P.textoSuave} />
                               <Text style={[styles.appMeta, dir.texto]} numberOfLines={1}>{t('projects.updatedOn', { fecha: fecha(enMilisegundos(project.updatedAt)) })}</Text>
                             </View>
                             <TouchableOpacity onPress={() => navigation.navigate('Project', { id: project.id })} style={styles.appAbrir} accessibilityRole="button" accessibilityLabel={t('projects.open')}>
@@ -523,22 +528,22 @@ const styles = StyleSheet.create({
   appHerramientas: { flexDirection: 'row', alignItems: 'center', gap: 10, zIndex: 20 },
   appBuscador: {
     flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingHorizontal: 14,
-    borderRadius: 999, borderWidth: 1, borderColor: P.borde, backgroundColor: '#FFFFFF',
+    borderRadius: 999, borderWidth: 0, borderColor: P.borde, backgroundColor: P.superficie,
   },
   appBuscadorCampo: { flex: 1, minWidth: 0, height: 42, fontSize: 15, color: P.texto, outlineStyle: 'none' } as any,
-  appNuevo: { gap: 14, padding: 18, borderRadius: 20, borderWidth: 1, borderColor: P.bordeLavanda, backgroundColor: P.lavandaSuave },
+  appNuevo: { gap: 14, padding: 18, borderRadius: 20, borderWidth: 0, borderColor: P.bordeLavanda, backgroundColor: P.lavandaSuave },
   appNuevoCabeza: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   appNuevoTitulo: { color: P.texto, fontSize: 16, fontWeight: FONT_WEIGHT.bold },
-  appEmoji: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: P.borde, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  appEmojiActivo: { borderColor: P.morado, borderWidth: 2, backgroundColor: P.lavanda },
+  appEmoji: { width: 40, height: 40, borderRadius: 20, borderWidth: 0, borderColor: P.borde, backgroundColor: P.superficie, alignItems: 'center', justifyContent: 'center' },
+  appEmojiActivo: { borderColor: P.morado, borderWidth: 0, backgroundColor: P.lavanda },
   appCampo: {
-    flex: 1, minWidth: 0, height: 42, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, borderColor: P.borde,
-    backgroundColor: '#FFFFFF', fontSize: 15, color: P.texto,
+    flex: 1, minWidth: 0, height: 42, paddingHorizontal: 16, borderRadius: 999, borderWidth: 0, borderColor: P.borde,
+    backgroundColor: P.superficie, fontSize: 15, color: P.texto,
   },
   appIcono: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   appIconoLleno: { backgroundColor: P.morado },
   appRejilla: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -8 },
-  appTarjeta: { borderRadius: 22, borderWidth: 1, borderColor: P.borde, backgroundColor: '#FFFFFF' },
+  appTarjeta: { borderRadius: 22, borderWidth: 0, borderColor: P.borde, backgroundColor: P.superficie },
   appPortada: { height: 132, borderTopLeftRadius: 21, borderTopRightRadius: 21, overflow: 'hidden', backgroundColor: P.lavandaSuave },
   appEmojiPortada: {
     position: 'absolute', bottom: 12, width: 48, height: 48, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
@@ -549,8 +554,8 @@ const styles = StyleSheet.create({
   appTituloFila: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, zIndex: 30 },
   appNombre: { flex: 1, minWidth: 0, color: P.texto, fontSize: 17, lineHeight: 23, fontWeight: FONT_WEIGHT.bold, paddingTop: 7 },
   appMenu: {
-    position: 'absolute', top: 40, minWidth: 210, padding: 6, borderRadius: 16, borderWidth: 1, borderColor: P.borde,
-    backgroundColor: '#FFFFFF', ...SOMBRA_SUAVE,
+    position: 'absolute', top: 40, minWidth: 210, padding: 6, borderRadius: 16, borderWidth: 0, borderColor: P.borde,
+    backgroundColor: P.superficie, ...SOMBRA_SUAVE,
   },
   appMenuOpcion: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 42, paddingHorizontal: 12, borderRadius: 10 },
   appMenuTexto: { color: P.texto, fontSize: 14, fontWeight: FONT_WEIGHT.semibold, flexShrink: 1 },
@@ -562,7 +567,6 @@ const styles = StyleSheet.create({
   intro: {
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
     gap: scale(4),
   },
   introTitle: {
@@ -579,7 +583,6 @@ const styles = StyleSheet.create({
   newBox: {
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
     gap: SPACING.sm,
   },
   emojis: {
@@ -591,7 +594,6 @@ const styles = StyleSheet.create({
     width: scale(36),
     height: scale(36),
     borderRadius: scale(18),
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -607,7 +609,6 @@ const styles = StyleSheet.create({
     height: scale(42),
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
     fontSize: FONT_SIZE.sm,
   },
   createButton: {
@@ -626,7 +627,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.xl,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
     gap: scale(6),
   },
   emptyEmoji: {
@@ -649,7 +649,6 @@ const styles = StyleSheet.create({
     minHeight: scale(140),
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
     gap: SPACING.sm,
   },
   cardEmoji: {
@@ -681,4 +680,4 @@ const styles = StyleSheet.create({
  * Weë AI es de la cuenta, no de un perfil: el taller se ve claro con el Perfil
  * Real y con el Perfil Weë. Lo de fuera —el cajón incluido— no se toca.
  */
-export default enTemaClaro(ProjectsScreen);
+export default enTemaOscuro(ProjectsScreen);

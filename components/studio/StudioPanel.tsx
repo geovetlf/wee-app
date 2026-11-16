@@ -13,6 +13,7 @@ import StudioPromptComposer from './StudioPromptComposer';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import TextoEnMayusculas from '../TextoEnMayusculas';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -62,6 +63,7 @@ interface Props {
  */
 const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
 
   /* Dentro del panel se avanza un paso: de las experiencias a sus controles. */
@@ -92,7 +94,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
     >
       <View style={[
         styles.pieza,
-        { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+        { backgroundColor: c.superficie, borderColor: c.superficieAlta },
         pro && styles.piezaPro,
         /*
           LO QUE TODAVÍA NO SE PUEDE HACER SE VE, Y SE VE QUE NO SE PUEDE.
@@ -107,7 +109,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
         <Ionicons name={icono as any} size={scale(22)} color={theme.colors.text} />
         <Text style={[styles.piezaTexto, { color: theme.colors.text }]} numberOfLines={2}>{t(clave)}</Text>
         {!!pendiente && (
-          <View style={[styles.sello, { backgroundColor: theme.colors.surface }]}>
+          <View style={[styles.sello, { backgroundColor: c.superficieAlta }]}>
             <TextoEnMayusculas style={[styles.selloTexto, { color: theme.colors.textSecondary }]}>{t('studio.soon')}</TextoEnMayusculas>
           </View>
         )}
@@ -142,7 +144,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
         que vas a pedir, así que se dice antes de elegir, no después.
       */}
       {entrada === 'videos' && !elegida && (
-        <View style={[styles.nota, { backgroundColor: theme.colors.surface }, pro && styles.notaPro]}>
+        <View style={[styles.nota, { backgroundColor: c.superficieAlta }, pro && styles.notaPro]}>
           <Ionicons name="time-outline" size={scale(15)} color={theme.colors.textSecondary} />
           <Text style={[styles.notaTexto, { color: theme.colors.textSecondary }]}>{t('studio.vidLimit')}</Text>
         </View>
@@ -153,7 +155,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
         {elegida ? (
           <>
             {elegida.pideMaterial && (
-              <View style={[styles.nota, { backgroundColor: theme.colors.surface, marginHorizontal: pro ? 0 : SPACING.lg }]}>
+              <View style={[styles.nota, { backgroundColor: c.superficieAlta, marginHorizontal: pro ? 0 : SPACING.lg }]}>
                 <Ionicons name="image-outline" size={scale(15)} color={theme.colors.textSecondary} />
                 <Text style={[styles.notaTexto, { color: theme.colors.textSecondary }]}>{t('studio.needsMaterial')}</Text>
               </View>
@@ -222,7 +224,7 @@ const StudioPanel: React.FC<Props> = ({ entrada, onVolver, onElegir, porFila }) 
         no ayuda a decidir qué hacer ahora.
       */}
       {!!explicando && (
-        <View style={[styles.motivo, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <View style={[styles.motivo, { backgroundColor: c.superficieAlta, borderColor: c.superficieAlta }]}>
           <Ionicons name="information-circle-outline" size={scale(17)} color={theme.colors.textSecondary} />
           <Text style={[styles.motivoTexto, { color: theme.colors.text }]}>{t(explicando)}</Text>
           <TouchableOpacity
@@ -285,7 +287,6 @@ const styles = StyleSheet.create({
   hueco: { padding: SPACING.xs },
   pieza: {
     borderRadius: scale(16),
-    borderWidth: StyleSheet.hairlineWidth,
     paddingVertical: SPACING.lg,
     paddingHorizontal: SPACING.md,
     gap: SPACING.sm,
@@ -308,7 +309,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   motivoTexto: { fontSize: FONT_SIZE.sm, flex: 1, lineHeight: scale(19) },
   sinControles: { fontSize: FONT_SIZE.sm, paddingHorizontal: SPACING.xl, lineHeight: scale(20) },

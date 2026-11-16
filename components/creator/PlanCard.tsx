@@ -8,6 +8,7 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/
 import { scale } from '../../utils/scale';
 import TextoEnMayusculas from '../TextoEnMayusculas';
 import { RellenoDeMarca } from '../GradienteDeMarca';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 interface PlanCardProps {
   experienceName: string;
@@ -64,6 +65,7 @@ const stepDetail = (
 
 const PlanCard: React.FC<PlanCardProps> = ({ experienceName, experienceId, plan, creditsEstimated, demo, pricingMode, pricing, quality, quoting, onQuality, busy, onCreate, onChange }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const { t, formato, locale } = useIdioma();
   /* Lo que escribe el servidor —la explicación, los pasos, los niveles de calidad—, en el idioma de quien mira. */
   const leer = (texto: string): string => textoDelServidor(texto, { t, locale, experiencia: experienceId });
@@ -78,24 +80,24 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, experienceId, plan,
     creditsEstimated > 0 ? t('weeai.creditsNote') : demo ? t('weeai.demoMode') : '';
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}>
-      <TextoEnMayusculas style={[styles.who, { color: theme.colors.accentDark }]}>{experienceName}</TextoEnMayusculas>
-      <Text style={[styles.explain, { color: theme.colors.text }]}>{leer(plan.explainToUser)}</Text>
+    <View style={[styles.card, { backgroundColor: c.superficie }]}>
+      <TextoEnMayusculas style={[styles.who, { color: c.tinta }]}>{experienceName}</TextoEnMayusculas>
+      <Text style={[styles.explain, { color: c.tinta }]}>{leer(plan.explainToUser)}</Text>
 
       <View style={styles.steps}>
         {plan.steps.map((step, index) => (
           <View key={step.id} style={styles.stepRow}>
-            <View style={[styles.stepDot, { backgroundColor: theme.colors.accent }]}>
-              <Text style={styles.stepNumber}>{index + 1}</Text>
+            <View style={[styles.stepDot, { backgroundColor: c.seleccion }]}>
+              <Text style={[styles.stepNumber, { color: c.sobreSeleccion }]}>{index + 1}</Text>
             </View>
             <View style={styles.stepBody}>
-              <Text style={[styles.stepText, { color: theme.colors.text }]}>{leer(step.purpose)}</Text>
+              <Text style={[styles.stepText, { color: c.tinta }]}>{leer(step.purpose)}</Text>
               {(() => {
                 const estimate = pricing?.steps.find((s) => s.stepId === step.id);
                 if (!estimate) return null;
                 const detail = stepDetail(estimate, t, leer);
                 return (
-                  <Text style={[styles.stepMeta, { color: theme.colors.textSecondary }]}>
+                  <Text style={[styles.stepMeta, { color: c.tintaSecundaria }]}>
                     {detail ? `${detail} · ` : ''}
                     {estimate.credits} Credits
                     {estimate.volumeDiscount ? ` · ${t('weeai.volumeDiscount', { descuento: estimate.volumeDiscount })}` : ''}
@@ -109,7 +111,7 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, experienceId, plan,
 
       {!!pricing?.options && pricing.options.length > 1 && (
         <View style={styles.quality}>
-          <TextoEnMayusculas style={[styles.qualityTitle, { color: theme.colors.textSecondary }]}>{t('weeai.quality')}</TextoEnMayusculas>
+          <TextoEnMayusculas style={[styles.qualityTitle, { color: c.tintaSecundaria }]}>{t('weeai.quality')}</TextoEnMayusculas>
           <View style={styles.qualityRow}>
             {pricing.options.map((option) => {
               const active = (quality || pricing.options?.[0]?.quality) === option.quality;
@@ -122,13 +124,11 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, experienceId, plan,
                   accessibilityLabel={t('weeai.optionCredits', { nombre: nivel(option), credits: option.credits })}
                   style={[
                     styles.qualityChip,
-                    { borderColor: active ? theme.colors.accentDark : theme.colors.border },
-                    active && { backgroundColor: theme.colors.accent },
+                    { backgroundColor: active ? c.seleccion : c.superficieAlta },
                   ]}
                 >
-                  <RellenoDeMarca radio={BORDER_RADIUS.md} apagada={!active} />
-                  <Text style={[styles.qualityLabel, { color: active ? "#1F2937" : theme.colors.text }]}>{nivel(option)}</Text>
-                  <Text style={[styles.qualityCredits, { color: active ? "#1F2937" : theme.colors.textSecondary }]}>{option.credits} Credits</Text>
+                  <Text style={[styles.qualityLabel, { color: active ? c.sobreSeleccion : c.tinta }]}>{nivel(option)}</Text>
+                  <Text style={[styles.qualityCredits, { color: active ? c.sobreSeleccion : c.tintaSecundaria }]}>{option.credits} Credits</Text>
                 </TouchableOpacity>
               );
             })}
@@ -137,11 +137,13 @@ const PlanCard: React.FC<PlanCardProps> = ({ experienceName, experienceId, plan,
       )}
 
       <View style={styles.footer}>
-        <Text style={[styles.cost, { color: theme.colors.textSecondary }]}>💳 {costLabel}</Text>
-        {!!costHint && <Text style={[styles.costHint, { color: theme.colors.textSecondary }]}>{costHint}</Text>}
+        <Text style={[styles.cost, { color: c.tintaSecundaria }]}>💳 {costLabel}</Text>
+        {!!costHint && <Text style={[styles.costHint, { color: c.tintaSecundaria }]}>{costHint}</Text>}
+        {/* Nada se retiene hasta pulsar «Crear»: salir ahora no gasta Credits (la reserva se hace al ejecutar). */}
+        {creditsEstimated > 0 && <Text style={[styles.costHint, { color: c.tintaSecundaria }]}>{t('weeai.notChargedYet')}</Text>}
         <View style={styles.actions}>
           <TouchableOpacity onPress={onChange} disabled={busy} activeOpacity={0.7} style={styles.linkButton}>
-            <Text style={[styles.linkText, { color: theme.colors.accentDark }]}>{t('weeai.changeSomething')}</Text>
+            <Text style={[styles.linkText, { color: c.tinta }]}>{t('weeai.changeSomething')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={onCreate}
@@ -163,7 +165,6 @@ const styles = StyleSheet.create({
   card: {
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
     gap: SPACING.md,
   },
   who: {
@@ -220,7 +221,6 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.xs,
     paddingHorizontal: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
     alignItems: 'center',
     gap: 1,
   },

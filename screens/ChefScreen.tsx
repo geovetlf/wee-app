@@ -1,10 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { useEstiloWeeAi } from '../hooks/useEstiloWeeAi';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
 import { TituloDeCreator, useColumnaDeCreator } from '../components/creator/PiezasDeCreator';
@@ -65,6 +66,7 @@ const SITIO_DE_LA_BARRA = scale(96);
  */
 const ChefScreen: React.FC = () => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const { t, formato } = useIdioma();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
@@ -332,7 +334,7 @@ const ChefScreen: React.FC = () => {
                 <View style={styles.fichas}>
                   {!!foto && (
                     <TouchableOpacity
-                      style={[styles.ficha, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+                      style={[styles.ficha, { backgroundColor: c.superficieAlta, borderColor: c.superficieAlta }]}
                       onPress={() => setFoto(null)}
                       activeOpacity={0.7}
                       accessibilityRole="button"
@@ -361,12 +363,12 @@ const ChefScreen: React.FC = () => {
                       accessibilityLabel={t(clave)}
                     >
                       <Text
-                        style={[styles.fichaTexto, styles.fichaPuesta, { color: theme.colors.accentDark }]}
+                        style={[styles.fichaTexto, styles.fichaPuesta, { color: c.tinta }]}
                         numberOfLines={1}
                       >
                         {t(clave)}
                       </Text>
-                      <Ionicons name="close" size={scale(14)} color={theme.colors.accentDark} />
+                      <Ionicons name="close" size={scale(14)} color={c.tinta} />
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -441,7 +443,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs + scale(2),
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: StyleSheet.hairlineWidth,
     maxWidth: scale(200),
   },
   fichaTexto: { fontSize: FONT_SIZE.xs, flexShrink: 1 },
@@ -454,4 +455,4 @@ const styles = StyleSheet.create({
  * WeëChef es de la CUENTA, como el resto del taller: se ve claro lleves puesto
  * el Perfil Real o el Perfil Weë.
  */
-export default enTemaClaro(ChefScreen);
+export default enTemaOscuro(ChefScreen);

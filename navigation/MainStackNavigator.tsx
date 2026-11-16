@@ -32,6 +32,7 @@ import BoostCampaignScreen from '../screens/BoostCampaignScreen';
 import CreditStoreScreen from '../screens/CreditStoreScreen';
 import WalletScreen from '../screens/WalletScreen';
 import WeeCreatorScreen from '../screens/WeeCreatorScreen';
+import CrearVideoScreen from '../screens/CrearVideoScreen';
 import SavedPostsScreen from '../screens/SavedPostsScreen';
 import WeePagesScreen from '../screens/WeePagesScreen';
 import WeePageScreen from '../screens/WeePageScreen';
@@ -87,6 +88,8 @@ export type MainStackParamList = {
   /** El lugar y la zona que ya trae el compositor, para poder enseñarlos y quitarlos. */
   AgregarUbicacion: { place?: PostPlace; ubicacion?: UbicacionPublica } | undefined;
   WeeCreator: { category?: string } | undefined;
+  /* «Crear video» con personajes (solo interfaz, datos locales y de muestra). */
+  CrearVideo: undefined;
   SavedPosts: undefined;
   /* WeëPages: crear y gestionar las Páginas de la cuenta; editPageId abre una para editar. */
   WeePages: { editPageId?: string } | undefined;
@@ -381,6 +384,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="CreditStore" component={CreditStoreScreen} />
       <Stack.Screen name="Wallet" component={WalletScreen} />
       <Stack.Screen name="WeeCreator" component={WeeCreatorScreen} />
+      <Stack.Screen name="CrearVideo" component={CrearVideoScreen} />
       <Stack.Screen name="AgregarUbicacion" component={AgregarUbicacionScreen} />
       <Stack.Screen name="SavedPosts" component={SavedPostsScreen} />
       <Stack.Screen name="WeePages" component={WeePagesScreen} />

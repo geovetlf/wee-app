@@ -10,6 +10,7 @@ import { AccionDeBusiness } from '../../constants/businessModules';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import { RellenoDeMarca } from '../GradienteDeMarca';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -25,6 +26,7 @@ export const CabeceraDelModulo: React.FC<{ nombre: string; pista: string; onVolv
   nombre, pista, onVolver,
 }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
   const pro = useEnEspacioProfesional();
   if (pro) return <CabeceraDeSeccionPro nombre={nombre} pista={pista} onVolver={onVolver} />;
@@ -54,6 +56,7 @@ export const Bloque: React.FC<{ titulo: string; pista?: string; derecha?: React.
   titulo, pista, derecha, children,
 }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const pro = useEnEspacioProfesional();
   return (
     <View style={[styles.bloque, pro && styles.bloquePro]}>
@@ -78,9 +81,10 @@ export const Bloque: React.FC<{ titulo: string; pista?: string; derecha?: React.
  */
 export const Vacio: React.FC<{ texto: string; pista?: string }> = ({ texto, pista }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const pro = useEnEspacioProfesional();
   return (
-    <View style={[styles.vacio, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface }, pro && styles.radioPro]}>
+    <View style={[styles.vacio, { borderColor: c.superficieAlta, backgroundColor: c.superficieAlta }, pro && styles.radioPro]}>
       <Text style={[styles.vacioTexto, { color: theme.colors.text }]}>{texto}</Text>
       {!!pista && <Text style={[styles.vacioPista, { color: theme.colors.textSecondary }]}>{pista}</Text>}
     </View>
@@ -99,16 +103,17 @@ export const ListaDeAcciones: React.FC<{
   onElegir: (accion: AccionDeBusiness) => void;
 }> = ({ acciones, onElegir }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
   const pro = useEnEspacioProfesional();
   return (
-    <View style={[styles.lista, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }, pro && styles.radioPro]}>
+    <View style={[styles.lista, { backgroundColor: c.superficie, borderColor: c.superficieAlta }, pro && styles.radioPro]}>
       {acciones.map((accion, i) => (
         <TouchableOpacity
           key={accion.id}
           onPress={() => onElegir(accion)}
           activeOpacity={0.75}
-          style={[styles.fila, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.colors.border }]}
+          style={[styles.fila, i > 0 && { borderTopWidth: 0, borderTopColor: c.superficieAlta }]}
           accessibilityRole="button"
           accessibilityLabel={t(accion.claveTitulo)}
         >
@@ -134,6 +139,7 @@ export const Pastilla: React.FC<{
   onPress: () => void;
 }> = ({ etiqueta, icono, puesta, onPress }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const pro = useEnEspacioProfesional();
   return (
     <TouchableOpacity
@@ -143,8 +149,7 @@ export const Pastilla: React.FC<{
         styles.pastilla,
         pro && styles.pastillaPro,
         {
-          backgroundColor: puesta ? theme.colors.glow : theme.colors.card,
-          borderColor: puesta ? theme.colors.accent : theme.colors.border,
+          backgroundColor: puesta ? theme.colors.glow : c.superficie,
         },
         isWeb && ({ cursor: 'pointer' } as any),
       ]}
@@ -152,9 +157,9 @@ export const Pastilla: React.FC<{
       accessibilityState={{ selected: !!puesta }}
       accessibilityLabel={etiqueta}
     >
-      {!!icono && <Ionicons name={icono as any} size={scale(15)} color={puesta ? theme.colors.accentDark : theme.colors.text} />}
+      {!!icono && <Ionicons name={icono as any} size={scale(15)} color={puesta ? c.tinta : theme.colors.text} />}
       <Text
-        style={[styles.pastillaTexto, { color: puesta ? theme.colors.accentDark : theme.colors.text }, puesta && styles.pastillaPuesta]}
+        style={[styles.pastillaTexto, { color: puesta ? c.tinta : theme.colors.text }, puesta && styles.pastillaPuesta]}
         numberOfLines={1}
       >
         {etiqueta}
@@ -168,6 +173,7 @@ export const BotonPrincipal: React.FC<{ etiqueta: string; icono?: string; onPres
   etiqueta, icono, onPress,
 }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const pro = useEnEspacioProfesional();
   return (
     <TouchableOpacity
@@ -203,14 +209,12 @@ const styles = StyleSheet.create({
   vacio: {
     padding: SPACING.lg,
     borderRadius: scale(20),
-    borderWidth: StyleSheet.hairlineWidth,
     gap: SPACING.xs,
   },
   vacioTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold },
   vacioPista: { fontSize: FONT_SIZE.xs, lineHeight: scale(17) },
   lista: {
     borderRadius: scale(20),
-    borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
   },
   fila: {
@@ -231,7 +235,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     minHeight: 40,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   pastillaTexto: { fontSize: FONT_SIZE.sm },
   pastillaPuesta: { fontWeight: FONT_WEIGHT.semibold },

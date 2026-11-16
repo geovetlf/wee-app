@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useBrainChat } from '../hooks/useBrainChat';
@@ -15,7 +15,7 @@ import { BrainMessage } from '../services/brainService';
 import CreatorShell from '../components/creator/CreatorShell';
 import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
 import CabeceraDeWeeBrain from '../components/brain/CabeceraDeWeeBrain';
-import SistemaDeWeeBrain, { EstadoDelCerebro, CEREBRO_DE_WEE } from '../components/brain/SistemaDeWeeBrain';
+import { CEREBRO_DE_WEE } from '../components/brain/SistemaDeWeeBrain';
 import CajaDePrompt from '../components/creator/CajaDePrompt';
 import AjustesContextuales from '../components/creator/AjustesContextuales';
 import { GrupoDeAjustes } from '../constants/ajustesContextuales';
@@ -24,29 +24,8 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { useWallet } from '../hooks/useWallet';
 import { scale } from '../utils/scale';
 import { notify } from '../utils/notify';
+import { useEstiloWeeAi } from '../hooks/useEstiloWeeAi';
 
-/*
- * El saludo vive en el diccionario, no aquí: una constante de módulo se evalúa
- * una sola vez, al cargar el archivo, y se quedaría con el idioma de ese
- * instante. Se resuelve al pintar, con `t('weeai.brainGreeting')`.
- */
-
-/**
- * EL DORADO DE LO QUE ESCRIBE LA PERSONA (decisión del usuario, 2026-09-16).
- *
- * Antes la burbuja era el amarillo de Weë al 20 % —un crema muy pálido— y se
- * confundía con el fondo. Ahora es dorado de verdad: cálido, luminoso y suave.
- * Ni naranja ni chillón.
- *
- * El número sale de medir la referencia que dio el usuario: allí la burbuja es
- * un degradado de `#FEEC91` a `#FBC131`, y este es su tono medio. Se pinta
- * plano y no en degradado a propósito: es un color, no una pieza nueva.
- *
- * Vive aquí y no en el tema porque es de esta conversación y de ninguna otra:
- * el amarillo de la marca —`theme.colors.accent`— no se toca, y las burbujas de
- * Weë Brain se quedan como están.
- */
-const DORADO_DE_QUIEN_ESCRIBE = '#FBD45A';
 
 /**
  * LO ÚNICO QUE SE AJUSTA EN WEË BRAIN: SI BUSCA EN INTERNET O NO.
@@ -125,6 +104,7 @@ const horaDelMensaje = (marca: any): Date | null => {
  */
 const BrainChatScreen: React.FC = () => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const { t, formato } = useIdioma();
   const navigation = useNavigation<any>();
   const { isDesktop } = useResponsive();
@@ -249,7 +229,6 @@ const BrainChatScreen: React.FC = () => {
    * Tocar un satélite abre esa sección, por la misma puerta que el menú ☰ y la
    * barra lateral: `Specialist` con su identificador. No hay ruta nueva.
    */
-  const irASatelite = (exp: WeeExperience) => navigation.navigate('Specialist', { id: exp.id });
 
   /*
    * UNA BURBUJA, Y LO QUE VA DEBAJO (decisión del usuario, 2026-09-16).
@@ -273,14 +252,14 @@ const BrainChatScreen: React.FC = () => {
               <Image source={CEREBRO_DE_WEE} style={styles.avatarDibujo} contentFit="contain" transition={0} accessible={false} />
             </View>
           )}
-          <View style={[styles.bubble, mia ? styles.bubbleMia : { backgroundColor: theme.colors.surface }]}>
+          <View style={[styles.bubble, { backgroundColor: mia ? c.seleccion : c.superficie }]}>
             {!!bubble.imageUrl && <Image source={{ uri: bubble.imageUrl }} style={styles.bubbleImage} contentFit="cover" />}
-            <Text selectable style={[styles.bubbleText, { color: theme.colors.text }]}>{bubble.text}</Text>
+            <Text selectable style={[styles.bubbleText, { color: mia ? c.sobreSeleccion : c.tinta }]}>{bubble.text}</Text>
             {!!bubble.sources?.length && (
               <View style={styles.sources}>
                 {bubble.sources.map((source) => (
-                  <TouchableOpacity key={source.url} onPress={() => Linking.openURL(source.url)} activeOpacity={0.7} style={[styles.source, { backgroundColor: theme.colors.card }]} accessibilityLabel={source.title || source.url}>
-                    <Ionicons name="link-outline" size={scale(12)} color={theme.colors.accentDark} />
+                  <TouchableOpacity key={source.url} onPress={() => Linking.openURL(source.url)} activeOpacity={0.7} style={[styles.source, { backgroundColor: c.superficie }]} accessibilityLabel={source.title || source.url}>
+                    <Ionicons name="link-outline" size={scale(12)} color={c.tinta} />
                     <Text style={[styles.sourceText, { color: theme.colors.textSecondary }]} numberOfLines={1}>{source.title || source.url}</Text>
                   </TouchableOpacity>
                 ))}
@@ -297,7 +276,7 @@ const BrainChatScreen: React.FC = () => {
               <Ionicons
                 name={bubble.contestado ? 'checkmark-done' : 'checkmark'}
                 size={scale(15)}
-                color={bubble.contestado ? theme.colors.accentDark : theme.colors.textSecondary}
+                color={bubble.contestado ? c.tinta : theme.colors.textSecondary}
               />
             )}
           </View>
@@ -315,7 +294,6 @@ const BrainChatScreen: React.FC = () => {
    * chat ya expone. El día que Weë Brain tenga su orquestador, aquí entrará su
    * estado real y el dibujo no cambia (CLAUDE.md §10).
    */
-  const estadoDelCerebro: EstadoDelCerebro = chat.error ? 'tropiezo' : chat.busy ? 'pensando' : 'quieto';
 
   /* El aire que mete el marco, para que la fila de atajos llegue a los bordes. */
   const aireDelMarco = isDesktop ? SPACING.xl : SPACING.lg;
@@ -435,7 +413,7 @@ const BrainChatScreen: React.FC = () => {
   );
 
   return (
-    <CreatorShell activeId="brain" overline="🤖 Weë AI" title="🧠 Weë Brain" breadcrumb="Weë AI" contentStyle={styles.content} sinFranjaSuperior pie={compositor} seguirAlFinal={`${bubbles.length}:${chat.busy}`}>
+    <CreatorShell activeId="brain" overline="🤖 Weë AI" title="Brain" breadcrumb="Weë AI" contentStyle={styles.content} sinFranjaSuperior pie={compositor} seguirAlFinal={`${bubbles.length}:${chat.busy}`}>
       <CabeceraDeWeeBrain />
 
       {/*
@@ -453,7 +431,7 @@ const BrainChatScreen: React.FC = () => {
         retomando el hilo de las últimas 24 horas —eso no se toca—; lo que ya no
         hace es decidir por dónde se entra.
       */}
-      <SistemaDeWeeBrain estado={estadoDelCerebro} onSatelite={irASatelite} />
+      {/* Sin la órbita del cerebro ni las seis experiencias: Weë Brain empieza limpio. Las experiencias se abren desde la portada de WeëAI. */}
 
       {/*
         LOS ATAJOS, EN UNA FILA.
@@ -477,15 +455,13 @@ const BrainChatScreen: React.FC = () => {
             style={[
               styles.atajo,
               {
-                backgroundColor: theme.colors.card,
-                borderColor: action.idk ? theme.colors.accent : theme.colors.border,
-                borderStyle: action.idk ? 'dashed' : 'solid',
+                backgroundColor: c.superficie,
               },
             ]}
             accessibilityRole="button"
             accessibilityLabel={action.title}
           >
-            <Ionicons name={action.icon as any} size={scale(17)} color={theme.colors.accentDark} />
+            <Ionicons name={action.icon as any} size={scale(17)} color={c.tinta} />
             <Text style={[styles.atajoTexto, { color: theme.colors.text }]} numberOfLines={1}>{action.title}</Text>
           </TouchableOpacity>
         ))}
@@ -512,7 +488,7 @@ const BrainChatScreen: React.FC = () => {
               <View style={styles.avatar}>
                 <Image source={CEREBRO_DE_WEE} style={styles.avatarDibujo} contentFit="contain" transition={0} accessible={false} />
               </View>
-              <View style={[styles.bubble, { backgroundColor: theme.colors.surface }]}>
+              <View style={[styles.bubble, { backgroundColor: c.superficieAlta }]}>
                 {/*
                   Weë deriva por identificador —el servidor sigue mandando `home`—
                   pero ofrece el nombre con el que esa experiencia se presenta hoy:
@@ -534,7 +510,7 @@ const BrainChatScreen: React.FC = () => {
               <View style={styles.avatar}>
                 <Image source={CEREBRO_DE_WEE} style={styles.avatarDibujo} contentFit="contain" transition={0} accessible={false} />
               </View>
-              <View style={[styles.bubble, { backgroundColor: theme.colors.surface }]}>
+              <View style={[styles.bubble, { backgroundColor: c.superficieAlta }]}>
                 <Text style={[styles.bubbleText, { color: theme.colors.text, fontWeight: FONT_WEIGHT.bold }]}>{t('weeai.notEnoughCredits')}</Text>
                 <Text style={[styles.bubbleText, { color: theme.colors.textSecondary }]}>
                   {t('weeai.creditsAndCost', {
@@ -554,7 +530,7 @@ const BrainChatScreen: React.FC = () => {
               <View style={styles.avatar}>
                 <Image source={CEREBRO_DE_WEE} style={styles.avatarDibujo} contentFit="contain" transition={0} accessible={false} />
               </View>
-              <View style={[styles.bubble, { backgroundColor: theme.colors.surface }]}>
+              <View style={[styles.bubble, { backgroundColor: c.superficieAlta }]}>
                 <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{chat.error}</Text>
                 <View style={styles.chipRow}>
                   <Chip label={t('weeai.tryAgain')} active onPress={retry} />
@@ -632,9 +608,6 @@ const styles = StyleSheet.create({
     borderRadius: scale(20),
     gap: SPACING.sm,
   },
-  bubbleMia: {
-    backgroundColor: DORADO_DE_QUIEN_ESCRIBE,
-  },
   /* La hora, y el acuse en lo tuyo. Pequeño y gris: está, pero no habla. */
   pieDelMensaje: {
     flexDirection: 'row',
@@ -705,7 +678,6 @@ const styles = StyleSheet.create({
     height: scale(42),
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   atajoTexto: {
     fontSize: FONT_SIZE.sm,
@@ -741,4 +713,4 @@ const styles = StyleSheet.create({
  * Weë AI es de la cuenta, no de un perfil: el taller se ve claro con el Perfil
  * Real y con el Perfil Weë. Lo de fuera —el cajón incluido— no se toca.
  */
-export default enTemaClaro(BrainChatScreen);
+export default enTemaOscuro(BrainChatScreen);

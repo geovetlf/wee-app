@@ -10,11 +10,12 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from '../components/icons/IconoDeTrazo';
 import IconoDireccional from '../components/IconoDireccional';
+
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
@@ -107,6 +108,8 @@ const MAX_AI_AVATAR_GENERATIONS = 2;
 
 const AiAvatarScreen: React.FC = () => {
   const { theme } = useTheme();
+  /* Monocromo (2026-11-16): la tinta del tema (#0A0A0A / #FAFAFA) dice el estado activo; el dorado→naranja queda para la acción principal. */
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
   const { t, formato } = useIdioma();
   const { user } = useAuth();
   const { userProfile, updateLocalProfile } = useUserProfile();
@@ -541,10 +544,10 @@ const AiAvatarScreen: React.FC = () => {
           <View
             style={[
               styles.existingAvatarPlaceholder,
-              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+              { backgroundColor: theme.colors.surface, borderColor: 'transparent' },
             ]}
           >
-            <Ionicons name="person-outline" size={scale(80)} color={theme.colors.textSecondary} />
+            <IconoDeTrazo name="person-outline" size={scale(80)} color={theme.colors.textSecondary} />
             <Text style={[styles.placeholderLabel, { color: theme.colors.textSecondary }]}>
               {t('aiAvatar.currentAvatar')}
             </Text>
@@ -568,16 +571,16 @@ const AiAvatarScreen: React.FC = () => {
             onPress={() => userProfile?.aiAvatarPortraitUrl && pickImageForSwap(true, userProfile.aiAvatarPortraitUrl)}
           >
             <RellenoDeMarca radio={BORDER_RADIUS.md} />
-            <Ionicons name="camera" size={scale(22)} color="#1F2937" />
+            <IconoDeTrazo name="camera" size={scale(22)} color="#1F2937" />
             <Text style={styles.swapButtonText}>{t('aiAvatar.takePhoto')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.swapButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1 }]}
+            style={[styles.swapButton, { backgroundColor: theme.colors.surface, borderColor: 'transparent', borderWidth: 1 }]}
             activeOpacity={0.8}
             onPress={() => userProfile?.aiAvatarPortraitUrl && pickImageForSwap(false, userProfile.aiAvatarPortraitUrl)}
           >
-            <Ionicons name="images" size={scale(22)} color={theme.colors.accent} />
-            <Text style={[styles.swapButtonText, { color: theme.colors.accent }]}>{t('aiAvatar.gallery')}</Text>
+            <IconoDeTrazo name="images" size={scale(22)} color={tinta} />
+            <Text style={[styles.swapButtonText, { color: tinta }]}>{t('aiAvatar.gallery')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -605,7 +608,7 @@ const AiAvatarScreen: React.FC = () => {
               activeOpacity={0.8}
             >
               <RellenoDeMarca radio={BORDER_RADIUS.md} />
-              <Ionicons name="checkmark-circle" size={scale(18)} color="#1F2937" />
+              <IconoDeTrazo name="checkmark-circle" size={scale(18)} color="#1F2937" />
               <Text style={styles.primaryButtonText}>{t('aiAvatar.useAsProfilePhoto')}</Text>
             </TouchableOpacity>
           </View>
@@ -613,11 +616,11 @@ const AiAvatarScreen: React.FC = () => {
       </View>
 
       <TouchableOpacity
-        style={[styles.secondaryButton, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, marginTop: SPACING.lg }]}
+        style={[styles.secondaryButton, { borderColor: 'transparent', backgroundColor: theme.colors.surface, marginTop: SPACING.lg }]}
         activeOpacity={0.7}
         onPress={handleUploadAvatar}
       >
-        <Ionicons name="image-outline" size={scale(18)} color={theme.colors.text} />
+        <IconoDeTrazo name="image-outline" size={scale(18)} color={theme.colors.text} />
         <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>{t('aiAvatar.uploadAnotherPhoto')}</Text>
       </TouchableOpacity>
 
@@ -631,7 +634,7 @@ const AiAvatarScreen: React.FC = () => {
         activeOpacity={0.7}
         onPress={handleStartRegenerate}
       >
-        <Ionicons name="refresh" size={scale(18)} color={hasReachedLimit ? theme.colors.textSecondary : theme.colors.text} />
+        <IconoDeTrazo name="refresh" size={scale(18)} color={hasReachedLimit ? theme.colors.textSecondary : theme.colors.text} />
         <Text style={[styles.secondaryButtonText, { color: hasReachedLimit ? theme.colors.textSecondary : theme.colors.text }]}>
           {hasReachedLimit
             ? t('aiAvatar.limitReachedCount', { usadas: generationCount, maximo: MAX_AI_AVATAR_GENERATIONS })
@@ -650,7 +653,7 @@ const AiAvatarScreen: React.FC = () => {
     >
       {/* Disclaimer banner */}
       <View style={[styles.disclaimerBanner, { backgroundColor: theme.colors.accent + '15', borderColor: theme.colors.accent + '30' }]}>
-        <Ionicons name="information-circle-outline" size={scale(20)} color={theme.colors.accent} />
+        <IconoDeTrazo name="information-circle-outline" size={scale(20)} color={tinta} />
         <View style={{ flex: 1 }}>
           <Text style={[styles.disclaimerText, { color: theme.colors.text }]}>
             {t('aiAvatar.intro')}
@@ -667,11 +670,11 @@ const AiAvatarScreen: React.FC = () => {
       {/* Upload custom photo option */}
       {!generated && (
         <TouchableOpacity
-          style={[styles.secondaryButton, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, marginBottom: SPACING.xxl }]}
+          style={[styles.secondaryButton, { borderColor: 'transparent', backgroundColor: theme.colors.surface, marginBottom: SPACING.xxl }]}
           activeOpacity={0.7}
           onPress={handleUploadAvatar}
         >
-          <Ionicons name="image-outline" size={scale(18)} color={theme.colors.text} />
+          <IconoDeTrazo name="image-outline" size={scale(18)} color={theme.colors.text} />
           <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>{t('aiAvatar.uploadPhotoAsAvatar')}</Text>
         </TouchableOpacity>
       )}
@@ -824,8 +827,8 @@ const AiAvatarScreen: React.FC = () => {
 
               {/* Back link */}
               <TouchableOpacity style={styles.backLink} onPress={() => setStep(1)} activeOpacity={0.7}>
-                <IconoDireccional name="arrow-back" size={scale(16)} color={theme.colors.accent} />
-                <Text style={[styles.backLinkText, { color: theme.colors.accent }]}>{t('aiAvatar.previousStep')}</Text>
+                <IconoDireccional name="arrow-back" size={scale(16)} color={tinta} />
+                <Text style={[styles.backLinkText, { color: tinta }]}>{t('aiAvatar.previousStep')}</Text>
               </TouchableOpacity>
 
               {/* Costo antes de generar: Weë nunca cobra sin decir cuánto */}
@@ -851,7 +854,7 @@ const AiAvatarScreen: React.FC = () => {
                   : t('aiAvatar.generateForCredits', { credits: formato.numero(avatarCost) })}
               >
                 <RellenoDeMarca radio={BORDER_RADIUS.md} apagada={!canGenerate} />
-                <Ionicons name="sparkles" size={scale(18)} color={canGenerate ? '#1F2937' : theme.colors.textSecondary} />
+                <IconoDeTrazo name="sparkles" size={scale(18)} color={canGenerate ? '#1F2937' : theme.colors.textSecondary} />
                 <Text style={[styles.primaryButtonText, { color: canGenerate ? '#1F2937' : theme.colors.textSecondary }]}>
                   {avatarCost === null
                     ? t('weeai.calculatingTheCost')
@@ -891,16 +894,16 @@ const AiAvatarScreen: React.FC = () => {
                   onPress={() => generatedAvatarUrl && pickImageForSwap(true, generatedAvatarUrl)}
                 >
                   <RellenoDeMarca radio={BORDER_RADIUS.md} />
-                  <Ionicons name="camera" size={scale(22)} color="#1F2937" />
+                  <IconoDeTrazo name="camera" size={scale(22)} color="#1F2937" />
                   <Text style={styles.swapButtonText}>{t('aiAvatar.takePhoto')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.swapButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, borderWidth: 1 }]}
+                  style={[styles.swapButton, { backgroundColor: theme.colors.surface, borderColor: 'transparent', borderWidth: 1 }]}
                   activeOpacity={0.8}
                   onPress={() => generatedAvatarUrl && pickImageForSwap(false, generatedAvatarUrl)}
                 >
-                  <Ionicons name="images" size={scale(22)} color={theme.colors.accent} />
-                  <Text style={[styles.swapButtonText, { color: theme.colors.accent }]}>{t('aiAvatar.gallery')}</Text>
+                  <IconoDeTrazo name="images" size={scale(22)} color={tinta} />
+                  <Text style={[styles.swapButtonText, { color: tinta }]}>{t('aiAvatar.gallery')}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -921,8 +924,8 @@ const AiAvatarScreen: React.FC = () => {
                 onPress={handleRegenerate}
                 activeOpacity={0.7}
               >
-                <Ionicons name="refresh" size={scale(16)} color={theme.colors.accent} />
-                <Text style={[styles.backLinkText, { color: theme.colors.accent }]}>{t('aiAvatar.regenerate')}</Text>
+                <IconoDeTrazo name="refresh" size={scale(16)} color={tinta} />
+                <Text style={[styles.backLinkText, { color: tinta }]}>{t('aiAvatar.regenerate')}</Text>
               </TouchableOpacity>
             </>
           ) : (
@@ -947,31 +950,31 @@ const AiAvatarScreen: React.FC = () => {
                 activeOpacity={0.8}
               >
                 <RellenoDeMarca radio={BORDER_RADIUS.md} />
-                <Ionicons name="checkmark-circle" size={scale(18)} color="#1F2937" />
+                <IconoDeTrazo name="checkmark-circle" size={scale(18)} color="#1F2937" />
                 <Text style={styles.primaryButtonText}>{t('aiAvatar.useAsProfilePhoto')}</Text>
               </TouchableOpacity>
 
               <View style={[styles.previewActions, { marginTop: SPACING.md }]}>
                 <TouchableOpacity
-                  style={[styles.secondaryButton, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, flex: 1 }]}
+                  style={[styles.secondaryButton, { borderColor: 'transparent', backgroundColor: theme.colors.surface, flex: 1 }]}
                   onPress={() => {
                     setSwapResultUrl(null);
                     if (generatedAvatarUrl) pickImageForSwap(true, generatedAvatarUrl);
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="camera" size={scale(16)} color={theme.colors.text} />
+                  <IconoDeTrazo name="camera" size={scale(16)} color={theme.colors.text} />
                   <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>{t('aiAvatar.anotherPhoto')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.secondaryButton, { borderColor: theme.colors.border, backgroundColor: theme.colors.surface, flex: 1 }]}
+                  style={[styles.secondaryButton, { borderColor: 'transparent', backgroundColor: theme.colors.surface, flex: 1 }]}
                   onPress={() => {
                     setSwapResultUrl(null);
                     handleRegenerate();
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="refresh" size={scale(16)} color={theme.colors.text} />
+                  <IconoDeTrazo name="refresh" size={scale(16)} color={theme.colors.text} />
                   <Text style={[styles.secondaryButtonText, { color: theme.colors.text }]}>{t('aiAvatar.newAvatar')}</Text>
                 </TouchableOpacity>
               </View>
@@ -985,7 +988,7 @@ const AiAvatarScreen: React.FC = () => {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+      <View style={[styles.header, { borderBottomColor: 'transparent' }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <IconoDireccional name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
@@ -999,7 +1002,7 @@ const AiAvatarScreen: React.FC = () => {
       {loading && (
         <View style={styles.loadingOverlay}>
           <View style={[styles.loadingBox, { backgroundColor: theme.colors.surface }]}>
-            <ActivityIndicator size="large" color={theme.colors.accent} />
+            <ActivityIndicator size="large" color={tinta} />
             <Text style={[styles.loadingText, { color: theme.colors.text }]}>
               {loadingMessage}
             </Text>
@@ -1020,7 +1023,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
-    borderBottomWidth: 0.5,
   },
   backButton: {
     width: scale(40),
@@ -1051,7 +1053,6 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
     marginBottom: SPACING.xxl,
   },
   disclaimerText: {
@@ -1116,7 +1117,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
   },
   chipText: {
     fontSize: FONT_SIZE.sm,
@@ -1162,7 +1162,6 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.lg,
     paddingHorizontal: SPACING.xl,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
   },
   secondaryButtonText: {
     fontSize: FONT_SIZE.base,
@@ -1314,4 +1313,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AiAvatarScreen;
+export default enTemaOscuro(AiAvatarScreen);

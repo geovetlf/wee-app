@@ -10,6 +10,7 @@ import DateRangePicker from './DateRangePicker';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import TextoEnMayusculas from '../TextoEnMayusculas';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 export interface QaHistoryItem {
   question: string;
@@ -41,6 +42,7 @@ interface GuidedQuestionProps {
  */
 const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experienceId, goal, history, question, busy, onAnswer, hideThinking }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
   const pro = useEnEspacioProfesional();
   const [escrito, setEscrito] = useState('');
@@ -53,8 +55,8 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
     <View style={styles.container}>
       {/* Lo que la persona pidió */}
       <View style={styles.bubbleRow}>
-        <View style={[styles.bubbleUser, { backgroundColor: theme.colors.accent + '33' }]}>
-          <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{goal}</Text>
+        <View style={[styles.bubbleUser, { backgroundColor: c.seleccion }]}>
+          <Text style={[styles.bubbleText, { color: c.sobreSeleccion }]}>{goal}</Text>
         </View>
       </View>
 
@@ -62,14 +64,14 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
       {history.map((item, index) => (
         <View key={`${index}-${item.question}`}>
           <View style={styles.bubbleRowLeft}>
-            <TextoEnMayusculas style={[styles.bubbleWho, { color: theme.colors.textSecondary }]}>{experienceName}</TextoEnMayusculas>
-            <View style={[styles.bubbleWee, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-              <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{item.question}</Text>
+            <TextoEnMayusculas style={[styles.bubbleWho, { color: c.tintaSecundaria }]}>{experienceName}</TextoEnMayusculas>
+            <View style={[styles.bubbleWee, { backgroundColor: c.superficie }]}>
+              <Text style={[styles.bubbleText, { color: c.tinta }]}>{item.question}</Text>
             </View>
           </View>
           <View style={styles.bubbleRow}>
-            <View style={[styles.bubbleUser, { backgroundColor: theme.colors.accent + '33' }]}>
-              <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{item.answer}</Text>
+            <View style={[styles.bubbleUser, { backgroundColor: c.seleccion }]}>
+              <Text style={[styles.bubbleText, { color: c.sobreSeleccion }]}>{item.answer}</Text>
             </View>
           </View>
         </View>
@@ -78,8 +80,8 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
       {/* Pregunta actual */}
       {question ? (
         <View style={styles.current}>
-          <TextoEnMayusculas style={[styles.bubbleWho, { color: theme.colors.textSecondary }]}>{experienceName}</TextoEnMayusculas>
-          <Text style={[styles.questionText, { color: theme.colors.text }]}>{pregunta}</Text>
+          <TextoEnMayusculas style={[styles.bubbleWho, { color: c.tintaSecundaria }]}>{experienceName}</TextoEnMayusculas>
+          <Text style={[styles.questionText, { color: c.tinta }]}>{pregunta}</Text>
           {question.kind === 'dates' ? (
             /*
              * El calendario devuelve la frase que cualquiera escribiría —"del 12
@@ -115,9 +117,7 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
                   style={[
                     styles.option,
                     {
-                      backgroundColor: theme.colors.card,
-                      borderColor: isIdk ? theme.colors.accent : theme.colors.border,
-                      borderStyle: isIdk ? 'dashed' : 'solid',
+                      backgroundColor: c.superficie,
                     },
                   ]}
                   onPress={() => onAnswer(option.id)}
@@ -125,7 +125,7 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
                   activeOpacity={0.8}
                   accessibilityLabel={etiqueta(option)}
                 >
-                  <Text style={[styles.optionText, { color: theme.colors.text }]}>{etiqueta(option)}</Text>
+                  <Text style={[styles.optionText, { color: c.tinta }]}>{etiqueta(option)}</Text>
                 </TouchableOpacity>
               );
             })}
@@ -134,15 +134,15 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
         </View>
       ) : hideThinking ? null : (
         <View style={styles.thinking}>
-          <ActivityIndicator color={theme.colors.accent} />
-          <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>{t('weeai.nameThinking', { nombre: experienceName })}</Text>
+          <ActivityIndicator color={c.tintaSecundaria} />
+          <Text style={[styles.thinkingText, { color: c.tintaSecundaria }]}>{t('weeai.nameThinking', { nombre: experienceName })}</Text>
         </View>
       )}
 
       {busy && question && (
         <View style={styles.thinking}>
-          <ActivityIndicator color={theme.colors.accent} />
-          <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>{t('weeai.oneMoment')}</Text>
+          <ActivityIndicator color={c.tintaSecundaria} />
+          <Text style={[styles.thinkingText, { color: c.tintaSecundaria }]}>{t('weeai.oneMoment')}</Text>
         </View>
       )}
     </View>
@@ -173,7 +173,6 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.lg,
     borderTopLeftRadius: BORDER_RADIUS.sm,
-    borderWidth: 1,
   },
   bubbleUser: {
     alignSelf: 'flex-end',
@@ -205,7 +204,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
     justifyContent: 'center',
   },
   optionText: {

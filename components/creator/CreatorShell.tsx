@@ -21,6 +21,7 @@ import { PaginaDeCajas, CajaAnclada, AIRE_DE_LA_CAJA } from './CajaQueCrece';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import { useScrollDeBarra } from '../../hooks/useScrollDeBarra';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 interface CreatorShellProps {
   /** Qué elemento de la barra lateral se marca como activo ('creator', 'brain', 'photo'…). */
@@ -39,6 +40,8 @@ interface CreatorShellProps {
   onBack?: () => void;
   children: React.ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
+  /** Tirar para refrescar (solo móvil nativo): lo que la pantalla quiera recargar. */
+  refreshControl?: React.ReactElement<any>;
   /**
    * En el teléfono, sin la franja de arriba (flecha de volver y nombre): la
    * sección se presenta sola con su cabecera —logo, nombre y lema—, que es lo
@@ -107,8 +110,9 @@ const ALTO_MINIMO_DE_LA_CAJA = scale(150);
  * Escritorio: barra lateral con los especialistas + barra superior (buscar,
  * notificaciones, perfil) + contenido ancho. Móvil: cabecera compacta + contenido.
  */
-const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, mark, breadcrumb = 'Weë AI', onBack, children, contentStyle, sinFranjaSuperior, pie, seguirAlFinal }) => {
+const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, mark, breadcrumb = 'Weë AI', onBack, children, contentStyle, refreshControl, sinFranjaSuperior, pie, seguirAlFinal }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
   /* Solo hace falta con pie anclado: cuánto mide la zona donde se escribe. */
   const [altoDeEscritura, setAltoDeEscritura] = useState(0);
@@ -200,13 +204,13 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
         {!sinFranjaSuperior && (
-        <View style={[styles.mobileHeader, { borderBottomColor: theme.colors.border }]}>
+        <View style={[styles.mobileHeader, { borderBottomColor: c.superficieAlta }]}>
           <TouchableOpacity onPress={back} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
             <IconoDireccional name="arrow-back" size={scale(23)} color={theme.colors.text} />
           </TouchableOpacity>
           {mark}
           <View style={styles.headerTitles}>
-            {!!overline && <Text style={[styles.overline, { color: theme.colors.accentDark }]}>{overline}</Text>}
+            {!!overline && <Text style={[styles.overline, { color: c.tinta }]}>{overline}</Text>}
             <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={1}>{title}</Text>
           </View>
           {/*
@@ -270,7 +274,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
               </CajaAnclada>
             </View>
           ) : (
-            <PaginaDeCajas contentContainerStyle={[styles.mobileContent, contentStyle, columnaPro]} keyboardShouldPersistTaps="handled" {...scrollDeBarra}>
+            <PaginaDeCajas contentContainerStyle={[styles.mobileContent, contentStyle, columnaPro]} keyboardShouldPersistTaps="handled" refreshControl={refreshControl} {...scrollDeBarra}>
               {/*
                 Si la franja de arriba se ve, el saldo ya está ahí y la cabecera de
                 la sección —si la hay— no lo repite. Sin franja, lo enseña ella.
@@ -284,10 +288,10 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
   }
 
   return (
-    <View style={[styles.desktop, { backgroundColor: enProfesional ? theme.colors.background : theme.colors.surface }]}>
+    <View style={[styles.desktop, { backgroundColor: enProfesional ? theme.colors.background : c.superficieAlta }]}>
       {!enProfesional && <CreatorSidebar activeId={activeId} />}
       <View style={styles.main}>
-        {!enProfesional && <View style={[styles.topBar, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
+        {!enProfesional && <View style={[styles.topBar, { backgroundColor: theme.colors.background, borderBottomColor: c.superficieAlta }]}>
           <TouchableOpacity onPress={back} style={styles.breadcrumb} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
             <IconoDireccional name="arrow-back" size={scale(20)} color={theme.colors.text} />
             <Text style={[styles.breadcrumbText, { color: theme.colors.text }]}>{breadcrumb}</Text>
@@ -299,7 +303,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
           */}
           {!!mark && (
             <View style={styles.identity}>
-              <View style={[styles.identityBar, { backgroundColor: theme.colors.border }]} />
+              <View style={[styles.identityBar, { backgroundColor: c.superficieAlta }]} />
               {mark}
               <Text style={[styles.identityText, { color: theme.colors.text }]} numberOfLines={1}>{title}</Text>
             </View>
@@ -311,11 +315,11 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
             el mismo número dos veces en el mismo golpe de vista.
           */}
           <View style={styles.topActions}>
-            <TouchableOpacity onPress={goSearch} activeOpacity={0.7} style={[styles.search, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} accessibilityLabel={t('weeai.searchLabel')}>
+            <TouchableOpacity onPress={goSearch} activeOpacity={0.7} style={[styles.search, { backgroundColor: c.superficieAlta, borderColor: c.superficieAlta }]} accessibilityLabel={t('weeai.searchLabel')}>
               <Ionicons name="search-outline" size={scale(16)} color={theme.colors.textSecondary} />
               <Text style={[styles.searchText, { color: theme.colors.textSecondary }]}>{t('weeai.searchInWee')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={goNotifications} activeOpacity={0.7} style={[styles.iconButton, { borderColor: theme.colors.border }]} accessibilityLabel={t('weeai.notifications')}>
+            <TouchableOpacity onPress={goNotifications} activeOpacity={0.7} style={[styles.iconButton, { borderColor: c.superficieAlta }]} accessibilityLabel={t('weeai.notifications')}>
               <Ionicons name="notifications-outline" size={scale(20)} color={theme.colors.text} />
             </TouchableOpacity>
             <TouchableOpacity onPress={goProfile} activeOpacity={0.7} accessibilityLabel={t('weeai.myProfile')}>
@@ -330,7 +334,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
                   showBorder={false}
                 />
               ) : (
-                <View style={[styles.iconButton, { borderColor: theme.colors.border }]}>
+                <View style={[styles.iconButton, { borderColor: c.superficieAlta }]}>
                   <Ionicons name="person-outline" size={scale(20)} color={theme.colors.text} />
                 </View>
               )}
@@ -364,7 +368,6 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   /*
    * 44 de verdad, sin `scale()`: el factor de web lo dejaba en 39,6 y volver
@@ -431,7 +434,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.xl,
     height: scale(64),
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   breadcrumb: {
     flexDirection: 'row',
@@ -480,7 +482,6 @@ const styles = StyleSheet.create({
     height: scale(40),
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
   },
   searchText: {
     fontSize: FONT_SIZE.sm,
@@ -489,7 +490,6 @@ const styles = StyleSheet.create({
     width: scale(40),
     height: scale(40),
     borderRadius: scale(20),
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

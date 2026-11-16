@@ -4,6 +4,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useIdioma } from '../../contexts/IdiomaContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -37,6 +38,7 @@ const numero = (texto: string): number => {
  */
 const BusinessPricing: React.FC = () => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const { t, formato } = useIdioma();
 
   const [valores, setValores] = useState<Record<string, string>>({});
@@ -53,7 +55,7 @@ const BusinessPricing: React.FC = () => {
   const campo = (id: string, etiqueta: string, valor: string, alCambiar: (v: string) => void, sufijo?: string) => (
     <View key={id} style={styles.campo}>
       <Text style={[styles.etiqueta, { color: theme.colors.textSecondary }]}>{etiqueta}</Text>
-      <View style={[styles.entrada, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+      <View style={[styles.entrada, { backgroundColor: c.superficieAlta, borderColor: c.superficieAlta }]}>
         <TextInput
           value={valor}
           onChangeText={alCambiar}
@@ -76,13 +78,13 @@ const BusinessPricing: React.FC = () => {
   );
 
   return (
-    <View style={[styles.caja, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+    <View style={[styles.caja, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}>
       <View style={styles.campos}>
         {COSTES.map((c) => campo(c.id, t(c.clave), valores[c.id] ?? '', (v) => setValores((antes) => ({ ...antes, [c.id]: v }))))}
         {campo('margin', t('business.pricingMargin'), margen, setMargen, '%')}
       </View>
 
-      <View style={[styles.resultados, { borderTopColor: theme.colors.border }]}>
+      <View style={[styles.resultados, { borderTopColor: c.superficieAlta }]}>
         {resultado('business.pricingCost', formato.numero(Math.round(cuentas.coste)))}
         {resultado('business.pricingSuggested', formato.numero(Math.round(cuentas.precio)), true)}
         {resultado('business.pricingMarginResult', formato.porcentaje(cuentas.margen))}
@@ -97,7 +99,6 @@ const BusinessPricing: React.FC = () => {
 const styles = StyleSheet.create({
   caja: {
     borderRadius: scale(20),
-    borderWidth: StyleSheet.hairlineWidth,
     padding: SPACING.lg,
     gap: SPACING.lg,
   },
@@ -111,11 +112,10 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   texto: { flex: 1, fontSize: FONT_SIZE.base },
   sufijo: { fontSize: FONT_SIZE.sm },
-  resultados: { gap: SPACING.sm, paddingTop: SPACING.lg, borderTopWidth: StyleSheet.hairlineWidth },
+  resultados: { gap: SPACING.sm, paddingTop: SPACING.lg, borderTopWidth: 0 },
   resultado: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: SPACING.md },
   resultadoEtiqueta: { fontSize: FONT_SIZE.sm },
   resultadoValor: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.medium },

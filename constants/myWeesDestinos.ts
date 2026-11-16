@@ -10,7 +10,9 @@
  * destino sin su ruta allí no compila.
  */
 import { NombreDeIcono } from '../components/icons/trazosDeWee';
-import { ExperienciaDeMyWees, FuncionDeMyWees } from '../utils/myWees';
+import { AccesoDeMyWees, ExperienciaDeMyWees, FuncionDeMyWees } from '../utils/myWees';
+import { getExperienceById } from './weeExperiences';
+import type { Traductor } from '../i18n/traducir';
 
 /**
  * LOS NOMBRES VISIBLES DE LAS EXPERIENCIAS (decisión del dueño, 2026-11-15).
@@ -61,3 +63,26 @@ export const FUNCIONES_ANADIBLES: FuncionAnadible[] = [
   { id: 'messages', icono: 'weetalk', clave: 'nav.messages' },
   { id: 'credits', icono: 'credits', clave: 'menu.credits' },
 ];
+
+/**
+ * Nombre, icono y grupo de un acceso, resueltos al pintar (la pantalla MyWeës y el desplegable del ☰ usan esta misma).
+ * Lo que es marca no se traduce; lo que escribió una persona (el nombre de una página o de un proyecto), tampoco.
+ * `nombreVivo` es el nombre leído ahora del destino, si quien pinta lo tiene; si no, el guardado.
+ */
+export const pintarAcceso = (
+  a: AccesoDeMyWees,
+  t: Traductor,
+  nombreLista: string,
+  nombreVivo?: string,
+): { nombre: string; icono: NombreDeIcono; detalle: string } => {
+  if (a.tipo === 'experiencia') {
+    const exp = getExperienceById(a.ref);
+    return { nombre: nombreVisibleDeExperiencia(a.ref, exp?.name ?? a.ref), icono: (exp?.icono as NombreDeIcono) ?? 'capas', detalle: t('mywees.groupExperiences') };
+  }
+  if (a.tipo === 'funcion') {
+    const fn = FUNCIONES_ANADIBLES.find((f) => f.id === a.ref);
+    return { nombre: fn?.clave ? t(fn.clave) : nombreLista, icono: fn?.icono ?? 'capas', detalle: t('mywees.groupFeatures') };
+  }
+  const nombre = nombreVivo || a.titulo || t('common.notAvailable');
+  return a.tipo === 'pagina' ? { nombre, icono: 'documento', detalle: t('menu.pages') } : { nombre, icono: 'carpeta', detalle: t('menu.projectsTitle') };
+};

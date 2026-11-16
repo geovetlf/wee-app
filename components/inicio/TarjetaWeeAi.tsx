@@ -55,7 +55,7 @@ interface Props {
 const isWeb = Platform.OS === 'web';
 
 /** Quien prefiere menos movimiento lo dice en el sistema; en la web, por `prefers-reduced-motion`. */
-const usePrefiereQuietud = (): boolean => {
+export const usePrefiereQuietud = (): boolean => {
   const [quieto, setQuieto] = useState(() => {
     if (!isWeb || typeof window === 'undefined' || !window.matchMedia) return false;
     try {
@@ -129,7 +129,11 @@ const TarjetaWeeAi: React.FC<Props> = ({ variante, onOpenWeeAi, onOpenBrain }) =
   const titulo = (grande: boolean) => (
     <View style={styles.titulo}>
       {/* WeëAI es marca: se escribe igual en todos los idiomas. Grande, pesado y apretado, con su chispa a la altura de la x. */}
-      <Text style={[grande ? styles.nombre : styles.nombreDeMenu, { color: arte.titulo }]} numberOfLines={1}>{t('nav.weeAi')}</Text>
+      {/* «WeëAI»: «Weë» en el color del título y «AI» en dorado. Es marca, igual en todos los idiomas. */}
+      <Text style={[grande ? styles.nombre : styles.nombreDeMenu, { color: arte.titulo }]} numberOfLines={1}>
+        {t('nav.weeAi').replace(/AI$/, '')}
+        <Text style={{ color: arte.acentoDelTitulo }}>{t('nav.weeAi').endsWith('AI') ? 'AI' : ''}</Text>
+      </Text>
       <Ionicons name="sparkles" size={scale(grande ? 20 : 15)} color={arte.chispa} style={grande ? styles.chispaDelNombre : undefined} />
     </View>
   );
@@ -155,13 +159,13 @@ const TarjetaWeeAi: React.FC<Props> = ({ variante, onOpenWeeAi, onOpenBrain }) =
                   <Image source={{ uri: uriDeLasOndas(arte) }} style={StyleSheet.absoluteFill} contentFit="fill" transition={0} accessible={false} />
                 </Animated.View>
                 {/* El racimo de chispas: una grande y dos pequeñas, en violeta. */}
-                <Ionicons name="sparkles-outline" size={scale(30)} color={theme.colors.interaction} style={dir.espejo} />
+                <Ionicons name="sparkles-outline" size={scale(30)} color={arte.chispa} style={dir.espejo} />
                 <View style={styles.textos}>
                   {titulo(false)}
                   <Text style={[styles.lemaDeMenu, dir.texto, { color: arte.lema }]} numberOfLines={3}>{t('menu.weeAiTagline')}</Text>
                 </View>
                 <View style={[styles.botonDeMenu, { backgroundColor: arte.chip, borderColor: theme.colors.interactionBorder }, sombraDeBoton, { shadowColor: arte.sombra, shadowOpacity: 0.18 }]}>
-                  <IconoDireccional name="arrow-forward" size={scale(17)} color={theme.colors.interaction} />
+                  <IconoDireccional name="arrow-forward" size={scale(17)} color={arte.iconoDelChip} />
                 </View>
               </View>
             </>
@@ -194,6 +198,7 @@ const TarjetaWeeAi: React.FC<Props> = ({ variante, onOpenWeeAi, onOpenBrain }) =
             onPress={onOpenBrain}
             accessibilityRole="button"
             accessibilityLabel={t('home.openBrain')}
+            hitSlop={4}
             style={({ pressed, focused }: { pressed: boolean; focused?: boolean }) => [
               styles.chip,
               { backgroundColor: arte.chip, borderColor: 'transparent' },
@@ -203,8 +208,8 @@ const TarjetaWeeAi: React.FC<Props> = ({ variante, onOpenWeeAi, onOpenBrain }) =
               focused && aroDeFoco,
             ]}
           >
-            <IconoWee name="cerebro" size={scale(19)} color={theme.colors.interaction} />
-            <Text style={[styles.chipTexto, { color: arte.titulo }]} numberOfLines={1}>{NOMBRE_CORTO_DE_BRAIN}</Text>
+            <IconoWee name="cerebro" size={scale(18)} color={arte.iconoDelChip} />
+            <Text style={[styles.chipTexto, { color: arte.textoDelChip }]} numberOfLines={1}>{NOMBRE_CORTO_DE_BRAIN}</Text>
           </Pressable>
         </View>
 
@@ -222,13 +227,13 @@ const TarjetaWeeAi: React.FC<Props> = ({ variante, onOpenWeeAi, onOpenBrain }) =
           {({ pressed, focused }: { pressed: boolean; focused?: boolean }) => (
             <>
               <RellenoDeDegradado colores={arte.bordeDegradado} radio={BORDER_RADIUS.full} espejo={dir.esRTL} />
-              <View style={[styles.puertaInterior, { backgroundColor: arte.superficie }, focused && aroDeFoco]}>
+              <View style={[styles.puertaInterior, { backgroundColor: arte.puerta }, focused && aroDeFoco]}>
                 <Ionicons name="sparkles" size={scale(18)} color={arte.chispa} />
-                <Text style={[styles.pregunta, dir.texto, { color: arte.lema }]} numberOfLines={2}>{t('nav.weeAiQuestion')}</Text>
-                <Ionicons name="image-outline" size={scale(20)} color={arte.titulo} style={styles.iconoDeLaPuerta} />
-                <Ionicons name="videocam-outline" size={scale(21)} color={arte.titulo} style={styles.iconoDeLaPuerta} />
+                <Text style={[styles.pregunta, dir.texto, { color: arte.textoDeLaPuerta }]} numberOfLines={2}>{t('nav.weeAiQuestion')}</Text>
+                <Ionicons name="image-outline" size={scale(20)} color={arte.iconosDeLaPuerta} style={styles.iconoDeLaPuerta} />
+                <Ionicons name="videocam-outline" size={scale(21)} color={arte.iconosDeLaPuerta} style={styles.iconoDeLaPuerta} />
                 <View style={[styles.enviar, sombraDeBoton, pressed && styles.hundido]}>
-                  <RellenoDeDegradado colores={arte.accion} radio={scale(19)} diagonal espejo={dir.esRTL} />
+                  <RellenoDeDegradado colores={arte.accion} radio={scale(17)} diagonal espejo={dir.esRTL} />
                   <IconoDireccional name="arrow-forward" size={scale(19)} color={arte.sobreAccion} />
                 </View>
               </View>
@@ -255,10 +260,11 @@ const styles = StyleSheet.create({
     borderRadius: ARTE_WEEAI.radioDeTarjeta,
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
+    /* Más bajo que antes (encargo del dueño): menos relleno vertical y menos hueco; la caja sigue entera. */
     paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.lg,
-    paddingBottom: SPACING.lg,
-    gap: SPACING.md,
+    paddingTop: SPACING.md,
+    paddingBottom: SPACING.md,
+    gap: SPACING.xs + 2,
   },
   cabecera: {
     flexDirection: 'row',
@@ -277,8 +283,8 @@ const styles = StyleSheet.create({
   },
   /* Grande, pesado y apretado. Es marca en alfabeto latino: el espaciado negativo no rompe ninguna escritura. */
   nombre: {
-    fontSize: scale(29),
-    lineHeight: scale(34),
+    fontSize: scale(23),
+    lineHeight: scale(27),
     fontWeight: FONT_WEIGHT.bold,
     letterSpacing: scale(-0.9),
     flexShrink: 1,
@@ -293,8 +299,8 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   lema: {
-    fontSize: FONT_SIZE.sm,
-    lineHeight: scale(19),
+    fontSize: FONT_SIZE.xs + 1,
+    lineHeight: scale(17),
   },
   lemaDeMenu: {
     fontSize: FONT_SIZE.xs,
@@ -304,7 +310,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: scale(6),
-    minHeight: 44,
+    minHeight: 36,
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.full,
     borderWidth: 2,
@@ -323,7 +329,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
-    minHeight: scale(50),
+    minHeight: scale(40),
     paddingStart: SPACING.md,
     paddingEnd: scale(6),
     borderRadius: BORDER_RADIUS.full,
@@ -337,9 +343,9 @@ const styles = StyleSheet.create({
     opacity: 0.78,
   },
   enviar: {
-    width: scale(38),
-    height: scale(38),
-    borderRadius: scale(19),
+    width: scale(34),
+    height: scale(34),
+    borderRadius: scale(17),
     alignItems: 'center',
     justifyContent: 'center',
   },

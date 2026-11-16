@@ -63,6 +63,33 @@ export interface WeeExperience {
 }
 
 /**
+ * QUÉ SE VE EN LA PORTADA DE WEËAI (decisión del dueño, 2026-11-15). Es una BANDERA: ni se borra ninguna experiencia ni se
+ * cambia ningún id (viajan al servidor y están dentro de los trabajos ya guardados). Lo que cambia es dónde se ofrecen.
+ *
+ *  · `puertas`: lo que se abre desde la portada, con su id de siempre. Video = `studio`, Imagen = `design` y Moda =
+ *    `business` (el id de WeëFashion no se movió). Sus nombres visibles salen de claves de i18n, no de `name`.
+ *  · `plantillas`: pasa a ser una categoría del muro de plantillas, no una puerta (WeëChef → «Comida»).
+ *  · `apagadas`: sin puerta en la portada hasta nuevo aviso (WeëTravel).
+ *  · `ocultas`: no se ofrecen (WeëMusic).
+ */
+export const PORTADA_DE_WEEAI = {
+  puertas: ['studio', 'design', 'business'],
+  plantillas: ['chef'],
+  apagadas: ['travel'],
+  ocultas: ['music'],
+} as const;
+
+/**
+ * LA UI DE WEËMUSIC (decisión del dueño, 2026-11-15): «Añadir música» en el flujo de Video y la entrada WeëMusic en
+ * Herramientas. APAGADA POR DEFECTO: hoy no se ve nada de Música en la app de la gente, ni «Pronto». Es solo interfaz: no hay
+ * proveedor musical, así que la acción de crear dice «no disponible todavía» y no simula resultados.
+ *
+ * Para revisarla en el entorno de pruebas se enciende al arrancar la web o Metro:
+ *     EXPO_PUBLIC_WEEMUSIC_UI=1
+ */
+export const MUSICA_EN_LA_UI: boolean = process.env.EXPO_PUBLIC_WEEMUSIC_UI === '1';
+
+/**
  * Todas, sin excepción. Es la lista con la que se resuelve un identificador:
  * un trabajo de hace meses tiene que seguir abriéndose con su nombre y su emoji.
  */
@@ -378,3 +405,4 @@ export const matchExperiences = (query: string, idioma?: string): WeeExperience[
       !!suyas?.[e.id]?.some((k) => encajaEnSuIdioma(k, q, words))
   );
 };
+

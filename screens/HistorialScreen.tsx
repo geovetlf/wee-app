@@ -15,6 +15,7 @@ import { getExperienceById, experienceLabel } from '../constants/weeExperiences'
 import { nombreVisibleDeExperiencia } from '../constants/myWeesDestinos';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { useEstiloWeeAi } from '../hooks/useEstiloWeeAi';
 
 /**
  * Cuántos trabajos se piden. Es la MISMA consulta que hace la portada de WeëAI
@@ -50,6 +51,7 @@ const fechaDe = (valor: unknown): number | null => {
  */
 const HistorialScreen: React.FC = () => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const { t, formato } = useIdioma();
   const dir = useDireccion();
   const { user } = useAuth();
@@ -99,7 +101,7 @@ const HistorialScreen: React.FC = () => {
     const objetivo = textoDeObjetivo(t, job.experienceId, job.goal);
     return (
       <TouchableOpacity
-        style={[styles.fila, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+        style={[styles.fila, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}
         onPress={() => abrir(job)}
         activeOpacity={0.8}
         accessibilityRole="button"
@@ -166,7 +168,7 @@ const HistorialScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.contenedor, dir.contenedor, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+      <View style={[styles.header, { borderBottomColor: c.superficieAlta }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.volver} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={t('common.back')}>
           <IconoDireccional name="arrow-back" size={scale(23)} color={theme.colors.text} />
         </TouchableOpacity>
@@ -217,7 +219,6 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   volver: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   titulos: { flex: 1, minWidth: 0 },
@@ -233,7 +234,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   filaIcono: { width: scale(40), height: scale(40), borderRadius: scale(12), alignItems: 'center', justifyContent: 'center' },
   filaTextos: { flex: 1, minWidth: 0, gap: scale(2) },

@@ -16,8 +16,7 @@ import { useIdentidadActiva } from '../hooks/useEContact';
 import { useMyWees } from '../hooks/useMyWees';
 import { pagesService } from '../services/pagesService';
 import { projectsService } from '../services/projectsService';
-import { getExperienceById } from '../constants/weeExperiences';
-import { FUNCIONES_ANADIBLES, nombreVisibleDeExperiencia } from '../constants/myWeesDestinos';
+import { pintarAcceso } from '../constants/myWeesDestinos';
 import { NombreDeIcono } from '../components/icons/trazosDeWee';
 import { AccesoDeMyWees, destinoDeAcceso } from '../utils/myWees';
 import { confirmAction } from '../utils/notify';
@@ -106,20 +105,8 @@ const MyWeesScreen: React.FC = () => {
   }, [porComprobar]);
 
   /** Nombre e icono de un acceso, resueltos al pintar. Lo que es marca no se traduce; lo que escribió una persona, tampoco. */
-  const pintar = (a: AccesoDeMyWees): { nombre: string; icono?: NombreDeIcono; detalle: string } => {
-    if (a.tipo === 'experiencia') {
-      const exp = getExperienceById(a.ref);
-      return { nombre: nombreVisibleDeExperiencia(a.ref, exp?.name ?? a.ref), icono: exp?.icono ?? 'capas', detalle: t('mywees.groupExperiences') };
-    }
-    if (a.tipo === 'funcion') {
-      const fn = FUNCIONES_ANADIBLES.find((f) => f.id === a.ref);
-      return { nombre: fn?.clave ? t(fn.clave) : nombreLista, icono: fn?.icono ?? 'capas', detalle: t('mywees.groupFeatures') };
-    }
-    const nombre = estados[a.id]?.nombre || a.titulo || t('common.notAvailable');
-    return a.tipo === 'pagina'
-      ? { nombre, icono: 'documento', detalle: t('menu.pages') }
-      : { nombre, icono: 'carpeta', detalle: t('menu.projectsTitle') };
-  };
+  const pintar = (a: AccesoDeMyWees): { nombre: string; icono?: NombreDeIcono; detalle: string } =>
+    pintarAcceso(a, t, nombreLista, estados[a.id]?.nombre);
 
   const abrir = (a: AccesoDeMyWees) => {
     const destino = destinoDeAcceso(a);

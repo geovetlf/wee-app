@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from '../../components/icons/IconoDeTrazo';
 import IconoDireccional from '../IconoDireccional';
 import { RellenoDeMarca } from '../GradienteDeMarca';
 import { useT } from '../../contexts/IdiomaContext';
@@ -26,12 +26,12 @@ import { FONT_WEIGHT } from '../../constants/design';
 
 /* ── La tarjeta informativa lavanda ─────────────────────────────────────── */
 
-export const TarjetaDeAviso: React.FC<{ titulo?: string; texto?: string; icono?: keyof typeof Ionicons.glyphMap }> = ({ titulo, texto, icono = 'sparkles-outline' }) => {
+export const TarjetaDeAviso: React.FC<{ titulo?: string; texto?: string; icono?: string }> = ({ titulo, texto, icono = 'sparkles-outline' }) => {
   const dir = useDireccion();
   return (
     <View style={styles.aviso}>
       <View style={styles.avisoIcono}>
-        <Ionicons name={icono} size={22} color={P.morado} />
+        <IconoDeTrazo name={icono} size={22} color={P.morado} />
       </View>
       <View style={styles.avisoTextos}>
         {!!titulo && <Text style={[styles.avisoTitulo, dir.texto]}>{titulo}</Text>}
@@ -43,7 +43,7 @@ export const TarjetaDeAviso: React.FC<{ titulo?: string; texto?: string; icono?:
 
 /* ── Un filtro: contorno; elegido, degradado morado con texto blanco ────── */
 
-export const ChipDeFiltro: React.FC<{ texto: string; activo: boolean; onPress: () => void; icono?: keyof typeof Ionicons.glyphMap }> = ({ texto, activo, onPress, icono }) => (
+export const ChipDeFiltro: React.FC<{ texto: string; activo: boolean; onPress: () => void; icono?: string }> = ({ texto, activo, onPress, icono }) => (
   <TouchableOpacity
     onPress={onPress}
     activeOpacity={0.8}
@@ -60,8 +60,8 @@ export const ChipDeFiltro: React.FC<{ texto: string; activo: boolean; onPress: (
         style={[StyleSheet.absoluteFill, { borderRadius: 999 }]}
       />
     )}
-    {!!icono && <Ionicons name={icono} size={16} color={activo ? '#FFFFFF' : P.texto} />}
-    <Text style={[styles.chipTexto, { color: activo ? '#FFFFFF' : P.texto }]}>{texto}</Text>
+    {!!icono && <IconoDeTrazo name={icono} size={16} color={activo ? P.sobreMorado : P.texto} />}
+    <Text style={[styles.chipTexto, { color: activo ? P.sobreMorado : P.texto }]}>{texto}</Text>
   </TouchableOpacity>
 );
 
@@ -93,7 +93,7 @@ export function SelectorDeOrden<T extends string>({ opciones, valor, onChange, e
         accessibilityState={{ expanded: abierto }}
       >
         <Text style={styles.ordenTexto} numberOfLines={1}>{actual.texto}</Text>
-        <Ionicons name={abierto ? 'chevron-up' : 'chevron-down'} size={16} color={P.texto} />
+        <IconoDeTrazo name={abierto ? 'chevron-up' : 'chevron-down'} size={16} color={P.texto} />
       </TouchableOpacity>
       {abierto && (
         <View style={[styles.ordenMenu, dir.alFinal(0)]} accessibilityRole="menu">
@@ -108,7 +108,7 @@ export function SelectorDeOrden<T extends string>({ opciones, valor, onChange, e
                 accessibilityState={{ selected: elegida }}
               >
                 <Text style={[styles.ordenOpcionTexto, { color: elegida ? P.morado : P.texto }, dir.texto]} numberOfLines={1}>{o.texto}</Text>
-                {elegida && <Ionicons name="checkmark" size={16} color={P.morado} />}
+                {elegida && <IconoDeTrazo name="checkmark" size={16} color={P.morado} />}
               </TouchableOpacity>
             );
           })}
@@ -123,7 +123,7 @@ export function SelectorDeOrden<T extends string>({ opciones, valor, onChange, e
 export const BotonPrincipal: React.FC<{
   texto: string;
   onPress: () => void;
-  icono?: keyof typeof Ionicons.glyphMap;
+  icono?: string;
   conFlecha?: boolean;
   disabled?: boolean;
   compacto?: boolean;
@@ -138,7 +138,7 @@ export const BotonPrincipal: React.FC<{
     accessibilityLabel={texto}
   >
     <RellenoDeMarca radio={999} />
-    <Ionicons name={icono} size={compacto ? 16 : 18} color={P.texto} />
+    <IconoDeTrazo name={icono} size={compacto ? 16 : 18} color={P.texto} />
     <Text style={[styles.principalTexto, compacto && { fontSize: 14 }]} numberOfLines={compacto ? 1 : 2}>{texto}</Text>
     {conFlecha && <IconoDireccional name="arrow-forward" size={18} color={P.texto} />}
   </TouchableOpacity>
@@ -146,11 +146,11 @@ export const BotonPrincipal: React.FC<{
 
 /* ── Un botón secundario: contorno, para «cargar más», «reintentar»… ───── */
 
-export const BotonSecundario: React.FC<{ texto: string; onPress: () => void; icono?: keyof typeof Ionicons.glyphMap; disabled?: boolean; children?: React.ReactNode }> = ({ texto, onPress, icono, disabled, children }) => (
+export const BotonSecundario: React.FC<{ texto: string; onPress: () => void; icono?: string; disabled?: boolean; children?: React.ReactNode }> = ({ texto, onPress, icono, disabled, children }) => (
   <TouchableOpacity onPress={onPress} disabled={disabled} activeOpacity={0.8} style={styles.secundario} accessibilityRole="button" accessibilityLabel={texto}>
     {children ?? (
       <>
-        {!!icono && <Ionicons name={icono} size={16} color={P.texto} />}
+        {!!icono && <IconoDeTrazo name={icono} size={16} color={P.texto} />}
         <Text style={styles.secundarioTexto}>{texto}</Text>
       </>
     )}
@@ -162,7 +162,7 @@ export const BotonSecundario: React.FC<{ texto: string; onPress: () => void; ico
 export const VacioDeBiblioteca: React.FC<{
   titulo: string;
   texto?: string;
-  icono?: keyof typeof Ionicons.glyphMap;
+  icono?: string;
   accion?: string;
   onAccion?: () => void;
 }> = ({ titulo, texto, icono = 'image', accion, onAccion }) => (
@@ -175,7 +175,7 @@ export const VacioDeBiblioteca: React.FC<{
         end={P.degradadoIlustracion.fin}
         style={styles.ilustracionDelante}
       >
-        <Ionicons name={icono} size={44} color="#FFFFFF" />
+        <IconoDeTrazo name={icono} size={44} color="#FFFFFF" />
       </LinearGradient>
     </View>
     <Text style={styles.vacioTitulo}>{titulo}</Text>
@@ -191,8 +191,7 @@ const styles = StyleSheet.create({
     gap: 14,
     padding: 18,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: P.bordeLavanda,
+        borderColor: P.bordeLavanda,
     backgroundColor: P.lavandaSuave,
   },
   avisoIcono: {
@@ -231,9 +230,7 @@ const styles = StyleSheet.create({
     height: 40,
     paddingHorizontal: 16,
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: P.borde,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: P.superficie,
     overflow: 'hidden',
   },
   chipActivo: {
@@ -255,9 +252,7 @@ const styles = StyleSheet.create({
     height: 40,
     paddingHorizontal: 16,
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: P.borde,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: P.superficie,
     maxWidth: 220,
   },
   ordenTexto: {
@@ -272,9 +267,7 @@ const styles = StyleSheet.create({
     minWidth: 200,
     padding: 6,
     borderRadius: 16,
-    borderWidth: 1,
-    borderColor: P.borde,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: P.superficie,
     ...SOMBRA_SUAVE,
   },
   ordenOpcion: {
@@ -326,9 +319,7 @@ const styles = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 20,
     borderRadius: 999,
-    borderWidth: 1,
-    borderColor: P.borde,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: P.superficie,
     alignSelf: 'center',
   },
   secundarioTexto: {
@@ -342,9 +333,7 @@ const styles = StyleSheet.create({
     paddingVertical: 36,
     paddingHorizontal: 18,
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: P.borde,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: P.superficie,
   },
   ilustracion: {
     width: 132,

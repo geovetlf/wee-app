@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import CreatorShell from '../components/creator/CreatorShell';
@@ -481,4 +481,4 @@ const styles = StyleSheet.create({
 });
 
 /* Weë AI es de la cuenta, no de un perfil: el taller se ve claro con las dos caras. */
-export default enTemaClaro(Mundo3DScreen);
+export default enTemaOscuro(Mundo3DScreen);

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
 import { EnlaceDeCreaciones, useColumnaDeCreator } from '../components/creator/PiezasDeCreator';
@@ -314,4 +314,4 @@ const styles = StyleSheet.create({
  * WeëDesign es de la CUENTA, como el resto del taller: se ve claro lleves
  * puesto el Perfil Real o el Perfil Weë.
  */
-export default enTemaClaro(DesignScreen);
+export default enTemaOscuro(DesignScreen);

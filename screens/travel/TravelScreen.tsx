@@ -1,6 +1,6 @@
 import React from 'react';
 import { useRoute } from '@react-navigation/native';
-import { enTemaClaro } from '../../contexts/ThemeContext';
+import { enTemaOscuro } from '../../contexts/ThemeContext';
 import { PantallaDeTravel, esPantallaDeTravel } from './rutas';
 import { BuscarScreen, ColeccionScreen, DescubrirScreen } from './Descubrir';
 import { CompararScreen, DestinoScreen, SorpresaScreen } from './Destino';
@@ -40,4 +40,4 @@ const TravelScreen: React.FC = () => {
   return <Pantalla id={id} />;
 };
 
-export default enTemaClaro(TravelScreen);
+export default enTemaOscuro(TravelScreen);

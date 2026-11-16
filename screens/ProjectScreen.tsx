@@ -1,9 +1,10 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Platform, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from '../components/icons/IconoDeTrazo';
 import IconoDireccional from '../components/IconoDireccional';
+
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
 import { useResponsive } from '../hooks/useResponsive';
@@ -60,6 +61,8 @@ const enMilisegundos = (v: any): number | null => {
  */
 const ProjectScreen: React.FC = () => {
   const { theme } = useTheme();
+  /* Monocromo (2026-11-16): la tinta del tema (#0A0A0A / #FAFAFA) dice el estado activo; el dorado→naranja queda para la acción principal. */
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
   const t = useT();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
@@ -138,12 +141,12 @@ const ProjectScreen: React.FC = () => {
   return (
     <CreatorShell activeId="projects" overline={t('weeai.myProjects')} title={title} breadcrumb={t('weeai.myProjects')}>
       {loading ? (
-        <ActivityIndicator color={theme.colors.accent} />
+        <ActivityIndicator color={tinta} />
       ) : !project ? (
         <Text style={[styles.empty, { color: theme.colors.textSecondary }]}>{t('projects.notFound')}</Text>
       ) : (
         <>
-          <View style={[styles.head, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+          <View style={[styles.head, { backgroundColor: theme.colors.card, borderColor: 'transparent' }]}>
             <View style={[styles.headEmoji, { backgroundColor: theme.colors.accent + '33' }]}>
               <Text style={styles.headEmojiText}>{project.emoji}</Text>
             </View>
@@ -151,7 +154,7 @@ const ProjectScreen: React.FC = () => {
               {renaming ? (
                 <View style={styles.renameRow}>
                   <TextInput
-                    style={[styles.renameInput, { color: theme.colors.text, borderColor: theme.colors.border }]}
+                    style={[styles.renameInput, { color: theme.colors.text, borderColor: 'transparent' }]}
                     value={name}
                     onChangeText={setName}
                     onSubmitEditing={saveName}
@@ -172,10 +175,10 @@ const ProjectScreen: React.FC = () => {
               </Text>
             </View>
             <TouchableOpacity onPress={() => setRenaming((v) => !v)} style={styles.iconButton} accessibilityLabel={t('projects.rename')}>
-              <Ionicons name="pencil-outline" size={scale(18)} color={theme.colors.textSecondary} />
+              <IconoDeTrazo name="pencil-outline" size={scale(18)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
             <TouchableOpacity onPress={remove} style={styles.iconButton} accessibilityLabel={t('projects.deleteProject')}>
-              <Ionicons name="trash-outline" size={scale(18)} color={theme.colors.textSecondary} />
+              <IconoDeTrazo name="trash-outline" size={scale(18)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -193,10 +196,10 @@ const ProjectScreen: React.FC = () => {
                     key={job.id}
                     onPress={() => navigation.navigate('CreatorFlow', { experienceId: job.experienceId, jobId: job.id })}
                     activeOpacity={0.8}
-                    style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                    style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: 'transparent' }]}
                   >
                     <View style={[styles.jobIcon, { backgroundColor: theme.colors.accent + '26' }]}>
-                      <Ionicons name={(KIND_ICON[job.experienceId] || 'sparkles-outline') as any} size={scale(18)} color={theme.colors.accentDark} />
+                      <IconoDeTrazo name={(KIND_ICON[job.experienceId] || 'sparkles-outline') as any} size={scale(18)} color={tinta} />
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{textoDeObjetivo(t, job.experienceId, job.goal)}</Text>
@@ -259,7 +262,7 @@ const ProjectScreen: React.FC = () => {
                         accessibilityLabel={t('weeai.projectName')}
                       />
                       <TouchableOpacity onPress={saveName} style={[styles.appIcono, { backgroundColor: P.morado }]} accessibilityRole="button" accessibilityLabel={t('projects.saveName')}>
-                        <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+                        <IconoDeTrazo name="checkmark" size={20} color={P.sobreMorado} />
                       </TouchableOpacity>
                     </View>
                   ) : (
@@ -279,11 +282,11 @@ const ProjectScreen: React.FC = () => {
                   accessibilityRole="button"
                   accessibilityLabel={t('projects.rename')}
                 >
-                  <Ionicons name="pencil-outline" size={16} color={renaming ? P.morado : P.texto} />
+                  <IconoDeTrazo name="pencil-outline" size={16} color={renaming ? P.morado : P.texto} />
                   <Text style={[styles.appAccionTexto, renaming && { color: P.morado }]}>{t('projects.rename')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={remove} style={styles.appAccion} accessibilityRole="button" accessibilityLabel={t('projects.deleteProject')}>
-                  <Ionicons name="trash-outline" size={16} color={P.error} />
+                  <IconoDeTrazo name="trash-outline" size={16} color={P.error} />
                   <Text style={[styles.appAccionTexto, { color: P.error }]}>{t('projects.deleteProject')}</Text>
                 </TouchableOpacity>
               </View>
@@ -318,7 +321,7 @@ const ProjectScreen: React.FC = () => {
                               <Image source={{ uri: portada }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" recyclingKey={job.id} transition={150} />
                             ) : (
                               <View style={styles.appTrabajoIcono}>
-                                <Ionicons name={(KIND_ICON[job.experienceId] || 'sparkles-outline') as any} size={28} color={P.morado} />
+                                <IconoDeTrazo name={(KIND_ICON[job.experienceId] || 'sparkles-outline') as any} size={28} color={P.morado} />
                               </View>
                             )}
                           </View>
@@ -345,26 +348,25 @@ const ProjectScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   app: { gap: 22, width: '100%', maxWidth: 1080, alignSelf: 'center' },
-  appFicha: { gap: 16, padding: 18, borderRadius: 22, borderWidth: 1, borderColor: P.borde, backgroundColor: '#FFFFFF' },
+  appFicha: { gap: 16, padding: 18, borderRadius: 22, borderWidth: 0, backgroundColor: P.superficie },
   appFichaFila: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   appFichaEmoji: { width: 60, height: 60, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: P.lavanda },
   appFichaEmojiTexto: { fontSize: 30 },
   appFichaNombre: { color: P.texto, fontSize: 20, lineHeight: 26, fontWeight: FONT_WEIGHT.bold },
   appMeta: { color: P.textoSuave, fontSize: 13, lineHeight: 18 },
   appCampo: {
-    flex: 1, minWidth: 0, height: 42, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, borderColor: P.borde,
-    backgroundColor: '#FFFFFF', fontSize: 15, color: P.texto,
+    flex: 1, minWidth: 0, height: 42, paddingHorizontal: 16, borderRadius: 999, borderWidth: 0,
+    backgroundColor: P.superficie, fontSize: 15, color: P.texto,
   },
   appIcono: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   appAcciones: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
   appAccion: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 999,
-    borderWidth: 1, borderColor: P.borde, backgroundColor: '#FFFFFF',
+    flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 999, borderColor: P.borde, backgroundColor: P.superficie,
   },
   appAccionTexto: { color: P.texto, fontSize: 14, fontWeight: FONT_WEIGHT.semibold },
   appSeccionTitulo: { color: P.texto, fontSize: 20, fontWeight: FONT_WEIGHT.bold, letterSpacing: -0.3 },
   appRejilla: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -6 },
-  appTrabajo: { borderRadius: 20, borderWidth: 1, borderColor: P.borde, backgroundColor: '#FFFFFF', overflow: 'hidden' },
+  appTrabajo: { borderRadius: 20, borderWidth: 0, backgroundColor: P.superficie, overflow: 'hidden' },
   appTrabajoMedia: { aspectRatio: 1.25, width: '100%', backgroundColor: P.lavandaSuave, alignItems: 'center', justifyContent: 'center' },
   appTrabajoIcono: { width: 60, height: 60, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: P.lavanda },
   appTrabajoPie: { padding: 12, gap: 4 },
@@ -375,7 +377,6 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
   },
   headEmoji: {
     width: scale(52),
@@ -404,7 +405,6 @@ const styles = StyleSheet.create({
     height: scale(38),
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
     fontSize: FONT_SIZE.sm,
   },
   smallButton: {
@@ -438,7 +438,6 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
   },
   jobIcon: {
     width: scale(36),
@@ -461,4 +460,4 @@ const styles = StyleSheet.create({
  * Weë AI es de la cuenta, no de un perfil: el taller se ve claro con el Perfil
  * Real y con el Perfil Weë. Lo de fuera —el cajón incluido— no se toca.
  */
-export default enTemaClaro(ProjectScreen);
+export default enTemaOscuro(ProjectScreen);

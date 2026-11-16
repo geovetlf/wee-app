@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Linking, ActivityIndicator } from 'react-native';
 import { Image } from 'expo-image';
 import { Audio, ResizeMode, Video } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ import { descargarCreacion } from '../../services/assetDownload';
 import { notify } from '../../utils/notify';
 import { TarjetaTresD } from './TarjetaTresD';
 import { RellenoDeMarca } from '../GradienteDeMarca';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 /** Forma de onda decorativa del reproductor. */
 const WAVE = [8, 14, 20, 12, 26, 18, 10, 22, 16, 28, 12, 20, 9, 24, 14, 18, 26, 11, 17, 22, 13, 19, 8, 15];
@@ -100,6 +101,7 @@ export const partirEnDias = (
 /** El texto de un resultado: entero, o por días cuando es un itinerario. */
 const TextoDelResultado: React.FC<{ texto: string }> = ({ texto: crudo }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const { t, formato, locale } = useIdioma();
   /* Sin las marcas de la máquina y con las del texto en el idioma de quien mira (`utils/textoDeResultado.ts`). */
   const texto = React.useMemo(() => textoParaLeer(crudo, t, locale), [crudo, t, locale]);
@@ -133,7 +135,7 @@ const TextoDelResultado: React.FC<{ texto: string }> = ({ texto: crudo }) => {
       {partes.dias.map((dia, indice) => {
         const abierto = !!abiertos[indice];
         return (
-          <View key={dia.titulo + indice} style={[styles.dia, { borderColor: abierto ? theme.colors.accent : theme.colors.border }]}>
+          <View key={dia.titulo + indice} style={[styles.dia, { borderColor: abierto ? theme.colors.accent : c.superficieAlta }]}>
             <TouchableOpacity
               onPress={() => setAbiertos((previo) => ({ ...previo, [indice]: !previo[indice] }))}
               activeOpacity={0.8}
@@ -222,6 +224,7 @@ const CAMINOS_HOGAR: { optionId: string; clave: string }[] = [
 
 const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAnotherVersion, onEdit, onPublish, beforeImageUri, onOpenInEditor, onContinue, onSaveToProject, projectName, onOpenCreations, regenerateCredits }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const { t, formato, locale } = useIdioma();
   const pro = useEnEspacioProfesional();
   /* El título de cada resultado es el paso del plan, escrito por el servidor: se pinta en el idioma de quien mira. */
@@ -397,14 +400,14 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
       onPress={onSaveToProject}
       disabled={busy}
       activeOpacity={0.8}
-      style={[styles.projectRow, { backgroundColor: theme.colors.card, borderColor: projectName ? theme.colors.accent : theme.colors.border }]}
+      style={[styles.projectRow, { backgroundColor: c.superficie, borderColor: projectName ? theme.colors.accent : c.superficieAlta }]}
       accessibilityLabel={projectName ? t('weeai.savedIn', { proyecto: projectName }) : t('weeai.saveToProject')}
     >
-      <Ionicons name={projectName ? 'folder-open' : 'folder-open-outline'} size={scale(18)} color={theme.colors.accentDark} />
+      <Ionicons name={projectName ? 'folder-open' : 'folder-open-outline'} size={scale(18)} color={c.tinta} />
       <Text style={[styles.projectText, { color: theme.colors.text }]}>
         {projectName ? t('weeai.savedIn', { proyecto: projectName }) : t('weeai.saveToProject')}
       </Text>
-      <Text style={[styles.projectAction, { color: theme.colors.accentDark }]}>{projectName ? t('weeai.change') : t('weeai.choose')}</Text>
+      <Text style={[styles.projectAction, { color: c.tinta }]}>{projectName ? t('weeai.change') : t('weeai.choose')}</Text>
     </TouchableOpacity>
   );
 
@@ -413,7 +416,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
     {texts
       .filter((r) => !r.url)
       .map((result) => (
-        <View key={result.stepId} style={[styles.textCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+        <View key={result.stepId} style={[styles.textCard, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}>
           <Text style={[styles.resultTitle, { color: theme.colors.text }]}>
             {titulo(result.title)}
             {result.demo && !job.demo ? `  · ${t('weeai.sample')}` : ''}
@@ -422,8 +425,8 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
           {!!result.sources?.length && (
             <View style={styles.sources}>
               {result.sources.map((source) => (
-                <TouchableOpacity key={source.url} onPress={() => Linking.openURL(source.url)} activeOpacity={0.7} style={[styles.source, { borderColor: theme.colors.border }]} accessibilityLabel={source.title || source.url}>
-                  <Ionicons name="link-outline" size={scale(12)} color={theme.colors.accentDark} />
+                <TouchableOpacity key={source.url} onPress={() => Linking.openURL(source.url)} activeOpacity={0.7} style={[styles.source, { borderColor: c.superficieAlta }]} accessibilityLabel={source.title || source.url}>
+                  <Ionicons name="link-outline" size={scale(12)} color={c.tinta} />
                   <Text style={[styles.sourceText, { color: theme.colors.textSecondary }]} numberOfLines={1}>{source.title || source.url}</Text>
                 </TouchableOpacity>
               ))}
@@ -439,8 +442,8 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
       <View style={styles.headerRow}>
         <Text style={[styles.title, { color: theme.colors.text }]}>✨ {t('common.done')}</Text>
         {job.demo && (
-          <View style={[styles.demoTag, { backgroundColor: theme.colors.accent + '33' }]}>
-            <Text style={[styles.demoTagText, { color: theme.colors.accentDark }]}>{t('weeai.previewDemo')}</Text>
+          <View style={[styles.demoTag, { backgroundColor: c.superficie }]}>
+            <Text style={[styles.demoTagText, { color: c.tinta }]}>{t('weeai.previewDemo')}</Text>
           </View>
         )}
       </View>
@@ -456,7 +459,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
       {!trabajoDeEspacio && bloqueProyecto}
 
       {visuals.map((result) => (
-        <View key={result.stepId} style={[styles.visualCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+        <View key={result.stepId} style={[styles.visualCard, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}>
           {result.urls && result.urls.length > 1 ? (
             /*
              * Elegir tiene consecuencia: la elegida se ve en grande y las otras
@@ -490,11 +493,11 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
                           key={uri.slice(0, 40) + index}
                           onPress={() => setChosen((prev) => ({ ...prev, [result.stepId]: index }))}
                           activeOpacity={0.85}
-                          style={[styles.variant, styles.otherVariant, espacio && styles.otherVariantSpace, { borderColor: theme.colors.border }]}
+                          style={[styles.variant, styles.otherVariant, espacio && styles.otherVariantSpace, { borderColor: c.superficieAlta }]}
                           accessibilityLabel={t('weeai.chooseProposal', { numero: index + 1 })}
                         >
                           <Image source={{ uri }} style={[styles.variantImage, espacio && styles.variantImageWide]} contentFit={espacio ? 'contain' : 'cover'} transition={200} />
-                          <View style={[styles.variantTag, { backgroundColor: theme.colors.card }]}>
+                          <View style={[styles.variantTag, { backgroundColor: c.superficie }]}>
                             <Text style={[styles.variantTagText, { color: '#1F2937' }]}>{t('weeai.proposalNumber', { numero: index + 1 })}</Text>
                           </View>
                         </TouchableOpacity>
@@ -637,7 +640,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               onPress={() => onContinue!(camino.optionId)}
               disabled={busy}
               activeOpacity={0.8}
-              style={[styles.quickEdit, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}
+              style={[styles.quickEdit, { backgroundColor: c.superficie, borderColor: theme.colors.accent }]}
               accessibilityLabel={t('weeai.continueVia', { camino: t(camino.clave) })}
             >
               <Text style={[styles.quickEditText, { color: theme.colors.text }]}>{t(camino.clave)}</Text>
@@ -654,7 +657,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
               onPress={() => onEdit(phrase)}
               disabled={busy}
               activeOpacity={0.8}
-              style={[styles.quickEdit, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+              style={[styles.quickEdit, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}
             >
               <Text style={[styles.quickEditText, { color: theme.colors.text }]}>{phrase}</Text>
             </TouchableOpacity>
@@ -685,7 +688,7 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
           <TouchableOpacity
             onPress={onAnotherVersion}
             disabled={busy}
-            style={[styles.actionButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+            style={[styles.actionButton, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}
             activeOpacity={0.8}
           >
             <Ionicons name="refresh" size={scale(18)} color={theme.colors.text} />
@@ -711,24 +714,24 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
           <TouchableOpacity
             onPress={descargar}
             disabled={busy || descargando}
-            style={[styles.creacionBoton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+            style={[styles.creacionBoton, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}
             activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityLabel={t('creaciones.download')}
           >
-            <Ionicons name="download-outline" size={scale(16)} color={theme.colors.text} />
+            {descargando ? <ActivityIndicator size="small" color={theme.colors.text} accessibilityLabel={t('common.loading')} /> : <Ionicons name="download-outline" size={scale(16)} color={theme.colors.text} />}
             <Text style={[styles.creacionTexto, { color: theme.colors.text }]}>{t('creaciones.download')}</Text>
           </TouchableOpacity>
           {!!(publicable.assetId && onOpenCreations) && (
             <TouchableOpacity
               onPress={onOpenCreations}
               disabled={busy}
-              style={[styles.creacionBoton, { backgroundColor: theme.colors.card, borderColor: theme.colors.accent }]}
+              style={[styles.creacionBoton, { backgroundColor: c.superficie, borderColor: theme.colors.accent }]}
               activeOpacity={0.8}
               accessibilityRole="button"
               accessibilityLabel={t('creaciones.savedInCreations')}
             >
-              <Ionicons name="checkmark-circle" size={scale(16)} color={theme.colors.accentDark} />
+              <Ionicons name="checkmark-circle" size={scale(16)} color={c.tinta} />
               <Text style={[styles.creacionTexto, { color: theme.colors.text }]}>{t('creaciones.savedInCreations')}</Text>
             </TouchableOpacity>
           )}
@@ -747,10 +750,10 @@ const ResultCard: React.FC<ResultCardProps> = ({ experienceName, job, busy, onAn
             <TouchableOpacity
               onPress={() => setVerDetalle((v) => !v)}
               activeOpacity={0.8}
-              style={[styles.projectRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+              style={[styles.projectRow, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}
               accessibilityLabel={verDetalle ? t('weeai.hideChanges') : t('weeai.showChanges')}
             >
-              <Ionicons name="list-outline" size={scale(18)} color={theme.colors.accentDark} />
+              <Ionicons name="list-outline" size={scale(18)} color={c.tinta} />
               <Text style={[styles.projectText, { color: theme.colors.text }]}>{t('wall.changesAndPurchases')}</Text>
               <Ionicons name={verDetalle ? 'chevron-up' : 'chevron-down'} size={scale(18)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
@@ -798,7 +801,6 @@ const styles = StyleSheet.create({
     minHeight: scale(44),
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
   },
   projectText: {
     flex: 1,
@@ -811,7 +813,6 @@ const styles = StyleSheet.create({
   },
   visualCard: {
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
     overflow: 'hidden',
   },
   visual: {
@@ -873,7 +874,6 @@ const styles = StyleSheet.create({
   chosenFrame: {
     width: '100%',
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 3,
     overflow: 'hidden',
   },
   chosenImage: {
@@ -921,7 +921,6 @@ const styles = StyleSheet.create({
   },
   otherVariant: {
     flex: 1,
-    borderWidth: 1,
   },
   regenerateHint: {
     fontSize: FONT_SIZE.xs,
@@ -977,7 +976,6 @@ const styles = StyleSheet.create({
     minHeight: scale(36),
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
     justifyContent: 'center',
   },
   quickEditText: {
@@ -987,7 +985,6 @@ const styles = StyleSheet.create({
   textCard: {
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
     gap: SPACING.xs,
   },
   audioCard: {
@@ -1043,7 +1040,6 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   cabeceraViaje: {
-    borderLeftWidth: scale(3),
     paddingLeft: SPACING.md,
     paddingVertical: scale(2),
     gap: scale(2),
@@ -1060,7 +1056,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.xs,
   },
   dia: {
-    borderWidth: 1,
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
@@ -1091,7 +1086,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     paddingVertical: scale(3),
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
   },
   sourceText: {
     fontSize: scale(11),
@@ -1108,7 +1102,6 @@ const styles = StyleSheet.create({
     minHeight: scale(48),
     paddingHorizontal: SPACING.lg,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
   },
   publishButton: {},
   creacionRow: {
@@ -1124,7 +1117,6 @@ const styles = StyleSheet.create({
     minHeight: scale(40),
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
   },
   creacionTexto: {
     fontSize: FONT_SIZE.sm,

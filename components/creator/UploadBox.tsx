@@ -8,6 +8,7 @@ import { SpecialistConfig } from '../../constants/specialists';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import { RellenoDeMarca } from '../GradienteDeMarca';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 interface UploadBoxProps {
   config: NonNullable<SpecialistConfig['upload']>;
@@ -19,6 +20,7 @@ const isWeb = Platform.OS === 'web';
 /** "Sube tu foto aquí": galería o cámara; devuelve la foto elegida. */
 const UploadBox: React.FC<UploadBoxProps> = ({ config, onPick }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
   const [busy, setBusy] = useState(false);
 
@@ -52,11 +54,11 @@ const UploadBox: React.FC<UploadBoxProps> = ({ config, onPick }) => {
         onPress={() => pick('library')}
         activeOpacity={0.85}
         disabled={busy}
-        style={[styles.dropzone, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+        style={[styles.dropzone, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}
         accessibilityLabel={config.title}
       >
-        <View style={[styles.iconCircle, { backgroundColor: theme.colors.accent + '26' }]}>
-          {busy ? <ActivityIndicator color={theme.colors.accent} /> : <Ionicons name="cloud-upload-outline" size={scale(26)} color={theme.colors.accentDark} />}
+        <View style={[styles.iconCircle, { backgroundColor: c.superficie }]}>
+          {busy ? <ActivityIndicator color={theme.colors.accent} /> : <Ionicons name="cloud-upload-outline" size={scale(26)} color={c.tinta} />}
         </View>
         <View style={styles.texts}>
           <Text style={[styles.title, { color: theme.colors.text }]}>{config.title}</Text>
@@ -71,15 +73,15 @@ const UploadBox: React.FC<UploadBoxProps> = ({ config, onPick }) => {
         )}
       </TouchableOpacity>
 
-      <View style={[styles.side, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+      <View style={[styles.side, { backgroundColor: c.superficieAlta, borderColor: c.superficieAlta }]}>
         <Text style={[styles.sideTitle, { color: theme.colors.textSecondary }]}>{t('weeai.orAlso')}</Text>
         {!isWeb && (
-          <TouchableOpacity onPress={() => pick('camera')} activeOpacity={0.8} style={[styles.sideButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+          <TouchableOpacity onPress={() => pick('camera')} activeOpacity={0.8} style={[styles.sideButton, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}>
             <Ionicons name="camera-outline" size={scale(18)} color={theme.colors.text} />
             <Text style={[styles.sideButtonText, { color: theme.colors.text }]}>{t('weeai.takeAPhoto')}</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity onPress={() => pick('library')} activeOpacity={0.8} style={[styles.sideButton, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+        <TouchableOpacity onPress={() => pick('library')} activeOpacity={0.8} style={[styles.sideButton, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}>
           <Ionicons name="images-outline" size={scale(18)} color={theme.colors.text} />
           <Text style={[styles.sideButtonText, { color: theme.colors.text }]}>{t('weeai.pickFromPhotos')}</Text>
         </TouchableOpacity>
@@ -102,8 +104,6 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     padding: SPACING.lg,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 2,
-    borderStyle: 'dashed',
   },
   iconCircle: {
     width: scale(56),
@@ -143,7 +143,6 @@ const styles = StyleSheet.create({
     width: scale(200),
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
     gap: SPACING.sm,
   },
   sideTitle: {
@@ -157,7 +156,6 @@ const styles = StyleSheet.create({
     minHeight: scale(40),
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
   },
   sideButtonText: {
     fontSize: FONT_SIZE.sm,

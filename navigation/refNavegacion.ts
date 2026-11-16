@@ -1,4 +1,4 @@
-import { CommonActions, createNavigationContainerRef } from '@react-navigation/native';
+import { CommonActions, StackActions, createNavigationContainerRef } from '@react-navigation/native';
 
 /**
  * LA REFERENCIA AL ÁRBOL DE NAVEGACIÓN.
@@ -34,6 +34,21 @@ export const navegarEnLaRaiz = (pantalla: string, params?: object): boolean => {
   if (!refNavegacion.isReady()) return false;
   const raiz = refNavegacion.getRootState();
   const accion = CommonActions.navigate(pantalla, params as never);
+  refNavegacion.dispatch(raiz?.key ? { ...accion, target: raiz.key } : accion);
+  return true;
+};
+
+/**
+ * ABRIR LA PORTADA DE WEËAI, SIEMPRE LA PORTADA (2026-11-16).
+ *
+ * `navigate('WeeCreator')` empuja una pantalla nueva encima si la que está a la vista es otra (Weë Brain, una experiencia…): la pila crecía —portada,
+ * Brain, portada— y al volver con atrás «caía» Brain. `popTo` hace lo que se quiere: si la portada ya está en la pila, la deja arriba y quita todo
+ * lo que había encima; si no está, la abre. Pulsar la pestaña estando ya en la portada no hace nada más.
+ */
+export const abrirPortadaDeWeeAi = (): boolean => {
+  if (!refNavegacion.isReady()) return false;
+  const raiz = refNavegacion.getRootState();
+  const accion = StackActions.popTo('WeeCreator');
   refNavegacion.dispatch(raiz?.key ? { ...accion, target: raiz.key } : accion);
   return true;
 };

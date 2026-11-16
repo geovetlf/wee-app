@@ -10,6 +10,7 @@ import { RejillaDeCreator, TituloDeCreator, estilosDeCreator } from '../creator/
 import { PUERTAS_DE_DESIGN, CategoriaDeDesign } from '../../constants/designTools';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -32,6 +33,7 @@ interface Props {
  */
 const DesignExplore: React.FC<Props> = ({ onAbrir, onVerTodas, porFila }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
   const dir = useDireccion();
   const portada = PUERTAS_DE_DESIGN.filter((p) => p.enPortada);
@@ -75,7 +77,7 @@ const DesignExplore: React.FC<Props> = ({ onAbrir, onVerTodas, porFila }) => {
             <TouchableOpacity
               style={[
                 styles.tarjeta,
-                { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+                { backgroundColor: c.superficie, borderColor: c.superficieAlta },
                 isWeb && ({ cursor: 'pointer' } as any),
               ]}
               onPress={() => onAbrir(puerta.id)}
@@ -125,7 +127,6 @@ const styles = StyleSheet.create({
   /* Más baja que la del Studio: una puerta de entrada, no una herramienta. */
   tarjeta: {
     borderRadius: scale(18),
-    borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     gap: SPACING.sm,

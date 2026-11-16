@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from '../../components/icons/IconoDeTrazo';
 import { useNavigation } from '@react-navigation/native';
 import IconoDireccional from '../IconoDireccional';
 import CreditsPill from '../CreditsPill';
@@ -48,7 +48,7 @@ export const CabeceraDeBiblioteca: React.FC<{ titulo: string; onBack?: () => voi
       )}
       <View style={styles.titulos}>
         <View style={styles.pildora}>
-          <Ionicons name="sparkles-outline" size={13} color={P.morado} />
+          <IconoDeTrazo name="sparkles-outline" size={13} color={P.morado} />
           <Text style={styles.pildoraTexto}>Weë AI</Text>
         </View>
         <Text style={[styles.titulo, isDesktop && styles.tituloAncho, dir.texto]} numberOfLines={2} accessibilityRole="header">

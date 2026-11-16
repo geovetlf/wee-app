@@ -10,42 +10,38 @@
  * `components/biblioteca/` y las tres pantallas de la biblioteca.
  */
 export const PALETA_BIBLIOTECA = {
-  /** Morado eléctrico: lo elegido, los iconos de Weë AI. */
-  morado: '#7200FF',
-  /** Morado secundario: el otro extremo del degradado morado. */
-  moradoSecundario: '#8500F5',
-  /** Lavanda: fondos de identidad (la píldora de Weë AI, la loseta del icono). */
-  lavanda: '#EEDFFF',
-  /** Lavanda muy suave: el fondo de la tarjeta informativa y de las miniaturas sin imagen. */
-  lavandaSuave: '#F8F2FF',
-  /** El filete de lo lavanda. */
-  bordeLavanda: '#E6D5FF',
-  /** El filete neutro de las tarjetas: casi invisible, solo separa. */
-  borde: '#ECEAF1',
-  /** Texto principal y secundario (los mismos grises de Weë). */
-  texto: '#1F2937',
-  textoSuave: '#6B7280',
-  /** Rojo de lo que no salió bien (estado de una creación). */
-  error: '#DC2626',
-  /** El degradado morado del filtro elegido: 110°, como el de marca. */
+  /* MONOCROMO OSCURO (2026-11-16): la biblioteca es de WeëAI —siempre oscura, igual con las dos caras—. Los nombres se conservan (los usan las piezas
+     de la biblioteca) pero ya no hay morado ni lavanda: lo elegido es tinta clara sobre fondo oscuro. */
+  /** Lo elegido y los iconos de WeëAI: la tinta clara de la paleta de WeëAI. */
+  morado: '#FAFAFA',
+  moradoSecundario: '#FAFAFA',
+  /** Fondos de identidad (loseta del icono, píldoras): superficie 3 de WeëAI. */
+  lavanda: '#212121',
+  /** Fondo de la tarjeta informativa y de las miniaturas sin imagen: superficie 2. */
+  lavandaSuave: '#161616',
+  /** Sin filetes: se separa con tono, no con línea. */
+  bordeLavanda: 'transparent',
+  borde: 'transparent',
+  /** Superficie de las tarjetas, los campos y los botones secundarios. */
+  superficie: '#161616',
+  /** Texto sobre lo elegido (que es claro). */
+  sobreMorado: '#0A0A0A',
+  /** Texto principal y secundario de WeëAI. */
+  texto: '#FAFAFA',
+  textoSuave: '#A3A3A3',
+  /** Lo que no salió bien (estado de una creación). */
+  error: '#F87171',
   degradadoMorado: {
-    colores: ['#8500F5', '#7200FF'] as const,
-    inicio: { x: 0, y: 0.32 },
-    fin: { x: 1, y: 0.68 },
+    colores: ['#FAFAFA', '#FAFAFA'] as const,
+    inicio: { x: 0, y: 0 },
+    fin: { x: 1, y: 1 },
   },
-  /** El degradado de la ilustración de los vacíos. */
   degradadoIlustracion: {
-    colores: ['#B98BFF', '#7200FF'] as const,
+    colores: ['#212121', '#161616'] as const,
     inicio: { x: 0, y: 0 },
     fin: { x: 1, y: 1 },
   },
 } as const;
 
 /** Sombra ligera, solo donde hace falta (botón principal, menú desplegable). */
-export const SOMBRA_SUAVE = {
-  shadowColor: '#7200FF',
-  shadowOpacity: 0.12,
-  shadowRadius: 14,
-  shadowOffset: { width: 0, height: 6 },
-  elevation: 4,
-} as const;
+export const SOMBRA_SUAVE = {} as const;

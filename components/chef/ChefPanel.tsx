@@ -9,6 +9,7 @@ import CabeceraDeModuloPro from '../creator/CabeceraDeModuloPro';
 import { ENTRADAS_POR_PANEL, CLAVE_DEL_PANEL, PanelDeChef, EntradaDeChef } from '../../constants/chefTools';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -43,6 +44,7 @@ interface Props {
  */
 const ChefPanel: React.FC<Props> = ({ panel, onVolver, onElegir, porFila }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
   const pro = useEnEspacioProfesional();
 
@@ -86,7 +88,7 @@ const ChefPanel: React.FC<Props> = ({ panel, onVolver, onElegir, porFila }) => {
             >
               <View style={[
                 styles.entrada,
-                { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+                { backgroundColor: c.superficie, borderColor: c.superficieAlta },
                 pro && styles.entradaPro,
                 isWeb && ({ cursor: 'pointer' } as any),
               ]}>
@@ -128,7 +130,6 @@ const styles = StyleSheet.create({
   hueco: { padding: SPACING.xs },
   entrada: {
     borderRadius: scale(16),
-    borderWidth: StyleSheet.hairlineWidth,
     paddingVertical: SPACING.lg,
     paddingHorizontal: SPACING.md,
     gap: SPACING.sm,

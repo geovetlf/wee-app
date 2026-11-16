@@ -10,8 +10,6 @@ import { useIdioma } from '../../contexts/IdiomaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { useWallet } from '../../hooks/useWallet';
-import { WEE_EXPERIENCES } from '../../constants/weeExperiences';
-import { SPECIALIST_ORDER } from '../../constants/specialists';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import { Handwritten } from './ui';
@@ -20,6 +18,14 @@ import { RellenoDeMarca } from '../GradienteDeMarca';
 interface CreatorSidebarProps {
   activeId?: string;
 }
+
+/** Las puertas de la barra lateral: ids de siempre, rótulos por i18n (Weë Brain es marca). */
+const PUERTAS_DE_LA_BARRA: { id: string; clave?: string; marca?: string }[] = [
+  { id: 'studio', clave: 'composer.kindVideo' },
+  { id: 'design', clave: 'composer.kindImage' },
+  { id: 'business', clave: 'weeai.filterFashion' },
+  { id: 'brain', marca: 'Weë Brain' },
+];
 
 const ICONS: Record<string, string> = {
   brain: 'bulb-outline',
@@ -77,11 +83,8 @@ const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
         <View style={styles.nav}>
           {renderItem('home', 'home-outline', t('menu.home'), goHome)}
           {renderItem('creator', 'grid-outline', 'Weë AI', goCreator)}
-          {SPECIALIST_ORDER.map((id) => {
-            const exp = WEE_EXPERIENCES.find((e) => e.id === id);
-            if (!exp) return null;
-            return renderItem(id, ICONS[id] || 'sparkles-outline', exp.name, () => goSpecialist(id), true);
-          })}
+          {/* Las mismas puertas que la portada de WeëAI (decisión del dueño, 2026-11-15/16): Video, Imagen, Moda y Weë Brain. Chef es una categoría de plantillas, Travel está apagada y Music oculta: sin nombres antiguos. */}
+          {PUERTAS_DE_LA_BARRA.map(({ id, clave, marca }) => renderItem(id, ICONS[id] || 'sparkles-outline', marca ?? t(clave as string), () => goSpecialist(id), true))}
           {renderItem('projects', 'folder-open-outline', t('weeai.myProjects'), () => navigation.navigate(user ? 'Projects' : 'Login'), true)}
           {renderItem('creations', 'images-outline', t('creaciones.title'), () => navigation.navigate(user ? 'MisCreaciones' : 'Login'), true)}
         </View>

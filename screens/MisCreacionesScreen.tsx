@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
@@ -12,12 +12,14 @@ import { descargarCreacion } from '../services/assetDownload';
 import { frasesDeDerechos } from '../utils/derechosDelMaterial';
 import { formatearLista, nombreDeLaRegion } from '../i18n/formato';
 import CreatorShell from '../components/creator/CreatorShell';
+import SeccionDeElementosPropios from '../components/weeai/video/SeccionDeElementosPropios';
 import { SectionTitle, Chip } from '../components/creator/ui';
 import { RejillaDeCreaciones } from '../components/creator/RejillaDeCreaciones';
 import { GaleriaDeCreaciones } from '../components/biblioteca/GaleriaDeCreaciones';
 import {
   TarjetaDeAviso, ChipDeFiltro, SelectorDeOrden, VacioDeBiblioteca, BotonSecundario,
 } from '../components/biblioteca/PiezasDeBiblioteca';
+import { useEstiloWeeAi } from '../hooks/useEstiloWeeAi';
 import { CabeceraDeBiblioteca } from '../components/biblioteca/CabeceraDeBiblioteca';
 import { PALETA_BIBLIOTECA } from '../components/biblioteca/paleta';
 import { useDireccion } from '../hooks/useDireccion';
@@ -75,6 +77,7 @@ const ICONO_DE_FILTRO: Partial<Record<AssetKind | 'all', keyof typeof Ionicons.g
 
 const MisCreacionesScreen: React.FC = () => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
   const { locale } = useIdioma();
   const pro = useEnEspacioProfesional();
@@ -237,7 +240,7 @@ const MisCreacionesScreen: React.FC = () => {
             <Text style={[styles.centroText, { color: theme.colors.textSecondary }]}>{t('creaciones.loading')}</Text>
           </View>
         ) : estado.fase === 'error' ? (
-          <View style={[styles.box, { backgroundColor: theme.colors.card, borderColor: theme.colors.error }]}>
+          <View style={[styles.box, { backgroundColor: c.superficie, borderColor: theme.colors.error }]}>
             <Text style={[styles.boxTitle, { color: theme.colors.text }]}>{t('creaciones.loadFailed')}</Text>
             <TouchableOpacity onPress={cargar} style={[styles.button, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85}>
               <RellenoDeMarca radio={BORDER_RADIUS.full} />
@@ -245,7 +248,7 @@ const MisCreacionesScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         ) : estado.items.length === 0 ? (
-          <View style={[styles.box, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+          <View style={[styles.box, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}>
             <Text style={styles.emptyEmoji}>🖼️</Text>
             <Text style={[styles.boxTitle, { color: theme.colors.text }]}>
               {filtro === 'all' ? t('creaciones.emptyTitle') : t('creaciones.emptyFiltered')}
@@ -267,7 +270,7 @@ const MisCreacionesScreen: React.FC = () => {
               <TouchableOpacity
                 onPress={cargarMas}
                 disabled={estado.cargandoMas}
-                style={[styles.more, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+                style={[styles.more, { borderColor: c.superficieAlta, backgroundColor: c.superficie }]}
                 activeOpacity={0.8}
               >
                 {estado.cargandoMas ? (
@@ -296,6 +299,10 @@ const MisCreacionesScreen: React.FC = () => {
 
         {/* Habla de los dos perfiles: es de la CUENTA, y se ve igual desde el Perfil Real y el Perfil Weë. */}
         <TarjetaDeAviso texto={t('creaciones.intro')} />
+
+        {/* Mis escenarios y Mis personajes: la misma fuente local que la hoja de elementos (sin sincronizar). */}
+        <SeccionDeElementosPropios tipo="escenario" />
+        <SeccionDeElementosPropios tipo="personaje" />
 
         <View style={styles.appSeccion}>
           <View style={styles.appFilaTitulo}>
@@ -389,7 +396,6 @@ const styles = StyleSheet.create({
   },
   intro: {
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
     padding: SPACING.md,
     marginBottom: SPACING.lg,
   },
@@ -418,7 +424,6 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     padding: SPACING.xl,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
   },
   emptyEmoji: {
     fontSize: scale(40),
@@ -449,7 +454,6 @@ const styles = StyleSheet.create({
   more: {
     height: scale(44),
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: SPACING.sm,
@@ -461,4 +465,4 @@ const styles = StyleSheet.create({
 });
 
 /* Weë AI es de la cuenta, no de un perfil: el taller se ve claro con las dos caras. */
-export default enTemaClaro(MisCreacionesScreen);
+export default enTemaOscuro(MisCreacionesScreen);

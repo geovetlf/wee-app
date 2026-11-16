@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 /* `expo-image`, como el resto de la App: caché en disco y reciclado por tarjeta. */
 import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from '../../components/icons/IconoDeTrazo';
 import { useIdioma } from '../../contexts/IdiomaContext';
 import { useDireccion } from '../../hooks/useDireccion';
 import { textoDelServidor } from '../../i18n/servidor';
@@ -29,7 +29,7 @@ import { FONT_WEIGHT } from '../../constants/design';
  *   · sus acciones: descargar (si hay archivo que descargar) y eliminar.
  */
 
-const ICONO_POR_TIPO: Record<AssetDoc['kind'], keyof typeof Ionicons.glyphMap> = {
+const ICONO_POR_TIPO: Record<AssetDoc['kind'], string> = {
   image: 'image-outline',
   video: 'videocam-outline',
   audio: 'musical-notes-outline',
@@ -97,18 +97,18 @@ const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDel
           ) : (
             <View style={styles.loseta}>
               <View style={styles.losetaIcono}>
-                <Ionicons name={ICONO_POR_TIPO[asset.kind]} size={30} color={P.morado} />
+                <IconoDeTrazo name={ICONO_POR_TIPO[asset.kind]} size={30} color={P.morado} />
               </View>
               {!!formato && <Text style={styles.formato}>{formato}</Text>}
             </View>
           )}
           {(asset.kind === 'video' || asset.kind === 'audio') && vista.estado === 'disponible' && (
             <View style={styles.reproducir} pointerEvents="none">
-              <Ionicons name="play" size={18} color={conImagen ? '#FFFFFF' : P.morado} style={{ marginStart: 2 }} />
+              <IconoDeTrazo name="play" size={18} color={conImagen ? '#FFFFFF' : P.morado} style={{ marginStart: 2 }} />
             </View>
           )}
           <View style={[styles.tipo, dir.alInicio(10)]}>
-            <Ionicons name={ICONO_POR_TIPO[asset.kind]} size={12} color={P.texto} />
+            <IconoDeTrazo name={ICONO_POR_TIPO[asset.kind]} size={12} color={P.texto} />
             <Text style={styles.tipoTexto} numberOfLines={1}>{t(claveDeTipo)}</Text>
           </View>
           {!!claveDeEstado && (
@@ -129,7 +129,7 @@ const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDel
                 accessibilityRole="button"
                 accessibilityLabel={t('creaciones.download')}
               >
-                <Ionicons name="download-outline" size={18} color={P.textoSuave} />
+                <IconoDeTrazo name="download-outline" size={18} color={P.textoSuave} />
               </TouchableOpacity>
             )}
             {!!onDelete && (
@@ -140,7 +140,7 @@ const TarjetaDeCreacion: React.FC<TarjetaProps> = ({ asset, ancho, onOpen, onDel
                 accessibilityRole="button"
                 accessibilityLabel={t('creaciones.delete')}
               >
-                <Ionicons name="trash-outline" size={18} color={P.textoSuave} />
+                <IconoDeTrazo name="trash-outline" size={18} color={P.textoSuave} />
               </TouchableOpacity>
             )}
           </View>
@@ -178,9 +178,7 @@ const styles = StyleSheet.create({
   },
   tarjeta: {
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: P.borde,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: P.superficie,
     overflow: 'hidden',
   },
   media: {

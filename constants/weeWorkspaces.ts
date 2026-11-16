@@ -223,4 +223,9 @@ export interface ContextoDeExperiencia {
   imageUri?: string;
   /** El documento del editor que pidió ayuda (Weë Writer). */
   editorDocId?: string;
+  /**
+   * La plantilla de la portada de WeëAI de la que se viene (solo interfaz): sirve para dar crédito a quien la publicó y para
+   * volver a intentar con otra foto SIN perderla. No viaja al servidor ni cambia lo que se crea.
+   */
+  plantilla?: { titulo: string; autor?: string };
 }

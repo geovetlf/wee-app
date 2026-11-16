@@ -12,6 +12,7 @@ import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import { MARCA } from '../../constants/marca';
 import { RellenoDeMarca } from '../GradienteDeMarca';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -117,6 +118,7 @@ const CajaDePrompt: React.FC<Props> = ({
   valor, onCambiar, onEnviar, etiquetaEnviar, placeholder, etiqueta, acciones, accionesDerecha, ocupado, enviarConIntro, editable, sinMarco, textoEnviar, monocromo, vitrina, textoDeVitrina,
 }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const dir = useDireccion();
   const tono = monocromo ? theme.colors.text : theme.colors.accent;
   /*
@@ -173,8 +175,8 @@ const CajaDePrompt: React.FC<Props> = ({
       style={[
         styles.caja,
         sinMarco
-          ? { backgroundColor: theme.colors.surface }
-          : { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+          ? { backgroundColor: c.superficieAlta }
+          : { backgroundColor: c.superficie, borderColor: c.superficieAlta },
         sinMarco && styles.cajaSinMarco,
         pro && styles.cajaPro,
         /* Weë Brain la pide sin contorno también aquí: la define su relleno. */
@@ -213,10 +215,10 @@ const CajaDePrompt: React.FC<Props> = ({
               </TouchableOpacity>
             </Animated.View>
           </View>
-          <View style={[styles.barraVitrina, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+          <View style={[styles.barraVitrina, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}>
             {[...(acciones ?? []), ...(accionesDerecha ?? [])].map((accion, i) => (
               <React.Fragment key={accion.icono + '·' + accion.etiqueta}>
-                {i > 0 && <View style={[styles.rayaVitrina, { backgroundColor: theme.colors.border }]} />}
+                {i > 0 && <View style={[styles.rayaVitrina, { backgroundColor: c.superficieAlta }]} />}
                 <TouchableOpacity style={styles.accionVitrina} onPress={accion.alPulsar} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={accion.etiqueta}>
                   <Ionicons name={accion.icono as any} size={scale(26)} color={theme.colors.text} />
                 </TouchableOpacity>
@@ -301,7 +303,7 @@ const CajaDePrompt: React.FC<Props> = ({
           <TouchableOpacity
             style={[
               styles.enviarPro,
-              { backgroundColor: puedeEnviar ? theme.colors.accent : theme.colors.surface },
+              { backgroundColor: puedeEnviar ? theme.colors.accent : c.superficieAlta },
               isWeb && ({ cursor: puedeEnviar ? 'pointer' : 'default' } as any),
             ]}
             onPress={enviar}
@@ -321,7 +323,7 @@ const CajaDePrompt: React.FC<Props> = ({
         ) : (
         <Animated.View style={{ transform: [{ scale: listo.interpolate({ inputRange: [0, 1], outputRange: [0.88, 1] }) }] }}>
           <TouchableOpacity
-            style={[styles.enviar, { backgroundColor: theme.colors.surface }]}
+            style={[styles.enviar, { backgroundColor: c.superficieAlta }]}
             onPress={enviar}
             disabled={!puedeEnviar}
             activeOpacity={0.8}
@@ -346,10 +348,11 @@ const CajaDePrompt: React.FC<Props> = ({
 /** Un botón de la fila, en creator: 36 de alto, y su palabra si hay sitio para ella. */
 const AccionDeCreator: React.FC<{ accion: AccionDeLaCaja; conPalabras: boolean }> = ({ accion, conPalabras }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const conTexto = conPalabras && !!accion.texto;
   return (
     <TouchableOpacity
-      style={[styles.accionPro, conTexto && styles.accionProConTexto, { borderColor: theme.colors.border }, isWeb && ({ cursor: 'pointer' } as any)]}
+      style={[styles.accionPro, conTexto && styles.accionProConTexto, { borderColor: c.superficieAlta }, isWeb && ({ cursor: 'pointer' } as any)]}
       onPress={accion.alPulsar}
       activeOpacity={0.7}
       accessibilityRole="button"
@@ -363,13 +366,13 @@ const AccionDeCreator: React.FC<{ accion: AccionDeLaCaja; conPalabras: boolean }
 
 const styles = StyleSheet.create({
   cajaPro: {
-    borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10,
+    borderRadius: 14, borderWidth: 0, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10,
     shadowOpacity: 0, shadowRadius: 0, elevation: 0,
   },
   campoPro: { fontSize: 15, lineHeight: 22, paddingTop: 4 },
   accionesPro: { gap: 6 },
   accionPro: {
-    minWidth: 36, height: 36, borderRadius: 999, borderWidth: StyleSheet.hairlineWidth,
+    minWidth: 36, height: 36, borderRadius: 999, borderWidth: 0,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
   },
   accionProConTexto: { paddingHorizontal: 12 },
@@ -382,7 +385,6 @@ const styles = StyleSheet.create({
    */
   caja: {
     borderRadius: scale(28),
-    borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,
     paddingBottom: SPACING.sm,
@@ -396,13 +398,11 @@ const styles = StyleSheet.create({
   },
   /* Sin contorno: la define su relleno. Ni raya ni sombra que dibujen un cuadro. */
   cajaSinMarco: {
-    borderWidth: 0,
     shadowOpacity: 0,
     shadowRadius: 0,
     elevation: 0,
   },
   cajaVitrina: {
-    borderWidth: 1.5, borderColor: MARCA.velo(0.75), paddingTop: SPACING.lg, paddingBottom: SPACING.lg, gap: SPACING.md,
     shadowColor: MARCA.primario, shadowOpacity: 0.45, shadowRadius: scale(18), shadowOffset: { width: 0, height: scale(6) }, elevation: 8,
   },
   filaVitrina: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACING.sm },
@@ -411,11 +411,10 @@ const styles = StyleSheet.create({
   enviarVitrina: { width: scale(52), height: scale(52), borderRadius: BORDER_RADIUS.full, alignItems: 'center', justifyContent: 'center', marginTop: scale(14) },
   barraVitrina: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', borderRadius: BORDER_RADIUS.full,
-    borderWidth: StyleSheet.hairlineWidth, height: scale(56), paddingHorizontal: SPACING.sm,
   },
   rayaVitrina: { width: StyleSheet.hairlineWidth, height: scale(24) },
   accionVitrina: { flex: 1, height: scale(48), alignItems: 'center', justifyContent: 'center' },
-  luz: { ...StyleSheet.absoluteFillObject, margin: -StyleSheet.hairlineWidth, borderRadius: scale(28), borderWidth: 1.25, overflow: 'hidden' },
+  luz: { ...StyleSheet.absoluteFillObject, margin: -StyleSheet.hairlineWidth, borderRadius: scale(28), borderWidth: 0, overflow: 'hidden' },
   destello: { position: 'absolute', top: 0, left: 0, width: '50%', height: 2 },
   campo: {
     fontSize: scale(17),
@@ -465,6 +464,7 @@ export const ALTO_MINIMO_DE_LA_CAJA = ALTO_MINIMO;
  */
 export const InvitacionDeLaCaja: React.FC<{ texto: string }> = ({ texto }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   return <Text style={[estilosDeLaInvitacion.texto, { color: theme.colors.textSecondary }]}>{texto}</Text>;
 };
 

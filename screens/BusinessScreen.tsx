@@ -1,10 +1,11 @@
 import React, { useMemo, useState } from 'react';
+import { useEstiloWeeAi } from '../hooks/useEstiloWeeAi';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import IconoDireccional from '../components/IconoDireccional';
 import { useDireccion } from '../hooks/useDireccion';
 import { useNavigation } from '@react-navigation/native';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
 import { RejillaDeCreator } from '../components/creator/PiezasDeCreator';
@@ -90,6 +91,7 @@ const NETWORK_ICON: Record<string, string> = {
  */
 const BusinessScreen: React.FC = () => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const { t, locale } = useIdioma();
   const dir = useDireccion();
   /* Las horas de muestra («12:00») son del reloj: se escriben como en el idioma de quien mira («12.00» en danés). */
@@ -316,7 +318,7 @@ const BusinessScreen: React.FC = () => {
           {adjuntos.length > 0 && (
             <View style={styles.fichas}>
               {adjuntos.map((a, i) => (
-                <View key={`${a}-${i}`} style={[styles.ficha, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <View key={`${a}-${i}`} style={[styles.ficha, { backgroundColor: c.superficieAlta, borderColor: c.superficieAlta }]}>
                   <Ionicons name="document-attach-outline" size={scale(14)} color={theme.colors.text} />
                   <Text style={[styles.fichaTexto, { color: theme.colors.text }]} numberOfLines={1}>{a}</Text>
                 </View>
@@ -360,7 +362,7 @@ const BusinessScreen: React.FC = () => {
                   key={p}
                   onPress={() => { setProducto(p); setPrompt(''); setAbierto('create'); }}
                   activeOpacity={0.75}
-                  style={[styles.ficha, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                  style={[styles.ficha, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}
                   accessibilityRole="button"
                   accessibilityLabel={t('business.productCreate')}
                 >
@@ -421,9 +423,9 @@ const BusinessScreen: React.FC = () => {
                 accessibilityRole="button"
                 accessibilityLabel={producto}
               >
-                <Ionicons name="pricetag-outline" size={scale(14)} color={theme.colors.accentDark} />
-                <Text style={[styles.fichaTexto, { color: theme.colors.accentDark }]} numberOfLines={1}>{producto}</Text>
-                <Ionicons name="close" size={scale(14)} color={theme.colors.accentDark} />
+                <Ionicons name="pricetag-outline" size={scale(14)} color={c.tinta} />
+                <Text style={[styles.fichaTexto, { color: c.tinta }]} numberOfLines={1}>{producto}</Text>
+                <Ionicons name="close" size={scale(14)} color={c.tinta} />
               </TouchableOpacity>
             </View>
           )}
@@ -440,7 +442,7 @@ const BusinessScreen: React.FC = () => {
           {adjuntos.length > 0 && (
             <View style={styles.fichas}>
               {adjuntos.map((a, i) => (
-                <View key={`${a}-${i}`} style={[styles.ficha, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <View key={`${a}-${i}`} style={[styles.ficha, { backgroundColor: c.superficieAlta, borderColor: c.superficieAlta }]}>
                   <Ionicons name="document-attach-outline" size={scale(14)} color={theme.colors.text} />
                   <Text style={[styles.fichaTexto, { color: theme.colors.text }]} numberOfLines={1}>{a}</Text>
                 </View>
@@ -465,7 +467,7 @@ const BusinessScreen: React.FC = () => {
             {TIPOS_DE_CONTENIDO.map((tipo) => (
               <View key={tipo.id} style={{ width: `${100 / porFila}%` as any, padding: SPACING.xs }}>
                 <TouchableOpacity
-                  style={[styles.tarjeta, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                  style={[styles.tarjeta, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}
                   onPress={() => crearContenido(tipo.clave)}
                   activeOpacity={0.75}
                   accessibilityRole="button"
@@ -531,7 +533,7 @@ const BusinessScreen: React.FC = () => {
                 key={n.id}
                 onPress={() => toggleNetwork(n.id)}
                 activeOpacity={0.8}
-                style={[styles.red, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                style={[styles.red, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}
                 accessibilityLabel={t('business.networkConnected', { red: n.name })}
               >
                 <Ionicons name={n.icon as any} size={scale(18)} color={n.color} />
@@ -547,7 +549,7 @@ const BusinessScreen: React.FC = () => {
                 key={n.id}
                 onPress={() => connectNetwork(n.id)}
                 activeOpacity={0.8}
-                style={[styles.red, styles.redAnadir, { borderColor: theme.colors.border }]}
+                style={[styles.red, styles.redAnadir, { borderColor: c.superficieAlta }]}
                 accessibilityLabel={t('business.connectAnother')}
               >
                 <Ionicons name="add" size={scale(18)} color={theme.colors.text} />
@@ -576,7 +578,7 @@ const BusinessScreen: React.FC = () => {
               >
                 <Text style={[styles.dayName, { color: theme.colors.text }]}>{day.weekday}</Text>
                 <Text style={[styles.dayDate, { color: theme.colors.textSecondary }]}>{day.label}</Text>
-                <View style={[styles.dayPost, { backgroundColor: day.post.highlight ? theme.colors.accent : theme.colors.surface, borderColor: theme.colors.border }]}>
+                <View style={[styles.dayPost, { backgroundColor: day.post.highlight ? theme.colors.accent : c.superficieAlta, borderColor: c.superficieAlta }]}>
                   <Text style={styles.dayEmoji}>{day.post.emoji}</Text>
                   <Text style={[styles.dayTitle, { color: theme.colors.text }]} numberOfLines={2}>{day.post.title}</Text>
                 </View>
@@ -597,9 +599,9 @@ const BusinessScreen: React.FC = () => {
             </TouchableOpacity>
           }
         >
-          <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+          <View style={[styles.card, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}>
             {messages.map((m) => (
-              <View key={m.id} style={[styles.message, { borderTopColor: theme.colors.border }]}>
+              <View key={m.id} style={[styles.message, { borderTopColor: c.superficieAlta }]}>
                 <Ionicons name={NETWORK_ICON[m.network] as any} size={scale(16)} color={theme.colors.textSecondary} />
                 <View style={{ flex: 1 }}>
                   <View style={styles.messageHead}>
@@ -634,7 +636,7 @@ const BusinessScreen: React.FC = () => {
           {pro ? <Vacio texto={t('business.overviewEmpty')} pista={t('business.overviewEmptyHint')} /> : (
           <View style={styles.stats}>
             {BUSINESS_STATS.map((stat) => (
-              <View key={stat.id} style={[styles.stat, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+              <View key={stat.id} style={[styles.stat, { backgroundColor: c.superficie, borderColor: c.superficieAlta }]}>
                 {/* Las cifras las escribe Intl con el locale: «125,4 B» y «%40» en turco, «125.4K» y «40%» en inglés. */}
                 <Text style={[styles.statValue, { color: theme.colors.text }]}>
                   {formatearNumero(stat.valor, locale, { notation: 'compact', maximumFractionDigits: 1 })}
@@ -655,7 +657,7 @@ const BusinessScreen: React.FC = () => {
           ) : (
             <View style={styles.fichas}>
               {gastos.map((g, i) => (
-                <View key={`${g}-${i}`} style={[styles.ficha, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <View key={`${g}-${i}`} style={[styles.ficha, { backgroundColor: c.superficieAlta, borderColor: c.superficieAlta }]}>
                   <Text style={[styles.fichaTexto, { color: theme.colors.text }]} numberOfLines={1}>{t(g)}</Text>
                 </View>
               ))}
@@ -783,7 +785,7 @@ const BusinessScreen: React.FC = () => {
         {adjuntos.length > 0 && (
           <View style={styles.fichas}>
             {adjuntos.map((a, i) => (
-              <View key={`${a}-${i}`} style={[styles.ficha, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <View key={`${a}-${i}`} style={[styles.ficha, { backgroundColor: c.superficieAlta, borderColor: c.superficieAlta }]}>
                 <Ionicons name="document-attach-outline" size={scale(14)} color={theme.colors.text} />
                 <Text style={[styles.fichaTexto, { color: theme.colors.text }]} numberOfLines={1}>{a}</Text>
               </View>
@@ -817,7 +819,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs + scale(2),
     borderRadius: scale(999),
-    borderWidth: StyleSheet.hairlineWidth,
     maxWidth: scale(220),
   },
   fichaTexto: { fontSize: FONT_SIZE.xs, flexShrink: 1 },
@@ -825,7 +826,6 @@ const styles = StyleSheet.create({
   rejilla: { flexDirection: 'row', flexWrap: 'wrap', margin: -SPACING.xs },
   tarjeta: {
     borderRadius: scale(20),
-    borderWidth: StyleSheet.hairlineWidth,
     padding: SPACING.lg,
     gap: SPACING.sm,
     minHeight: scale(112),
@@ -848,7 +848,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: scale(16),
-    borderWidth: StyleSheet.hairlineWidth,
     minWidth: scale(168),
   },
   redAnadir: { borderStyle: 'dashed', justifyContent: 'center' },
@@ -859,7 +858,6 @@ const styles = StyleSheet.create({
   card: {
     padding: SPACING.lg,
     borderRadius: scale(20),
-    borderWidth: StyleSheet.hairlineWidth,
     gap: SPACING.sm,
   },
   calendar: { gap: SPACING.sm, paddingRight: SPACING.md },
@@ -869,7 +867,6 @@ const styles = StyleSheet.create({
   dayPost: {
     aspectRatio: 1,
     borderRadius: scale(16),
-    borderWidth: StyleSheet.hairlineWidth,
     padding: SPACING.sm,
     justifyContent: 'space-between',
   },
@@ -882,7 +879,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.sm,
     paddingTop: SPACING.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
   },
   messageHead: { flexDirection: 'row', justifyContent: 'space-between', gap: SPACING.sm },
   messageName: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.bold, flex: 1 },
@@ -901,7 +897,6 @@ const styles = StyleSheet.create({
     minWidth: scale(140),
     padding: SPACING.md,
     borderRadius: scale(16),
-    borderWidth: StyleSheet.hairlineWidth,
     gap: scale(2),
   },
   statValue: { fontSize: scale(22), fontWeight: FONT_WEIGHT.bold },
@@ -913,4 +908,4 @@ const styles = StyleSheet.create({
  * Weë AI es de la cuenta, no de un perfil: el taller se ve claro con el Perfil
  * Real y con el Perfil Weë. Lo de fuera —el cajón incluido— no se toca.
  */
-export default enTemaClaro(BusinessScreen);
+export default enTemaOscuro(BusinessScreen);

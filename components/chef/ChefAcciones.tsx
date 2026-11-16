@@ -8,6 +8,7 @@ import { RejillaDeCreator } from '../creator/PiezasDeCreator';
 import { TARJETAS_DE_CHEF, TarjetaDeChef } from '../../constants/chefTools';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -38,6 +39,7 @@ interface Props {
  */
 const ChefAcciones: React.FC<Props> = ({ onElegir, porFila }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
   const pro = useEnEspacioProfesional();
 
@@ -66,7 +68,7 @@ const ChefAcciones: React.FC<Props> = ({ onElegir, porFila }) => {
           <TouchableOpacity
             style={[
               styles.tarjeta,
-              { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+              { backgroundColor: c.superficie, borderColor: c.superficieAlta },
               isWeb && ({ cursor: 'pointer' } as any),
             ]}
             onPress={() => onElegir(tarjeta)}
@@ -101,7 +103,6 @@ const styles = StyleSheet.create({
   },
   tarjeta: {
     borderRadius: scale(20),
-    borderWidth: StyleSheet.hairlineWidth,
     padding: SPACING.lg,
     gap: SPACING.sm,
     minHeight: scale(118),

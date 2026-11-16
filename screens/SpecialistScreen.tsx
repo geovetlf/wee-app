@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, BackHandler } from 
 import { Ionicons } from '@expo/vector-icons';
 import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
 import { EnlaceDeCreaciones, RADIO_DE_CREATOR, TituloDeCreator } from '../components/creator/PiezasDeCreator';
@@ -32,6 +32,7 @@ import WriterDocuments from '../components/creator/WriterDocuments';
 import { SectionTitle, ClosingBanner } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { useEstiloWeeAi } from '../hooks/useEstiloWeeAi';
 
 /**
  * Pantalla de un especialista de Weë Creator (docs/CREATOR-BUILD.md):
@@ -40,6 +41,7 @@ import { scale } from '../utils/scale';
  */
 const SpecialistScreen: React.FC = () => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
@@ -296,7 +298,7 @@ const SpecialistScreen: React.FC = () => {
           {myJobs.map((job) => (
             <TouchableOpacity
               key={job.id}
-              style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }, pro && styles.jobRowPro]}
+              style={[styles.jobRow, { backgroundColor: c.superficie, borderColor: c.superficieAlta }, pro && styles.jobRowPro]}
               onPress={() => navigation.navigate('CreatorFlow', { experienceId: job.experienceId, jobId: job.id })}
               activeOpacity={0.8}
             >
@@ -332,9 +334,8 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
   },
-  jobRowPro: { borderWidth: StyleSheet.hairlineWidth, borderRadius: RADIO_DE_CREATOR },
+  jobRowPro: { borderWidth: 0, borderRadius: RADIO_DE_CREATOR },
   jobEmoji: {
     fontSize: scale(22),
   },
@@ -357,4 +358,4 @@ const styles = StyleSheet.create({
  * Weë AI es de la cuenta, no de un perfil: el taller se ve claro con el Perfil
  * Real y con el Perfil Weë. Lo de fuera —el cajón incluido— no se toca.
  */
-export default enTemaClaro(SpecialistScreen);
+export default enTemaOscuro(SpecialistScreen);

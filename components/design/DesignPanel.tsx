@@ -10,6 +10,7 @@ import { PUERTAS_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../../cons
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import TextoEnMayusculas from '../TextoEnMayusculas';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -41,6 +42,7 @@ interface Props {
 const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onElegirPunto }) => {
   const pro = useEnEspacioProfesional();
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
 
   const esTodas = vista === 'todas';
@@ -49,14 +51,14 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
   const fila = (clave: string, icono: string | null, alPulsar: () => void, pista?: string) => (
     <TouchableOpacity
       key={clave}
-      style={[styles.fila, { borderBottomColor: theme.colors.border }, isWeb && ({ cursor: 'pointer' } as any)]}
+      style={[styles.fila, { borderBottomColor: c.superficieAlta }, isWeb && ({ cursor: 'pointer' } as any)]}
       onPress={alPulsar}
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={t(clave)}
     >
       {!!icono && (
-        <View style={[styles.icono, { backgroundColor: theme.colors.surface }]}>
+        <View style={[styles.icono, { backgroundColor: c.superficieAlta }]}>
           <Ionicons name={icono as any} size={scale(20)} color={theme.colors.text} />
         </View>
       )}
@@ -137,7 +139,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.md,
     paddingVertical: SPACING.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   icono: {
     width: scale(40),
