@@ -64,7 +64,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'bình luận',
   commentImageFailed: 'Không thể tải hình ảnh lên. Vui lòng thử lại.',
   commentSendFailed: 'Không thể gửi bình luận. Vui lòng thử lại.',
-  shareText: '{{contenido}}\n\nTạo trên Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nTạo trên Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Xem bài viết này trên Weë',
   commentsWithCount: 'Bình luận ({{total}})',
   agreeWithComment: 'Đồng ý với bình luận này',
@@ -88,4 +88,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Thu gọn',
   openPost: 'Mở bài viết',
   imageOf: 'Hình {{numero}}/{{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Lửa',
+  reactionLaugh: 'Cười',
 };

@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * Tuteo. «Weë», «Weëls», «WeeTalk» y «World Encode Entity» son marca.
+ * Tuteo. «Weë», «Weëls», «WeeTalk» y «WORLD OF EXPRESSION & EVOLUTION» son marca.
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} ho ha tornat a publicar',
@@ -66,7 +66,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'comentaris',
   commentImageFailed: 'No s\'ha pogut pujar la imatge. Torna-ho a provar.',
   commentSendFailed: 'No s\'ha pogut enviar el comentari. Torna-ho a provar.',
-  shareText: '{{contenido}}\n\nCreat a Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nCreat a Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Mira aquesta publicació a Weë',
   commentsWithCount: 'Comentaris ({{total}})',
   agreeWithComment: 'D\'acord amb aquest comentari',
@@ -90,4 +90,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Mostra\'n menys',
   openPost: 'Obre la publicació',
   imageOf: 'Imatge {{numero}} de {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Foc',
+  reactionLaugh: 'Riure',
 };

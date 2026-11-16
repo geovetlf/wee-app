@@ -42,7 +42,7 @@ export const settings: ConPlurales<typeof import('../es/settings').settings> = {
   aboutHint: 'ما هو Weë وما الإصدار الذي تستخدمه',
   helpHint: 'الأسئلة الشائعة والتواصل',
   signOutHint: 'الخروج من حسابك',
-  aboutBody: 'Weë (World Encode Entity) هو الشبكة الاجتماعية للأشخاص الذين يبدعون بالذكاء الاصطناعي.\n\nالإصدار 1.0.0 · © {{anio}} Weë. جميع الحقوق محفوظة.\n\nالبيانات الجغرافية: GeoNames (geonames.org)، CC BY 4.0.',
+  aboutBody: 'Weë (WORLD OF EXPRESSION & EVOLUTION) هو الشبكة الاجتماعية للأشخاص الذين يبدعون بالذكاء الاصطناعي.\n\nالإصدار 1.0.0 · © {{anio}} Weë. جميع الحقوق محفوظة.\n\nالبيانات الجغرافية: GeoNames (geonames.org)، CC BY 4.0.',
   location: 'الموقع',
   locationLine: '{{estado}} لا يُعرض موقعك الدقيق علنًا أبدًا.',
   locationOff: 'معطّل. اسمح لـ Weë باستخدام موقعك التقريبي لاقتراح أماكن قريبة ومنطقتك عند إضافة موقع إلى منشور. لا يُعرض موقعك الدقيق علنًا أبدًا.',

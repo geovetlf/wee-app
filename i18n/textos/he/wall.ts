@@ -81,7 +81,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   statComments: 'תגובות',
   commentImageFailed: 'לא הצלחנו להעלות את התמונה. כדאי לנסות שוב.',
   commentSendFailed: 'לא הצלחנו לשלוח את התגובה. כדאי לנסות שוב.',
-  shareText: '{{contenido}}\n\nנוצר ב-Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nנוצר ב-Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'כדאי לראות את הפוסט הזה ב-Weë',
   commentsWithCount: 'תגובות ({{total}})',
   agreeWithComment: 'הסכמה עם התגובה הזאת',
@@ -105,4 +105,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   seeLess: 'הצגת פחות',
   openPost: 'פתיחת הפוסט',
   imageOf: 'תמונה {{numero}} מתוך {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'אש',
+  reactionLaugh: 'צחוק',
 };

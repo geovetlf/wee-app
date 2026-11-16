@@ -99,7 +99,7 @@ Las **siglas** que no son marca («AI», «PDF», «MB», «MIDI») sí admiten 
 ## 3. Marcas (byte a byte, en latino, SIN sufijos)
 WEE, Weë, Weë AI, WEË AI, Weë Brain, Weë Studio, Weë Design, Weë Writer, Weë Music, Weë Chef, Weë Fashion, Weë Travel, Weë Photo,
 Weë Beauty, Weë Home, Weë Business, Weëls (**nunca «Reels»**), Weël, Wäll, WeeTalk, ËContact, ẄContact, **Credits (nunca
-traducido ni declinado)**, Filmmaker Engine, World Encode Entity. «Perfil Weë» = «Profili Weë» (la palabra «profili» se traduce,
+traducido ni declinado)**, Filmmaker Engine, WORLD OF EXPRESSION & EVOLUTION. «Perfil Weë» = «Profili Weë» (la palabra «profili» se traduce,
 la marca no). Lo que escribe una persona (publicaciones, nombres, prompts) no se traduce.
 
 ## 4. Glosario fijo

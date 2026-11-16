@@ -33,7 +33,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutHint: 'Mi a Weë, és melyik verziót használod',
   helpHint: 'Gyakori kérdések és kapcsolat',
   signOutHint: 'Kilépés a fiókodból',
-  aboutBody: 'A Weë (World Encode Entity) azoknak az embereknek a közösségi hálózata, akik mesterséges intelligenciával alkotnak.\n\nVerzió: 1.0.0 · © {{anio}} Weë. Minden jog fenntartva.\n\nFöldrajzi adatok: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'A Weë (WORLD OF EXPRESSION & EVOLUTION) azoknak az embereknek a közösségi hálózata, akik mesterséges intelligenciával alkotnak.\n\nVerzió: 1.0.0 · © {{anio}} Weë. Minden jog fenntartva.\n\nFöldrajzi adatok: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Helymeghatározás',
   locationLine: '{{estado}} A pontos helyzeted soha nem jelenik meg nyilvánosan.',
   locationOff: 'Kikapcsolva. Engedd meg, hogy a Weë a hozzávetőleges helyzetedet használja a közeli helyek és a környéked javaslásához, amikor helyet adsz egy bejegyzéshez. A pontos helyzeted soha nem jelenik meg nyilvánosan.',

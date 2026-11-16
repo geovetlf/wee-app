@@ -70,7 +70,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'kommentarer',
   commentImageFailed: 'Kunne ikke laste opp bildet. Prøv igjen.',
   commentSendFailed: 'Kunne ikke sende kommentaren. Prøv igjen.',
-  shareText: '{{contenido}}\n\nLaget på Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nLaget på Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Se dette innlegget på Weë',
   commentsWithCount: 'Kommentarer ({{total}})',
   agreeWithComment: 'Enig i denne kommentaren',
@@ -94,4 +94,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Se mindre',
   openPost: 'Åpne innlegget',
   imageOf: 'Bilde {{numero}} av {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Ild',
+  reactionLaugh: 'Latter',
 };

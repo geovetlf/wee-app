@@ -66,7 +66,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'reacties',
   commentImageFailed: 'De afbeelding kon niet worden geüpload. Probeer het opnieuw.',
   commentSendFailed: 'De reactie kon niet worden verstuurd. Probeer het opnieuw.',
-  shareText: '{{contenido}}\n\nGemaakt op Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nGemaakt op Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Bekijk dit bericht op Weë',
   commentsWithCount: 'Reacties ({{total}})',
   agreeWithComment: 'Eens met deze reactie',
@@ -90,4 +90,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Minder bekijken',
   openPost: 'Bericht openen',
   imageOf: 'Afbeelding {{numero}} van {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Vuur',
+  reactionLaugh: 'Lachen',
 };

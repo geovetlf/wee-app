@@ -41,7 +41,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutHint: 'Hvað Weë er og hvaða útgáfu þú ert með',
   helpHint: 'Algengar spurningar og samband',
   signOutHint: 'Skrá þig út af aðganginum',
-  aboutBody: 'Weë (World Encode Entity) er samfélagsmiðill fólks sem skapar með gervigreind.\n\nÚtgáfa 1.0.0 · © {{anio}} Weë. Allur réttur áskilinn.\n\nLandfræðileg gögn: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Weë (WORLD OF EXPRESSION & EVOLUTION) er samfélagsmiðill fólks sem skapar með gervigreind.\n\nÚtgáfa 1.0.0 · © {{anio}} Weë. Allur réttur áskilinn.\n\nLandfræðileg gögn: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Staðsetning',
   locationLine: '{{estado}} Nákvæm staðsetning þín er aldrei sýnd opinberlega.',
   locationOff: 'Slökkt. Leyfðu Weë að nota áætlaða staðsetningu þína til að stinga upp á stöðum í nágrenninu og svæðinu þínu þegar þú bætir staðsetningu við færslu. Nákvæm staðsetning þín er aldrei sýnd opinberlega.',

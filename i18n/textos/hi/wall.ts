@@ -23,7 +23,7 @@
  * devanagari no tiene caja; «Creado con», al que siguen las fichas de las
  * herramientas, es «इस्तेमाल किए गए टूल», y «Proceso:», «प्रोसेस:».
  * `publishedOnWee` firma el texto que sale al compartir («- Weë पर पोस्ट किया
- * गया»), y `shareText` conserva «World Encode Entity» en latino: es la marca.
+ * गया»), y `shareText` conserva «WORLD OF EXPRESSION & EVOLUTION» en latino: es la marca.
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} ने रीपोस्ट किया',
@@ -86,7 +86,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'टिप्पणियाँ',
   commentImageFailed: 'इमेज अपलोड नहीं की जा सकी. फिर से कोशिश करें.',
   commentSendFailed: 'टिप्पणी नहीं भेजी जा सकी. फिर से कोशिश करें.',
-  shareText: '{{contenido}}\n\nWeë पर बनाया गया · World Encode Entity',
+  shareText: '{{contenido}}\n\nWeë पर बनाया गया · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Weë पर यह पोस्ट देखें',
   commentsWithCount: 'टिप्पणियाँ ({{total}})',
   agreeWithComment: 'इस टिप्पणी से सहमत',
@@ -110,4 +110,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'कम देखें',
   openPost: 'पोस्ट खोलें',
   imageOf: '{{total}} में से {{numero}} छवि',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'आग',
+  reactionLaugh: 'हँसी',
 };

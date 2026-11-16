@@ -42,7 +42,7 @@ const cargar = async (ruta) => {
 
 const aplanar = (o, pre = '') => Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' && !Array.isArray(v) ? aplanar(v, pre + k + '.') : [[pre + k, v]]));
 const huecos = (v) => [...String(v).matchAll(/\{\{\s*([\w.]+)\s*\}\}/g)].map((m) => m[1]).sort();
-const MARCAS = ['Weë AI', 'WEË AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Writer', 'Weë Music', 'Weë Chef', 'Weë Fashion', 'Weë Travel', 'Weë Photo', 'Weë Beauty', 'Weë Home', 'Weë Business', 'Weëls', 'Wäll', 'WeeTalk', 'ËContact', 'ẄContact', 'Credits', 'Filmmaker Engine', 'World Encode Entity'];
+const MARCAS = ['Weë AI', 'WEË AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Writer', 'Weë Music', 'Weë Chef', 'Weë Fashion', 'Weë Travel', 'Weë Photo', 'Weë Beauty', 'Weë Home', 'Weë Business', 'Weëls', 'Wäll', 'WeeTalk', 'ËContact', 'ẄContact', 'Credits', 'Filmmaker Engine', 'WORLD OF EXPRESSION & EVOLUTION'];
 const cuenta = (t, m) => String(t).split(m).length - 1;
 const cats = new Intl.PluralRules(idioma).resolvedOptions().pluralCategories;
 const DANES = /(?<![\p{L}])(og|ikke|er|at|til|med|det|den|du|din|dit|dine|på|af|for|kan|vil|har|skal|som|eller|ved|fra|efter|meget|hvad|hvor|når|jeres|vores|venligst|tryk|indstillinger|gem|annuller|luk|send|slet)(?![\p{L}])/iu;

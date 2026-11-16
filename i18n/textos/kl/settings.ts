@@ -39,7 +39,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutHint: 'Weë suunersoq, nutarternerlu sorleq atorneriuk',
   helpHint: 'Apeqqutit akulikitsumik apeqqutigineqartartut, attaveqarnissamullu paasissutissat',
   signOutHint: 'Kontunnit anigit',
-  aboutBody: 'Weë (World Encode Entity) tassaavoq inunnut qarasaasiap silaa atorlugu pilersitsisartunut attaveqatigiiffik.\n\nNutarterneq 1.0.0 · © {{anio}} Weë. Pisinnaatitaaffiit tamarmik illersorneqarput.\n\nSumiiffinnut paasissutissat: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Weë (WORLD OF EXPRESSION & EVOLUTION) tassaavoq inunnut qarasaasiap silaa atorlugu pilersitsisartunut attaveqatigiiffik.\n\nNutarterneq 1.0.0 · © {{anio}} Weë. Pisinnaatitaaffiit tamarmik illersorneqarput.\n\nSumiiffinnut paasissutissat: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Sumiiffik',
   locationLine: '{{estado}} Sumiiffit eqqoqqissaartoq tamanut takutinneqarneq ajorpoq.',
   locationOff: 'Qamitaq. Weë sumiiffimmik eqqoqqissaanngitsumik atuisinnaatiguk: taamaalilluni eqqaanni sumiiffinnik siunnersuisinnaassaaq, saqqummiussamullu sumiiffimmik ilanngussigaangavit najukkat takutissinnaassallugu. Sumiiffit eqqoqqissaartoq tamanut takutinneqarneq ajorpoq.',

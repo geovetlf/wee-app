@@ -62,7 +62,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'сэтгэгдэл',
   commentImageFailed: 'Зургийг байршуулж чадсангүй. Дахин оролдоно уу.',
   commentSendFailed: 'Сэтгэгдлийг илгээж чадсангүй. Дахин оролдоно уу.',
-  shareText: '{{contenido}}\n\nWeë дээр бүтээсэн · World Encode Entity',
+  shareText: '{{contenido}}\n\nWeë дээр бүтээсэн · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Weë дээрх энэ нийтлэлийг үзээрэй',
   commentsWithCount: 'Сэтгэгдэл ({{total}})',
   agreeWithComment: 'Энэ сэтгэгдэлтэй санал нийлж байна',
@@ -86,4 +86,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Хураах',
   openPost: 'Нийтлэл нээх',
   imageOf: 'Зураг {{numero}}/{{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Гал',
+  reactionLaugh: 'Инээд',
 };

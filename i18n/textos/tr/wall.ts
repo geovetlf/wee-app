@@ -79,7 +79,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'yorum',
   commentImageFailed: 'Görsel yüklenemedi. Yeniden dene.',
   commentSendFailed: 'Yorum gönderilemedi. Yeniden dene.',
-  shareText: '{{contenido}}\n\nWeë\'de oluşturuldu · World Encode Entity',
+  shareText: '{{contenido}}\n\nWeë\'de oluşturuldu · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Weë\'deki bu gönderiye göz at',
   commentsWithCount: 'Yorumlar ({{total}})',
   agreeWithComment: 'Bu yoruma katılıyorum',
@@ -103,4 +103,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Daha az göster',
   openPost: 'Gönderiyi aç',
   imageOf: 'Görsel {{numero}}/{{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Ateş',
+  reactionLaugh: 'Kahkaha',
 };

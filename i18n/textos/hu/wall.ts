@@ -63,7 +63,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'hozzászólás',
   commentImageFailed: 'Nem sikerült feltölteni a képet. Próbáld újra.',
   commentSendFailed: 'Nem sikerült elküldeni a hozzászólást. Próbáld újra.',
-  shareText: '{{contenido}}\n\nKészült a Weë-n · World Encode Entity',
+  shareText: '{{contenido}}\n\nKészült a Weë-n · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Nézd meg ezt a bejegyzést a Weë-n',
   commentsWithCount: 'Hozzászólások ({{total}})',
   agreeWithComment: 'Egyetértek ezzel a hozzászólással',
@@ -87,4 +87,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Kevesebb megjelenítése',
   openPost: 'Bejegyzés megnyitása',
   imageOf: 'Kép: {{numero}} / {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Tűz',
+  reactionLaugh: 'Nevetés',
 };

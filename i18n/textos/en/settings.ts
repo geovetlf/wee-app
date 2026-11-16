@@ -35,7 +35,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutHint: 'What Weë is and which version you are on',
   helpHint: 'Frequently asked questions and contact',
   signOutHint: 'Leave your account',
-  aboutBody: 'Weë (World Encode Entity) is the social network for people who create with Artificial Intelligence.\n\nVersion 1.0.0 · © {{anio}} Weë. All rights reserved.\n\nGeographic data: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Weë (WORLD OF EXPRESSION & EVOLUTION) is the social network for people who create with Artificial Intelligence.\n\nVersion 1.0.0 · © {{anio}} Weë. All rights reserved.\n\nGeographic data: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Location',
   locationLine: '{{estado}} Your exact location is never shown publicly.',
   locationOff: 'Off. Let Weë use your approximate location to suggest nearby places and your area when you add a location to a post. Your exact location is never shown publicly.',

@@ -81,7 +81,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'kommentarer',
   commentImageFailed: 'Det gick inte att ladda upp bilden. Försök igen.',
   commentSendFailed: 'Det gick inte att skicka kommentaren. Försök igen.',
-  shareText: '{{contenido}}\n\nSkapat på Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nSkapat på Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Kolla in det här inlägget på Weë',
   commentsWithCount: 'Kommentarer ({{total}})',
   agreeWithComment: 'Håller med om kommentaren',
@@ -105,4 +105,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Visa mindre',
   openPost: 'Öppna inlägget',
   imageOf: 'Bild {{numero}} av {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Eld',
+  reactionLaugh: 'Skratt',
 };

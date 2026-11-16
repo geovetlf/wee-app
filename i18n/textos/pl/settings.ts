@@ -43,7 +43,7 @@ export const settings: ConPlurales<typeof import('../es/settings').settings> = {
   aboutHint: 'Czym jest Weë i jakiej wersji używasz',
   helpHint: 'Najczęstsze pytania i kontakt',
   signOutHint: 'Wyloguj się ze swojego konta',
-  aboutBody: 'Weë (World Encode Entity) to sieć społecznościowa dla osób, które tworzą ze sztuczną inteligencją.\n\nWersja 1.0.0 · © {{anio}} Weë. Wszelkie prawa zastrzeżone.\n\nDane geograficzne: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Weë (WORLD OF EXPRESSION & EVOLUTION) to sieć społecznościowa dla osób, które tworzą ze sztuczną inteligencją.\n\nWersja 1.0.0 · © {{anio}} Weë. Wszelkie prawa zastrzeżone.\n\nDane geograficzne: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Lokalizacja',
   locationLine: '{{estado}} Twoja dokładna lokalizacja nigdy nie jest pokazywana publicznie.',
   locationOff: 'Wyłączona. Pozwól aplikacji Weë używać twojej przybliżonej lokalizacji, aby podpowiadać ci pobliskie miejsca i twoją okolicę, gdy dodajesz lokalizację do posta. Twoja dokładna lokalizacja nigdy nie jest pokazywana publicznie.',

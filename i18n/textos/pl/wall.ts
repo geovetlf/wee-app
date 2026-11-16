@@ -5,7 +5,7 @@
  *
  * Los contadores de la encuesta llevan las CUATRO formas del polaco con
  * `ConPlurales`. Las formas de pasado se escriben sin género (impersonales)
- * donde el español no lo marca. Weë, Weëls, WeeTalk y World Encode Entity son
+ * donde el español no lo marca. Weë, Weëls, WeeTalk y WORLD OF EXPRESSION & EVOLUTION son
  * marca y viajan tal cual.
  */
 import { ConPlurales } from '../ru/plurales';
@@ -77,7 +77,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   statComments: 'komentarzy',
   commentImageFailed: 'Nie udało się przesłać obrazu. Spróbuj ponownie.',
   commentSendFailed: 'Nie udało się wysłać komentarza. Spróbuj ponownie.',
-  shareText: '{{contenido}}\n\nUtworzono w Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nUtworzono w Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Zobacz ten post w Weë',
   commentsWithCount: 'Komentarze ({{total}})',
   agreeWithComment: 'Zgadzam się z tym komentarzem',
@@ -101,4 +101,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   seeLess: 'Pokaż mniej',
   openPost: 'Otwórz post',
   imageOf: 'Obraz {{numero}} z {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Ogień',
+  reactionLaugh: 'Śmiech',
 };

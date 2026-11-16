@@ -7,7 +7,7 @@
  * sano/roto), `_many` (11–99, singular en acusativo) y `_other` (100+,
  * singular). `ConPlurales` es lo que permite declararlos.
  *
- * Marcas en latino: Weë, Weëls, WeeTalk, World Encode Entity. Botones como
+ * Marcas en latino: Weë, Weëls, WeeTalk, WORLD OF EXPRESSION & EVOLUTION. Botones como
  * sustantivo de acción; segunda persona masculina singular solo donde no se
  * puede evitar (anotado para el revisor).
  */
@@ -86,7 +86,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   statComments: 'تعليقات',
   commentImageFailed: 'تعذّر رفع الصورة. يُرجى المحاولة مرة أخرى.',
   commentSendFailed: 'تعذّر إرسال التعليق. يُرجى المحاولة مرة أخرى.',
-  shareText: '{{contenido}}\n\nأُنشئ في Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nأُنشئ في Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'ألقِ نظرة على هذا المنشور على Weë',
   commentsWithCount: 'التعليقات ({{total}})',
   agreeWithComment: 'الموافقة على هذا التعليق',
@@ -110,4 +110,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   seeLess: 'عرض أقل',
   openPost: 'فتح المنشور',
   imageOf: 'الصورة {{numero}} من {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'نار',
+  reactionLaugh: 'ضحك',
 };

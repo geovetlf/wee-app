@@ -31,7 +31,7 @@ está en `main`.
 ## 3. Marcas (byte a byte, en latino, sin mutación)
 WEE, Weë, Weë AI, WEË AI, Weë Brain, Weë Studio, Weë Design, Weë Writer, Weë Music, Weë Chef, Weë Fashion, Weë Travel, Weë Photo,
 Weë Beauty, Weë Home, Weëls (**nunca «Reels»**), Weël, Wäll, WeeTalk, ËContact, ẄContact, Credits (**nunca «Creidmheasanna»**),
-Filmmaker Engine, World Encode Entity. «Weë Business» solo donde el español lo dice. Lo que escribe una persona no se traduce.
+Filmmaker Engine, WORLD OF EXPRESSION & EVOLUTION. «Weë Business» solo donde el español lo dice. Lo que escribe una persona no se traduce.
 
 ## 4. Glosario fijo
 

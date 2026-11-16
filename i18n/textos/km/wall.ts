@@ -70,7 +70,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'មតិ',
   commentImageFailed: 'មិនអាច​បង្ហោះ​ឡើង​រូបភាព​បានទេ។ សូម​ព្យាយាម​ម្តងទៀត។',
   commentSendFailed: 'មិនអាច​ផ្ញើ​មតិ​បានទេ។ សូម​ព្យាយាម​ម្តងទៀត។',
-  shareText: '{{contenido}}\n\nបង្កើត​នៅលើ Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nបង្កើត​នៅលើ Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'មើល​សារបង្ហោះ​នេះ​នៅលើ Weë',
   commentsWithCount: 'មតិ ({{total}})',
   agreeWithComment: 'យល់ស្រប​ជាមួយ​មតិ​នេះ',
@@ -94,4 +94,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'មើល​តិច',
   openPost: 'បើក​សារបង្ហោះ',
   imageOf: 'រូបភាព {{numero}} ក្នុងចំណោម {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'ភ្លើង',
+  reactionLaugh: 'សើច',
 };

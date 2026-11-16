@@ -32,7 +32,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutHint: 'Weë چیست و در کدام نسخه هستید',
   helpHint: 'پرسش‌های متداول و تماس',
   signOutHint: 'خروج از حساب شما',
-  aboutBody: 'Weë (World Encode Entity) شبکهٔ اجتماعی کسانی است که با هوش مصنوعی می‌آفرینند.\n\nنسخه 1.0.0 · © {{anio}} Weë. همهٔ حقوق محفوظ است.\n\nداده‌های جغرافیایی: GeoNames (geonames.org)، CC BY 4.0.',
+  aboutBody: 'Weë (WORLD OF EXPRESSION & EVOLUTION) شبکهٔ اجتماعی کسانی است که با هوش مصنوعی می‌آفرینند.\n\nنسخه 1.0.0 · © {{anio}} Weë. همهٔ حقوق محفوظ است.\n\nداده‌های جغرافیایی: GeoNames (geonames.org)، CC BY 4.0.',
   location: 'موقعیت مکانی',
   locationLine: '{{estado}} موقعیت دقیق شما هرگز به‌صورت عمومی نمایش داده نمی‌شود.',
   locationOff: 'غیرفعال. اجازه دهید Weë از موقعیت تقریبی شما استفاده کند تا هنگام افزودن موقعیت به یک پست، مکان‌های نزدیک و منطقه‌تان را پیشنهاد دهد. موقعیت دقیق شما هرگز به‌صورت عمومی نمایش داده نمی‌شود.',

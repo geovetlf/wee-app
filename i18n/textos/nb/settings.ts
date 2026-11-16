@@ -35,7 +35,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutHint: 'Hva Weë er, og versjonen du bruker',
   helpHint: 'Vanlige spørsmål og kontakt',
   signOutHint: 'Logg ut av kontoen din',
-  aboutBody: 'Weë (World Encode Entity) er det sosiale nettverket for folk som skaper med kunstig intelligens.\n\nVersjon 1.0.0 · © {{anio}} Weë. Med enerett.\n\nGeografiske data: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Weë (WORLD OF EXPRESSION & EVOLUTION) er det sosiale nettverket for folk som skaper med kunstig intelligens.\n\nVersjon 1.0.0 · © {{anio}} Weë. Med enerett.\n\nGeografiske data: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Posisjon',
   locationLine: '{{estado}} Den nøyaktige posisjonen din vises aldri offentlig.',
   locationOff: 'Av. La Weë bruke den omtrentlige posisjonen din til å foreslå steder i nærheten og området ditt når du legger til et sted i et innlegg. Den nøyaktige posisjonen din vises aldri offentlig.',

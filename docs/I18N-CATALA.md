@@ -29,7 +29,7 @@ revisión por una persona competente en catalán**. Nada de esto está en `main`
 ## 3. Marcas (byte a byte, en latino)
 WEE, Weë, Weë AI, WEË AI, Weë Brain, Weë Studio, Weë Design, Weë Writer, Weë Music, Weë Chef, Weë Fashion, Weë Travel, Weë Photo,
 Weë Beauty, Weë Home, Weëls (**nunca «Reels»**), Weël, Wäll, WeeTalk, ËContact, ẄContact, Credits / Weë Credits (**nunca
-«crèdits»**), Filmmaker Engine, World Encode Entity. «Weë Business» solo donde el castellano lo dice (la sección vigente es Weë
+«crèdits»**), Filmmaker Engine, WORLD OF EXPRESSION & EVOLUTION. «Weë Business» solo donde el castellano lo dice (la sección vigente es Weë
 Fashion). Con artículo o preposición normal («a Weë», «els Credits», «l'app Weë»). Lo que escribe una persona no se traduce.
 
 ## 4. Glosario fijo

@@ -69,7 +69,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'athugasemdir',
   commentImageFailed: 'Ekki tókst að hlaða upp myndinni. Reyndu aftur.',
   commentSendFailed: 'Ekki tókst að senda athugasemdina. Reyndu aftur.',
-  shareText: '{{contenido}}\n\nGert í Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nGert í Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Skoðaðu þessa færslu í Weë',
   commentsWithCount: 'Athugasemdir ({{total}})',
   agreeWithComment: 'Sammála þessari athugasemd',
@@ -93,4 +93,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Sjá minna',
   openPost: 'Opna færslu',
   imageOf: 'Mynd {{numero}} af {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Eldur',
+  reactionLaugh: 'Hlátur',
 };

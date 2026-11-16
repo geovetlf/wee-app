@@ -66,7 +66,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'σχόλια',
   commentImageFailed: 'Δεν ήταν δυνατή η μεταφόρτωση της εικόνας. Δοκίμασε ξανά.',
   commentSendFailed: 'Δεν ήταν δυνατή η αποστολή του σχολίου. Δοκίμασε ξανά.',
-  shareText: '{{contenido}}\n\nΔημιουργήθηκε στο Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nΔημιουργήθηκε στο Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Δες αυτή την ανάρτηση στο Weë',
   commentsWithCount: 'Σχόλια ({{total}})',
   agreeWithComment: 'Συμφωνώ με αυτό το σχόλιο',
@@ -90,4 +90,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Λιγότερα',
   openPost: 'Άνοιγμα ανάρτησης',
   imageOf: 'Εικόνα {{numero}} από {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Φωτιά',
+  reactionLaugh: 'Γέλιο',
 };

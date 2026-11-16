@@ -4,7 +4,7 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * `communitiesJoined` lleva las tres formas del plural serbio con {{contador}}.
  * «Push» se transcribe («пуш») como hace la interfaz serbia; GeoNames, Firestore
- * y World Encode Entity se copian tal cual.
+ * y WORLD OF EXPRESSION & EVOLUTION se copian tal cual.
  */
 import { ConPlurales } from '../ru/plurales';
 
@@ -40,7 +40,7 @@ export const settings: ConPlurales<typeof import('../es/settings').settings> = {
   aboutHint: 'Шта је Weë и коју верзију користиш',
   helpHint: 'Честа питања и контакт',
   signOutHint: 'Изађи из свог налога',
-  aboutBody: 'Weë (World Encode Entity) је друштвена мрежа људи који стварају уз помоћ вештачке интелигенције.\n\nВерзија 1.0.0 · © {{anio}} Weë. Сва права задржана.\n\nГеографски подаци: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Weë (WORLD OF EXPRESSION & EVOLUTION) је друштвена мрежа људи који стварају уз помоћ вештачке интелигенције.\n\nВерзија 1.0.0 · © {{anio}} Weë. Сва права задржана.\n\nГеографски подаци: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Локација',
   locationLine: '{{estado}} Твоја тачна локација се никада не приказује јавно.',
   locationOff: 'Искључена. Дозволи да Weë користи твоју приближну локацију како би ти предложио оближња места и твоје подручје када додајеш локацију у објаву. Твоја тачна локација се никада не приказује јавно.',

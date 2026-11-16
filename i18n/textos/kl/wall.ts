@@ -71,7 +71,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'oqaaseqaatit',
   commentImageFailed: 'Assip ikkunnera iluatsinngilaq. Misileqqiguk.',
   commentSendFailed: 'Oqaaseqaatip nassiunnera iluatsinngilaq. Misileqqiguk.',
-  shareText: '{{contenido}}\n\nPilersinneqarpoq: Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nPilersinneqarpoq: Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Saqqummiussaq una takuuk · Weë',
   commentsWithCount: 'Oqaaseqaatit ({{total}})',
   agreeWithComment: 'Oqaaseqaat una isumaqatigaara',
@@ -95,4 +95,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Ikinnerusut takukkit',
   openPost: 'Saqqummiussaq ammaruk',
   imageOf: 'Assi {{numero}} / {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Ikuallaaneq',
+  reactionLaugh: 'Quiasaarneq',
 };

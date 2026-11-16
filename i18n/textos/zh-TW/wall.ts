@@ -83,7 +83,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: '留言',
   commentImageFailed: '無法上傳圖片，請再試一次。',
   commentSendFailed: '無法送出留言，請再試一次。',
-  shareText: '{{contenido}}\n\n創作於 Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\n創作於 Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: '來 Weë 看看這則貼文',
   commentsWithCount: '留言（{{total}}）',
   agreeWithComment: '贊同這則留言',
@@ -107,4 +107,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: '收起',
   openPost: '開啟貼文',
   imageOf: '第 {{numero}}/{{total}} 張圖片',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: '火',
+  reactionLaugh: '笑',
 };

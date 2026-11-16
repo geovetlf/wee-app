@@ -66,96 +66,6 @@
     "nota": "Cita wall.howIMadeIt y debe coincidir con él. [coherencia interna del diccionario; Microsoft Style Guide 2.1.1 (naturalidad, sin calcos); confianza alta]"
   },
   {
-    "clave": "weebiz.namePlaceholder",
-    "antes": "Ex: Burger clasic",
-    "despues": "Ex.: Burger clasic",
-    "revisada": true,
-    "huella": "997b67611614817b",
-    "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
-    "tipo": "agente",
-    "fecha": "2026-10-30",
-    "nota": "Abreviatura con punto, como communities.namePlaceholder y onboarding.weeNamePlaceholder. [coherencia interna del diccionario; Microsoft Style Guide 2.1.1 (naturalidad, sin calcos); confianza alta]",
-    "obsoleta": {
-      "fecha": "2026-11-05",
-      "motivo": "La clave dejó de existir: el módulo weebiz se retiró del cliente por decisión del dueño (2026-11-03; Weë Fashion es el sector). Se conserva como historia de la revisión; no cuenta en el estado de ningún texto vigente."
-    }
-  },
-  {
-    "clave": "weebiz.businessNamePlaceholder",
-    "antes": "Ex: Cafeneaua Centrală",
-    "despues": "Ex.: Cafeneaua Centrală",
-    "revisada": true,
-    "huella": "9dc55777651935fe",
-    "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
-    "tipo": "agente",
-    "fecha": "2026-10-30",
-    "nota": "Abreviatura con punto. [coherencia interna del diccionario; Microsoft Style Guide 2.1.1 (naturalidad, sin calcos); confianza alta]",
-    "obsoleta": {
-      "fecha": "2026-11-05",
-      "motivo": "La clave dejó de existir: el módulo weebiz se retiró del cliente por decisión del dueño (2026-11-03; Weë Fashion es el sector). Se conserva como historia de la revisión; no cuenta en el estado de ningún texto vigente."
-    }
-  },
-  {
-    "clave": "weebiz.locationPlaceholder",
-    "antes": "Ex: București, România",
-    "despues": "Ex.: București, România",
-    "revisada": true,
-    "huella": "ccdadff966dbd36e",
-    "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
-    "tipo": "agente",
-    "fecha": "2026-10-30",
-    "nota": "Abreviatura con punto. [coherencia interna del diccionario; Microsoft Style Guide 2.1.1 (naturalidad, sin calcos); confianza alta]",
-    "obsoleta": {
-      "fecha": "2026-11-05",
-      "motivo": "La clave dejó de existir: el módulo weebiz se retiró del cliente por decisión del dueño (2026-11-03; Weë Fashion es el sector). Se conserva como historia de la revisión; no cuenta en el estado de ningún texto vigente."
-    }
-  },
-  {
-    "clave": "weebiz.externalLinkPlaceholder",
-    "antes": "Ex: www.afacereamea.ro",
-    "despues": "Ex.: www.afacereamea.ro",
-    "revisada": true,
-    "huella": "d60f28333a83a3a2",
-    "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
-    "tipo": "agente",
-    "fecha": "2026-10-30",
-    "nota": "Abreviatura con punto. [coherencia interna del diccionario; Microsoft Style Guide 2.1.1 (naturalidad, sin calcos); confianza alta]",
-    "obsoleta": {
-      "fecha": "2026-11-05",
-      "motivo": "La clave dejó de existir: el módulo weebiz se retiró del cliente por decisión del dueño (2026-11-03; Weë Fashion es el sector). Se conserva como historia de la revisión; no cuenta en el estado de ningún texto vigente."
-    }
-  },
-  {
-    "clave": "weebiz.firstInCategory",
-    "antes": "Fii primul care își înregistrează afacerea în {{categoria}}.",
-    "despues": "Fii prima persoană care își înregistrează afacerea în {{categoria}}.",
-    "revisada": true,
-    "huella": "85fadf302cc3d36a",
-    "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
-    "tipo": "agente",
-    "fecha": "2026-10-30",
-    "nota": "Forma neutra que ya usa home.wallEmptyHint. [Microsoft Romanian Style Guide (Gender: «această persoană»); confianza media]",
-    "obsoleta": {
-      "fecha": "2026-11-05",
-      "motivo": "La clave dejó de existir: el módulo weebiz se retiró del cliente por decisión del dueño (2026-11-03; Weë Fashion es el sector). Se conserva como historia de la revisión; no cuenta en el estado de ningún texto vigente."
-    }
-  },
-  {
-    "clave": "weebiz.specialityPlaceholder",
-    "antes": "Ex: {{ejemplos}}",
-    "despues": "Ex.: {{ejemplos}}",
-    "revisada": true,
-    "huella": "fdcd7a3bd5016b13",
-    "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
-    "tipo": "agente",
-    "fecha": "2026-10-30",
-    "nota": "Abreviatura con punto. [coherencia interna del diccionario; Microsoft Style Guide 2.1.1 (naturalidad, sin calcos); confianza alta]",
-    "obsoleta": {
-      "fecha": "2026-11-05",
-      "motivo": "La clave dejó de existir: el módulo weebiz se retiró del cliente por decisión del dueño (2026-11-03; Weë Fashion es el sector). Se conserva como historia de la revisión; no cuenta en el estado de ningún texto vigente."
-    }
-  },
-  {
     "clave": "onboarding.weeTitle",
     "antes": "Creează Profil Weë",
     "despues": "Creează-ți Profilul Weë",
@@ -6569,17 +6479,6 @@
     "nota": ""
   },
   {
-    "clave": "composer.newPost",
-    "antes": "Postare nouă",
-    "despues": "Postare nouă",
-    "revisada": true,
-    "huella": "b72925c3ecca6128",
-    "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
-    "tipo": "agente",
-    "fecha": "2026-10-30",
-    "nota": ""
-  },
-  {
     "clave": "composer.you",
     "antes": "Tu",
     "despues": "Tu",
@@ -6663,17 +6562,6 @@
     "despues": "Profil Weë",
     "revisada": true,
     "huella": "6d1df819662f7a64",
-    "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
-    "tipo": "agente",
-    "fecha": "2026-10-30",
-    "nota": ""
-  },
-  {
-    "clave": "composer.multimedia",
-    "antes": "Multimedia",
-    "despues": "Multimedia",
-    "revisada": true,
-    "huella": "33f67dcf8b1d06ae",
     "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
     "tipo": "agente",
     "fecha": "2026-10-30",
@@ -13305,6 +13193,28 @@
     "despues": "Acest conținut nu mai este disponibil.",
     "revisada": true,
     "huella": "49f7d0563b21fc77",
+    "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
+    "tipo": "agente",
+    "fecha": "2026-10-30",
+    "nota": ""
+  },
+  {
+    "clave": "composer.newPost",
+    "antes": "Postare nouă",
+    "despues": "Postare nouă",
+    "revisada": true,
+    "huella": "b72925c3ecca6128",
+    "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
+    "tipo": "agente",
+    "fecha": "2026-10-30",
+    "nota": ""
+  },
+  {
+    "clave": "composer.multimedia",
+    "antes": "Multimedia",
+    "despues": "Multimedia",
+    "revisada": true,
+    "huella": "33f67dcf8b1d06ae",
     "revisor": "Auditoría de calidad 2026-10-30 (agente de IA)",
     "tipo": "agente",
     "fecha": "2026-10-30",

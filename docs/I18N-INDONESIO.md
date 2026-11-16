@@ -25,7 +25,7 @@ guía (`docs/I18N-MALAYO.md`): no se copia nada entre los dos; lo que coincide, 
 ## 3. Marcas (byte a byte, en latino)
 Weë, Weë AI, WEË AI, Weë Brain, Weë Studio, Weë Design, Weë Writer, Weë Music, Weë Chef, Weë Fashion, Weë Travel, Weë Photo,
 Weë Beauty, Weë Home, Weëls (**nunca «Reels»**), Weël, Wäll, WeeTalk, ËContact, ẄContact, Credits (**nunca «Kredit»**),
-World Encode Entity. «Weë Business» solo donde el español lo dice (la sección vigente es Weë Fashion). Lo que escribe una
+WORLD OF EXPRESSION & EVOLUTION. «Weë Business» solo donde el español lo dice (la sección vigente es Weë Fashion). Lo que escribe una
 persona no se traduce.
 
 ## 4. Glosario fijo (decisiones; el revisor nativo puede cambiarlas, pero todos los módulos usan las mismas)

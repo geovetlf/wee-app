@@ -30,7 +30,7 @@ en `main`.
 ## 3. Marcas (byte a byte, en latino)
 WEE, Weë, Weë AI, WEË AI, Weë Brain, Weë Studio, Weë Design, Weë Writer, Weë Music, Weë Chef, Weë Fashion, Weë Travel, Weë Photo,
 Weë Beauty, Weë Home, Weëls (**nunca «Reels»**), Weël, Wäll, WeeTalk, ËContact, ẄContact, Credits / Weë Credits (**nunca
-«ក្រេឌីត»**), Filmmaker Engine, World Encode Entity. Entre jemer y una marca va un espacio normal. «Weë Business» solo donde el
+«ក្រេឌីត»**), Filmmaker Engine, WORLD OF EXPRESSION & EVOLUTION. Entre jemer y una marca va un espacio normal. «Weë Business» solo donde el
 español lo dice. Lo que escribe una persona no se traduce.
 
 ## 4. Glosario fijo

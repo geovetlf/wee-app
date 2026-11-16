@@ -8,7 +8,7 @@
  * botones van en verbo base («Simpan», «Padam», «Kongsi»). Las formas `_one`
  * y `_other` son idénticas porque Intl solo tiene «other» en malayo. «Prompt»
  * se queda como préstamo. El texto que se comparte fuera conserva la firma
- * «Weë · World Encode Entity» byte a byte.
+ * «Weë · WORLD OF EXPRESSION & EVOLUTION» byte a byte.
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} menyiarkan semula',
@@ -71,7 +71,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'komen',
   commentImageFailed: 'Imej tidak dapat dimuat naik. Cuba lagi.',
   commentSendFailed: 'Komen tidak dapat dihantar. Cuba lagi.',
-  shareText: '{{contenido}}\n\nDicipta di Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nDicipta di Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Lihat siaran ini di Weë',
   commentsWithCount: 'Komen ({{total}})',
   agreeWithComment: 'Setuju dengan komen ini',
@@ -95,4 +95,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Lihat kurang',
   openPost: 'Buka siaran',
   imageOf: 'Imej {{numero}} daripada {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Api',
+  reactionLaugh: 'Ketawa',
 };

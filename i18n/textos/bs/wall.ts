@@ -8,7 +8,7 @@
  * de los plazos concuerda con el número: «Preostao 1 dan», «Preostala 2 dana»,
  * «Preostalo 5 dana».
  *
- * Tuteo. Las marcas —Weë, Weëls, WeeTalk, World Encode Entity— no se declinan:
+ * Tuteo. Las marcas —Weë, Weëls, WeeTalk, WORLD OF EXPRESSION & EVOLUTION— no se declinan:
  * donde hace falta un caso entra un sustantivo puente («u sekciji Weëls»,
  * «WeeTalk porukom»). Las frases que hablan de quien mira van en forma neutra
  * en cuanto al género donde el bosnio lo permite («{{nombre}} dijeli ponovo»).
@@ -79,7 +79,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   statComments: 'komentara',
   commentImageFailed: 'Sliku nije bilo moguće učitati. Pokušaj ponovo.',
   commentSendFailed: 'Komentar nije bilo moguće poslati. Pokušaj ponovo.',
-  shareText: '{{contenido}}\n\nKreirano na Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nKreirano na Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Pogledaj ovu objavu na Weë',
   commentsWithCount: 'Komentari ({{total}})',
   agreeWithComment: 'Slažem se s ovim komentarom',
@@ -103,4 +103,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   seeLess: 'Prikaži manje',
   openPost: 'Otvori objavu',
   imageOf: 'Slika {{numero}} od {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Vatra',
+  reactionLaugh: 'Smijeh',
 };

@@ -25,7 +25,7 @@
  *
  * «CÓMO LO HICE» es un rótulo de diseño en mayúsculas: «PAANO KO GINAWA».
  * `publishedOnWee` firma el texto que sale al compartir («- Na-post sa Weë») y
- * «World Encode Entity» es el nombre largo de la marca: no se traduce.
+ * «WORLD OF EXPRESSION & EVOLUTION» es el nombre largo de la marca: no se traduce.
  * «Lista de cambios y compras» (en Weë AI, lo que hay que cambiar y lo que hay
  * que comprar) es «Mga pagbabago at bibilhin»: «bibilhin» es «lo que se va a
  * comprar», la palabra de «listahan ng bibilhin».
@@ -91,7 +91,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'komento',
   commentImageFailed: 'Hindi ma-upload ang larawan. Subukan ulit.',
   commentSendFailed: 'Hindi maipadala ang komento. Subukan ulit.',
-  shareText: '{{contenido}}\n\nGinawa sa Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nGinawa sa Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Tingnan ang post na ito sa Weë',
   commentsWithCount: 'Mga komento ({{total}})',
   agreeWithComment: 'Sang-ayon sa komentong ito',
@@ -115,4 +115,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Ipakita nang mas kaunti',
   openPost: 'Buksan ang post',
   imageOf: 'Larawan {{numero}} sa {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Apoy',
+  reactionLaugh: 'Tawa',
 };

@@ -39,7 +39,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutHint: 'Mikä Weë on ja mikä versio sinulla on käytössä',
   helpHint: 'Usein kysytyt kysymykset ja yhteystiedot',
   signOutHint: 'Poistu tililtäsi',
-  aboutBody: 'Weë (World Encode Entity) on sosiaalinen verkosto ihmisille, jotka luovat tekoälyn avulla.\n\nVersio 1.0.0 · © {{anio}} Weë. Kaikki oikeudet pidätetään.\n\nMaantieteelliset tiedot: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Weë (WORLD OF EXPRESSION & EVOLUTION) on sosiaalinen verkosto ihmisille, jotka luovat tekoälyn avulla.\n\nVersio 1.0.0 · © {{anio}} Weë. Kaikki oikeudet pidätetään.\n\nMaantieteelliset tiedot: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Sijainti',
   locationLine: '{{estado}} Tarkkaa sijaintiasi ei koskaan näytetä julkisesti.',
   locationOff: 'Pois käytöstä. Anna Weë-sovelluksen käyttää likimääräistä sijaintiasi, niin se voi ehdottaa lähellä olevia paikkoja ja aluettasi, kun lisäät sijainnin julkaisuun. Tarkkaa sijaintiasi ei koskaan näytetä julkisesti.',

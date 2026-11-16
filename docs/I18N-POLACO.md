@@ -26,7 +26,7 @@ agentes y **SIN revisión humana nativa**. Nada de esto está en `main`.
 ## 3. Marcas (byte a byte, en latino, sin declinar)
 Weë, Weë AI, WEË AI, Weë Brain, Weë Studio, Weë Design, Weë Writer, Weë Music, Weë Chef, Weë Fashion, Weë Travel, Weë Photo,
 Weë Beauty, Weë Home, Weëls (**nunca «Reels»**, nunca «Weëlsy/Weëlsów»), Weël, Wäll, WeeTalk, ËContact, ẄContact, Credits
-(**nunca «kredyty»**), World Encode Entity. Las marcas **no se declinan**: se usa un sustantivo puente («w aplikacji Weë»,
+(**nunca «kredyty»**), WORLD OF EXPRESSION & EVOLUTION. Las marcas **no se declinan**: se usa un sustantivo puente («w aplikacji Weë»,
 «saldo Credits», «w sekcji Weë Studio»). «Weë Business» solo donde el español lo dice. Lo que escribe una persona no se traduce.
 
 ## 4. Glosario fijo

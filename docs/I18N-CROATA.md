@@ -26,8 +26,8 @@ lengua lo dice.
 
 ## 3. Marcas (byte a byte, en latino)
 Weë, Weë AI, WEË AI, Weë Brain, Weë Studio, Weë Design, Weë Writer, Weë Music, Weë Chef, Weë Fashion, Weë Travel, Weë Photo,
-Weë Beauty, Weë Home, Weëls (**nunca «Reels»**), Weël, Wäll, WeeTalk, ËContact, ẄContact, Credits (**nunca «krediti»**), World
-Encode Entity. «Weë Business» solo donde el español lo dice. Declinar una marca se evita con sustantivo puente («u aplikaciji
+Weë Beauty, Weë Home, Weëls (**nunca «Reels»**), Weël, Wäll, WeeTalk, ËContact, ẄContact, Credits (**nunca «krediti»**), WORLD OF EXPRESSION
+& EVOLUTION. «Weë Business» solo donde el español lo dice. Declinar una marca se evita con sustantivo puente («u aplikaciji
 Weë», no «u Weëu»). Lo que escribe una persona no se traduce.
 
 ## 4. Glosario fijo

@@ -67,7 +67,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutHint: 'Kung ano ang Weë at kung anong bersyon ang gamit mo',
   helpHint: 'Mga madalas itanong at paano makipag-ugnayan',
   signOutHint: 'Lumabas sa account mo',
-  aboutBody: 'Ang Weë (World Encode Entity) ang social network para sa mga taong lumilikha gamit ang Artificial Intelligence.\n\nBersyon 1.0.0 · © {{anio}} Weë. Nakalaan ang lahat ng karapatan.\n\nHeograpikong data: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Ang Weë (WORLD OF EXPRESSION & EVOLUTION) ang social network para sa mga taong lumilikha gamit ang Artificial Intelligence.\n\nBersyon 1.0.0 · © {{anio}} Weë. Nakalaan ang lahat ng karapatan.\n\nHeograpikong data: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Lokasyon',
   locationLine: '{{estado}} Hindi kailanman ipinapakita sa publiko ang eksaktong lokasyon mo.',
   locationOff: 'Naka-off. Payagan ang Weë na gamitin ang tinatayang lokasyon mo para magmungkahi ng mga kalapit na lugar at ng area mo kapag nagdadagdag ka ng lokasyon sa isang post. Hindi kailanman ipinapakita sa publiko ang eksaktong lokasyon mo.',

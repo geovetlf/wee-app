@@ -58,7 +58,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutHint: 'Weë가 무엇이고 지금 어떤 버전인지',
   helpHint: '자주 묻는 질문과 문의',
   signOutHint: '내 계정에서 나가기',
-  aboutBody: 'Weë(World Encode Entity)는 인공지능으로 창작하는 사람들의 소셜 네트워크입니다.\n\n버전 1.0.0 · © {{anio}} Weë. 모든 권리 보유.\n\n지리 데이터: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Weë(WORLD OF EXPRESSION & EVOLUTION)는 인공지능으로 창작하는 사람들의 소셜 네트워크입니다.\n\n버전 1.0.0 · © {{anio}} Weë. 모든 권리 보유.\n\n지리 데이터: GeoNames (geonames.org), CC BY 4.0.',
   location: '위치',
   locationLine: '{{estado}} 정확한 위치는 공개적으로 표시되지 않습니다.',
   locationOff: '꺼짐. 켜면 게시물에 위치를 추가할 때 Weë가 대략적인 위치를 사용해 주변 장소와 현재 지역을 추천해 드립니다. 정확한 위치는 공개적으로 표시되지 않습니다.',

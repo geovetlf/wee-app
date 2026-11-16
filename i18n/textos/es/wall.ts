@@ -65,7 +65,7 @@ export const wall = {
   statComments: 'comentarios',
   commentImageFailed: 'No se pudo subir la imagen. Inténtalo de nuevo.',
   commentSendFailed: 'No se pudo enviar el comentario. Inténtalo de nuevo.',
-  shareText: '{{contenido}}\n\nCreado en Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nCreado en Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Mira esta publicación en Weë',
   commentsWithCount: 'Comentarios ({{total}})',
   agreeWithComment: 'De acuerdo con este comentario',
@@ -89,4 +89,7 @@ export const wall = {
   seeLess: 'Ver menos',
   openPost: 'Abrir publicación',
   imageOf: 'Imagen {{numero}} de {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Fuego',
+  reactionLaugh: 'Risa',
 };

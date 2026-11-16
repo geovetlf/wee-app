@@ -38,7 +38,7 @@ export const settings: ConPlurales<typeof import('../es/settings').settings> = {
   aboutHint: 'Ce este Weë și ce versiune folosești',
   helpHint: 'Întrebări frecvente și contact',
   signOutHint: 'Ieși din contul tău',
-  aboutBody: 'Weë (World Encode Entity) este rețeaua socială a oamenilor care creează cu Inteligență Artificială.\n\nVersiunea 1.0.0 · © {{anio}} Weë. Toate drepturile rezervate.\n\nDate geografice: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Weë (WORLD OF EXPRESSION & EVOLUTION) este rețeaua socială a oamenilor care creează cu Inteligență Artificială.\n\nVersiunea 1.0.0 · © {{anio}} Weë. Toate drepturile rezervate.\n\nDate geografice: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Locație',
   locationLine: '{{estado}} Locația ta exactă nu este afișată niciodată public.',
   locationOff: 'Dezactivată. Permite-i aplicației Weë să folosească locația ta aproximativă pentru a-ți sugera locuri din apropiere și zona ta când adaugi o locație la o postare. Locația ta exactă nu este afișată niciodată public.',

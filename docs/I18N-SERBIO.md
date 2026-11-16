@@ -35,7 +35,7 @@ agentes y **SIN revisión humana nativa**. Nada de esto está en `main`. El croa
 ## 3. Marcas (byte a byte, en LATINO dentro del cirílico)
 Weë, Weë AI, WEË AI, Weë Brain, Weë Studio, Weë Design, Weë Writer, Weë Music, Weë Chef, Weë Fashion, Weë Travel, Weë Photo,
 Weë Beauty, Weë Home, Weëls (**nunca «Reels» ni «Рилс»**), Weël, Wäll, WeeTalk, ËContact, ẄContact, Credits (**nunca «кредити»**),
-World Encode Entity. También quedan en latino TikTok, YouTube, Instagram, Facebook, URL, PNG/JPG/WEBP, MB, CV, SWOT, 3D, DJ,
+WORLD OF EXPRESSION & EVOLUTION. También quedan en latino TikTok, YouTube, Instagram, Facebook, URL, PNG/JPG/WEBP, MB, CV, SWOT, 3D, DJ,
 «demo», «outfit», «face swap» y los nombres del selector que es/en dejan en inglés (Beauty, Writer…). «Weë Business» solo
 donde el español lo dice. Declinar una marca: con guion y la terminación en cirílico («у Weë-у» se EVITA: reformular con
 sustantivo puente, «у апликацији Weë»). Lo que escribe una persona no se traduce.

@@ -71,7 +71,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'komentar',
   commentImageFailed: 'Gambar tidak dapat diunggah. Coba lagi.',
   commentSendFailed: 'Komentar tidak dapat dikirim. Coba lagi.',
-  shareText: '{{contenido}}\n\nDibuat di Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nDibuat di Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Lihat postingan ini di Weë',
   commentsWithCount: 'Komentar ({{total}})',
   agreeWithComment: 'Setuju dengan komentar ini',
@@ -95,4 +95,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Lihat lebih sedikit',
   openPost: 'Buka postingan',
   imageOf: 'Gambar {{numero}} dari {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Api',
+  reactionLaugh: 'Tawa',
 };

@@ -34,7 +34,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutHint: 'Apa itu Weë dan versi yang anda gunakan',
   helpHint: 'Soalan lazim dan hubungi kami',
   signOutHint: 'Keluar daripada akaun anda',
-  aboutBody: 'Weë (World Encode Entity) ialah rangkaian sosial untuk orang yang mencipta dengan Kecerdasan Buatan.\n\nVersi 1.0.0 · © {{anio}} Weë. Hak cipta terpelihara.\n\nData geografi: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Weë (WORLD OF EXPRESSION & EVOLUTION) ialah rangkaian sosial untuk orang yang mencipta dengan Kecerdasan Buatan.\n\nVersi 1.0.0 · © {{anio}} Weë. Hak cipta terpelihara.\n\nData geografi: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Lokasi',
   locationLine: '{{estado}} Lokasi tepat anda tidak akan dipaparkan secara terbuka.',
   locationOff: 'Dinyahaktifkan. Benarkan Weë menggunakan lokasi anggaran anda untuk mencadangkan tempat berdekatan dan kawasan anda apabila anda menambah lokasi pada siaran. Lokasi tepat anda tidak akan dipaparkan secara terbuka.',

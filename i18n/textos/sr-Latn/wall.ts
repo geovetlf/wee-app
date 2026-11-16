@@ -75,7 +75,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   statComments: 'komentara',
   commentImageFailed: 'Slika nije mogla da se otpremi. Pokušaj ponovo.',
   commentSendFailed: 'Komentar nije mogao da se pošalje. Pokušaj ponovo.',
-  shareText: '{{contenido}}\n\nNapravljeno na Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nNapravljeno na Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Pogledaj ovu objavu na Weë',
   commentsWithCount: 'Komentari ({{total}})',
   agreeWithComment: 'Slažem se s ovim komentarom',
@@ -99,4 +99,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   seeLess: 'Prikaži manje',
   openPost: 'Otvori objavu',
   imageOf: 'Slika {{numero}} od {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Vatra',
+  reactionLaugh: 'Smeh',
 };

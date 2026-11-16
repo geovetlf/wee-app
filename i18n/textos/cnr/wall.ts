@@ -4,7 +4,7 @@
  * Ijekaviano, latino. Tipado contra el español CON PLURALES: `ConPlurales`
  * deja añadir la forma `_few` (2-4, 22-24…) a `pollVotes`, `pollDaysLeft` y
  * `pollHoursLeft`, además de `_one` (1, 21…) y `_other` (0, 5-20…). Weë, Weëls,
- * WeeTalk y World Encode Entity son marca y se copian tal cual.
+ * WeeTalk y WORLD OF EXPRESSION & EVOLUTION son marca y se copian tal cual.
  */
 import { ConPlurales } from '../ru/plurales';
 
@@ -72,7 +72,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   statComments: 'komentara',
   commentImageFailed: 'Slika nije mogla da se otpremi. Pokušaj ponovo.',
   commentSendFailed: 'Komentar nije mogao da se pošalje. Pokušaj ponovo.',
-  shareText: '{{contenido}}\n\nKreirano na Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nKreirano na Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Pogledaj ovu objavu na Weë',
   commentsWithCount: 'Komentari ({{total}})',
   agreeWithComment: 'Slažem se s ovim komentarom',
@@ -96,4 +96,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   seeLess: 'Prikaži manje',
   openPost: 'Otvori objavu',
   imageOf: 'Slika {{numero}} od {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Vatra',
+  reactionLaugh: 'Smijeh',
 };

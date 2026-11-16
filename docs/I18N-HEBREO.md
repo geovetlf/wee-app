@@ -59,7 +59,7 @@ israelíes):
 
 Siempre en latino y byte a byte: Weë, Weë AI, WEË AI, Weë Brain, Weë Studio, Weë Design, Weë Writer, Weë Music, Weë Chef,
 Weë Fashion, Weë Travel, Weë Photo, Weë Beauty, Weë Home, Weëls (**nunca «Reels» ni «רילס»**), Weël, Wäll, WeeTalk, ËContact,
-ẄContact, Credits / Weë Credits, World Encode Entity. Si el español dice «Weë Business» se conserva (es el nombre histórico de
+ẄContact, Credits / Weë Credits, WORLD OF EXPRESSION & EVOLUTION. Si el español dice «Weë Business» se conserva (es el nombre histórico de
 esa pantalla); **no se añade** «Weë Business» donde el español no lo dice: la sección vigente es Weë Fashion.
 
 Prefijos hebreos (ב, ל, מ, ה, ו, ש, כ) **nunca pegados a una marca**: se escriben con guion, como hace el hebreo con todo

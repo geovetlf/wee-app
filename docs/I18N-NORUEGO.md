@@ -28,7 +28,7 @@ está en `main`. El nynorsk (`nn`) queda FUERA: `nb` es bokmål y solo bokmål; 
 ## 3. Marcas (byte a byte, en latino)
 WEE, Weë, Weë AI, WEË AI, Weë Brain, Weë Studio, Weë Design, Weë Writer, Weë Music, Weë Chef, Weë Fashion, Weë Travel, Weë Photo,
 Weë Beauty, Weë Home, Weëls (**nunca «Reels»**), Weël, Wäll, WeeTalk, ËContact, ẄContact, Credits (**nunca «kreditter»**),
-Filmmaker Engine, World Encode Entity. Sin artículo pegado a la marca («Weë-appen» se evita: «appen Weë»). «Weë Business» solo
+Filmmaker Engine, WORLD OF EXPRESSION & EVOLUTION. Sin artículo pegado a la marca («Weë-appen» se evita: «appen Weë»). «Weë Business» solo
 donde el español lo dice. Lo que escribe una persona no se traduce.
 
 ## 4. Glosario fijo

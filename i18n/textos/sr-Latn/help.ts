@@ -11,7 +11,7 @@
  * se escriben exactamente como en sus módulos: „Ne znam“, „Kopiraj prompt“,
  * „Kako sam ovo uradio“, „Sačuvaj u projekat“. `a3` lleva one / few / other con
  * {{contador}} («specijalistu / specijaliste / specijalista»). Los nombres de
- * Weë, wee.zone y World Encode Entity quedan en latino.
+ * Weë, wee.zone y WORLD OF EXPRESSION & EVOLUTION quedan en latino.
  */
 import { ConPlurales } from '../ru/plurales';
 
@@ -25,9 +25,9 @@ export const help: ConPlurales<typeof import('../es/help').help> = {
   legalTitle: 'Uslovi i privatnost',
   legalBody: 'Tvoji podaci su tvoji. Weë koristi tvoj imejl i profil samo da bi aplikacija radila: prijava, prikaz tvojih objava, tvojih Credits i tvojih kreacija. Ne prodajemo tvoje podatke.',
   legalPending: 'Potpuni uslovi i politika privatnosti biće objavljeni na wee.zone pre lansiranja. Weë je u izgradnji: neke funkcije koriste probne podatke i to jasno kažemo tamo gde se dešava.',
-  footer: 'Weë · World Encode Entity · verzija 1.0.0',
+  footer: 'Weë · WORLD OF EXPRESSION & EVOLUTION · verzija 1.0.0',
   q1: 'Šta je Weë?',
-  a1: 'Weë (World Encode Entity) je društvena mreža ljudi koji stvaraju uz pomoć veštačke inteligencije: ovde otkrivaš, učiš, stvaraš, deliš i povezuješ se. AI je motor; zajednica je srce.',
+  a1: 'Weë (WORLD OF EXPRESSION & EVOLUTION) je društvena mreža ljudi koji stvaraju uz pomoć veštačke inteligencije: ovde otkrivaš, učiš, stvaraš, deliš i povezuješ se. AI je motor; zajednica je srce.',
   q2: 'Koja je razlika između Pravog profila i Weë profila?',
   a2: 'Tvoj Pravi profil je tvoj uobičajeni identitet i s njim je aplikacija bela. Tvoj Weë profil je tvoj identitet za stvaranje uz AI: sopstveni avatar i ime za objavljivanje tvojih kreacija, a s njim aplikacija postaje tamna da uvek znaš kojim profilom učestvuješ. Menjaš ih iz menija ☰ ili dugmetom u zaglavlju.',
   q3: 'Kako radi Weë AI?',

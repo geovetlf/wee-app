@@ -83,7 +83,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   statComments: 'комментариев',
   commentImageFailed: 'Не удалось загрузить изображение. Попробуйте ещё раз.',
   commentSendFailed: 'Не удалось отправить комментарий. Попробуйте ещё раз.',
-  shareText: '{{contenido}}\n\nСоздано в Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nСоздано в Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Посмотрите эту публикацию в Weë',
   commentsWithCount: 'Комментарии ({{total}})',
   agreeWithComment: 'Согласиться с этим комментарием',
@@ -107,4 +107,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   seeLess: 'Свернуть',
   openPost: 'Открыть публикацию',
   imageOf: 'Изображение {{numero}} из {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Огонь',
+  reactionLaugh: 'Смех',
 };

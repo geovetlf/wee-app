@@ -34,7 +34,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutHint: 'Weë là gì và bạn đang dùng phiên bản nào',
   helpHint: 'Câu hỏi thường gặp và liên hệ',
   signOutHint: 'Thoát khỏi tài khoản của bạn',
-  aboutBody: 'Weë (World Encode Entity) là mạng xã hội dành cho những người sáng tạo bằng Trí tuệ nhân tạo.\n\nPhiên bản 1.0.0 · © {{anio}} Weë. Bảo lưu mọi quyền.\n\nDữ liệu địa lý: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Weë (WORLD OF EXPRESSION & EVOLUTION) là mạng xã hội dành cho những người sáng tạo bằng Trí tuệ nhân tạo.\n\nPhiên bản 1.0.0 · © {{anio}} Weë. Bảo lưu mọi quyền.\n\nDữ liệu địa lý: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Vị trí',
   locationLine: '{{estado}} Vị trí chính xác của bạn không bao giờ được hiển thị công khai.',
   locationOff: 'Đang tắt. Cho phép Weë dùng vị trí gần đúng của bạn để gợi ý các địa điểm gần đó và khu vực của bạn khi bạn thêm vị trí vào bài viết. Vị trí chính xác của bạn không bao giờ được hiển thị công khai.',

@@ -17,7 +17,7 @@
  * Weë ang pipili ng AI», «kung may pumalya, ibabalik ang mga ito» y «pribado hanggang magpasya kang i-post»
  * (con «ang mga ito» porque aquí son varias creaciones).
  *
- * `a1` sigue a `settings.aboutBody` («Ang Weë (World Encode Entity) ang social network para sa mga taong lumilikha
+ * `a1` sigue a `settings.aboutBody` («Ang Weë (WORLD OF EXPRESSION & EVOLUTION) ang social network para sa mga taong lumilikha
  * gamit ang Artificial Intelligence») y escribe «Artificial Intelligence» entero porque el español lo escribe entero;
  * «motor» es «makina». Las temáticas de comunidad de `a7` (Cine & Animación…) aún no tienen claves —viven en
  * `constants/communityCategories.ts`—: aquí van en filipino, en mayúscula de frase y con «at» en lugar de «&» (los
@@ -39,9 +39,9 @@ export const help: typeof import('../es/help').help = {
   legalTitle: 'Mga tuntunin at privacy',
   legalBody: 'Sa iyo ang data mo. Ginagamit lang ng Weë ang email at profile mo para gumana ang app: para makapag-sign in ka at maipakita ang mga post mo, ang Credits mo at ang mga likha mo. Hindi namin ibinebenta ang impormasyon mo.',
   legalPending: 'Ilalabas namin sa wee.zone ang kumpletong tuntunin at patakaran sa privacy bago ang opisyal na paglulunsad. Ginagawa pa ang Weë: may ilang feature na gumagamit ng pansubok na data, at malinaw naming sinasabi iyon kung saan ito nangyayari.',
-  footer: 'Weë · World Encode Entity · bersyon 1.0.0',
+  footer: 'Weë · WORLD OF EXPRESSION & EVOLUTION · bersyon 1.0.0',
   q1: 'Ano ang Weë?',
-  a1: 'Ang Weë (World Encode Entity) ang social network para sa mga taong lumilikha gamit ang Artificial Intelligence: dito ka tumutuklas, natututo, lumilikha, nagbabahagi at kumokonekta. Ang AI ang makina; ang komunidad ang puso.',
+  a1: 'Ang Weë (WORLD OF EXPRESSION & EVOLUTION) ang social network para sa mga taong lumilikha gamit ang Artificial Intelligence: dito ka tumutuklas, natututo, lumilikha, nagbabahagi at kumokonekta. Ang AI ang makina; ang komunidad ang puso.',
   q2: 'Ano ang pagkakaiba ng Tunay na profile at ng Weë profile?',
   a2: 'Ang Tunay na profile mo ang pang-araw-araw mong pagkakakilanlan, at puti ang itsura ng app kapag ito ang gamit mo. Ang Weë profile mo ang pagkakakilanlan mo sa paglikha gamit ang AI: may sarili itong avatar at pangalan na ginagamit mo sa pag-post ng mga likha mo, at sa profile na ito, nagiging madilim ang app para lagi mong alam kung aling profile ang ginagamit mo. Puwede kang magpalipat-lipat sa dalawa gamit ang menu ☰ o ang button sa itaas ng screen.',
   q3: 'Paano gumagana ang Weë AI?',

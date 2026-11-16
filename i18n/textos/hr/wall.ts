@@ -2,7 +2,7 @@
  * CROATA — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Tuteo («ti»). Weë, Weëls, WeeTalk y World Encode Entity son marca y van en
+ * Tuteo («ti»). Weë, Weëls, WeeTalk y WORLD OF EXPRESSION & EVOLUTION son marca y van en
  * latino sin declinar; donde hace falta un caso se usa sustantivo puente
  * («u aplikaciji Weë»).
  *
@@ -76,7 +76,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   statComments: 'komentara',
   commentImageFailed: 'Sliku nije bilo moguće prenijeti. Pokušaj ponovno.',
   commentSendFailed: 'Komentar nije bilo moguće poslati. Pokušaj ponovno.',
-  shareText: '{{contenido}}\n\nStvoreno u aplikaciji Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nStvoreno u aplikaciji Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Pogledaj ovu objavu u aplikaciji Weë',
   commentsWithCount: 'Komentari ({{total}})',
   agreeWithComment: 'Slažem se s ovim komentarom',
@@ -100,4 +100,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   seeLess: 'Prikaži manje',
   openPost: 'Otvori objavu',
   imageOf: 'Slika {{numero}} od {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Vatra',
+  reactionLaugh: 'Smijeh',
 };

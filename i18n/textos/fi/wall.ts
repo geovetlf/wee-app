@@ -69,7 +69,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'kommenttia',
   commentImageFailed: 'Kuvaa ei voitu ladata. Yritä uudelleen.',
   commentSendFailed: 'Kommenttia ei voitu lähettää. Yritä uudelleen.',
-  shareText: '{{contenido}}\n\nLuotu Weë-sovelluksessa · World Encode Entity',
+  shareText: '{{contenido}}\n\nLuotu Weë-sovelluksessa · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Katso tämä julkaisu Weë-sovelluksessa',
   commentsWithCount: 'Kommentit ({{total}})',
   agreeWithComment: 'Samaa mieltä tästä kommentista',
@@ -93,4 +93,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Näytä vähemmän',
   openPost: 'Avaa julkaisu',
   imageOf: 'Kuva {{numero}}/{{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Tuli',
+  reactionLaugh: 'Nauru',
 };

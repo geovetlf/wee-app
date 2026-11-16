@@ -67,7 +67,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'نظر',
   commentImageFailed: 'تصویر بارگذاری نشد. دوباره تلاش کنید.',
   commentSendFailed: 'نظر ارسال نشد. دوباره تلاش کنید.',
-  shareText: '{{contenido}}\n\nساخته‌شده در Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nساخته‌شده در Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'این پست را در Weë ببینید',
   commentsWithCount: 'نظرها ({{total}})',
   agreeWithComment: 'موافق با این نظر',
@@ -91,4 +91,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'نمایش کمتر',
   openPost: 'باز کردن پست',
   imageOf: 'تصویر {{numero}} از {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'آتش',
+  reactionLaugh: 'خنده',
 };

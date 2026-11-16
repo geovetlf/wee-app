@@ -9,7 +9,6 @@ Revisión de IA del 2026-10-30, no revisión nativa. Terminada sobre las 24 fila
 | clave | antes | después | motivo |
 |---|---|---|---|
 | help.a4 | Weë AI-аар хийсэн бүтээл бүр Credits зарцуулдаг. Бүтээхийн өмнө ямар үнэтэйг харна, хэрэв алдаа гарвал буцаан олгоно. Weë AI-г бүтээж байх хугацаанд үнэ нь туршилтынх бөгөөд цэнэглэлт үнэгүй: эцсийн үнэ бодит хиймэл оюунтай хамт ирнэ. | Weë AI-аар хийсэн бүтээл бүр Credits зарцуулдаг. Бүтээхийн өмнө ямар үнэтэйг харна, хэрэв алдаа гарвал буцаан олгоно. Weë AI-г бүтээж байх хугацаанд үнэ нь туршилтынх бөгөөд цэнэглэлт үнэгүй: эцсийн үнэ бодит хиймэл оюунтай хамт тогтоно. | Calco: un precio no «viene» (ирнэ); se fija (тогтоно). |
-| weebiz.specialityHintPets | Мал эмнэлэг, Арчилгаа, Үрчлэлт... | Амьтны эмнэлэг, Арчилгаа, Үрчлэлт... | «Мал эмнэлэг» es veterinaria de ganado; la categoría es de mascotas. |
 | aiAvatar.accHeadscarf | Алчуур | Толгойн алчуур | «Алчуур» solo se lee también como toalla. |
 | engine.resetHealth | Эрүүл мэндийг дахин тохируулах | Төлөвийг дахин тохируулах | Calco: «Эрүүл мэнд» es salud de personas; aquí es el estado de un servicio. |
 | engine.healthReset | Эрүүл мэндийг дахин тохируулсан. | Төлөвийг дахин тохируулсан. | Igual que engine.resetHealth. |

@@ -81,7 +81,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: '댓글',
   commentImageFailed: '이미지를 올리지 못했어요. 다시 시도해 주세요.',
   commentSendFailed: '댓글을 보내지 못했어요. 다시 시도해 주세요.',
-  shareText: '{{contenido}}\n\nWeë에서 만들었어요 · World Encode Entity',
+  shareText: '{{contenido}}\n\nWeë에서 만들었어요 · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Weë에서 이 게시물을 확인해 보세요',
   commentsWithCount: '댓글 ({{total}})',
   agreeWithComment: '이 댓글에 공감',
@@ -105,4 +105,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: '접기',
   openPost: '게시물 열기',
   imageOf: '이미지 {{numero}}/{{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: '불꽃',
+  reactionLaugh: '웃음',
 };

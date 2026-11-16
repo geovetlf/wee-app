@@ -36,7 +36,7 @@ export const settings: ConPlurales<typeof import('../es/settings').settings> = {
   aboutHint: 'Što je Weë i koju verziju koristiš',
   helpHint: 'Česta pitanja i kontakt',
   signOutHint: 'Izađi iz svog naloga',
-  aboutBody: 'Weë (World Encode Entity) je društvena mreža ljudi koji stvaraju uz vještačku inteligenciju.\n\nVerzija 1.0.0 · © {{anio}} Weë. Sva prava zadržana.\n\nGeografski podaci: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Weë (WORLD OF EXPRESSION & EVOLUTION) je društvena mreža ljudi koji stvaraju uz vještačku inteligenciju.\n\nVerzija 1.0.0 · © {{anio}} Weë. Sva prava zadržana.\n\nGeografski podaci: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Lokacija',
   locationLine: '{{estado}} Tvoja tačna lokacija se nikad ne prikazuje javno.',
   locationOff: 'Isključena. Dozvoli da Weë koristi tvoju približnu lokaciju da ti predloži mjesta u blizini i tvoje područje kad dodaješ lokaciju objavi. Tvoja tačna lokacija se nikad ne prikazuje javno.',

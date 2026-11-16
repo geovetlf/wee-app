@@ -42,7 +42,7 @@ export const settings: ConPlurales<typeof import('../es/settings').settings> = {
   aboutHint: 'Cad é Weë agus cén leagan atá agat',
   helpHint: 'Ceisteanna coitianta agus teagmháil',
   signOutHint: 'Fág do chuntas',
-  aboutBody: 'Is é Weë (World Encode Entity) líonra sóisialta na ndaoine a chruthaíonn le hIntleacht Shaorga.\n\nLeagan 1.0.0 · © {{anio}} Weë. Gach ceart ar cosaint.\n\nSonraí geografacha: GeoNames (geonames.org), CC BY 4.0.',
+  aboutBody: 'Is é Weë (WORLD OF EXPRESSION & EVOLUTION) líonra sóisialta na ndaoine a chruthaíonn le hIntleacht Shaorga.\n\nLeagan 1.0.0 · © {{anio}} Weë. Gach ceart ar cosaint.\n\nSonraí geografacha: GeoNames (geonames.org), CC BY 4.0.',
   location: 'Suíomh',
   locationLine: '{{estado}} Ní thaispeántar do shuíomh cruinn go poiblí riamh.',
   locationOff: 'Díchumasaithe. Lig do Weë do shuíomh garbh a úsáid chun áiteanna in aice láimhe agus do cheantar a mholadh duit nuair a chuireann tú suíomh le postáil. Ní thaispeántar do shuíomh cruinn go poiblí riamh.',

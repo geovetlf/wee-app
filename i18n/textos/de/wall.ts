@@ -67,7 +67,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'Kommentare',
   commentImageFailed: 'Das Bild konnte nicht hochgeladen werden. Versuch es erneut.',
   commentSendFailed: 'Der Kommentar konnte nicht gesendet werden. Versuch es erneut.',
-  shareText: '{{contenido}}\n\nErstellt auf Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nErstellt auf Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Schau dir diesen Beitrag auf Weë an',
   commentsWithCount: 'Kommentare ({{total}})',
   agreeWithComment: 'Diesem Kommentar zustimmen',
@@ -91,4 +91,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: 'Weniger anzeigen',
   openPost: 'Beitrag öffnen',
   imageOf: 'Bild {{numero}} von {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Feuer',
+  reactionLaugh: 'Lachen',
 };

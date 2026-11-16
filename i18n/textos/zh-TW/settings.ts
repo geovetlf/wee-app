@@ -64,7 +64,7 @@ export const settings: typeof import('../es/settings').settings = {
   aboutHint: '了解 Weë 是什麼，以及你現在用的版本',
   helpHint: '常見問題與聯絡方式',
   signOutHint: '登出你的帳號',
-  aboutBody: 'Weë（World Encode Entity）是用人工智慧創作的人們的社群平台。\n\n版本 1.0.0 · © {{anio}} Weë。版權所有。\n\n地理資料：GeoNames (geonames.org)，CC BY 4.0。',
+  aboutBody: 'Weë（WORLD OF EXPRESSION & EVOLUTION）是用人工智慧創作的人們的社群平台。\n\n版本 1.0.0 · © {{anio}} Weë。版權所有。\n\n地理資料：GeoNames (geonames.org)，CC BY 4.0。',
   location: '位置',
   locationLine: '{{estado}}你的精確位置永遠不會公開顯示。',
   locationOff: '已關閉。開啟後，你為貼文新增地點時，Weë 可以用你的大致位置為你推薦附近的地點和你所在的區域。你的精確位置永遠不會公開顯示。',

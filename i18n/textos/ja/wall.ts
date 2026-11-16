@@ -70,7 +70,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: '件のコメント',
   commentImageFailed: '画像をアップロードできませんでした。もう一度お試しください。',
   commentSendFailed: 'コメントを送信できませんでした。もう一度お試しください。',
-  shareText: '{{contenido}}\n\nWeëで作成 · World Encode Entity',
+  shareText: '{{contenido}}\n\nWeëで作成 · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Weëでこの投稿をチェック',
   commentsWithCount: 'コメント（{{total}}）',
   agreeWithComment: 'このコメントに賛成',
@@ -94,4 +94,7 @@ export const wall: typeof import('../es/wall').wall = {
   seeLess: '表示を減らす',
   openPost: '投稿を開く',
   imageOf: '画像{{numero}}/{{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: '炎',
+  reactionLaugh: '笑い',
 };

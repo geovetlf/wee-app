@@ -70,7 +70,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   statComments: 'comentarii',
   commentImageFailed: 'Imaginea nu a putut fi încărcată. Încearcă din nou.',
   commentSendFailed: 'Comentariul nu a putut fi trimis. Încearcă din nou.',
-  shareText: '{{contenido}}\n\nCreat pe Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nCreat pe Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Vezi această postare pe Weë',
   commentsWithCount: 'Comentarii ({{total}})',
   agreeWithComment: 'De acord cu acest comentariu',
@@ -94,4 +94,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   seeLess: 'Vezi mai puțin',
   openPost: 'Deschide postarea',
   imageOf: 'Imaginea {{numero}} din {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Foc',
+  reactionLaugh: 'Râs',
 };

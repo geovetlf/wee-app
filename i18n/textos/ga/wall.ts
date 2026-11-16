@@ -6,7 +6,7 @@
  * Tuteo. Los contadores llevan las cinco formas de Intl con la mutación en la
  * palabra («vóta / vhóta / vhóta / vóta / vóta»; «uair / uair / huaire /
  * n-uaire / uair»). «Lá» no muta y es singular tras todo numeral. Weë, Weëls,
- * WeeTalk y World Encode Entity son marca y no se tocan.
+ * WeeTalk y WORLD OF EXPRESSION & EVOLUTION son marca y no se tocan.
  */
 import { ConPlurales } from './plurales';
 
@@ -80,7 +80,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   statComments: 'tráchtanna',
   commentImageFailed: 'Níorbh fhéidir an íomhá a uaslódáil. Bain triail eile as.',
   commentSendFailed: 'Níorbh fhéidir an trácht a sheoladh. Bain triail eile as.',
-  shareText: '{{contenido}}\n\nCruthaithe ar Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nCruthaithe ar Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Féach ar an bpostáil seo ar Weë',
   commentsWithCount: 'Tráchtanna ({{total}})',
   agreeWithComment: 'Aontaím leis an trácht seo',
@@ -104,4 +104,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   seeLess: 'Féach níos lú',
   openPost: 'Oscail an phostáil',
   imageOf: 'Íomhá {{numero}} as {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Tine',
+  reactionLaugh: 'Gáire',
 };

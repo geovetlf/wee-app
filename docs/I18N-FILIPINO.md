@@ -283,7 +283,7 @@ excepción, `Maa-activate din`, es correcta: *activate* acaba en /t/). [KWF-MMP 
 `Weë` · `Wäll` · `Weëls` (una: `Weël`) · `WeeTalk` · `ËContact` · `ẄContact` · `Credits` · `Weë AI` · `Weë Brain` ·
 `Weë Studio` · `Weë Design` · `Weë Photo` · `Weë Writer` · `Weë Music` · `Weë Beauty` · `Weë Chef` · `Weë Home` ·
 `Weë Business` · `Weë Fashion` · `Weë Travel` · `Weë Filmmaker` · `Weë Creator` donde el español los nombre · `Weë AI
-Engine` · `World Encode Entity` · los nombres de comunidad (`Weë Filmmakers`, `Weë Designers`…), que son contenido.
+Engine` · `WORLD OF EXPRESSION & EVOLUTION` · los nombres de comunidad (`Weë Filmmakers`, `Weë Designers`…), que son contenido.
 
 - **Ni se traducen, ni se adaptan, ni se les pega nada.** Mal: `Weë Musika`, `Weë Paglalakbay`, `Weë Negosyo`,
   `Weë Kusina`, `Weë Disenyo`, `Mga Kredito`, `Kredits`; y también `i-Weë`, `mag-WeeTalk`, `nag-ËContact`, `Weëng`,
@@ -928,7 +928,7 @@ regla es comprobable por programa sobre el diccionario entero, con su lista cerr
 12. Nada de inglés funcional suelto (`the`, `and`, `of`, `your`, `you`, `with`, `for`, `to`, `is`, `are`, `this`,
     `that`, `please`, `not`, `from`, `will`, `can`, `has`, `have`, `our`, `my`, `it`, `be`, `an`, `by`, `as`, `if`,
     `we`, `all`, `more`, `now`, `here`, `yes`, `new`), salvo dentro de marcas, nombres de módulo y los términos fijos
-    del glosario (`My Business`, `World Encode Entity`, `call to action`, `rule of thirds`). No cuentan `in`, `out`,
+    del glosario (`My Business`, `WORLD OF EXPRESSION & EVOLUTION`, `call to action`, `rule of thirds`). No cuentan `in`, `out`,
     `up`, `on`, `off`, que forman `Mag-sign in`, `Mag-top up`, `I-on`.
 13. Ningún plural inglés tras `mga` ni suelto en la lista de préstamos: `Mga settings`, `notifications`, `videos`,
     `files`, `apps`, `posts`, `followers`, `users`, `links`.

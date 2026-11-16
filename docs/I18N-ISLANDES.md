@@ -53,7 +53,7 @@ Cualquier término nuevo que se repita se añade al § 4 antes de usarlo en otro
 ## 3. Marcas (byte a byte, en latino, sin declinar)
 Weë, WEE, WEË AI, Weë AI, Weë Brain, Weë Studio, Weë Design, Weë Writer, Weë Music, Weë Chef, Weë Fashion, Weë Travel, Weë Photo,
 Weë Beauty, Weë Home, Weë Business, Weëls (**nunca «Reels»**), Weël, Wäll, WeeTalk, ËContact, ẄContact, **Credits (nunca
-«inneignir» ni «einingar»)**, Filmmaker Engine, World Encode Entity.
+«inneignir» ni «einingar»)**, Filmmaker Engine, WORLD OF EXPRESSION & EVOLUTION.
 - La marca no lleva artículo sufijado ni genitivo: el artículo va en la parte islandesa del compuesto («Weë-prófíllinn»);
   genitivo con sustantivo puente o reformulación («stillingar í Weë», no «Weës stillingar»).
 - Compuesto con guion cuando la marca califica a un sustantivo islandés: «Weë-prófíll» (Perfil Weë). La marca queda intacta.
