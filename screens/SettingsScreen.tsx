@@ -444,7 +444,7 @@ const SettingsScreen: React.FC = () => {
             Weë v1.0.0
           </Text>
           <Text style={[styles.versionSubtext, { color: theme.colors.textSecondary }]}>
-            World Encode Entity
+            WORLD OF EXPRESSION & EVOLUTION
           </Text>
         </View>
       </ScrollView>
