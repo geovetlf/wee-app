@@ -504,9 +504,9 @@ service cloud.firestore {
         // Permitir actualizar solo contadores (views, agreementCount, etc.),
         // y solo de uno en uno: ver `contadorSano`.
         (request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['views', 'agreementCount', 'disagreementCount', 'likes', 'comments', 'shares', 'reposts', 'updatedAt'])
+          .hasOnly(['views', 'agreementCount', 'disagreementCount', 'fireCount', 'laughCount', 'likes', 'comments', 'shares', 'reposts', 'updatedAt'])
          && contadorSano('views') && contadorSano('agreementCount')
-         && contadorSano('disagreementCount') && contadorSano('likes')
+         && contadorSano('disagreementCount') && contadorSano('fireCount') && contadorSano('laughCount') && contadorSano('likes')
          && contadorSano('comments') && contadorSano('shares') && contadorSano('reposts'))
       );
 
@@ -549,7 +549,16 @@ service cloud.firestore {
     // publicación. Al cambiarlo solo se mueven `type` y `createdAt`: ni el
     // votante ni la publicación cambian, así que nadie se apropia de un voto
     // ajeno ni muda el suyo a otra publicación.
+    /*
+     * REACCIONES (2026-11-16): además de `agree` y `disagree` —que siguen siendo válidos para los votos ya guardados—, `fire` (Fuego) y
+     * `laugh` (Risa). Lista cerrada, mismo documento `{cuenta}_{publicación}` (un voto por persona: una reacción se cambia por otra),
+     * mismos controles de dueño. Sus contadores (`fireCount`, `laughCount`) se mueven de uno en uno como los demás (`contadorSano`).
+     */
     function tipoDeVotoValido() {
+      return request.resource.data.type in ['agree', 'disagree', 'fire', 'laugh'];
+    }
+    /* Los comentarios solo admiten las dos de siempre: Fuego y Risa son de las publicaciones. */
+    function tipoDeVotoDeComentarioValido() {
       return request.resource.data.type in ['agree', 'disagree'];
     }
     match /votes/{voteId} {
@@ -579,12 +588,12 @@ service cloud.firestore {
         request.resource.data.userId == request.auth.uid &&
         request.resource.data.commentId is string &&
         voteId == 'comment_' + request.auth.uid + '_' + request.resource.data.commentId &&
-        tipoDeVotoValido();
+        tipoDeVotoDeComentarioValido();
       allow update: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
          resource.data.userId == ("hidi_" + request.auth.uid)) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['type', 'createdAt']) &&
-        tipoDeVotoValido();
+        tipoDeVotoDeComentarioValido();
       allow delete: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
          resource.data.userId == ("hidi_" + request.auth.uid));
