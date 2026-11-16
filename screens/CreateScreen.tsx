@@ -24,8 +24,9 @@ import { useResponsive } from '../hooks/useResponsive';
 import { postsService } from '../services/firestoreService';
 import { uploadPostImage } from '../services/storageService';
 import { PostPlace, etiquetaDeLugar } from '../data/places';
-import { MURO_GENERAL, destinosDisponibles } from '../utils/sectionFeed';
-import { getExperienceById } from '../constants/weeExperiences';
+import { MURO_GENERAL } from '../utils/sectionFeed';
+import { nombreDeComunidad } from '../utils/comunidadesDeWee';
+import type { Community } from '../services/communityService';
 import { uploadVideoToCloudinary } from '../services/cloudinaryService';
 import { performAvatarReplacement, uploadImageForSwap, saveFaceSwapResult } from '../services/avatarGenerationService';
 import * as ImagePicker from 'expo-image-picker';
@@ -54,7 +55,7 @@ import {
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 import { IconoWee } from '../components/icons/IconoWee';
-import { MarcaDeWeeAi } from '../components/icons/MarcaDeWeeAi';
+import type { NombreDeIcono } from '../components/icons/trazosDeWee';
 import SelectorDeEContacts from '../components/SelectorDeEContacts';
 import { notify, confirmAction } from '../utils/notify';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
@@ -116,6 +117,14 @@ const CreateScreen: React.FC = () => {
     presetKind === 'text' ? 'composer.placeholderText' :
     'composer.placeholderDefault'
   );
+
+  /*
+   * MONOCROMO (2026-11-16): la tinta es #0A0A0A en claro y #FAFAFA en oscuro; las superficies son el tono del tema, sin bordes ni sombras. El único
+   * color de la pantalla es el degradado de marca del botón Publicar cuando está habilitado.
+   */
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
+  const sobreTinta = theme.dark ? '#0A0A0A' : '#FAFAFA';
+  const tono = theme.colors.surface;
 
   const [postText, setPostText] = useState<string>(routeParams.prefill?.content || '');
   /*
@@ -262,8 +271,29 @@ const CreateScreen: React.FC = () => {
    * secciones a la vez, y sigue siendo UN documento (fase 2E-75).
    */
   const [destinos, setDestinos] = useState<string[]>(() => [sourceSection || MURO_GENERAL]);
+  /*
+   * «Publicar en» ofrece el Wall y las COMUNIDADES reales de la persona (2026-11-16: las experiencias —WeëChef, WeëDesign…— ya no se ofrecen aquí).
+   * Sin comunidades no hay nada que elegir: la sección no se pinta y se publica en el Wall. Las publicaciones antiguas conservan su campo de sección.
+   */
+  const [miComunidades, setMiComunidades] = useState<Community[]>([]);
+  const [comunidadElegida, setComunidadElegida] = useState<Community | null>(null);
+  useEffect(() => {
+    const uid = userProfile?.uid;
+    if (!uid) return;
+    let vivo = true;
+    import('../services/communityService')
+      .then(({ communityService }) => communityService.getJoinedCommunities(uid))
+      .then((lista) => { if (vivo) setMiComunidades(lista); })
+      .catch(() => { /* sin comunidades que ofrecer: se publica en el Wall */ });
+    return () => { vivo = false; };
+  }, [userProfile?.uid]);
   const alternarDestino = (id: string) =>
-    setDestinos((actuales) => (actuales.includes(id) ? actuales.filter((d) => d !== id) : [...actuales, id]));
+    setDestinos((actuales) => {
+      const siguiente = actuales.includes(id) ? actuales.filter((d) => d !== id) : [...actuales, id];
+      /* Siempre queda un sitio: el Wall o una comunidad. */
+      return siguiente.length === 0 && !comunidadElegida ? actuales : siguiente;
+    });
+  const alternarComunidad = (c: Community) => setComunidadElegida((actual) => (actual?.id === c.id ? null : c));
   /*
    * El catálogo mundial —casi ochenta mil lugares— ya no se pide desde aquí:
    * quien abre el compositor para escribir dos líneas no tiene por qué pagarlo.
@@ -809,6 +839,12 @@ const CreateScreen: React.FC = () => {
         updatedAt: Timestamp.now(),
       };
 
+      // Comunidad elegida en «Publicar en»: la misma forma de siempre (communityId + communitySlug).
+      if (comunidadElegida?.id && !presetCommunitySlug) {
+        postData.communityId = comunidadElegida.id;
+        postData.communitySlug = comunidadElegida.slug;
+      }
+
       // If posting from a community, resolve and attach communityId
       if (presetCommunitySlug) {
         try {
@@ -873,7 +909,7 @@ const CreateScreen: React.FC = () => {
    * una sorpresa al final.
    */
   const renderTextInput = () => (
-    <View style={[styles.tarjetaTexto, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
+    <View style={[styles.tarjetaTexto, { backgroundColor: tono }]}>
       <TextInput
         style={[styles.textInput, { color: theme.colors.text }]}
         placeholder={composerPlaceholder}
@@ -931,7 +967,7 @@ const CreateScreen: React.FC = () => {
    * `acento` es para Mis proyectos: no es un adjunto, es una puerta al
    * ecosistema de Weë Creator, y el icono dorado lo dice sin cambiar la fila.
    */
-  const Accion: React.FC<{ icono: string; texto: string; onPress: () => void; apagada?: boolean; activa?: boolean; insignia?: string; acento?: boolean }> = ({ icono, texto, onPress, apagada, activa, insignia, acento }) => (
+  const Accion: React.FC<{ icono: NombreDeIcono; texto: string; onPress: () => void; apagada?: boolean; activa?: boolean; insignia?: string }> = ({ icono, texto, onPress, apagada, activa, insignia }) => (
     <TouchableOpacity
       onPress={onPress}
       disabled={apagada}
@@ -941,83 +977,53 @@ const CreateScreen: React.FC = () => {
       accessibilityLabel={insignia ? t('composer.actionWithBadge', { accion: texto, insignia }) : texto}
       accessibilityState={{ disabled: !!apagada, selected: !!activa }}
     >
-      <View
-        style={[
-          styles.accionIcono,
-          {
-            backgroundColor: activa ? theme.colors.accent + '2E' : theme.colors.surface,
-            borderColor: activa ? theme.colors.accent + '80' : 'transparent',
-          },
-        ]}
-      >
-        <Ionicons
-          name={icono as any}
-          size={scale(22)}
-          color={apagada ? theme.colors.textSecondary : activa || acento ? theme.colors.accentDark : theme.colors.text}
-        />
-        {/*
-          El recuento va en la esquina del icono, no dentro del nombre: metido en
-          el texto ("Multimedia 3/10") el nombre no cabía y se cortaba.
-        */}
+      {/* Encendida = tinta invertida (el cuadrado toma la tinta y el icono el fondo); apagada, trazo gris. */}
+      <View style={[styles.accionIcono, { backgroundColor: activa ? tinta : tono }]}>
+        <IconoWee name={icono} size={scale(22)} color={activa ? sobreTinta : apagada ? theme.colors.textSecondary : tinta} />
+        {/* El recuento va en la esquina del icono, no dentro del nombre: así el nombre sigue siendo UNA palabra. */}
         {!!insignia && (
-          <View style={[styles.accionInsignia, { backgroundColor: theme.colors.accent }]}>
-            <Text style={styles.accionInsigniaTexto}>{insignia}</Text>
+          <View style={[styles.accionInsignia, { backgroundColor: activa ? sobreTinta : tinta }]}>
+            <Text style={[styles.accionInsigniaTexto, { color: activa ? tinta : sobreTinta }]}>{insignia}</Text>
           </View>
         )}
       </View>
-      <Text style={[styles.accionTexto, { color: activa ? theme.colors.text : theme.colors.textSecondary }]} numberOfLines={1}>
+      <Text style={[styles.accionTexto, { color: activa ? tinta : theme.colors.textSecondary }]} numberOfLines={1}>
         {texto}
       </Text>
     </TouchableOpacity>
   );
 
-  /*
-   * El orden es el aprobado: Cámara, Multimedia, ËContact, Ubicación, Encuesta y
-   * Mis proyectos. Ninguna se esconde detrás de otra.
-   */
+  /* Cámara, Galería, ËContact, Lugar, Encuesta y Proyectos: una palabra cada una, en una fila que se desliza con suavidad si no caben. */
   const renderAcciones = () => (
-    <View style={styles.acciones}>
-      <Accion icono="camera-outline" texto={t('composer.camera')} onPress={takePhoto} apagada={Platform.OS === 'web' || sinSitioParaMedios} />
-      {/*
-        Una sola puerta para foto y vídeo: el selector ya acepta las dos cosas y
-        deja elegir VARIAS de golpe. Cuando ya llevas alguna, dice cuántas y
-        cuántas caben —"3/10"—, que es lo que uno quiere saber antes de volver a
-        abrir la galería.
-      */}
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={styles.accionesScroll}
+      contentContainerStyle={styles.acciones}
+      keyboardShouldPersistTaps="handled"
+    >
+      <Accion icono="camara" texto={t('composer.camera')} onPress={takePhoto} apagada={Platform.OS === 'web' || sinSitioParaMedios} />
+      {/* Una sola puerta para foto y vídeo; ya puesta, dice cuántas caben ("3/10"). */}
       <Accion
-        icono="image-outline"
-        texto={t('composer.multimedia')}
+        icono="galeria"
+        texto={t('composer.gallery')}
         insignia={fotosPuestas > 0 ? `${fotosPuestas}/${topeImagenes}` : undefined}
         onPress={pickImageFromGallery}
         apagada={sinSitioParaMedios}
         activa={attachedMedia.length > 0}
       />
-      {/*
-        ËContact es el nombre de la red de conexiones de Weë en todos los
-        idiomas, y este botón ya hace lo que promete: abre la agenda del perfil
-        activo para mencionar a quien quieras. Lo que se enseña dentro se llama
-        ËContact o ẄContact según con qué cara estés publicando, pero el botón
-        dice siempre ËContact: es el nombre universal de la función.
-      */}
+      {/* ËContact es el nombre universal de la función en todos los idiomas. */}
       <Accion
-        icono="people-outline"
+        icono="econtact"
         texto={t('composer.econtact')}
         onPress={() => setShowEContacts((v) => !v)}
         activa={econtacts.length > 0 || showEContacts}
         insignia={econtacts.length > 0 ? String(econtacts.length) : undefined}
       />
-      {/*
-        El nombre NO cambia al elegir sitio: si pusiera el lugar se cortaría a la
-        mitad. El lugar elegido se ve entero en su chip, bajo el texto.
-      */}
-      <Accion icono="location-outline" texto={t('composer.location')} onPress={abrirUbicacion} activa={!!place || !!ubicacion} />
-      {/*
-        La encuesta existe en Weë y hay encuestas publicadas. Esta es su única
-        puerta: quitarla dejaría la función viva y sin forma de usarla.
-      */}
-      <Accion icono="bar-chart-outline" texto={t('composer.poll')} onPress={handlePollPress} activa={!!poll} />
-      <Accion icono="folder-outline" texto={t('weeai.myProjects')} onPress={abrirProyectos} acento />
-    </View>
+      <Accion icono="lugar" texto={t('composer.place')} onPress={abrirUbicacion} activa={!!place || !!ubicacion} />
+      <Accion icono="encuesta" texto={t('composer.poll')} onPress={handlePollPress} activa={!!poll} />
+      <Accion icono="carpeta" texto={t('composer.projects')} onPress={abrirProyectos} />
+    </ScrollView>
   );
 
   /*
@@ -1035,112 +1041,61 @@ const CreateScreen: React.FC = () => {
    * está SIEMPRE puesto, elegido o no, para que la rejilla no salte bajo el
    * dedo al marcar el segundo.
    */
-  /*
-   * Los nombres de sección son marca —"WeëChef" se escribe igual en todos los
-   * idiomas—; el muro general es una descripción y trae su clave.
-   */
-  const nombreDelDestino = (destino: { nombre: string; clave?: string }) =>
-    destino.clave ? t(destino.clave) : destino.nombre;
 
   /*
-   * ─── Crear con Weë AI ─────────────────────────────────────────────────────
+   * ─── Crear con IA ─────────────────────────────────────────────────────────
    *
-   * Una franja de chips con las experiencias que más se publican. Cada una abre
-   * su sección de Weë AI —la de siempre, no un segundo creador— y lo creado vuelve
-   * aquí por «Mis proyectos». Los nombres son marca y los iconos, los del menú.
+   * UNA sola entrada discreta a la portada de WeëAI. Las cinco fichas de experiencias que había aquí se retiraron (2026-11-16): WeëAI se elige
+   * en su portada y lo creado vuelve a este compositor por «Proyectos». No lleva parámetros: ningún flujo del compositor los necesita.
    */
-  /* Decisión del dueño (2026-11-05): sale Weë Writer y entra WeëFashion (id histórico 'business'). */
-  const CREAR_CON_IA = ['studio', 'design', 'photo', 'business', 'music'] as const;
   const renderCrearConIA = () => (
-    <View style={styles.crearIA}>
-      <View style={styles.crearIACabeza}>
-        <MarcaDeWeeAi size={scale(13)} color={theme.colors.accentDark} />
-        <Text style={[styles.crearIATitulo, { color: theme.colors.text }]} numberOfLines={1}>{t('nav.weeAiQuestion')}</Text>
-      </View>
-      <View style={styles.crearIAFila}>
-        {CREAR_CON_IA.map((id) => {
-          const exp = getExperienceById(id);
-          if (!exp) return null;
-          return (
-            <TouchableOpacity
-              key={id}
-              onPress={() => (navigation as any).navigate('Specialist', { id })}
-              activeOpacity={0.8}
-              style={[styles.crearIAChip, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
-              accessibilityRole="button"
-              accessibilityLabel={exp.name}
-            >
-              <View style={[styles.crearIAIcono, { backgroundColor: theme.colors.accent + '26' }]}>
-                <IconoWee name={exp.icono} size={scale(17)} color={theme.colors.accentDark} />
-              </View>
-              <Text style={[styles.crearIATexto, { color: theme.colors.text }]} numberOfLines={1}>{exp.name}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-    </View>
+    <TouchableOpacity
+      onPress={() => (navigation as any).navigate('WeeCreator')}
+      activeOpacity={0.7}
+      style={[styles.crearIA, { backgroundColor: tono }]}
+      accessibilityRole="button"
+      accessibilityLabel={t('composer.createWithAi')}
+    >
+      <IconoWee name="chispas" size={scale(20)} color={tinta} />
+      <Text style={[styles.crearIATexto, { color: tinta }]} numberOfLines={1}>{t('composer.createWithAi')}</Text>
+    </TouchableOpacity>
   );
 
-  const renderDestinos = () => (
-    <View style={styles.destinos}>
-      <Text style={[styles.destinosRotulo, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(t('composer.publishIn'))]} accessibilityRole="header">
-        {t('composer.publishIn')}
-      </Text>
-      <View style={styles.destinosRejilla}>
-        {destinosDisponibles().map((destino) => {
-          const elegido = destinos.includes(destino.id);
-          const experiencia = getExperienceById(destino.id);
-          return (
-            <TouchableOpacity
-              key={destino.id}
-              onPress={() => alternarDestino(destino.id)}
-              activeOpacity={0.7}
-              style={[
-                styles.destino,
-                {
-                  borderColor: elegido ? theme.colors.accent + '99' : theme.colors.border,
-                  backgroundColor: elegido ? theme.colors.accent + '14' : theme.colors.card,
-                },
-              ]}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: elegido }}
-              /* En la web `accessibilityState` no llega al DOM; `aria-checked` sí, y en nativo es lo mismo. */
-              aria-checked={elegido}
-              accessibilityLabel={nombreDelDestino(destino)}
-            >
-              {/*
-                La cara sale del catálogo de Weë y no se inventa aquí: es su icono
-                DIBUJADO (`IconoWee`, el mismo del menú ☰), no un emoji
-                (2026-11-02). El muro general no es una experiencia: lleva el
-                globo, es la comunidad entera.
-              */}
-              <View style={[styles.destinoIcono, { backgroundColor: elegido ? theme.colors.accent + '33' : theme.colors.surface }]}>
-                {experiencia ? (
-                  <IconoWee name={experiencia.icono} size={scale(18)} color={elegido ? theme.colors.accentDark : theme.colors.text} />
-                ) : (
-                  <Ionicons name="globe-outline" size={scale(18)} color={theme.colors.accentDark} />
-                )}
-              </View>
-              <Text style={[styles.destinoTexto, { color: theme.colors.text }]} numberOfLines={1}>
-                {nombreDelDestino(destino)}
-              </Text>
-              <View
-                style={[
-                  styles.destinoCheck,
-                  {
-                    borderColor: elegido ? theme.colors.accent : theme.colors.border,
-                    backgroundColor: elegido ? theme.colors.accent : 'transparent',
-                  },
-                ]}
-              >
-                {elegido && <Ionicons name="checkmark" size={scale(13)} color="#FFFFFF" />}
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+  /* PUBLICAR EN: el Wall y las comunidades de la persona, en filas limpias (icono + nombre + marca de selección en tinta invertida). Sin comunidades no se pinta. */
+  const renderDestinos = () => {
+    if (miComunidades.length === 0) return null;
+    const fila = (key: string, icono: 'globo' | 'comunidades', nombre: string, elegido: boolean, onPress: () => void) => (
+      <TouchableOpacity
+        key={key}
+        onPress={onPress}
+        activeOpacity={0.7}
+        style={[styles.destino, { backgroundColor: elegido ? tono : 'transparent' }]}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: elegido }}
+        /* En la web `accessibilityState` no llega al DOM; `aria-checked` sí, y en nativo es lo mismo. */
+        aria-checked={elegido}
+        accessibilityLabel={nombre}
+      >
+        <IconoWee name={icono} size={scale(22)} color={tinta} />
+        <Text style={[styles.destinoTexto, { color: tinta }]} numberOfLines={1}>{nombre}</Text>
+        {/* El hueco de la marca está SIEMPRE: la lista no salta al marcar. */}
+        <View style={[styles.destinoCheck, { backgroundColor: elegido ? tinta : 'transparent' }]}>
+          {elegido && <IconoWee name="marca" size={scale(14)} color={sobreTinta} />}
+        </View>
+      </TouchableOpacity>
+    );
+    return (
+      <View style={styles.destinos}>
+        <Text style={[styles.destinosRotulo, { color: theme.colors.textSecondary }, sinEspaciadoSiSeUne(t('composer.publishIn'))]} accessibilityRole="header">
+          {t('composer.publishIn')}
+        </Text>
+        <View style={styles.destinosLista}>
+          {fila(MURO_GENERAL, 'globo', t('composer.generalWall'), destinos.includes(MURO_GENERAL), () => alternarDestino(MURO_GENERAL))}
+          {miComunidades.map((c) => fila(c.id || c.slug, 'comunidades', nombreDeComunidad(c, t, locale), comunidadElegida?.id === c.id, () => alternarComunidad(c)))}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   /*
    * ─── Publicar: el botón principal de Weë ──────────────────────────────────
@@ -1153,6 +1108,7 @@ const CreateScreen: React.FC = () => {
    * segundo toque —`canPublish` ya es falso mientras se publica—. Lo que pasa
    * al terminar es lo de siempre: vuelve al muro y lo refresca.
    */
+  /* El ÚNICO botón principal: degradado de marca cuando está habilitado; deshabilitado, superficie gris tenue. Sin sombra. */
   const renderPublicar = () => (
     <View style={[styles.publicarZona, { backgroundColor: theme.colors.background, maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' }]}>
       <Animated.View style={{ transform: [{ scale: presion }] }}>
@@ -1162,22 +1118,16 @@ const CreateScreen: React.FC = () => {
           onPressOut={() => presionar(1)}
           disabled={!canPublish}
           activeOpacity={0.9}
-          style={[
-            styles.publicar,
-            canPublish
-              ? [styles.publicarListo, { backgroundColor: theme.colors.accent, shadowColor: theme.colors.accent }]
-              : { backgroundColor: theme.colors.accent + '33' },
-          ]}
+          style={[styles.publicar, { backgroundColor: canPublish ? theme.colors.accent : tono }]}
           accessibilityRole="button"
           accessibilityLabel={t(isPublishing ? 'composer.publishing' : 'composer.publish')}
           accessibilityState={{ disabled: !canPublish, busy: isPublishing }}
         >
-          {/* Lista para publicar: degradado de marca; apagada sigue con el velo pálido. */}
           {canPublish && <RellenoDeMarca radio={BORDER_RADIUS.full} />}
           {isPublishing ? (
             <ActivityIndicator size="small" color="#1F2937" />
           ) : (
-            <Ionicons name="paper-plane-outline" size={scale(20)} color={canPublish ? '#1F2937' : theme.colors.textSecondary} />
+            <IconoWee name="enviar" size={scale(20)} color={canPublish ? '#1F2937' : theme.colors.textSecondary} />
           )}
           <Text style={[styles.publicarTexto, { color: canPublish ? '#1F2937' : theme.colors.textSecondary }]}>
             {t(isPublishing ? 'composer.publishing' : 'composer.publish')}
@@ -1229,11 +1179,11 @@ const CreateScreen: React.FC = () => {
       <View style={styles.lugarFila}>
         {!!place && (
           <View
-            style={[styles.chipLugar, { backgroundColor: theme.colors.accent + '1F', borderColor: theme.colors.accent + '66' }]}
+            style={[styles.chipLugar, { backgroundColor: tono, borderColor: 'transparent' }]}
             accessibilityLabel={t('composer.placeIs', { lugar: etiquetaDeLugar({ place }, locale) || '' })}
           >
-            <Ionicons name="location" size={scale(15)} color={theme.colors.accentDark} />
-            <Text style={[styles.chipLugarTexto, { color: theme.colors.text }]} numberOfLines={1}>
+            <IconoWee name="lugar" size={scale(16)} color={tinta} />
+            <Text style={[styles.chipLugarTexto, { color: tinta }]} numberOfLines={1}>
               {etiquetaDeLugar({ place }, locale)}
             </Text>
             <TouchableOpacity
@@ -1243,17 +1193,17 @@ const CreateScreen: React.FC = () => {
               accessibilityRole="button"
               accessibilityLabel={t('composer.removePlace')}
             >
-              <Ionicons name="close" size={scale(16)} color={theme.colors.textSecondary} />
+              <IconoWee name="cerrar" size={scale(16)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
         )}
         {!!ubicacion && (
           <View
-            style={[styles.chipLugar, { backgroundColor: theme.colors.accent + '1F', borderColor: theme.colors.accent + '66' }]}
+            style={[styles.chipLugar, { backgroundColor: tono, borderColor: 'transparent' }]}
             accessibilityLabel={t('composer.postingFromZone')}
           >
-            <Ionicons name="navigate" size={scale(14)} color={theme.colors.accentDark} />
-            <Text style={[styles.chipLugarTexto, { color: theme.colors.text }]} numberOfLines={1}>
+            <IconoWee name="lugar" size={scale(16)} color={tinta} />
+            <Text style={[styles.chipLugarTexto, { color: tinta }]} numberOfLines={1}>
               {t('composer.approxZone')}
             </Text>
             <TouchableOpacity
@@ -1263,7 +1213,7 @@ const CreateScreen: React.FC = () => {
               accessibilityRole="button"
               accessibilityLabel={t('composer.removeMyLocation')}
             >
-              <Ionicons name="close" size={scale(16)} color={theme.colors.textSecondary} />
+              <IconoWee name="cerrar" size={scale(16)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           </View>
         )}
@@ -1291,8 +1241,8 @@ const CreateScreen: React.FC = () => {
             <View key={media.id} style={[
               styles.mediaPreviewItem,
               {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
+                backgroundColor: tono,
+                borderColor: 'transparent',
               }
             ]}>
               {media.type === 'video' ? (
@@ -1325,7 +1275,7 @@ const CreateScreen: React.FC = () => {
                 accessibilityRole="button"
                 accessibilityLabel={media.type === 'video' ? t('composer.removeVideo') : t('composer.removePhotoNumber', { numero: index + 1 })}
               >
-                <Ionicons name="close" size={scale(14)} color="white" />
+                <IconoWee name="cerrar" size={scale(14)} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           ))}
@@ -1336,14 +1286,14 @@ const CreateScreen: React.FC = () => {
           */}
           {!sinSitioParaMedios && (
             <TouchableOpacity
-              style={[styles.mediaAgregar, { borderColor: theme.colors.border }]}
+              style={[styles.mediaAgregar, { borderColor: 'transparent', backgroundColor: tono }]}
               onPress={pickImageFromGallery}
               activeOpacity={0.7}
               accessibilityRole="button"
               accessibilityLabel={t('composer.addMoreMediaLabel', { puestas: fotosPuestas, tope: topeImagenes })}
             >
-              <View style={[styles.mediaAgregarMas, { backgroundColor: theme.colors.accent + '24' }]}>
-                <Ionicons name="add" size={scale(20)} color={theme.colors.accentDark} />
+              <View style={[styles.mediaAgregarMas, { backgroundColor: 'transparent' }]}>
+                <IconoWee name="mas" size={scale(22)} color={tinta} />
               </View>
               <Text style={[styles.mediaAgregarTexto, { color: theme.colors.textSecondary }]} numberOfLines={2}>
                 {t('composer.addMoreMedia')}
@@ -1363,17 +1313,17 @@ const CreateScreen: React.FC = () => {
 
     return (
       <View style={[styles.pollSection, {
-        backgroundColor: theme.colors.surface,
-        borderColor: theme.colors.border,
+        backgroundColor: tono,
+        borderColor: 'transparent',
       }]}>
         {/* Header de encuesta */}
         <View style={styles.pollHeader}>
           <View style={styles.pollHeaderLeft}>
-            <Ionicons name="bar-chart" size={scale(18)} color={theme.colors.accent} />
+            <IconoWee name="encuesta" size={scale(20)} color={tinta} />
             <Text style={[styles.pollTitle, { color: theme.colors.text }]}>{t('composer.poll')}</Text>
           </View>
           <TouchableOpacity onPress={handlePollPress} style={styles.removePollButton}>
-            <Ionicons name="close" size={scale(18)} color={theme.colors.textSecondary} />
+            <IconoWee name="cerrar" size={scale(18)} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
@@ -1387,7 +1337,7 @@ const CreateScreen: React.FC = () => {
         <TextInput
           style={[styles.pollQuestionInput, {
             backgroundColor: theme.colors.background,
-            borderColor: theme.colors.border,
+            borderColor: 'transparent',
             color: theme.colors.text,
           }]}
           placeholder={t('composer.pollQuestionPlaceholder')}
@@ -1405,7 +1355,7 @@ const CreateScreen: React.FC = () => {
               style={[styles.pollOptionInput, {
                 backgroundColor: theme.colors.background,
                 /* La repetida se marca mientras se escribe, no al intentar publicar. */
-                borderColor: duplicadas.includes(option.id) ? theme.colors.error : theme.colors.border,
+                borderColor: duplicadas.includes(option.id) ? theme.colors.error : 'transparent',
                 color: theme.colors.text,
               }]}
               placeholder={t('composer.pollOptionPlaceholder', { numero: index + 1 })}
@@ -1419,7 +1369,7 @@ const CreateScreen: React.FC = () => {
                 onPress={() => handleRemovePollOption(option.id)}
                 style={styles.removePollOptionButton}
               >
-                <Ionicons name="close-circle" size={scale(20)} color={theme.colors.textSecondary} />
+                <IconoWee name="cerrar" size={scale(18)} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             )}
           </View>
@@ -1428,11 +1378,11 @@ const CreateScreen: React.FC = () => {
         {/* Botón para agregar opción */}
         {poll.options.length < maxPollOptions && (
           <TouchableOpacity
-            style={[styles.addPollOptionButton, { borderColor: theme.colors.border }]}
+            style={[styles.addPollOptionButton, { borderColor: 'transparent', backgroundColor: theme.colors.background }]}
             onPress={handleAddPollOption}
           >
-            <Ionicons name="add" size={scale(18)} color={theme.colors.accent} />
-            <Text style={[styles.addPollOptionText, { color: theme.colors.accent }]}>
+            <IconoWee name="mas" size={scale(18)} color={tinta} />
+            <Text style={[styles.addPollOptionText, { color: tinta }]}>
               {t('composer.pollAddOption')}
             </Text>
           </TouchableOpacity>
@@ -1458,17 +1408,16 @@ const CreateScreen: React.FC = () => {
                 style={[
                   styles.pollDurationButton,
                   {
-                    backgroundColor: poll.duration === duration.value ? theme.colors.accent : theme.colors.background,
-                    borderColor: poll.duration === duration.value ? theme.colors.accent : theme.colors.border,
+                    backgroundColor: poll.duration === duration.value ? tinta : theme.colors.background,
+                    borderColor: 'transparent',
                   }
                 ]}
                 onPress={() => handlePollDurationChange(duration.value)}
               >
-                <RellenoDeMarca radio={BORDER_RADIUS.md} apagada={poll.duration !== duration.value} />
                 <Text style={[
                   styles.pollDurationButtonText,
                   {
-                    color: poll.duration === duration.value ? '#1F2937' : theme.colors.text,
+                    color: poll.duration === duration.value ? sobreTinta : theme.colors.text,
                   }
                 ]}>
                   {duration.label}
@@ -1561,27 +1510,14 @@ const CreateScreen: React.FC = () => {
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
         >
-          <Ionicons name="close" size={scale(26)} color={theme.colors.text} />
+          <IconoWee name="cerrar" size={scale(24)} color={tinta} />
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitulo, { color: theme.colors.text }]} numberOfLines={1}>{t('composer.newPost')}</Text>
+        {/* Título de UNA palabra; el único botón principal vive abajo (no se duplica arriba). */}
+        <Text style={[styles.headerTitulo, { color: tinta }]} numberOfLines={1}>{t('composer.kindPost')}</Text>
 
-        <TouchableOpacity
-          style={[styles.postButton, { backgroundColor: canPublish ? theme.colors.accent : theme.colors.accent + '24' }]}
-          onPress={handlePublish}
-          disabled={!canPublish}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel={t('composer.publish')}
-          accessibilityState={{ disabled: !canPublish, busy: isPublishing }}
-        >
-          {canPublish && <RellenoDeMarca radio={BORDER_RADIUS.full} />}
-          {isPublishing ? (
-            <ActivityIndicator size="small" color="#1F2937" />
-          ) : (
-            <Text style={[styles.postButtonText, { color: canPublish ? '#1F2937' : theme.colors.textSecondary }]}>{t('composer.publish')}</Text>
-          )}
-        </TouchableOpacity>
+        {/* Hueco del ancho del cierre para que el título quede centrado de verdad. */}
+        <View style={styles.cerrar} />
       </View>
 
       <EspacioDeEscritura
@@ -1629,7 +1565,7 @@ const CreateScreen: React.FC = () => {
           {renderAcciones()}
           {renderEContacts()}
           {renderCrearConIA()}
-          <View style={[styles.separador, { backgroundColor: theme.colors.border }]} />
+          <View style={styles.separador} />
           {renderDestinos()}
         </ScrollView>
 
@@ -1641,8 +1577,8 @@ const CreateScreen: React.FC = () => {
         <View style={styles.publishingOverlay}>
           <View style={[styles.publishingBox, { backgroundColor: theme.colors.surface }]}>
             <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-              <View style={[styles.publishingIconCircle, { backgroundColor: theme.colors.accent }]}>
-                <Ionicons name="paper-plane" size={scale(32)} color="#fff" />
+              <View style={[styles.publishingIconCircle, { backgroundColor: tinta }]}>
+                <IconoWee name="enviar" size={scale(30)} color={sobreTinta} />
               </View>
             </Animated.View>
             <Text style={[styles.publishingTitle, { color: theme.colors.text }]}>
@@ -1739,6 +1675,7 @@ const styles = StyleSheet.create({
   textoContador: {
     alignSelf: 'flex-end',
     fontSize: FONT_SIZE.xs,
+    opacity: 0.7,
     fontVariant: ['tabular-nums'],
     marginTop: SPACING.xs,
   },
@@ -1749,26 +1686,29 @@ const styles = StyleSheet.create({
    */
   acciones: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    rowGap: SPACING.md,
+    gap: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+  },
+  /* La fila llega al borde de la pantalla: se desliza por debajo del margen de la página. */
+  accionesScroll: {
     marginTop: SPACING.lg,
+    marginHorizontal: -SPACING.lg,
+    flexGrow: 0,
   },
   accion: {
     alignItems: 'center',
     gap: scale(6),
-    minWidth: scale(48),
+    minWidth: scale(56),
   },
   accionApagada: {
     opacity: 0.4,
   },
   /* El cuadrado suave del icono: 48 de lado, se toca sin apuntar. */
   accionIcono: {
-    width: scale(48),
-    height: scale(48),
+    width: scale(52),
+    height: scale(52),
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1793,8 +1733,7 @@ const styles = StyleSheet.create({
   },
   /* Un separador de un pelo entre las herramientas y dónde se publica. */
   separador: {
-    height: StyleSheet.hairlineWidth,
-    marginTop: SPACING.xl,
+    height: SPACING.lg,
   },
   /* PUBLICAR EN: un rótulo pequeño en mayúsculas y, debajo, los destinos. */
   destinos: {
@@ -1804,40 +1743,31 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.xs,
     fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: 1,
-    marginBottom: SPACING.md,
+    marginBottom: SPACING.sm,
+  },
+  destinosLista: {
+    gap: scale(2),
   },
   /*
    * Se envuelven en filas en vez de deslizarse: aquí hay que poder VER todo lo
    * que se puede elegir de un vistazo, no descubrirlo arrastrando. Y como no hay
    * tope de destinos, la rejilla crece hacia abajo sin romper nada.
    */
-  destinosRejilla: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: scale(10),
-  },
   /*
    * Un chip por destino: la cara, el nombre y el aro a la derecha, en una fila
    * de 52 de alto. Mide lo que mide su nombre y crece para repartirse el ancho
    * con los de su fila: dos por fila en un teléfono, más en pantallas anchas.
    */
   destino: {
-    flexGrow: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: SPACING.md,
     minHeight: 52,
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
   },
-  crearIA: { gap: SPACING.sm, marginTop: SPACING.md },
-  crearIACabeza: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs },
-  crearIATitulo: { flex: 1, fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold },
-  crearIAFila: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
-  crearIAChip: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, paddingVertical: SPACING.xs, paddingLeft: SPACING.xs, paddingRight: SPACING.md, borderRadius: BORDER_RADIUS.full, borderWidth: StyleSheet.hairlineWidth },
-  crearIAIcono: { width: scale(30), height: scale(30), borderRadius: scale(15), alignItems: 'center', justifyContent: 'center' },
-  crearIATexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold },
+  crearIA: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, minHeight: 48, paddingHorizontal: SPACING.md, borderRadius: BORDER_RADIUS.lg, marginTop: SPACING.lg },
+  crearIATexto: { flex: 1, fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.medium },
   destinoIcono: {
     width: scale(32),
     height: scale(32),
@@ -1857,11 +1787,10 @@ const styles = StyleSheet.create({
    * ensancharía y empujaría a todos los de detrás.
    */
   destinoCheck: {
-    width: scale(20),
-    height: scale(20),
-    marginLeft: 'auto',
+    width: scale(22),
+    height: scale(22),
+    marginStart: 'auto',
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: scale(1.5),
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2018,7 +1947,6 @@ const styles = StyleSheet.create({
   },
   /* El papel donde se escribe: un marco de un punto, esquinas generosas, aire. */
   tarjetaTexto: {
-    borderWidth: 1,
     borderRadius: BORDER_RADIUS.xl,
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.md,

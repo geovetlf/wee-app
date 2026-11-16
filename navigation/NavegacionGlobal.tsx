@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { navegarEnLaRaiz, refNavegacion } from './refNavegacion';
+import { abrirPortadaDeWeeAi, navegarEnLaRaiz, refNavegacion } from './refNavegacion';
 import BarraInferior, { ALTO_BARRA, DestinoId } from '../components/BarraInferior';
 import CreateSheet, { CreateKind } from '../components/CreateSheet';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme, TemaOscuro } from '../contexts/ThemeContext';
+import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useSinLeer } from '../hooks/useConversaciones';
@@ -50,6 +52,7 @@ const ANIDADAS_SIN_BARRA = new Set(['Conversation']);
  */
 const DESTINO_DE_RUTA: Record<string, DestinoId> = {
   WeeCreator: 'WeeAI',
+  CrearVideo: 'WeeAI',
   Specialist: 'WeeAI',
   CreatorFlow: 'WeeAI',
   Studio: 'WeeAI',
@@ -163,6 +166,8 @@ export const useBarraInferior = () => {
 
 const NavegacionGlobal: React.FC = () => {
   const { user } = useAuth();
+  const { setThemeMode } = useTheme();
+  const { switchIdentity, hasWeeProfile, activeProfileType } = useUserProfile();
   const { triggerScrollToTop, isScrollingDown } = useScroll();
   const insets = useSafeAreaInsets();
   const [hoja, setHoja] = useState(false);
@@ -238,6 +243,8 @@ const NavegacionGlobal: React.FC = () => {
    */
   const puesto: DestinoId | null = pestanaPuesta(estado) || DESTINO_DE_RUTA[rutaRaiz] || 'Home';
 
+  const MarcoDeLaBarra: React.ComponentType<{ children: React.ReactNode }> = puesto === 'WeeAI' ? TemaOscuro : React.Fragment;
+
   /* Siempre a la pila principal: ver `navegarEnLaRaiz` (la pestaña «Create» se quedaba el compositor). */
   const irARaiz = (pantalla: string, params?: object) => {
     navegarEnLaRaiz(pantalla, params);
@@ -252,10 +259,25 @@ const NavegacionGlobal: React.FC = () => {
      * igual que lo era desde el atajo de la hoja Crear: mirar es libre y crear
      * pide cuenta dentro, donde ya se pedía.
      */
-    if (destino === 'WeeAI') return irARaiz('WeeCreator');
+    if (destino === 'WeeAI') { abrirPortadaDeWeeAi(); return; }
 
-    /* Mensajes y Mi Weë son de una persona: esos piden cuenta. */
+    /* Mensajes y el interruptor de cara son de una persona: piden cuenta. */
     if (destino !== 'Home' && !user) return irARaiz('Register');
+
+    /*
+     * LA ÚLTIMA PESTAÑA ES EL INTERRUPTOR DE CARA (decisión del dueño, 2026-11-16): con el Perfil Real activo dice «Weë» y cambia al
+     * Perfil Weë; con el Perfil Weë activo dice «Real» y vuelve. Es EXACTAMENTE la lógica del selector de identidad del ☰
+     * (`elegirIdentidad` de DrawerMenu y Sidebar): `switchIdentity()` cambia de cara y `setThemeMode()` viste la app, y sin Perfil
+     * Weë el lado Weë lleva a crearlo. Después se pasa al Home de la cara nueva, con la pila de Inicio en su portada. WeëAI, el wallet y
+     * Mis proyectos son de la cuenta y no dependen de la cara.
+     */
+    if (destino === 'Profile') {
+      const aWee = activeProfileType !== 'hidi';
+      if (aWee && !hasWeeProfile) return irARaiz('WeeProfileCreation');
+      switchIdentity();
+      setThemeMode(aWee ? 'dark' : 'light');
+      return irARaiz('Main', { screen: 'Home', params: { screen: 'Landing' } });
+    }
 
     /* Tocar Inicio estando ya en Inicio sube al principio, como siempre. */
     if (destino === 'Home' && puesto === 'Home' && rutaRaiz === 'Main') {
@@ -283,7 +305,10 @@ const NavegacionGlobal: React.FC = () => {
         ]}
         pointerEvents="box-none"
       >
-        <BarraInferior puesto={puesto} onSelect={elegir} sinLeer={sinLeer} />
+        {/* En WeëAI (de la cuenta, siempre oscura) la barra también va oscura; en el resto manda el perfil. */}
+        <MarcoDeLaBarra>
+          <BarraInferior puesto={puesto} onSelect={elegir} sinLeer={sinLeer} />
+        </MarcoDeLaBarra>
       </Animated.View>
       <CreateSheet
         visible={hoja}
@@ -291,7 +316,7 @@ const NavegacionGlobal: React.FC = () => {
         onSelect={crear}
         onOpenCreator={() => {
           setHoja(false);
-          setTimeout(() => irARaiz('WeeCreator'), isWeb ? 0 : 150);
+          setTimeout(() => abrirPortadaDeWeeAi(), isWeb ? 0 : 150);
         }}
       />
     </>

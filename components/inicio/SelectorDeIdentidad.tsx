@@ -50,7 +50,7 @@ const SelectorDeIdentidad: React.FC<Props> = ({ activa, tieneWee, onElegir }) =>
       {LADOS.map((lado) => {
         const puesta = activa === lado.id;
         const porCrear = lado.id === 'hidi' && !tieneWee;
-        const color = puesta ? theme.colors.interaction : theme.colors.textSecondary;
+        const color = puesta ? theme.colors.text : theme.colors.textSecondary;
         return (
           <Pressable
             key={lado.id}

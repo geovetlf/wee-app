@@ -33,7 +33,8 @@ const VERDE_DEL_PERFIL_WEE = '#39FF14';
 /* Decisión del dueño (2026-11-05): los iconos del Perfil Weë vuelven al verde eléctrico; deja sin efecto el morado del 2026-11-02. */
 const ICONOS_DEL_PERFIL_WEE = VERDE_DEL_PERFIL_WEE;
 /* Decisión del dueño (2026-11-05): en el Perfil Real los iconos del menú ☰ van en morado eléctrico. Solo el dibujo: textos, títulos y la píldora de Credits no cambian. */
-const ICONOS_DEL_PERFIL_REAL = '#7200FF';
+/* Gama de la referencia del dueño (2026-11-15): iconos de línea en gris oscuro de la identidad (#1F2937). Sustituye al morado eléctrico del 2026-11-05 en el Perfil Real; el verde del Perfil Weë no cambia. */
+const ICONOS_DEL_PERFIL_REAL = '#1F2937';
 import { Ionicons } from '@expo/vector-icons';
 import IconoDireccional from './IconoDireccional';
 import { IconoWee } from './icons/IconoWee';
@@ -57,7 +58,13 @@ import SelectorDeIdentidad, { Identidad } from './inicio/SelectorDeIdentidad';
 import TarjetaWeeAi from './inicio/TarjetaWeeAi';
 import { RellenoDeMarca, RellenoDeDegradado } from './GradienteDeMarca';
 import { ARTE_WEEAI } from '../constants/marca';
+import { useMyWees } from '../hooks/useMyWees';
+import { useIdentidadActiva } from '../hooks/useEContact';
+import { destinoDeAcceso } from '../utils/myWees';
+import { pintarAcceso } from '../constants/myWeesDestinos';
+import { usePrefiereQuietud } from './inicio/TarjetaWeeAi';
 import { ALTO_BARRA } from './BarraInferior';
+import { abrirPortadaDeWeeAi } from '../navigation/refNavegacion';
 import { useResponsive } from '../hooks/useResponsive';
 import { confirmAction } from '../utils/notify';
 
@@ -261,7 +268,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const goExplore = () => after(() => navigateTab('Search'));
 
   // ── WeëAI ──
-  const goWeeAi = () => after(() => navigateRoot('WeeCreator'));
+  const goWeeAi = () => after(() => { if (!abrirPortadaDeWeeAi()) navigateRoot('WeeCreator'); });
 
   // ── Lo tuyo: todo esto es de una cuenta y pide sesión, como antes ──
   const conCuenta = (pantalla: string, params?: object) => () => (user ? after(() => navigateRoot(pantalla, params)) : requireLogin());
@@ -269,6 +276,30 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const goPages = conCuenta('WeePages');
   const goMyWees = conCuenta('MyWees');
   const goCustomizeMyWees = conCuenta('MyWees', { personalizar: true });
+
+  /*
+   * MyWeës SE DESPLIEGA aquí mismo (decisión del dueño, 2026-11-15): la flecha abre la lista de atajos elegidos, cada uno
+   * va a su destino, y «Personalizar» sigue llevando a elegirlos. Plegado o desplegado se recuerda mientras el cajón vive
+   * (sin guardarlo en ningún sitio). Los atajos salen de `useMyWees`, el mismo almacén que la pantalla MyWeës.
+   */
+  const myWees = useMyWees();
+  const { nombreLista: nombreDeLaAgenda } = useIdentidadActiva();
+  const [myWeesAbierto, setMyWeesAbierto] = React.useState(false);
+  const quietud = usePrefiereQuietud();
+  const giroDeLaFlecha = useRef(new Animated.Value(0)).current;
+  const alternarMyWees = () => {
+    const abrir = !myWeesAbierto;
+    setMyWeesAbierto(abrir);
+    if (abrir) myWees.recargar();
+    if (quietud) giroDeLaFlecha.setValue(abrir ? 1 : 0);
+    else Animated.timing(giroDeLaFlecha, { toValue: abrir ? 1 : 0, duration: 160, useNativeDriver: !isWeb }).start();
+  };
+  const abrirAtajo = (a: Parameters<typeof destinoDeAcceso>[0]) => {
+    const destino = destinoDeAcceso(a);
+    if (!destino) return;
+    if (destino.pideCuenta && !user) return requireLogin();
+    after(() => navigateRoot(destino.ruta, destino.params));
+  };
   const goSaved = conCuenta('SavedPosts');
   const goHistory = conCuenta('Historial');
   const goCredits = conCuenta('CreditStore');
@@ -545,35 +576,56 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
               {grupo.divisor && renderDivisor()}
               {grupo.destacado ? (
                 /*
-                  MYWEËS, DESTACADA. Su nombre, una descripción breve y el botón
-                  «Personalizar». Sus accesos NO se despliegan aquí: viven en su
-                  pantalla. El nombre abre MyWeës; el botón la abre lista para
-                  organizar.
+                  MYWEËS, DESTACADA: tarjeta blanca (la superficie del tema) con su nombre, una descripción breve y
+                  «Personalizar». La fila del nombre y la flecha DESPLIEGA aquí los atajos elegidos (acordeón).
                 */
-                <View style={[styles.myWees, { backgroundColor: theme.colors.interactionSoft, borderColor: theme.colors.interactionBorder }]}>
-                  {/* El lavado de la referencia: dorado al inicio, lila al final. Sale de un token (ARTE_WEEAI). */}
-                  <RellenoDeDegradado colores={(theme.dark ? ARTE_WEEAI.oscuro : ARTE_WEEAI.claro).lavadoMyWees} espejo={dir.esRTL} />
-                  <View style={styles.myWeesFila}>
+                <View style={[styles.myWees, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+                  <TouchableOpacity
+                    style={styles.myWeesFila}
+                    onPress={alternarMyWees}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: myWeesAbierto }}
+                    aria-expanded={myWeesAbierto}
+                    accessibilityLabel={t(MENU_ITEM.mywees.clave)}
+                  >
                     <IconoWee name={MENU_ITEM.mywees.icono} size={scale(20)} color={colorDeLosIconos} style={styles.rowIcono} />
                     <View style={styles.rowHueco}>
-                      <TouchableOpacity style={styles.rowToque} onPress={goMyWees} activeOpacity={0.7} hitSlop={MARGEN_DE_TOQUE} accessibilityRole="button" accessibilityLabel={t(MENU_ITEM.mywees.clave)}>
-                        <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]} numberOfLines={1}>{t(MENU_ITEM.mywees.clave)}</Text>
-                      </TouchableOpacity>
+                      <Text style={[styles.rowText, styles.rowTextActive, { color: theme.colors.text }]} numberOfLines={1}>{t(MENU_ITEM.mywees.clave)}</Text>
                     </View>
-                    <TouchableOpacity onPress={goMyWees} activeOpacity={0.7} hitSlop={MARGEN_DE_TOQUE} accessible={false} importantForAccessibility="no">
+                    {/* La flecha señala hacia delante y gira hacia abajo al desplegar (en RTL, la misma rotación desde su lado). */}
+                    <Animated.View style={{ transform: [{ rotate: giroDeLaFlecha.interpolate({ inputRange: [0, 1], outputRange: ['0deg', dir.esRTL ? '-90deg' : '90deg'] }) }] }}>
                       <IconoDireccional name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
-                    </TouchableOpacity>
-                  </View>
+                    </Animated.View>
+                  </TouchableOpacity>
+                  {myWeesAbierto ? (
+                    <View style={styles.atajos}>
+                      {/* Sin atajos no se añade otra leyenda: la de debajo y «Personalizar» ya dicen qué hacer. */}
+                      {myWees.accesos.length === 0 ? null : (
+                        myWees.accesos.map((a) => {
+                          const { nombre, icono } = pintarAcceso(a, t, nombreDeLaAgenda);
+                          return (
+                            <TouchableOpacity key={a.id} style={styles.atajo} onPress={() => abrirAtajo(a)} activeOpacity={0.7} accessibilityRole="button" accessibilityLabel={nombre}>
+                              <IconoWee name={icono} size={scale(18)} color={colorDeLosIconos} />
+                              <Text style={[styles.atajoTexto, dir.texto, { color: theme.colors.text }]} numberOfLines={1}>{nombre}</Text>
+                            </TouchableOpacity>
+                          );
+                        })
+                      )}
+                    </View>
+                  ) : null}
                   <Text style={[styles.myWeesTexto, { color: theme.colors.textSecondary }]}>{t('menu.myWeesHint')}</Text>
                   <TouchableOpacity
                     onPress={goCustomizeMyWees}
                     activeOpacity={0.7}
-                    style={[styles.personalizar, { borderColor: theme.colors.interactionBorder, backgroundColor: theme.colors.card }]}
+                    style={styles.personalizar}
                     accessibilityRole="button"
                     accessibilityLabel={t('menu.customize')}
                   >
-                    <Ionicons name="options-outline" size={scale(15)} color={theme.colors.interaction} />
-                    <Text style={[styles.personalizarTexto, { color: theme.colors.interaction }]} numberOfLines={1}>{t('menu.customize')}</Text>
+                    {/* Relleno con el degradado de los botones (el + y la píldora de Credits); texto oscuro encima. */}
+                    <RellenoDeDegradado colores={(theme.dark ? ARTE_WEEAI.oscuro : ARTE_WEEAI.claro).accion} radio={BORDER_RADIUS.full} espejo={dir.esRTL} />
+                    <Ionicons name="options-outline" size={scale(15)} color={theme.colors.onInteraction} />
+                    <Text style={[styles.personalizarTexto, { color: theme.colors.onInteraction }]} numberOfLines={1}>{t('menu.customize')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -725,8 +777,26 @@ const styles = StyleSheet.create({
     minHeight: scale(44),
     paddingHorizontal: SPACING.xs,
   },
+  /* Los atajos desplegados: filas compactas, sangradas bajo el nombre. */
+  atajos: {
+    paddingStart: SPACING.xl,
+    paddingEnd: SPACING.xs,
+    paddingBottom: SPACING.xs,
+  },
+  atajo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    minHeight: 40,
+  },
+  atajoTexto: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: FONT_SIZE.sm,
+  },
+  /* Una sola leyenda corta, en el tamaño secundario (≈13). */
   myWeesTexto: {
-    fontSize: FONT_SIZE.xs,
+    fontSize: FONT_SIZE.xs + 1,
     lineHeight: scale(17),
     paddingHorizontal: SPACING.xs,
   },
@@ -741,7 +811,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
     marginHorizontal: SPACING.xs,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
+    overflow: 'hidden',
   },
   personalizarTexto: {
     fontSize: FONT_SIZE.sm,

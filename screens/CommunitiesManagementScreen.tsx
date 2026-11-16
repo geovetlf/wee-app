@@ -177,8 +177,8 @@ const CommunitiesManagementScreen: React.FC = () => {
               : c
           ));
         } catch (error) {
-          console.error('Error leaving community:', motivoDelError(error), error);
-          notify(t('common.error'), t('communities.leaveFailed'));
+          console.log('Error leaving community:', motivoDelError(error));
+          notify(t('profile.actionFailed'), t('common.retry'));
         }
       } else {
         // Unirse directamente, con la cara activa
@@ -195,8 +195,9 @@ const CommunitiesManagementScreen: React.FC = () => {
         ));
       }
     } catch (error) {
-      console.error('Error toggling community:', error);
-      notify(t('common.error'), t('communities.actionFailed'));
+      /* Sin texto técnico para la persona; el detalle va al registro, sin saltar como error rojo en desarrollo. */
+      console.log('Error toggling community:', motivoDelError(error));
+      notify(t('profile.actionFailed'), t('common.retry'));
     } finally {
       setJoiningCommunity(null);
     }
@@ -209,8 +210,11 @@ const CommunitiesManagementScreen: React.FC = () => {
     return (
       <TouchableOpacity
         style={[styles.communityItem, { backgroundColor: theme.colors.card }]}
-        onPress={() => (navigation as any).navigate('Feed', { communitySlug: item.slug })}
+        /* TODA la tarjeta abre la comunidad (pantalla `Community`, en la pila principal: lleva su botón atrás). Antes iba a `Feed` con el slug y no abría nada. */
+        onPress={() => item.id && (navigation as any).navigate('Community', { communityId: item.id })}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={nombreDeComunidad(item, t, locale)}
       >
         {item.imageUrl ? (
           <Image
@@ -263,6 +267,9 @@ const CommunitiesManagementScreen: React.FC = () => {
           onPress={() => handleToggleCommunity(item)}
           disabled={isToggling}
           activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={t(isJoined ? 'search.member' : 'communities.join')}
+          accessibilityState={{ selected: isJoined, busy: isToggling }}
         >
           {isToggling ? (
             <ActivityIndicator size="small" color={isJoined ? theme.colors.text : theme.colors.background} />
@@ -273,11 +280,11 @@ const CommunitiesManagementScreen: React.FC = () => {
                 size={16}
                 color={isJoined ? theme.colors.text : theme.colors.background}
               />
-              <Text style={[
+              <Text numberOfLines={1} style={[
                 styles.joinButtonText,
                 { color: isJoined ? theme.colors.text : theme.colors.background }
               ]}>
-                {t(isJoined ? 'communities.memberOf' : 'communities.join')}
+                {t(isJoined ? 'search.member' : 'communities.join')}
               </Text>
             </>
           )}
@@ -668,6 +675,7 @@ const styles = StyleSheet.create({
   },
   communityInfo: {
     flex: 1,
+    minWidth: 0,
     gap: 4,
   },
   communityHeader: {
@@ -712,7 +720,10 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.md,
     gap: 4,
-    minWidth: scale(80),
+    /* Nunca se encoge (antes quedaba en un «(» cortado) y se toca en 44. */
+    flexShrink: 0,
+    minHeight: 44,
+    minWidth: scale(88),
   },
   joinButtonText: {
     fontSize: FONT_SIZE.sm,

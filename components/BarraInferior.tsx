@@ -4,6 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { useUserProfile } from '../contexts/UserProfileContext';
+import { IconoWee } from './icons/IconoWee';
+import { MENU_ITEM } from '../constants/weeMenu';
 import { useTabBar } from '../contexts/TabBarContext';
 import { FONT_WEIGHT } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -87,6 +90,11 @@ interface BarraInferiorProps {
 
 const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer = 0 }) => {
   const t = useT();
+  const { activeProfileType, hasWeeProfile } = useUserProfile();
+  /* A qué cara lleva el interruptor: la otra. */
+  const haciaWee = activeProfileType !== 'hidi';
+  /* La última pestaña nombra la OTRA cara: con el Perfil Real activo dice «Weë» (marca, no se traduce) y con el Perfil Weë activo, «Real». El icono, el destino y el comportamiento no cambian. */
+  const rotulo = (destino: Destino): string => (destino.id === 'Profile' ? (activeProfileType === 'hidi' ? t('pages.nature_real') : 'Weë') : t(destino.clave));
   const { theme } = useTheme();
   const { scrollProgress, isTransparent } = useTabBar();
   const insets = useSafeAreaInsets();
@@ -142,7 +150,7 @@ const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer
             accessibilityRole="button"
             accessibilityState={{ selected: activo }}
             aria-selected={activo}
-            accessibilityLabel={activo ? `${t(destino.clave)}, ${t('nav.current')}` : t(destino.clave)}
+            accessibilityLabel={destino.id === 'Profile' ? (haciaWee && !hasWeeProfile ? t('menu.createWeeProfile') : t('menu.switchToProfile', { perfil: t(haciaWee ? MENU_ITEM.weeProfile.clave : MENU_ITEM.realProfile.clave) })) : activo ? `${rotulo(destino)}, ${t('nav.current')}` : rotulo(destino)}
           >
             {destino.id === 'Create' ? (
               /*
@@ -158,7 +166,12 @@ const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer
             ) : (
               <View style={styles.icono}>
                 {/* Contorno en reposo y relleno cuando es el puesto: los cuatro, con el mismo criterio. */}
-                <Ionicons name={activo ? destino.iconoPuesto : destino.icono} size={scale(24)} color={color} />
+                {destino.id === 'Profile' ? (
+                  /* El icono dice a qué cara se pasa: los mismos del selector del ☰. */
+                  <IconoWee name={haciaWee ? 'perfilWee' : 'perfilReal'} size={scale(24)} color={color} />
+                ) : (
+                  <Ionicons name={activo ? destino.iconoPuesto : destino.icono} size={scale(24)} color={color} />
+                )}
 
                 {destino.id === 'Inbox' && sinLeer > 0 && (
                   <View style={[styles.aviso, { backgroundColor: theme.colors.accent }]}>
@@ -172,7 +185,7 @@ const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer
             {/* Crear no lleva rótulo debajo: el círculo ya lo dice, y su nombre lo oye el lector de pantalla. */}
             {destino.id !== 'Create' && (
               <Text style={[styles.etiqueta, { color }]} numberOfLines={1}>
-                {t(destino.clave)}
+                {rotulo(destino)}
               </Text>
             )}
           </TouchableOpacity>

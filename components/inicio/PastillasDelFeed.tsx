@@ -6,6 +6,8 @@ import { useDireccion } from '../../hooks/useDireccion';
 import { HOME_FEED_TABS, HomeFeedId } from '../../utils/feedFilters';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { RellenoDeDegradado } from '../GradienteDeMarca';
+import { ARTE_WEEAI } from '../../constants/marca';
 
 /**
  * LAS PASTILLAS DEL MURO: Para ti · Creatividad.
@@ -42,7 +44,7 @@ const PastillasDelFeed: React.FC<Props> = ({ puesto, onSelect }) => {
           <TouchableOpacity
             key={f.id}
             onPress={() => onSelect(f.id)}
-            style={[styles.pastilla, { backgroundColor: activa ? theme.colors.interactionSoft : 'transparent' }]}
+            style={[styles.pastilla, { backgroundColor: activa ? theme.colors.interactionStrong : 'transparent' }, activa && styles.pastillaPuesta]}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 2, right: 2 }}
             accessibilityRole="button"
@@ -50,8 +52,10 @@ const PastillasDelFeed: React.FC<Props> = ({ puesto, onSelect }) => {
             aria-pressed={activa}
             accessibilityLabel={t('home.filterBy', { nombre: etiqueta })}
           >
+            {/* La puesta lleva el degradado de los botones (el + y la flecha de enviar): mismo color en toda la portada. */}
+            {activa ? <RellenoDeDegradado colores={(theme.dark ? ARTE_WEEAI.oscuro : ARTE_WEEAI.claro).accion} radio={BORDER_RADIUS.full} espejo={dir.esRTL} /> : null}
             <Text
-              style={[styles.texto, dir.texto, { color: activa ? theme.colors.interaction : theme.colors.textSecondary, fontWeight: activa ? FONT_WEIGHT.semibold : FONT_WEIGHT.medium }]}
+              style={[styles.texto, dir.texto, { color: activa ? theme.colors.onInteraction : theme.colors.textSecondary, fontWeight: activa ? FONT_WEIGHT.semibold : FONT_WEIGHT.medium }]}
               numberOfLines={1}
             >
               {etiqueta}
@@ -76,6 +80,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  pastillaPuesta: { overflow: 'hidden' },
   texto: {
     fontSize: FONT_SIZE.sm,
   },

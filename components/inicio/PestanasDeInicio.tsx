@@ -1,11 +1,11 @@
 import React from 'react';
-import { Platform, ScrollView, Text, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Platform, Text, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { IconoWee } from '../icons/IconoWee';
 import { NombreDeIcono } from '../icons/trazosDeWee';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useDireccion } from '../../hooks/useDireccion';
-import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
+import { SPACING, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
 /**
@@ -46,16 +46,20 @@ const PestanasDeInicio: React.FC<Props> = ({ puesto = 'wall', onSelect }) => {
   const dir = useDireccion();
   return (
     <View
-      style={[styles.banda, dir.contenedor, { borderBottomColor: theme.colors.border, backgroundColor: theme.colors.background }]}
+      style={[styles.banda, dir.contenedor, { backgroundColor: theme.colors.background }]}
       /* `navigation` es un rol de la web; Android no lo conoce y falla al crear la vista. Mismo patrón que BarraInferior. */
       accessibilityRole={Platform.OS === 'web' ? ('navigation' as never) : undefined}
       accessibilityLabel={t('home.sectionsNav')}
     >
-      {/* Se desliza de lado por dentro si no caben —un teléfono de 320, un idioma de palabras largas—; el Home no se mueve. */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.fila}>
+      {/*
+        FIJA (decisión del dueño, 2026-11-15) y SIMÉTRICA (2026-11-16): cuatro columnas de ancho idéntico, icono ENCIMA de la palabra, mismo tamaño de
+        letra en las cuatro (sin ajuste automático que encoja una sola) y SIN línea ni píldora: el puesto se dice solo con tinta (color principal y
+        peso 600 frente al gris secundario). Si una palabra no cabe en un idioma, termina en «…», igual en todas.
+      */}
+      <View style={styles.fila}>
         {ATAJOS_DE_INICIO.map((p) => {
           const activo = p.id === puesto;
-          const color = activo ? theme.colors.interaction : theme.colors.textSecondary;
+          const color = activo ? theme.colors.text : theme.colors.textSecondary;
           return (
             <TouchableOpacity
               key={p.id}
@@ -67,47 +71,44 @@ const PestanasDeInicio: React.FC<Props> = ({ puesto = 'wall', onSelect }) => {
               aria-current={activo ? 'page' : undefined}
               accessibilityLabel={activo ? `${t(p.clave)}, ${t('nav.current')}` : t(p.clave)}
             >
-              <IconoWee name={p.icono} size={scale(18)} color={color} />
-              <Text style={[styles.texto, dir.texto, { color, fontWeight: activo ? FONT_WEIGHT.semibold : FONT_WEIGHT.medium }]} numberOfLines={1}>
+              <IconoWee name={p.icono} size={scale(20)} color={color} />
+              <Text style={[styles.texto, dir.texto, { color, fontWeight: activo ? FONT_WEIGHT.semibold : FONT_WEIGHT.medium }]} numberOfLines={1} ellipsizeMode="tail">
                 {t(p.clave)}
               </Text>
-              {/* La raya del puesto: el acento de interacción, no el dorado. Simétrica, así que vale igual en RTL. */}
-              <View style={[styles.raya, { backgroundColor: activo ? theme.colors.interaction : 'transparent' }]} />
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  /* Sin borde inferior: la separación es espacio, no una raya. */
   banda: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingTop: SPACING.xs,
+    paddingBottom: SPACING.xs,
   },
   fila: {
-    flexGrow: 1,
-    justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
-    gap: SPACING.sm,
-  },
-  atajo: {
     flexDirection: 'row',
+    paddingHorizontal: SPACING.xs,
+  },
+  /* Cuatro columnas idénticas (flex 1, mismo relleno): icono arriba, palabra debajo, todo centrado y a la misma altura. */
+  atajo: {
+    flex: 1,
+    minWidth: 0,
     alignItems: 'center',
-    gap: scale(6),
-    minHeight: 44,
-    paddingHorizontal: SPACING.sm,
+    justifyContent: 'center',
+    gap: scale(4),
+    minHeight: 52,
+    paddingHorizontal: scale(2),
   },
+  /* El MISMO tamaño en las cuatro; 11 deja entrar «Comunidades» en 320 sin reducir ninguna. */
   texto: {
-    fontSize: FONT_SIZE.sm,
-  },
-  raya: {
-    position: 'absolute',
-    start: SPACING.xs,
-    end: SPACING.xs,
-    bottom: 0,
-    height: scale(2),
-    borderRadius: scale(1),
+    fontSize: 11,
+    lineHeight: 14,
+    textAlign: 'center',
+    alignSelf: 'stretch',
   },
 });
 

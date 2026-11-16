@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { MarcaDeWeeAi } from './icons/MarcaDeWeeAi';
+import { IconoWee } from './icons/IconoWee';
+import { RellenoDeDegradado, RellenoDeMarca } from './GradienteDeMarca';
+import type { NombreDeIcono } from './icons/trazosDeWee';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useDireccion } from '../hooks/useDireccion';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
-import { RellenoDeMarca } from './GradienteDeMarca';
 
 export type CreateKind = 'post' | 'weel' | 'image' | 'video' | 'text' | 'question';
 
@@ -28,13 +28,13 @@ interface CreateSheetProps {
  * identificador y no cambia nunca: con él viaja lo que se va a crear.
  */
 /* Iconos de trazo, no emojis (2026-11-02): la misma familia que el resto de la app. */
-const OPTIONS: { kind: CreateKind; icono: string; clave: string }[] = [
-  { kind: 'post', icono: 'create-outline', clave: 'composer.kindPost' },
-  { kind: 'weel', icono: 'play-circle-outline', clave: 'composer.kindWeel' },
-  { kind: 'image', icono: 'image-outline', clave: 'composer.kindImage' },
-  { kind: 'video', icono: 'videocam-outline', clave: 'composer.kindVideo' },
-  { kind: 'text', icono: 'document-text-outline', clave: 'composer.kindText' },
-  { kind: 'question', icono: 'help-circle-outline', clave: 'composer.kindQuestion' },
+const OPTIONS: { kind: CreateKind; icono: NombreDeIcono; clave: string }[] = [
+  { kind: 'post', icono: 'redactar', clave: 'composer.kindPost' },
+  { kind: 'weel', icono: 'weels', clave: 'composer.kindWeel' },
+  { kind: 'image', icono: 'galeria', clave: 'composer.kindImage' },
+  { kind: 'video', icono: 'claqueta', clave: 'composer.kindVideo' },
+  { kind: 'text', icono: 'documento', clave: 'composer.kindText' },
+  { kind: 'question', icono: 'pregunta', clave: 'composer.kindQuestion' },
 ];
 
 /**
@@ -46,6 +46,7 @@ const CreateSheet: React.FC<CreateSheetProps> = ({ visible, onClose, onSelect, o
   const t = useT();
   const dir = useDireccion();
   const insets = useSafeAreaInsets();
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
 
   return (
     <Modal visible={visible} transparent animationType={Platform.OS === 'web' ? 'none' : 'slide'} onRequestClose={onClose}>
@@ -60,9 +61,9 @@ const CreateSheet: React.FC<CreateSheetProps> = ({ visible, onClose, onSelect, o
             },
           ]}
         >
-          <View style={[styles.handle, { backgroundColor: theme.colors.border }]} />
+          <View style={[styles.handle, { backgroundColor: theme.colors.textSecondary + '55' }]} />
           <View style={styles.titles}>
-            <Text style={[styles.title, { color: theme.colors.text }]}>{t('composer.sheetTitle')}</Text>
+            <Text style={[styles.title, { color: tinta }]}>{t('composer.sheetTitle')}</Text>
             <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>{t('composer.sheetSubtitle')}</Text>
           </View>
 
@@ -70,35 +71,36 @@ const CreateSheet: React.FC<CreateSheetProps> = ({ visible, onClose, onSelect, o
             {OPTIONS.map((opt) => (
               <TouchableOpacity
                 key={opt.kind}
-                style={[styles.option, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+                style={[styles.option, { backgroundColor: theme.colors.surface }]}
                 onPress={() => onSelect(opt.kind)}
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel={t(opt.clave)}
               >
-                <View style={[styles.optionIcono, { backgroundColor: theme.colors.accent + '24' }]}>
-                  <Ionicons name={opt.icono as any} size={scale(24)} color={theme.colors.accentDark} />
-                </View>
+                {/* Monocromo (2026-11-16): icono de trazo en la tinta del tema sobre la superficie en tono; sin círculo, sin borde. */}
+                <IconoWee name={opt.icono} size={scale(26)} color={tinta} />
                 <Text style={[styles.optionLabel, { color: theme.colors.text }]}>{t(opt.clave)}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
+          {/* La tarjeta de WeëAI CONSERVA su color (decisión del dueño): carbón, chispas doradas y la píldora con el degradado de la acción principal. Es el único acento de la hoja. */}
           <TouchableOpacity
-            style={[styles.creatorRow, { backgroundColor: theme.colors.text }]}
+            style={[styles.creatorRow, { backgroundColor: '#1A1D24' }]}
             onPress={onOpenCreator}
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={t('composer.needAiTool')}
           >
-            <View style={[styles.creatorIcono, { backgroundColor: theme.colors.accent }]}>
-              <MarcaDeWeeAi size={scale(14)} color="#1F2937" />
-            </View>
+            <RellenoDeDegradado colores={['rgba(255,194,26,0.20)', 'rgba(255,106,0,0.00)']} radio={BORDER_RADIUS.lg} diagonal espejo={dir.esRTL} />
+            <IconoWee name="chispas" size={scale(24)} color="#FFC21A" />
             <View style={styles.creatorBody}>
-              <Text style={styles.creatorTitle}>{t('composer.needAiTool')}</Text>
-              <Text style={styles.creatorText}>{t('composer.needAiToolNote')}</Text>
+              <Text style={styles.creatorTitle} numberOfLines={1}>{t('composer.needAiTool')}</Text>
+              <Text style={styles.creatorText} numberOfLines={2}>{t('composer.needAiToolNote')}</Text>
             </View>
             <View style={[styles.creatorButton, { backgroundColor: theme.colors.accent }]}>
               <RellenoDeMarca radio={BORDER_RADIUS.full} />
-              <Text style={styles.creatorButtonText}>Weë AI {dir.flecha.siguiente}</Text>
+              <Text style={styles.creatorButtonText} numberOfLines={1}>Weë AI {dir.flecha.siguiente}</Text>
             </View>
           </TouchableOpacity>
         </View>
@@ -152,10 +154,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     height: scale(104),
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: StyleSheet.hairlineWidth,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: scale(6),
+    gap: scale(8),
   },
   optionIcono: {
     width: scale(48),
@@ -174,6 +175,7 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
+    overflow: 'hidden',
   },
   creatorIcono: {
     width: scale(44),
@@ -187,13 +189,13 @@ const styles = StyleSheet.create({
     gap: scale(1),
   },
   creatorTitle: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: FONT_SIZE.sm,
     fontWeight: FONT_WEIGHT.bold,
   },
   creatorText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: FONT_SIZE.xs,
+    color: 'rgba(255,255,255,0.72)',
+    fontSize: 13,
   },
   creatorButton: {
     height: scale(34),
@@ -202,8 +204,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   creatorButtonText: {
-    color: '#1F2937',
-    fontSize: FONT_SIZE.xs,
+    color: '#0A0A0A',
+    fontSize: FONT_SIZE.xs + 1,
     fontWeight: FONT_WEIGHT.bold,
   },
 });

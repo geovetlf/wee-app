@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { abrirPortadaDeWeeAi } from './refNavegacion';
 import { TouchableOpacity, View, StyleSheet, Platform, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -77,7 +78,7 @@ const CreateTabButton = ({ href: _href, onPress: _onPress, ...props }: any) => {
 
   const handleOpenCreator = () => {
     setSheetVisible(false);
-    setTimeout(() => rootNavigate('WeeCreator'), isWeb ? 0 : 150);
+    setTimeout(() => { if (!abrirPortadaDeWeeAi()) rootNavigate('WeeCreator'); }, isWeb ? 0 : 150);
   };
 
   return (
