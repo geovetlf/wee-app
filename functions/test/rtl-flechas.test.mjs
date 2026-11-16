@@ -78,7 +78,7 @@ const rtlPlay = enRTL.default({ name: 'play-forward', style: estilo });
 check('3) en RTL, `send` lleva el espejo del hook delante del estilo propio', Array.isArray(rtlSend.style) && rtlSend.style[0] === RTL.espejo && rtlSend.style[1] === estilo && RTL.espejo.transform[0].scaleX === -1);
 check('4) en LTR, el MISMO estilo que se le pasó (ni un objeto más): LTR no cambia', ltrSend.style === estilo && enLTR.default({ name: 'arrow-back' }).style === undefined);
 check('5) en RTL, lo que no señala pasa intacto (play-forward)', rtlPlay.style === estilo);
-check('6) el resto de props llega tal cual al Ionicons', rtlSend.name === 'send' && enRTL.default({ name: 'chevron-forward', size: 18, color: '#fff' }).size === 18);
+check('6) el resto de props llega tal cual (al icono de la familia que dibuja la flecha, desde 2026-11-16)', rtlSend.name === 'enviar' && enRTL.default({ name: 'chevron-forward', size: 18, color: '#fff' }).size === 18);
 
 console.log('\n── C · Toda la app: las flechas pasan por la utilidad ──');
 const CARPETAS = ['components', 'screens', 'navigation', 'constants', 'hooks', 'utils'];

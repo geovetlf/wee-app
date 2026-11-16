@@ -1316,8 +1316,8 @@ console.log('\n── Weë Studio · lo que la pantalla decía y no era ──')
   check('3) Weë Creator ya no promete diez especialistas', !/Los 10 especialistas/.test(creator));
   /* El rótulo ya no está escrito en la pantalla: está su clave, y la frase en el diccionario. */
   check('3) y sigue nombrándolos',
-    /t\('weeai\.theSpecialists'\)/.test(creator)
-    && /theSpecialists: 'Los especialistas de Weë'/.test(fsCat.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8')));
+    /t\('weeai\.templatesTitle'\)/.test(fsCat.readFileSync(new URL('../../components/weeai/PortadaWeeAi.tsx', import.meta.url), 'utf8'))
+    && /templatesTitle: 'Plantillas para ti'/.test(fsCat.readFileSync(new URL('../../i18n/textos/es/weeai.ts', import.meta.url), 'utf8')));
 
   // 4) La tarjeta de Studio dentro de Weë Creator.
   {
@@ -1919,8 +1919,8 @@ console.log('\n── Hogar & Diseño · que se vea, y que se llame como se llam
     const exp = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
 
     check('G) home se presenta como Hogar & Diseño', exp.experienceLabel(exp.getExperienceById('home'), crEs) === 'Hogar & Diseño');
-    check('H) "Mis creaciones" usa la etiqueta, no el nombre crudo', /\{exp \? experienceLabel\(exp, t\) : 'Weë'\}/.test(creator) && !/\{exp\?\.name \?\? 'Weë'\}/.test(creator));
-    check('H) y una sola fuente de verdad para el nombre', /experienceLabel/.test(creator) && !/HOME_LABEL|NOMBRES_VISIBLES/.test(creator));
+    check('H) "Mis creaciones" usa la etiqueta, no el nombre crudo', /experienceLabel\(/.test(fsCat.readFileSync(new URL('../../screens/HistorialScreen.tsx', import.meta.url), 'utf8')) && !/\{exp\?\.name \?\? 'Weë'\}/.test(fsCat.readFileSync(new URL('../../screens/HistorialScreen.tsx', import.meta.url), 'utf8')));
+    check('H) y una sola fuente de verdad para el nombre', /experienceLabel/.test(fsCat.readFileSync(new URL('../../screens/HistorialScreen.tsx', import.meta.url), 'utf8')) && !/HOME_LABEL|NOMBRES_VISIBLES/.test(fsCat.readFileSync(new URL('../../screens/HistorialScreen.tsx', import.meta.url), 'utf8')));
     check('I) el identificador interno no se ha tocado', exp.getExperienceById('home')?.id === 'home' && exp.ALL_EXPERIENCES.length === 11);
     check('I) ni su nombre propio, que sigue guardado', exp.getExperienceById('home')?.name === 'Weë Home');
     check('J) las demás conservan el suyo', ['design', 'studio', 'chef', 'writer', 'music', 'business', 'brain', 'photo', 'beauty'].every((id) => exp.experienceLabel(exp.getExperienceById(id), crEs) === exp.getExperienceById(id).name));
@@ -2177,7 +2177,7 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
   check('M5) Credits aparece una sola vez en cada uno', (limpio(cajon).match(/credits: goCredits/g) || []).length === 1 && (limpio(barra).match(/credits: \{ onPress/g) || []).length === 1);
   check('M5) la barra ya no tiene un "Perfil" suelto además de los dos', !/label="Perfil"/.test(limpio(barra)));
   check('M5) las experiencias salen de su fuente de siempre en el centro creativo; los dos menús llevan a él con la misma tarjeta',
-    /WEE_EXPERIENCES/.test(leer3('screens/WeeCreatorScreen.tsx')) && !/WEE_EXPERIENCES/.test(cajon) && !/WEE_EXPERIENCES/.test(barra)
+    /PORTADA_DE_WEEAI/.test(leer3('components/weeai/PortadaWeeAi.tsx')) && !/WEE_EXPERIENCES/.test(cajon) && !/WEE_EXPERIENCES/.test(barra)
     && /<TarjetaWeeAi variante="menu"/.test(cajon) && /<TarjetaWeeAi variante="menu"/.test(barra));
   check('M5) y ninguno escribe a mano una experiencia', !/Weë Travel|Weë Design|Weë Chef/.test(limpio(cajon) + limpio(barra)));
 
@@ -2285,7 +2285,7 @@ console.log('\n── W · Weë Writer vive dentro de Weë Studio ──');
   check('W3) la tarjeta abre la pantalla de Weë Writer, no su conversación',
     /opens: 'writer', opensSection: true/.test(studio)
     && /if \(action\.opensSection && action\.opens\) \{\s*navigation\.navigate\('Specialist', \{ id: action\.opens \}\);/.test(pantalla));
-  check('W3) que es la misma ruta a la que lleva el centro creativo', /navigation\.navigate\('Specialist', \{ id: cat\.id \}\)/.test(leer4('screens/WeeCreatorScreen.tsx')));
+  check('W3) que es la misma ruta a la que lleva el centro creativo', /navigation\.navigate\('Specialist', \{ id \}\)/.test(leer4('components/weeai/PortadaWeeAi.tsx')));
   check('W3) y allí sigue estando "Mis documentos"',
     /\{spec\.id === 'writer' && <WriterDocuments \/>\}/.test(pantalla) && /navigation\.navigate\('WriterEditor'/.test(leer4('components/creator/WriterDocuments.tsx')));
   /* Control: solo Writer usa esa marca; las tres áreas de Studio siguen entrando por la conversación. */

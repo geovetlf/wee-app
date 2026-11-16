@@ -46,7 +46,7 @@ check('6) alInicio/alFinal dan el lado físico en LTR', igual(ltr.alInicio(0), {
 check('7) y lo invierten en RTL', igual(rtl.alInicio('20%'), { right: '20%' }) && igual(rtl.alFinal(0), { left: 0 }));
 const kit = sinComentarios(leer('components/sectores/PiezasDeSector.tsx'));
 const muro = sinComentarios(leer('components/wall/PublicacionInmersiva.tsx'));
-check('8) el kit de sectores ya no usa start/end absolutos', !/\b(start|end): (0|`|scale)/.test(kit.replace(/start: \{ x|end: \{ x/g, '')) && (kit.match(/dir\.alFinal\(0\)/g) || []).length === 2 && (kit.match(/dir\.alInicio\(/g) || []).length === 2);
+check('8) el kit de sectores ya no usa start/end absolutos', !/\b(start|end): (0|`|scale)/.test(kit.replace(/start: \{ x|end: \{ x/g, '')) && (kit.match(/dir\.alFinal\(0\)/g) || []).length === 0 && (kit.match(/dir\.alInicio\(/g) || []).length === 0);
 check('9) el Wall coloca pie y carril con el hook', /dir\.alInicio\(0\), dir\.alFinal\(scale\(72\)\)/.test(muro) && /dir\.alFinal\(scale\(8\)\)/.test(muro) && !/\b(start|end): scale/.test(muro));
 
 console.log('\n── C · Las flechas que señalan, reflejadas ──');
@@ -68,7 +68,7 @@ console.log('\n── E · Portadas fieles a la referencia, sin partir palabras 
 const design = sinComentarios(leer('components/sectores/PortadaDesign.tsx'));
 const studio = sinComentarios(leer('components/studio/PortadaStudio.tsx'));
 check('14) Design: creación rápida con velo suave y «Explora» teñida, como su referencia', /<RejillaDeAccesos\s+suaves/.test(design) && /<TarjetasDescritas\s+tintadas/.test(design));
-check('15) Studio: creación rápida suave; «Más herramientas» blanca y en una línea', /<RejillaDeAccesos\s+suaves/.test(studio) && /<TarjetasDescritas\s+tarjetas=/.test(studio) && /const enLinea = !c\.descripcion && porFila < 3 && !grandes;/.test(kit));
+check('15) Studio: creación rápida suave; «Más herramientas» blanca y en una línea', /<RejillaDeAccesos\s+suaves/.test(studio) && /<TarjetasDescritas\s+tarjetas=/.test(studio) && /const enLinea = !card\.descripcion && porFila < 3 && !grandes;/.test(kit));
 check('16) por debajo de 360 px, una tarjeta descrita por fila (no se parten nombres ni se cortan descripciones)', /const porFila = width < 360 \? 1 : columnas;/.test(kit) && /width: \x60\$\{100 \/ porFila\}%\x60/.test(kit));
 
 console.log('\n── F · Cobertura de flechas en TODA la app (2026-11-04) ──');

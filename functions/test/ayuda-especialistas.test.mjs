@@ -52,11 +52,12 @@ const OCULTAS = ALL_EXPERIENCES.filter((e) => !WEE_EXPERIENCES.includes(e)).map(
 console.log('\n── A · Una sola fuente ──');
 {
   check('1) el centro creativo de WeëAI pinta WEE_EXPERIENCES (el ☰ y la barra lateral ya no las listan: llevan a él con su tarjeta)',
-    /WEE_EXPERIENCES/.test(leer('screens/WeeCreatorScreen.tsx')) && !/WEE_EXPERIENCES/.test(leer('components/DrawerMenu.tsx')) && !/WEE_EXPERIENCES/.test(leer('components/Sidebar.tsx'))
+    /PORTADA_DE_WEEAI/.test(leer('components/weeai/PortadaWeeAi.tsx')) && !/WEE_EXPERIENCES/.test(leer('components/DrawerMenu.tsx')) && !/WEE_EXPERIENCES/.test(leer('components/Sidebar.tsx'))
     && /navigateRoot\('WeeCreator'\)/.test(leer('components/DrawerMenu.tsx')) && /navigation\.navigate\('WeeCreator'\)/.test(leer('components/Sidebar.tsx')));
   const ayuda = leer('screens/HelpScreen.tsx');
   check('2) y la Ayuda toma de ahí el número y los nombres',
-    /contador: WEE_EXPERIENCES\.length/.test(ayuda) && /lista: formato\.lista\(WEE_EXPERIENCES\.map\(\(e\) => e\.name\)\)/.test(ayuda)
+    /* 2026-11-16: la Ayuda ya no cuenta especialistas: WeëAI tiene dos ÁREAS (Video e Imagen) y lo demás está en Herramientas. */
+    /contador: AREAS_DE_WEEAI\.length/.test(ayuda) && /lista: formato\.lista\(AREAS_DE_WEEAI\.map\(\(k\) => t\(k\)\)\)/.test(ayuda)
     && /t\(item\.answer, item\.answer === 'help\.a3' \? especialistas : (item\.answer === 'help\.a10' \? \{ edad: EDAD_MINIMA \} : )?undefined\)/.test(ayuda), `${N}: ${NOMBRES.join(', ')}`);
 }
 
@@ -89,13 +90,16 @@ console.log('\n── C · Lo que se lee, en cada idioma ──');
   for (const codigo of Object.keys(DICCIONARIOS)) {
     const t = traducir.crearTraductor(codigo, DICCIONARIOS, { modoDesarrollo: false });
     const lista = formato.formatearLista(NOMBRES, codigo);
-    const texto = t('help.a3', { contador: N, lista });
-    const cifra = formato.formatearNumero(N, codigo);
-    if (!texto.includes(cifra) || !NOMBRES.every((n) => texto.includes(n)) || OCULTAS.some((n) => texto.includes(n)) || /\{\{/.test(texto)) malas.push(codigo);
+    const AREAS = ['Video', 'Imagen'];
+    const texto = t('help.a3', { contador: AREAS.length, lista: formato.formatearLista(AREAS, codigo) });
+    const cifra = formato.formatearNumero(AREAS.length, codigo);
+    /* En árabe y hebreo el número 2 lo dice la forma dual, sin cifra (lo fija i18n-cobertura). */
+    const dual = ['ar', 'he'].includes(codigo.split('-')[0]);
+    if ((!dual && !texto.includes(cifra)) || !AREAS.every((n) => texto.includes(n)) || /\{\{/.test(texto)) malas.push(codigo);
   }
-  check(`4) cada idioma dice ${N} y nombra los ${N} del menú, y ninguno de los que ya no son sección`, malas.length === 0, malas.join(', '));
+  check('4) cada idioma dice 2 y nombra las dos áreas de WeëAI (Video e Imagen), sin huecos sin rellenar', malas.length === 0, malas.join(', '));
   const es = traducir.crearTraductor('es-ES', DICCIONARIOS, { modoDesarrollo: false });
-  check('5) ejemplo en español', /Weë AI tiene 7 especialistas: Weë Brain, WeëStudio, WeëDesign, WeëMusic, WeëChef, WeëFashion y WeëTravel\.$/.test(es('help.a3', { contador: N, lista: formato.formatearLista(NOMBRES, 'es-ES') })) || N !== 7);
+  check('5) ejemplo en español', /Weë AI tiene 2 áreas: Video e Imagen\./.test(es('help.a3', { contador: 2, lista: formato.formatearLista(['Video', 'Imagen'], 'es-ES') })));
   const ru = traducir.crearTraductor('ru-RU', DICCIONARIOS, { modoDesarrollo: false });
   check('6) y el ruso concuerda con el número (1 специалист, 3 специалиста, 7 специалистов)',
     /1 специалист:/.test(ru('help.a3', { contador: 1, lista: 'X' })) && /3 специалиста:/.test(ru('help.a3', { contador: 3, lista: 'X' })) && /7 специалистов:/.test(ru('help.a3', { contador: 7, lista: 'X' })));

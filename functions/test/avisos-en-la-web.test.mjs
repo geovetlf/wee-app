@@ -250,8 +250,8 @@ console.log('\n── B · Salir de una comunidad ──');
     {
       const { p, communityService, setJoiningCommunity } = await correr('web', true, { fallaSalir: true });
       await p; await ticks();
-      check('12) si salir falla, en la web se ve el aviso (common.error + communities.leaveFailed) y el indicador se apaga',
-        communityService.leaveCommunity.llamadas.length === 1 && ventana.avisos.some((a) => /common\.error/.test(a) && /communities\.leaveFailed/.test(a))
+      check('12) si salir falla, en la web se ve el aviso («No se pudo completar» + «Inténtalo de nuevo»: profile.actionFailed + common.retry, sin texto técnico) y el indicador se apaga',
+        communityService.leaveCommunity.llamadas.length === 1 && ventana.avisos.some((a) => /profile\.actionFailed/.test(a) && /common\.retry/.test(a))
         && ultimo(setJoiningCommunity) === null, JSON.stringify(ventana.avisos));
     }
     {

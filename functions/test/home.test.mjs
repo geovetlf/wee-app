@@ -377,10 +377,9 @@ console.log('\n── F2 · El Home es un solo muro ──');
     cabecera.indexOf('renderWeeAi()') > 0 && cabecera.indexOf('renderWeeAi()') < cabecera.indexOf('renderFeedFilters()')
     && web.indexOf('<TarjetaWeeAi ') < web.indexOf('<PastillasDelFeed ') && web.indexOf('<PastillasDelFeed ') < web.indexOf('filteredPosts.map((post) =>')
     && !/feedFilter|HOME_SECTION_FILTERS/.test(fila));
-  check('33c) las secciones siguen en el WeeTag de cada publicación',
-    /import WeeTag from '\.\/WeeTag';/.test(publicacion)
-    && /const seccion = useMemo\(\(\) => seccionDe\(post\), \[post\]\);/.test(publicacion)
-    && /<WeeTag nombre=\{seccion\.nombre\} icono="sparkles-outline" \/>/.test(publicacion));
+  check('33c) la publicación ya no pinta la etiqueta de la experiencia (WeëStudio…), pero conserva el WeeTag de comunidad y de lugar',
+    /import WeeTag from '\.\/WeeTag';/.test(publicacion) && !/seccionDe\(post\)/.test(publicacion)
+    && !/icono="sparkles-outline"/.test(publicacion) && /<WeeTag nombre=\{nombreDeComunidad\(community, t, locale\)\}/.test(publicacion));
   /* El orden del Home: saludo · compositor · fila de Weëls · carrusel de secciones, y debajo el Wäll. */
   check('33d) el Home nativo: cabecera y atajos fijos arriba; en la lista, WeëAI · pastillas, y debajo el Wäll',
     nativo.indexOf('<Header') > 0 && nativo.indexOf('<Header') < nativo.indexOf('<PestanasDeInicio ')
@@ -623,17 +622,17 @@ console.log('\n── I · El refinamiento visual ──');
     `${pastillaNativa} / ${pastillaWeb}: las pastillas viven ahora en components/inicio/PastillasDelFeed.tsx`);
   check('60) y aun así se toca cómoda', /hitSlop=\{\{ top: 8, bottom: 8/.test(leer('components/inicio/PastillasDelFeed.tsx')));
   check('61) la puesta se distingue por su velo y la apagada se lee como texto tocable (botón con nombre accesible), con el acento de interacción',
-    /backgroundColor: activa \? theme\.colors\.interactionSoft : 'transparent'/.test(leer('components/inicio/PastillasDelFeed.tsx')) && /accessibilityRole="button"/.test(leer('components/inicio/PastillasDelFeed.tsx')));
+    /backgroundColor: activa \? theme\.colors\.interactionStrong : 'transparent'/.test(leer('components/inicio/PastillasDelFeed.tsx')) && /accessibilityRole="button"/.test(leer('components/inicio/PastillasDelFeed.tsx')));
   /*
    * Y el texto de la apagada toma el color del tema. Con un gris fijo, sobre el
    * fondo casi negro del Perfil Weë, las secciones eran invisibles.
    */
-  check('62) el texto de la pastilla sigue al tema, puesta o apagada', /color: activa \? theme\.colors\.interaction : theme\.colors\.textSecondary/.test(leer('components/inicio/PastillasDelFeed.tsx')) && !/#[0-9A-Fa-f]{6}/.test(leer('components/inicio/PastillasDelFeed.tsx')));
+  check('62) el texto de la pastilla sigue al tema, puesta o apagada', /color: activa \? theme\.colors\.onInteraction : theme\.colors\.textSecondary/.test(leer('components/inicio/PastillasDelFeed.tsx')) && !/#[0-9A-Fa-f]{6}/.test(leer('components/inicio/PastillasDelFeed.tsx')));
   /* Y ninguna píldora Ẅall/Ẅells volvió con ellas. */
   check('63) control: la píldora Ẅall/Ẅells no volvió con el carrusel', !/tabItem|tabBarZona|mitad\('flow'|accessibilityRole="tab"/.test(nativo) && !/selectorMitad|selectorZona|irALaPagina|accessibilityRole="tab"/.test(web));
   /* Lo que sí queda: la sección de cada publicación, en su WeeTag, sin tocar. */
-  check('64) la sección se sigue leyendo en el WeeTag de cada publicación',
-    /<WeeTag nombre=\{seccion\.nombre\} icono="sparkles-outline" \/>/.test(publicacion) && /const seccion = useMemo\(\(\) => seccionDe\(post\), \[post\]\);/.test(publicacion));
+  check('64) la etiqueta de la experiencia ya no se pinta en la publicación (decisión del dueño, 2026-11-16); el campo sigue guardado y «Ver en Weëls» tampoco se pinta',
+    !/seccionDe\(post\)/.test(publicacion) && !/wall\.viewInWeels/.test(publicacion) && !/videoChip/.test(publicacion));
 
   /*
    * ESTADOS QUE SE PUEDEN OÍR.
@@ -656,7 +655,7 @@ console.log('\n── I · El refinamiento visual ──');
    */
   const conArea = (publicacion.match(/style=\{styles\.actionButton\} hitSlop=\{AREA_TACTIL\}/g) || []).length;
   const total = (publicacion.match(/style=\{styles\.actionButton\}/g) || []).length;
-  check('67) todos los botones de una publicación se pueden tocar', conArea === total && total === 5, `${conArea} de ${total}`);
+  check('67) todos los botones de una publicación se pueden tocar', conArea === total && total === 4, `${conArea} de ${total}`);
   /*
    * CINCO, NO SIETE. Opinar a favor, en contra, comentar, guardar y compartir.
    *
@@ -665,12 +664,12 @@ console.log('\n── I · El refinamiento visual ──');
    * iconos donde no se distinguía ninguno. No se ha perdido ninguna acción, y
    * eso es lo que de verdad hay que vigilar, así que se comprueba abajo.
    */
-  check('67) y son exactamente esas cinco, en ese orden',
+  check('67) y son exactamente esas cuatro, en ese orden (sin 👎: decisión del dueño, 2026-11-16)',
     (() => {
       const fila = publicacion.slice(publicacion.indexOf('LA FILA DE ACCIONES: CINCO'), publicacion.indexOf('Hidden shareable'));
       /* «Me gusta» es la mano OK (components/IconoMeGusta.tsx, 2026-11-05); el resto, Ionicons. */
       const iconos = (fila.match(/<IconoMeGusta|thumbs-down|chatbubble-outline|isBookmarked \? 'bookmark'|share-social-outline/g) || []);
-      return iconos[0] === '<IconoMeGusta' && iconos.includes('thumbs-down')
+      return iconos[0] === '<IconoMeGusta' && !iconos.includes('thumbs-down')
         && iconos.includes('chatbubble-outline') && iconos.some((i) => i.includes('bookmark'))
         && iconos[iconos.length - 1] === 'share-social-outline'
         && !/name="repeat"/.test(fila) && !/paper-plane-outline/.test(fila);
@@ -1665,7 +1664,7 @@ console.log('\n── O · La navegación inferior, una sola para todo Weë ─�
    */
   check('133) con rutas que ya existían: las pestañas Home, Inbox y Profile, la hoja Crear y el centro creativo',
     JSON.stringify(ids.map(([i]) => i)) === JSON.stringify(['Home', 'WeeAI', 'Create', 'Inbox', 'Profile'])
-    && /if \(destino === 'WeeAI'\) return irARaiz\('WeeCreator'\);/.test(global) && /irARaiz\('Main', \{ screen: destino \}\);/.test(global));
+    && /if \(destino === 'WeeAI'\) \{ abrirPortadaDeWeeAi\(\); return; \}/.test(global) && /irARaiz\('Main', \{ screen: destino \}\);/.test(global));
   check('134) y los nombres del rediseño: Inicio · WeëAI · Crear · Mensajes · Mi Weë',
     JSON.stringify(ids.map(([, e]) => e)) === JSON.stringify(['nav.home', 'nav.weeAi', 'nav.create', 'nav.messages', 'nav.myWee'])
     && /home: 'Inicio'/.test(leer('i18n/textos/es/nav.ts')) && /weeAi: 'WeëAI'/.test(leer('i18n/textos/es/nav.ts')) && /create: 'Crear'/.test(leer('i18n/textos/es/nav.ts'))

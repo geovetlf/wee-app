@@ -211,6 +211,8 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['travel.costaRicaName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
     ['travel.costaRicaF1', 'WeëTravel (2026-11-06): nombre propio DEMO: el plato «Gallo pinto»'],
     ['catalogo.chefEj4Title', '«Lomo saltado» es el nombre de un plato: no se traduce, como «sushi»'],
+    ['weeai.cl_retro', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_minimal', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
   ]);
   const copiadas = TR.filter(([k, v]) => !IGUALES.has(k) && /\p{L}{3,}/u.test(sinLoAjeno(v)) && (ES[k] === v || EN[k] === v));
   check('20) ninguna cadena copiada tal cual del español o del inglés, salvo las que se escriben igual con su porqué',

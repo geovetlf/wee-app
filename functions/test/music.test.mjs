@@ -279,7 +279,9 @@ check('G9 expo-av solo se toca en hooks/useMusicAudio.ts y no se añadió ningun
   /* Mismo ancla que A11 (2026-11-06): 2845ea94 solo existía en un equipo y la CI no lo tiene; en a77ea340 las
      dependencias son idénticas, así que la comprobación protege lo mismo: Music no añadió ninguna dependencia. */
   const nuevo = JSON.parse(leer('package.json')); const viejo = JSON.parse((require('node:child_process')).execSync(`git show ${ANCLA_DE_INTEGRACION}:package.json`, { cwd: RAIZ }).toString());
-  return JSON.stringify(nuevo.dependencies) === JSON.stringify(viejo.dependencies);
+  /* Única dependencia añadida desde entonces, autorizada por el dueño (2026-11-15): la tipografía de WeëAI. */
+  const { '@expo-google-fonts/manrope': _manrope, ...sinManrope } = nuevo.dependencies;
+  return JSON.stringify(sinManrope) === JSON.stringify(viejo.dependencies);
 })());
 check('G10 el audio de una referencia nunca se sube ni se guarda: el borrador solo serializa texto', !/AsyncStorage\.setItem\([^)]*(uri|grabacion|referencia)/.test(leer('components/music/MusicComposer.tsx')) && !/uploadBytes|putFile|creatorUploads/.test(archivosUI.map(leer).join('\n')));
 check('G11 nada llama al Credit Engine desde Music: ni spendCredits, ni creditsService, ni httpsCallable',

@@ -188,6 +188,9 @@ const ARRIBA_DEL_TECLADO = {
   'components/RightSidebar.tsx': 'columna derecha de escritorio: no hay teclado de teléfono',
   'screens/InboxScreen.tsx': 'buscador en la cabecera de WeeTalk',
   'screens/SearchScreen.tsx': 'buscador en la cabecera',
+  /* 2026-11-16: el formulario de «nuevo elemento» vive dentro de HojaDeElementos (ya envuelta en EspacioDeEscritura); la sección de «Mis creaciones» va en la página de cajas que ya acomoda el teclado. */
+  'components/weeai/video/NuevoElemento.tsx': 'formulario dentro de HojaDeElementos, que acomoda el teclado',
+  'components/weeai/video/SeccionDeElementosPropios.tsx': 'sección de Mis creaciones, dentro de su página que acomoda el teclado',
   // `screens/ChatScreen.tsx` estaba aquí como «pantalla sin ruta»: se retiró como código muerto (cierre
   // post-auditoría, 2026-10-01), así que ya no hay campo que eximir.
 };

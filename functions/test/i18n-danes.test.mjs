@@ -84,7 +84,7 @@ const EN = Object.fromEntries(aplanar(en));
 
 const MARCAS = /MyWeës|WeëAI|Weë(?:Studio|Design|Chef|Music|Fashion|Travel)|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira|Filmmaker)|WeeTalk|Weëls?|Ẅall|ËContact|ẄContact|Credits|Weë/gu;
 /* Lo que no es danés y está bien que esté: marcas, huecos y los nombres de función de Weë Business. */
-const NOMBRES_DE_PRODUCTO = /WhatsApp|Business Plan|Business Coach|Pricing Assistant|Brand Kit|Customer Insights|Business Ideas|Business Profile|My Business|Products & Catalog|YouTube Shorts|YouTube|TikTok|Instagram|Facebook|LinkedIn|Pinterest|Spotify|Google|Apple|World Encode Entity/g;
+const NOMBRES_DE_PRODUCTO = /WhatsApp|Business Plan|Business Coach|Pricing Assistant|Brand Kit|Customer Insights|Business Ideas|Business Profile|My Business|Products & Catalog|YouTube Shorts|YouTube|TikTok|Instagram|Facebook|LinkedIn|Pinterest|Spotify|Google|Apple|WORLD OF EXPRESSION & EVOLUTION/g;
 const sinLoAjeno = (v) => String(v)
   .replace(/\{\{[\w.]+\}\}/g, ' ')
   .replace(/\\[nrt]/g, ' ')
@@ -247,7 +247,7 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['studio.reference', '«Reference» es la palabra danesa'],
     ['filmmaker.takeQualityStandard', '«Standard» es la palabra danesa'],
     ['studio.valStandard', '«Standard» es la palabra danesa'],
-    ['help.footer', 'la marca, «World Encode Entity» y la versión: solo cambia «version», que en danés se escribe igual'],
+    ['help.footer', 'la marca, «WORLD OF EXPRESSION & EVOLUTION» y la versión: solo cambia «version», que en danés se escribe igual'],
     ['moderation.reasonSpam', '«Spam» es la palabra danesa'],
     ['profile.bioLabel', '«Bio», la palabra del glosario (como Instagram en danés)'],
     ['profile.tabLikes', '«Likes», el contador danés (Retskrivningsordbogen: like, likes)'],
@@ -300,6 +300,18 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['resultado.presupuesto', '«Budget» es la palabra danesa (DDO)'],
     ['resultado.presupuestoPalabra', '«budget» es la palabra danesa (DDO)'],
     ['resultado.escena', '«Scene» es la palabra danesa'],
+    ['weeai.ch_robot', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.ch_astronauta', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.sc_selva', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.sc_neon', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.sc_cafe', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.sc_zen', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_vintage', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_gala', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_festival', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_retro', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_minimal', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.scene', '«Scene» es la palabra danesa (portada de WeëAI, 2026-11-15)'],
   ]);
   const copiadas = DA.filter(([k, v]) => !IGUALES.has(k) && /\p{L}{3,}/u.test(sinLoAjeno(v)) && (ES[k] === v || EN[k] === v));
   if (process.env.DETALLE) console.log(copiadas.map(([k, v]) => `${k} = ${v}`).join('\n'));

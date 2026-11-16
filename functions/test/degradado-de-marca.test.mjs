@@ -43,19 +43,16 @@ const EXCEPCIONES = {
   // Indicadores pequeños: puntos de no leído, contadores, insignias, carruseles
   'components/BarraInferior.tsx#aviso': PUNTO,
   'components/HeroCarousel.tsx#dot': PUNTO,
-  'components/avatars/AvatarPicker.tsx#editBadge': 'el lapicito sobre el avatar: insignia de 24 px pegada a la foto (regla 2)',
-  'components/creator/PlanCard.tsx#stepDot': 'el número de cada paso del plan: indicador, no acción (regla 2)',
+  /* 2026-11-16: la insignia de editar del avatar ya es de tinta (monocromo); su excepción sobraba. */
   'components/creator/RejillaDeCreaciones.tsx#statusBadge': 'insignia de estado de una creación (en curso / fallo): estado, no acción',
   'components/creator/ResultCard.tsx#variantTag': 'etiqueta de variante sobre una imagen: rótulo, no acción',
   'components/creator/ResultCard.tsx#pairTag': 'etiqueta «antes/después» sobre una imagen: rótulo, no acción',
-  'screens/CreateScreen.tsx#accionInsignia': PUNTO,
-  'screens/CreateScreen.tsx#destinoCheck': 'el círculo de marcado de un destino elegido: indicador de selección de 20 px (regla 2)',
+  /* 2026-11-16: el compositor es monocromo; sus insignias, marcas y círculo de espera ya no usan el acento, así que sus excepciones sobraban. */
   'screens/InboxScreen.tsx#dot': PUNTO,
   'screens/LandingScreen.tsx#carouselDot': PUNTO,
   'screens/NotificationsScreen.tsx#unreadDot': PUNTO,
   'screens/NotificationsScreen.tsx#unreadBadge': PUNTO,
   'screens/NotificationsScreen.tsx#filterIndicator': 'la rayita bajo el filtro activo de Notificaciones: indicador (regla 2)',
-  'screens/SearchScreen.tsx#hashtagCount': PUNTO,
   'screens/WeePagesScreen.tsx#estado': 'insignia «publicada» de una WeëPage: estado, no acción',
   // Progreso, ondas y escalas
   'components/creator/ResultCard.tsx#waveBar': PROGRESO,
@@ -74,12 +71,10 @@ const EXCEPCIONES = {
   'screens/LandingScreen.tsx#trendingProgressBar': PROGRESO,
   'screens/BusinessScreen.tsx#dayPost': 'casilla destacada del calendario de publicaciones de Weë Business: celda de calendario, no acción',
   // Avatares, iconos y trazos
-  'components/PostCard.tsx#avatar': 'el círculo de iniciales de quien no tiene foto: avatar, no acción',
+  /* 2026-11-16: el avatar de reserva de PostCard ya es de superficie con icono de trazo (monocromo); su excepción sobraba. */
   'screens/PostDetailScreen.tsx#avatarPlaceholder': 'el círculo de iniciales de quien no tiene foto: avatar, no acción',
-  'components/CreateSheet.tsx#creatorIcono': 'el icono cuadrado de Weë AI en la hoja Crear: icono de la fila; su botón «Abrir» sí lleva degradado',
   'components/HojaDeComentarios.tsx#vacioAcento': 'la rayita decorativa del estado vacío de comentarios: trazo, no relleno de botón',
   'components/creator/ui.tsx#handwrittenLine': 'el subrayado manuscrito bajo un título: trazo, no relleno de botón',
-  'screens/CreateScreen.tsx#publishingIconCircle': 'el círculo del icono mientras se publica: ilustración de espera, no se puede pulsar',
   // Pantalla de emergencia
   'components/ErrorBoundary.tsx#button': 'la pantalla de error vive fuera de todos los proveedores y no depende de más módulos que react-native; se queda en sólido a propósito',
 };

@@ -118,7 +118,7 @@ check(
 // ═══════════════════════════════════════════════════════════════════════════
 console.log('\n─── B. La ubicación: el compositor y su pantalla ───');
 
-check('el botón Ubicación sigue existiendo', /texto="Ubicación"/.test(crear));
+check('el botón Lugar sigue existiendo', /texto="Lugar"/.test(crear));
 check(
   'y se enciende cuando ya hay lugar o zona',
   /activa=\{!!place \|\| !!ubicacion\}/.test(crear)
@@ -478,8 +478,8 @@ console.log('\n─── G. El orden del compositor no se movió ───');
 
 const orden = [...crear.matchAll(/texto="([^"]+)"/g)].map((m) => m[1]);
 check(
-  'Cámara · Multimedia · ËContact · Ubicación · Encuesta · Mis proyectos',
-  orden.join(' · ') === 'Cámara · Multimedia · ËContact · Ubicación · Encuesta · Mis proyectos',
+  'Cámara · Galería · ËContact · Lugar · Encuesta · Proyectos',
+  orden.join(' · ') === 'Cámara · Galería · ËContact · Lugar · Encuesta · Proyectos',
   orden.join(' · ')
 );
 /* El lugar ya no es un panel entre los de abajo: es un chip bajo el texto. El
@@ -515,12 +515,12 @@ check(
 /* Qué hace el aspa: quita SOLO el lugar; la zona tiene la suya. */
 check('el aspa del lugar quita únicamente el lugar', /onPress=\{\(\) => setPlace\(undefined\)\}/.test(chip));
 check('y la zona se quita por separado, con su propio aspa', /onPress=\{\(\) => setUbicacion\(undefined\)\}/.test(chip) && /accessibilityLabel="Quitar mi ubicación"/.test(chip));
-check('cambiar de lugar es volver a tocar "Ubicación"', /texto="Ubicación"[\s\S]{0,120}onPress=\{abrirUbicacion\}/.test(crear));
+check('cambiar de lugar es volver a tocar "Lugar"', /texto="Lugar"[\s\S]{0,120}onPress=\{abrirUbicacion\}/.test(crear));
 
 /* Diseño: compacto, redondeado, amarillo suave, aguanta nombres largos. */
-check('fondo suave del amarillo Weë', /accent \+ '1F'/.test(chip));
+check('fondo suave en el tono del tema (monocromo, 2026-11-16)', /backgroundColor: tono/.test(chip));
 check('bordes redondeados', /chipLugar: \{[^}]*borderRadius: BORDER_RADIUS\.full/.test(crear));
-check('icono de ubicación limpio, sin bandera ni emoji', /name="location"/.test(chip) && !/📍|🌍|\p{Regional_Indicator}/u.test(chip));
+check('icono de ubicación limpio (IconoWee lugar), sin bandera ni emoji', /name="lugar"/.test(chip) && !/📍|🌍|\p{Regional_Indicator}/u.test(chip));
 check(
   'un nombre largo se corta con puntos y no rompe la fila',
   /numberOfLines=\{1\}/.test(chip) && /chipLugarTexto: \{[^}]*flexShrink: 1/.test(crear) && /chipLugar: \{[^}]*maxWidth: '100%'/.test(crear)

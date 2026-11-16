@@ -173,5 +173,19 @@ check('G11) las rutas nuevas existen en la pila y tienen dirección', /<Stack\.S
 const pkg = JSON.parse(leer('package.json'));
 check('G12) sin dependencias nuevas para MyWeës (ni librería de arrastre)', !Object.keys({ ...pkg.dependencies, ...pkg.devDependencies }).some((d) => /draggable|sortable|dnd/.test(d)));
 
+/* H · MyWeës se despliega en el ☰ (decisión del dueño, 2026-11-15): la flecha abre los atajos ahí mismo, sin ir a otra pantalla. */
+{
+  const cajon = leer('components/DrawerMenu.tsx');
+  check('H1) la fila de MyWeës del cajón despliega y pliega, y lo dice a la accesibilidad',
+    cajon.includes('onPress={alternarMyWees}') && cajon.includes('accessibilityState={{ expanded: myWeesAbierto }}') && cajon.includes('aria-expanded={myWeesAbierto}'));
+  check('H2) los atajos salen del mismo almacén que la pantalla y se nombran con la misma función',
+    cajon.includes('const myWees = useMyWees();') && cajon.includes('myWees.accesos.map(') && cajon.includes('pintarAcceso(a, t, nombreDeLaAgenda)')
+    && leer('screens/MyWeesScreen.tsx').includes('pintarAcceso(a, t, nombreLista, estados[a.id]?.nombre)'));
+  check('H3) cada atajo va a su destino con la tabla de rutas de siempre; sin atajos no hay segunda leyenda y «Personalizar» invita a elegirlos',
+    cajon.includes('const destino = destinoDeAcceso(a);') && !cajon.includes("t('mywees.emptyHint')") && cajon.includes("t('menu.myWeesHint')") && cajon.includes('onPress={goCustomizeMyWees}'));
+  check('H4) la flecha gira sin animación si se prefiere menos movimiento, y el estado no se guarda en el dispositivo',
+    cajon.includes('if (quietud) giroDeLaFlecha.setValue(') && !/AsyncStorage/.test(cajon));
+}
+
 console.log(`\n${total - fallos}/${total} comprobaciones`);
 process.exit(fallos ? 1 : 0);

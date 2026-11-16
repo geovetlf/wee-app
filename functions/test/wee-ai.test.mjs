@@ -75,11 +75,11 @@ console.log('\n── A · El nombre visible es Weë AI ──');
     && !/creatorHint|creatorTitles/.test(leer('components/DrawerMenu.tsx')));
   check('1) y el ☰ y la barra lateral la pintan con la MISMA pieza: la tarjeta de WeëAI, que toma el nombre de su clave',
     /<TarjetaWeeAi variante="menu"/.test(leer('components/Sidebar.tsx')) && /<TarjetaWeeAi variante="menu"/.test(leer('components/DrawerMenu.tsx'))
-    && /\{t\('nav\.weeAi'\)\}/.test(leer('components/inicio/TarjetaWeeAi.tsx')) && /weeAi: 'WeëAI'/.test(leer('i18n/textos/es/nav.ts')) && /weeAi: 'WeëAI'/.test(leer('i18n/textos/en/nav.ts')));
+    && /t\('nav\.weeAi'\)/.test(leer('components/inicio/TarjetaWeeAi.tsx')) && /weeAi: 'WeëAI'/.test(leer('i18n/textos/es/nav.ts')) && /weeAi: 'WeëAI'/.test(leer('i18n/textos/en/nav.ts')));
 
   /* El marco de las pantallas: la miga de pan por defecto y el rótulo de arriba. */
   check('2) la miga de pan del marco dice Weë AI', new RegExp(`breadcrumb = '${NUEVO}'`).test(leer('components/creator/CreatorShell.tsx')));
-  const conRotulo = ['screens/BrainChatScreen.tsx', 'screens/BusinessScreen.tsx', 'screens/CreatorFlowScreen.tsx', 'screens/ProjectsScreen.tsx', 'screens/WeeCreatorScreen.tsx', 'screens/WriterEditorScreen.tsx', 'screens/SpecialistScreen.tsx'];
+  const conRotulo = ['screens/BrainChatScreen.tsx', 'screens/BusinessScreen.tsx', 'screens/CreatorFlowScreen.tsx', 'screens/ProjectsScreen.tsx', 'screens/WriterEditorScreen.tsx', 'screens/SpecialistScreen.tsx'];
   const sinRenombrar = conRotulo.filter((f) => !new RegExp(`🤖 ${NUEVO}`).test(leer(f)));
   check('2) y las pantallas que lo llevan encima, también', sinRenombrar.length === 0, sinRenombrar.join(' · '));
 

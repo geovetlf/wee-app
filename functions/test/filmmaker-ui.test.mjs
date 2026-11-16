@@ -100,9 +100,9 @@ const dobles = {
   /* El degradado de marca (components/GradienteDeMarca.tsx, ronda V 2026-11-06) es solo fondo: aquí no dibuja nada. */
   'expo-linear-gradient': { LinearGradient: () => null },
   '@react-navigation/native': { useRoute: () => ruta, useNavigation: () => navegacion },
-  '../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P },
-  '../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P },
-  '../../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P },
+  '../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P, enTemaOscuro: (P) => P },
+  '../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P, enTemaOscuro: (P) => P },
+  '../../../contexts/ThemeContext': { useTheme: () => ({ theme: { colors: colores } }), enTemaClaro: (P) => P, enTemaOscuro: (P) => P },
   '../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
   '../../contexts/IdiomaContext': { useT: () => t, useIdioma: () => ({ t, formato, locale: 'es' }) },
   /* Los rótulos en mayúsculas: la caja la decide TextoEnMayusculas (lo prueba i18n-turco 34–36c); aquí, el mismo texto, como hacía el estilo. */
@@ -205,8 +205,8 @@ const director = (c, seleccion = null, rechazadas = new Set(), onRechazar = () =
 console.log('\n── A · Vacíos: se dice qué hacer, sin ejemplos inventados ──');
 await seccion('A', async () => {
   const vacia = dibujar(h(Lista, { onAbrir: () => {}, onIrAlStudio: () => navegacion.navigate('Studio') }));
-  check('A1) la lista vacía dice que no hay producciones y dónde empezar', /Todavía no tienes producciones/.test(vacia.texto) && /Empieza en Weë Studio/.test(vacia.texto));
-  boton(vacia, 'Ir a Weë Studio').tocar();
+  check('A1) la lista vacía dice que no hay producciones y dónde empezar', /Todavía no tienes producciones/.test(vacia.texto) && /Empieza en WeëStudio/.test(vacia.texto));
+  boton(vacia, 'Ir a WeëStudio').tocar();
   check('A2) y su botón lleva a Weë Studio, que es donde se escribe', navegacion.llamadas.at(-1)?.[1] === 'Studio');
   check('A3) con las dos pestañas: activas y archivadas', !!boton(vacia, 'Activas') && !!boton(vacia, 'Archivadas') && boton(vacia, 'Activas').elegido === true);
   check('A4) sin ni una producción de muestra', !/Anuncio|Ejemplo|Demo/.test(vacia.texto));
@@ -406,7 +406,7 @@ await seccion('H', async () => {
   shell.length = 0;
   const cargando = dibujar(h(Pantalla));
   check('H1) cargando: un indicador, y nada inventado', /<progress/.test(cargando.html) && !/Escena/.test(cargando.texto));
-  check('H2) dentro de Weë Studio, con «Varias escenas» encima', shell.at(-1)?.overline === 'Varias escenas' && shell.at(-1)?.breadcrumb === 'Weë Studio');
+  check('H2) dentro de Weë Studio, con «Varias escenas» encima', shell.at(-1)?.overline === 'Varias escenas' && shell.at(-1)?.breadcrumb === 'WeëStudio');
   usoDeProduccion = { ...usoDeProduccion, carga: 'error', falloDeCarga: { tipo: 'no_encontrada', code: 'production_not_found', messageKey: 'filmmaker.persistence.production_not_found', problems: [], reintentable: false } };
   const error = dibujar(h(Pantalla));
   check('H3) error: qué pasó, con la frase de su código, y cómo repetirlo', /No se pudo abrir la producción/.test(error.texto) && /No encontramos esta producción/.test(error.texto) && !!boton(error, 'Inténtalo de nuevo'));
@@ -422,7 +422,7 @@ await seccion('H', async () => {
   const nueva = dibujar(h(Pantalla));
   check('H6) desde el Studio: la idea tal cual, dónde se va a ver, y tus producciones debajo', /Nueva producción/.test(nueva.texto) && /El día de una panadería/.test(nueva.texto)
     && /¿Dónde se va a ver\?/.test(nueva.texto) && /O sigue con una de tus producciones/.test(nueva.texto));
-  check('H7) la idea no se edita aquí: no hay una segunda caja donde escribir', nueva.campos.length === 0 && /La idea se escribe en Weë Studio/.test(nueva.texto));
+  check('H7) la idea no se edita aquí: no hay una segunda caja donde escribir', nueva.campos.length === 0 && /La idea se escribe en WeëStudio/.test(nueva.texto));
   boton(nueva, 'Anuncios').tocar();
   const nueva2 = dibujar(h(Pantalla));
   boton(nueva2, 'Crear producción').tocar(); await calma();

@@ -570,8 +570,6 @@ console.log('\n── J · Traducciones defectuosas ──');
     'business.profileContact',
     /* «Publicaciones»: en Writer es un tipo de texto, lo que se escribe para las redes (SNS投稿), no las publicaciones de Weë. */
     'studio.wrPosts',
-    /* «Destacados»: los negocios destacados del directorio (注目のビジネス), no las publicaciones destacadas del Home. */
-    'weebiz.featured',
     /* «Corto / Medio / Largo»: el largo del pelo (ショート / ミディアム / ロング), no la duración de un vídeo (短め / 標準 / 長め). */
     'aiAvatar.hairShort', 'aiAvatar.hairMedium', 'aiAvatar.hairLong',
     /* «Mejorar»: mejorar un texto (改善), no la calidad de una imagen (画質を改善). */
@@ -584,10 +582,6 @@ console.log('\n── J · Traducciones defectuosas ──');
     'studio.smNatural',
     /* «Materiales»: el coste de los materiales de un precio (材料費), no de qué está hecho un objeto en Weë Design (素材). */
     'business.pricingMaterials',
-    /* «Servicios»: la categoría de negocios profesionales del directorio (専門サービス), no el gasto de luz, agua e internet (光熱費・通信費). */
-    'weebiz.catProfessionalServices',
-    /* «Seguir»: seguir a un negocio (フォロー), no el movimiento de cámara que va detrás del sujeto (追いかける). */
-    'weebiz.follow',
     /* «N días»: lo que dura un viaje se dice «10泊11日», sin 間; lo que dura una encuesta, 3日間. */
     'weeai.tripDays_other',
     /* «sin límites.»: la segunda mitad del héroe de la demo YC; el verbo va al final y cada sección termina con el suyo (作れます。, デザイン。). */

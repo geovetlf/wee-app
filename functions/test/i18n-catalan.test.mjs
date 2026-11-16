@@ -127,8 +127,10 @@ const igual = XX.filter(([k, v]) => (ES[k].match(/\p{L}/gu) || []).length >= 4 &
  * —Impressions, Hotels, Elegant—, y menos las de `weebiz`, retirado). Subir este tope exige volver a medir y explicarlo aquí.
  * Re-medido 202 el 2026-11-06 con WeëTravel (`travel`, prototipo DEMO): +35, todas catalán correcto que coincide con el castellano
  * o el inglés —Cultura, Clima, Mapa, Aventura, Arquitectura, Historial, Traductor, Tren, Autobús, Entrada, Notes, Dates, Versions,
- * Documents, Participants, Restaurant(s), Text— o nombres propios de la demo —Kyoto, París, Lisboa, Torre de Belém, Reykjavík—. */
-check('D9) frases idénticas al inglés o al español: pocas (marcas, nombres de producto, préstamos)', igual.length <= 203, `${igual.length}: ${muestra(igual)}`);
+ * Documents, Participants, Restaurant(s), Text— o nombres propios de la demo —Kyoto, París, Lisboa, Torre de Belém, Reykjavík—.
+ * Re-medido 218 el 2026-11-16 (catálogo de elementos y personalizar de WeëAI): +12, palabras catalanas que coinciden con el castellano o el inglés —Persona, Mascota, Robot, Astronauta, Selva, Plató, Oficina, Zen, Lunar, Aula, Vintage, Gala, Festival, Retro, Minimal…—.
+ * Re-medido 206 el 2026-11-15 (relevo de la portada de WeëAI): +1, `weeai.templateBy` «Plantilla de {{autor}}», catalán correcto que coincide con el castellano. */
+check('D9) frases idénticas al inglés o al español: pocas (marcas, nombres de producto, préstamos)', igual.length <= 218, `${igual.length}: ${muestra(igual)}`);
 check('D10) el catalán se llama a sí mismo «Català»', Object.values(ca.language).some((v) => /Català/.test(String(v))) || idiomas.IDIOMAS.find((i) => i.codigo === 'ca').nombreNativo === 'Català');
 
 console.log('\n── E · la caja ──');

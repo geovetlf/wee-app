@@ -739,9 +739,9 @@ console.log('\n── Q · una publicación es del muro, venga de donde venga �
 
   // 4) El contexto se dice con una etiqueta, no mudando la publicación.
   check('Q) la tarjeta pinta el contexto con un WeeTag', /<WeeTag/.test(tarjeta) && /import WeeTag from '\.\/WeeTag'/.test(tarjeta));
-  check('Q) la comunidad lleva al sitio; la sección solo etiqueta', /<WeeTag nombre=\{nombreDeComunidad\(community, t, locale\)\} icono=\{community\.icon\} onPress=\{handleCommunityPress\} \/>/.test(tarjeta) && /<WeeTag nombre=\{seccion\.nombre\} icono="sparkles-outline" \/>/.test(tarjeta));
+  check('Q) la comunidad lleva al sitio (la etiqueta de sección se retiró el 2026-11-16)', /<WeeTag nombre=\{nombreDeComunidad\(community, t, locale\)\} icono=\{community\.icon\} onPress=\{handleCommunityPress\} \/>/.test(tarjeta) && !/<WeeTag nombre=\{seccion\.nombre\}/.test(tarjeta));
   check('Q) y va detrás de la hora, en el mismo renglón', tarjeta.indexOf('getRelativeTime(post.createdAt') < tarjeta.indexOf('<WeeTag'));
-  check('Q) una publicación sin contexto no pinta nada', /\{community && \(/.test(tarjeta) && /\{!community && seccion && \(/.test(tarjeta));
+  check('Q) una publicación sin contexto no pinta nada', /\{community && \(/.test(tarjeta));
 
   // 5) El WeeTag no dice dónde está nadie.
   const tag = leer('components/WeeTag.tsx');
@@ -912,7 +912,7 @@ console.log('\n── U · el lugar del contenido no es dónde está el teléfon
 
   // 16–18) Lugar y WeeTag son cosas distintas.
   check('U) el lugar se pinta aparte del WeeTag', /\{!!lugar && \(/.test(tarjeta) && /icono=\{bandera \? undefined : 'location-outline'\}/.test(tarjeta));
-  check('U) el WeeTag de sección sigue siendo suyo', /icono="sparkles-outline"/.test(tarjeta));
+  check('U) el WeeTag de sección ya no se pinta en la tarjeta (decisión del dueño, 2026-11-16)', !/icono="sparkles-outline"/.test(tarjeta));
   check('U) y no se mezclan en un solo campo', /sourceSection\?: string;/.test(modelo) && /placeLabel\?: string;/.test(modelo));
 
   // El caso obligatorio: en Lima, publicando París.

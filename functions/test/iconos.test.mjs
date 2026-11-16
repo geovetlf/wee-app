@@ -97,7 +97,7 @@ console.log('\n── C · Una sola familia ──');
    * parezcan el mismo juego. */
   check('8) el grosor del trazo está en un solo sitio',
     /export const GROSOR_DEL_TRAZO = [\d.]+;/.test(fuente)
-    && (fuente.match(/stroke-width=/g) || []).length === 1);
+    && (fuente.match(/stroke-width=/g) || []).length === 3 /* la familia + Fuego y Risa, que declaran 1,5 efectivo en su grupo (2026-11-16) */);
 
   /* Ninguno trae color propio ni relleno decorativo: solo contorno. */
   const conColorPropio = nombres.filter((n) => /(#[0-9A-Fa-f]{3,8}|rgb\(|url\(|gradient)/.test(iconos.TRAZOS[n]));
@@ -143,8 +143,8 @@ console.log('\n── D · Enchufados en el Burger ──');
    */
   check('16) el color de los iconos se decide en un solo sitio, y lo decide isWee',
     /const colorDeLosIconos = isWee \? (VERDE_DEL_PERFIL_WEE|ICONOS_DEL_PERFIL_WEE) : ICONOS_DEL_PERFIL_REAL;/.test(cajon)
-    /* Perfil Real: morado eléctrico (decisión del dueño, 2026-11-05). */
-    && /const ICONOS_DEL_PERFIL_REAL = '#7200FF';/.test(cajon));
+    /* Perfil Real: gris oscuro de la identidad (gama de la referencia del dueño, 2026-11-15; sustituye al morado del 2026-11-05). */
+    && /const ICONOS_DEL_PERFIL_REAL = '#1F2937';/.test(cajon));
   check('16b) la fila corriente lo usa, sin perder el rojo de las peligrosas',
     /color=\{opts\.danger \? theme\.colors\.error : colorDeLosIconos\}/.test(cajon));
   /*

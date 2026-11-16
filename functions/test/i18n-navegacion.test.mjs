@@ -240,8 +240,8 @@ console.log('\n── F · Nada más se movió ──');
     && C.barra.indexOf("id: 'Home'") < C.barra.indexOf("id: 'WeeAI'") && C.barra.indexOf("id: 'WeeAI'") < C.barra.indexOf("id: 'Create'")
     && C.barra.indexOf("id: 'Create'") < C.barra.indexOf("id: 'Inbox'") && C.barra.indexOf("id: 'Inbox'") < C.barra.indexOf("id: 'Profile'")
     && ES('nav.weeAi') === 'WeëAI' && ES('nav.messages') === 'Mensajes' && ES('nav.myWee') === 'Mi Weë' && EN('nav.messages') === 'Messages');
-  check('26) y cada destino sigue diciendo si está puesto',
-    /accessibilityLabel=\{activo \? `\$\{t\(destino\.clave\)\}, \$\{t\('nav\.current'\)\}` : t\(destino\.clave\)\}/.test(C.barra));
+  check('26) y cada destino sigue diciendo si está puesto (la última pestaña dice a qué cara cambia)',
+    C.barra.includes("`${rotulo(destino)}, ${t('nav.current')}` : rotulo(destino)") && C.barra.includes("t('menu.switchToProfile'"));
 
   /* La barra lateral: navegación, sesión y perfiles intactos. */
   check('27) control: la barra lateral navega igual',

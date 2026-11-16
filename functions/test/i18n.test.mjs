@@ -617,8 +617,8 @@ console.log('\n── I · Enchufado en Weë ──');
     /nombreNativo/.test(pantalla) && !/nombreEnEspanol|traducirNombre/.test(pantalla));
 
   const barra = leer('components/BarraInferior.tsx');
-  check('51) la barra inferior ya traduce sus cinco destinos',
-    /\{t\(destino\.clave\)\}/.test(barra) && /clave: 'nav\.home'/.test(barra));
+  /* 2026-11-16: el último destino es el cambio de cara («Weë» / «Real», por clave): el rótulo sale de rotulo(destino), que resuelve claves; los otros cuatro siguen por destino.clave. */
+  check('51) la barra inferior ya traduce sus cinco destinos', /rotulo\(destino\)/.test(barra) && /t\(destino\.clave\)/.test(barra) && /clave: 'nav\.home'/.test(barra));
 
   /* CONTROL: no se ha duplicado ninguna pantalla por idioma. */
   const duplicadas = fs.readdirSync(path.resolve(raiz, 'screens'))

@@ -368,7 +368,7 @@ console.log('\n── G · Nada funcional se movió ──');
   check('29) el estado de un trabajo son seis claves y se resuelven al pintar',
     /asking: 'weeai\.jobAsking'/.test(CODIGO['services/creatorService.ts'])
     && Object.keys(ES.weeai).filter((k) => k.startsWith('job')).length === 6
-    && ['screens/SpecialistScreen.tsx', 'screens/WeeCreatorScreen.tsx', 'screens/ProjectScreen.tsx']
+    && ['screens/SpecialistScreen.tsx', 'screens/ProjectScreen.tsx']
       .every((p) => /t\(claveDelEstado\[job\.status\]\)/.test(soloCodigo(leer(p)))));
 
   check('30) control: ni el motor de IA, ni los proveedores, ni los Credits',

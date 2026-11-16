@@ -139,7 +139,9 @@ console.log('\n── B · Español e inglés, completos ──');
   const desdeFuera = PUERTAS.map((p) => leer(p)).join(String.fromCharCode(10));
   const pedidasFuera = [...desdeFuera.matchAll(/'(composer\.[A-Za-z0-9_]+)'/g)].map((m) => m[1]);
   const usadas = new Set([...pedidas, ...pedidasFuera].filter((c) => c.startsWith('composer.')).map((c) => c.split('.')[1]));
-  const sobran = Object.keys(ES.composer).filter((k) => !usadas.has(k) && !usadas.has(k.replace(/_(one|other)$/, '')));
+  /* newPost y multimedia ya no se pintan (2026-11-16), pero son textos de la web que corre en producción: capacidades-conservadas exige conservarlos hasta que el dueño los declare retirados. */
+  const DE_PRODUCCION = ['newPost', 'multimedia'];
+  const sobran = Object.keys(ES.composer).filter((k) => !usadas.has(k) && !usadas.has(k.replace(/_(one|other)$/, '')) && !DE_PRODUCCION.includes(k));
   check('8) y el módulo no arrastra ninguna que ya nadie use', sobran.length === 0, sobran.join(' '));
 
   const reutilizadas = [...new Set(pedidas.filter((c) => !c.startsWith('composer.')))].sort();
@@ -214,10 +216,10 @@ console.log('\n── D · Lo que NO se traduce ──');
   /* Los nombres de sección salen de la fuente única y no se traducen. */
   check('19) los destinos de sección son marca; solo el muro general lleva clave',
     FEED.destinosDisponibles().filter((d) => d.clave).map((d) => d.id).join(',') === 'general'
-    && FEED.destinosDisponibles().filter((d) => !d.clave).every((d) => /^Weë /.test(d.nombre)),
+    && FEED.destinosDisponibles().filter((d) => !d.clave).every((d) => /^Weë/.test(d.nombre)),
     FEED.destinosDisponibles().map((d) => d.id).join(','));
-  check('19) y quien pinta resuelve la clave si la trae',
-    [ENTRADA, CREAR].every((p) => /destino\.clave \? t\(destino\.clave\) : destino\.nombre/.test(C[p])));
+  check('19) la entrada resuelve la clave si la trae; el compositor ya no lista secciones (2026-11-16)',
+    [ENTRADA].every((p) => /destino\.clave \? t\(destino\.clave\) : destino\.nombre/.test(C[p])) && !/destino\.clave/.test(C[CREAR]));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -227,8 +229,8 @@ console.log('\n── E · Nada funcional se movió ──');
   /* El orden aprobado de la fila de acciones del espacio de crear. */
   const acciones = [...C[CREAR].matchAll(/<Accion\s+icono="([a-z-]+)"[\s\S]{0,220}?texto=\{t\('([a-z]+\.[A-Za-z]+)'\)\}/g)]
     .map((m) => ES[m[2].split('.')[0]][m[2].split('.')[1]]);
-  check('20) Cámara · Multimedia · ËContact · Ubicación · Encuesta · Mis proyectos',
-    acciones.join(' · ') === 'Cámara · Multimedia · ËContact · Ubicación · Encuesta · Mis proyectos',
+  check('20) Cámara · Galería · ËContact · Lugar · Encuesta · Proyectos',
+    acciones.join(' · ') === 'Cámara · Galería · ËContact · Lugar · Encuesta · Proyectos',
     acciones.join(' · '));
 
   /* Y el de la entrada del Home, que es el suyo y tampoco se ha tocado. */

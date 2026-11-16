@@ -93,7 +93,7 @@ console.log('\n── B · Y las que lo nombran lo escriben "Weë AI" ──');
 {
   const pares = [
     ['2) la miga de pan del marco', 'components/creator/CreatorShell.tsx', /breadcrumb = 'Weë AI'/],
-    ['2) el rótulo y la miga de Weë AI', 'screens/WeeCreatorScreen.tsx', /overline="🤖 Weë AI"[\s\S]{0,80}breadcrumb="Weë AI"/],
+    ['2) el rótulo y la miga de Weë AI', 'screens/WeeCreatorScreen.tsx', /title=\{t\('nav\.weeAi'\)\} breadcrumb=\{t\('nav\.weeAi'\)\}/],
     ['2) el rótulo y la miga de un especialista', 'screens/SpecialistScreen.tsx', /overline=\{lanzador \? undefined : '🤖 Weë AI'\}/],
     ['2) el rótulo de Weë Brain', 'screens/BrainChatScreen.tsx', /overline="🤖 Weë AI"/],
     ['2) el de Weë Business', 'screens/BusinessScreen.tsx', /overline="🤖 Weë AI"/],
@@ -171,7 +171,7 @@ console.log('\n── D · Los identificadores, donde estaban ──');
     && leer('screens/WeeCreatorScreen.tsx').length > 0);
 
   check('9) la navegación hacia el área es la de siempre',
-    /irARaiz\('WeeCreator'\)/.test(leer('navigation/NavegacionGlobal.tsx'))
+    /abrirPortadaDeWeeAi\(\)/.test(leer('navigation/NavegacionGlobal.tsx')) /* 2026-11-16: popTo a la portada */
     && /navigation\.navigate\('WeeCreator'\)/.test(leer('components/Sidebar.tsx')));
 
   /* Lo que la fase NO tocó: las experiencias, sus ids y sus nombres. */

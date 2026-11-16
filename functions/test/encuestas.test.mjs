@@ -484,7 +484,7 @@ check('81) ningún update de un post puede tocar poll', /allow update: if isAuth
  */
 const lineaUpdate = (bloquePosts.match(/allow update:[^;]*;/) || [''])[0];
 check('82) y también se lo prohíbe al autor', lineaUpdate.indexOf('!touchesPoll()') < lineaUpdate.indexOf('ownsPost()'));
-check('83) los contadores de acuerdos siguen permitidos', /hasOnly\(\['views', 'agreementCount', 'disagreementCount', 'likes', 'comments', 'shares', 'reposts', 'updatedAt'\]\)/.test(lineaUpdate));
+check('83) los contadores de acuerdos siguen permitidos', /hasOnly\(\['views', 'agreementCount', 'disagreementCount', 'fireCount', 'laughCount', 'likes', 'comments', 'shares', 'reposts', 'updatedAt'\]\)/.test(lineaUpdate));
 check('84) poll NO está en esa lista de contadores', !/hasOnly\([^)]*'poll'/.test(lineaUpdate));
 
 check('85) existe la subcolección de votos', /match \/pollVotes\/\{voterUid\}/.test(bloquePosts));

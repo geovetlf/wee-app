@@ -67,6 +67,8 @@ const pantalla = (svc, extra = {}) => crearEntorno({
       '../utils/platform': { isWeb: false },
       'expo-av': { Video: capturar('Video'), ResizeMode: { COVER: 'cover', CONTAIN: 'contain' }, Audio: { setAudioModeAsync: async () => {} } },
       'expo-linear-gradient': { LinearGradient: Caja },
+      /* 2026-11-16: IconoDireccional dibuja con el icono de la familia (IconoWee, que usa expo-image): aquí no se pinta nada. */
+      'expo-image': { Image: () => null },
       '../components/media/MedioNoDisponible': { __esModule: true, default: () => null },
       '../contexts/AuthContext': { useAuth: () => ({ user: usuario }) },
       '../contexts/UserProfileContext': { useUserProfile: () => ({ userProfile: null }) },

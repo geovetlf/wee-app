@@ -65,7 +65,7 @@ const frases = [...FIL].filter(([k]) => !DATOS.has(k));
 
 const MARCAS = ['WeëStudio', 'WeëDesign', 'WeëChef', 'WeëMusic', 'WeëFashion', 'WeëTravel', 'WeëAI', 'MyWeës', 'WEË AI ENGINE', 'Weë AI Engine', 'Weë AI', 'Weë Brain', 'Weë Studio', 'Weë Design', 'Weë Photo', 'Weë Writer', 'Weë Music',
   'Weë Beauty', 'Weë Chef', 'Weë Home', 'Weë Business', 'Weë Travel', 'Weë Filmmaker', 'Weë Inspira', 'Weë Credits', 'Weë Biz',
-  'Weëls', 'Weël', 'WeeTalk', 'ËContact', 'ẄContact', 'Ẅall', 'Credits', 'World Encode Entity', 'Weë'];
+  'Weëls', 'Weël', 'WeeTalk', 'ËContact', 'ẄContact', 'Ẅall', 'Credits', 'WORLD OF EXPRESSION & EVOLUTION', 'Weë'];
 const reMarca = new RegExp(MARCAS.map((m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
 /* Lo que no es texto filipino dentro de una cadena: marcas, huecos, emojis, URLs. Se quita antes de mirar el idioma. */
 const soloTexto = (s) => s.replace(reMarca, ' ').replace(/\{\{[^}]+\}\}/g, ' ').replace(/https?:\/\/\S+/g, ' ');
@@ -174,7 +174,9 @@ console.log('\n── B · Integridad ──');
    * topónimos y platos que se escriben igual en Filipinas. */
   const NOMBRES_PROPIOS_TRAVEL = new Set(['travel.travelSafe', 'travel.cuscoName', 'travel.cuscoA1', 'travel.santoriniName', 'travel.kyotoName',
     'travel.parisName', 'travel.parisA2', 'travel.oaxacaName', 'travel.oaxacaA2', 'travel.lisboaName', 'travel.islandiaF2', 'travel.marrakechName',
-    'travel.baliName', 'travel.baliF1', 'travel.baliF2', 'travel.costaRicaName', 'travel.costaRicaF1', 'travel.costaRicaF2']);
+    'travel.baliName', 'travel.baliF1', 'travel.baliF2', 'travel.costaRicaName', 'travel.costaRicaF1', 'travel.costaRicaF2',
+    /* Catálogo de elementos (2026-11-16): préstamos internacionales que en Filipinas se escriben igual. */
+    'weeai.ch_dragon', 'weeai.sc_neon', 'weeai.sc_plato', 'weeai.sc_zen', 'weeai.cl_vintage', 'weeai.cl_gala', 'weeai.cl_retro', 'weeai.cl_minimal']);
   /* Una cifra con su abreviatura («125.4K», «2.8M») es una cifra, no una palabra. */
   const palabrasDe = (v) => soloTexto(v).replace(/\d+(?:[.,]\d+)?\s?[KkMm](?![\p{L}])/gu, ' ').replace(/[\p{Extended_Pictographic}\uFE0F\u200D]/gu, ' ').replace(/[\s\p{P}\p{S}\d]+/gu, ' ').trim().toLowerCase();
   const iguales = frases.filter(([k, v]) => !NOMBRES_PROPIOS_TRAVEL.has(k) && ((ES.get(k) === v) || (EN.get(k) === v)) && palabrasDe(v) && !PERMITIDA.has(palabrasDe(v)));
@@ -224,7 +226,7 @@ console.log('\n── D · Idioma ──');
    * 12 · Nada de inglés funcional suelto, salvo en marcas, nombres de módulo y términos fijos del glosario.
    * `in`, `out`, `up`, `on`, `off` no cuentan: forman «Mag-sign in», «Mag-top up», «I-on».
    */
-  const FIJOS = /My Business|World Encode Entity|call to action|rule of thirds|Products & Catalog|Business Plan|Business Coach|Pricing Assistant|Brand Kit|Customer Insights|Business Ideas|Business Profile|Weë AI Engine|Customer|Before|After|Pay as you go|CC BY \d|GeoNames|black and white/gi; /* «black and white» (fotos): término fijo, decisión de la revisión nativa */
+  const FIJOS = /My Business|WORLD OF EXPRESSION & EVOLUTION|call to action|rule of thirds|Products & Catalog|Business Plan|Business Coach|Pricing Assistant|Brand Kit|Customer Insights|Business Ideas|Business Profile|Weë AI Engine|Customer|Before|After|Pay as you go|CC BY \d|GeoNames|black and white/gi; /* «black and white» (fotos): término fijo, decisión de la revisión nativa */
   const INGLES = /(^|[^\p{L}-])(the|and|of|your|you|with|for|to|is|are|this|that|please|not|from|will|can|has|have|our|my|it|be|an|by|as|if|we|all|more|now|here|yes|new)(?![\p{L}-])/iu;
   const ingles = frases.filter(([, v]) => INGLES.test(soloTexto(v).replace(FIJOS, ' ')));
   check('12) nada de inglés funcional suelto', ingles.length === 0, ingles.slice(0, 8).map(([k, v]) => `${k}=«${v}»`).join(' · '));

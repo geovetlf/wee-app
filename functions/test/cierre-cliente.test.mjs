@@ -191,7 +191,7 @@ const reiniciar = () => {
   WEB.registro.alertas.length = 0; MOVIL.registro.alertas.length = 0;
 };
 {
-  const PANTALLAS = ['screens/BrainChatScreen.tsx', 'screens/CreditStoreScreen.tsx', 'screens/WeeCreatorScreen.tsx', 'screens/CreateScreen.tsx'];
+  const PANTALLAS = ['screens/BrainChatScreen.tsx', 'screens/CreditStoreScreen.tsx', 'screens/CreateScreen.tsx']; /* 2026-11-16: WeeCreatorScreen se rehízo (portada de WeëAI) y ya no muestra avisos: no tiene notify que compartir. */
   const conCopia = PANTALLAS.filter((p) => {
     const c = sinComentarios(leer(p));
     return /const notify\w*\s*=/.test(c) && /window\.alert|Alert\.alert\(title, message\)/.test(c);

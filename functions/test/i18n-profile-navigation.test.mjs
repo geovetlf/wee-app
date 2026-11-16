@@ -304,11 +304,11 @@ console.log('\n── F · Control: no se rediseñó nada ──');
    * donde estaban.
    */
   check('36) el hueco de la portada conserva icono y medidas',
-    /<Ionicons name="camera-outline" size=\{32\} color=\{theme\.colors\.textSecondary\} \/>/.test(PERFIL)
+    /<IconoDeTrazo name="camera-outline" size=\{32\} color=\{theme\.colors\.textSecondary\} \/>/.test(PERFIL)
     && /const BANNER_HEIGHT = 180;/.test(CRUDO));
   check('36) y el encabezado flotante sigue con sus dos botones',
-    /<Ionicons name="menu" size=\{22\} color="#fff" \/>/.test(PERFIL)
-    && /<Ionicons name="settings-outline" size=\{20\} color="#fff" \/>/.test(PERFIL));
+    /<IconoDeTrazo name="menu" size=\{22\} color="#fff" \/>/.test(PERFIL)
+    && /<IconoDeTrazo name="settings-outline" size=\{20\} color="#fff" \/>/.test(PERFIL));
   check('36) el toque de la portada sigue siendo el mismo',
     /onPress=\{handleBannerSelect\}/.test(PERFIL)
     && /onLongPress=\{\(\) => userProfile\?\.bannerURL && setShowBannerViewer\(true\)\}/.test(PERFIL));

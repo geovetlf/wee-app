@@ -177,7 +177,7 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['business.customerInsights', 'nombre de función de Weë Business (decisión del usuario, 2026-09-16)'],
     ['business.businessIdeas', 'nombre de función de Weë Business (decisión del usuario, 2026-09-16)'],
     ['catalogo.chefEj4Title', '«Lomo saltado» es el nombre de un plato: no se traduce'],
-    ['help.footer', 'la marca, «World Encode Entity» y la versión'],
+    ['help.footer', 'la marca, «WORLD OF EXPRESSION & EVOLUTION» y la versión'],
     ['settings.engineAdmin', '«Weë AI Engine» es el nombre del producto (el WEË AI ENGINE)'],
     ['travel.demo', 'WeëTravel (2026-11-06): marca: «DEMO» señala los datos simulados del prototipo'],
     ['travel.travelSafe', 'WeëTravel (2026-11-06): marca: «Travel Safe» es el nombre de la sección'],

@@ -70,7 +70,7 @@ console.log('\n── A · Ni un texto de interfaz escrito a mano ──');
    * a mano —la pista de accesibilidad de la lupa— pasó a `home.searchHint` al
    * entrar el japonés, así que vuelve a estar vigilado como todos.
    */
-  const MARCA = /^(Weë|Weël|Weëls|Wäll|WeeTalk|ËContact|ËContacts|ẄContact|ẄContacts|Credits|Weë AI|Weë AI ›|Weë AI Engine|Weë Biz|Weë Studio|Studio|Weë Design|Design|Weë Brain|Brain|Writer|WEE|Biz|Flow|Media|Reposts|Likes|Email|Avatares|OK|IA|AI|Weë v1\.0\.0|World Encode Entity)$/;
+  const MARCA = /^(Weë|Weël|Weëls|Wäll|WeeTalk|ËContact|ËContacts|ẄContact|ẄContacts|Credits|Weë AI|Weë AI ›|Weë AI Engine|Weë Biz|Weë Studio|Studio|Weë Design|Design|Weë Brain|Brain|Writer|WEE|Biz|Flow|Media|Reposts|Likes|Email|Avatares|OK|IA|AI|Weë v1\.0\.0|WORLD OF EXPRESSION & EVOLUTION)$/;
   const TECNICO = /^(0\.00|S\/\.|https?:\/\/)/;
   const EXCEPCIONES = ['components/ErrorBoundary.tsx'];
   const RUIDO = /^(Promise|void|string|number|boolean|T|C|any|unknown|Post|View|Text|React|null|undefined|Props|Record|Partial)$/;
@@ -162,7 +162,8 @@ console.log('\n── C · Los catálogos guardan claves, no frases ──');
     && (AYUDA.match(/answer: 'help\.a\d'/g) || []).length === 9);
   check('5) y quien pinta las resuelve',
     /\{t\(item\.question\)\}/.test(AYUDA) && /\{t\(item\.answer[,)]/.test(AYUDA));
-  check('5) el emoji de cada pregunta se copia tal cual', /\{item\.emoji\} \{t\(item\.question\)\}/.test(AYUDA));
+  /* 2026-11-16: la Ayuda ya no usa emojis; cada pregunta lleva un icono de la familia IconoWee, que es un identificador (no se traduce). */
+  check('5) el icono de cada pregunta es un identificador de la familia, no una frase ni un emoji', /<IconoWee name={item.icono}/.test(AYUDA) && !/emoji:/.test(AYUDA));
 }
 
 // ════════════════════════════════════════════════════════════════════════════

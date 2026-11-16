@@ -256,7 +256,6 @@ console.log('\n── Z · Mis creaciones: un solo nombre y su plural de verdad 
     ['screens/MisCreacionesScreen.tsx', /title=\{`🖼️ \$\{t\('creaciones\.title'\)\}`\}/],
     ['constants/weeMenu.ts', /creations: \{ id: 'creations', icono: 'galeria', clave: 'creaciones\.title'/],
     ['components/creator/FilaDeCreaciones.tsx', /t\('studio\.creationsTitle'\)/],
-    ['screens/WeeCreatorScreen.tsx', /t\('weeai\.myCreations'\)/],
   ].filter(([f, re]) => !re.test(sinComentarios(leer(f)))).map(([f]) => f);
   check('Z1d) cada sitio que lo enseña lo pide por su clave con t()', pintanLaClave.length === 0, pintanLaClave.join(' '));
   const fijo = ['components/DrawerMenu.tsx', 'components/Sidebar.tsx', 'components/creator/CreatorSidebar.tsx', 'screens/MisCreacionesScreen.tsx',

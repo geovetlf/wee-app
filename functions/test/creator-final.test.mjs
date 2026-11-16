@@ -45,7 +45,6 @@ check('A4) creator no define otro color ni otro degradado de marca', !fs.existsS
 
 const PROGRESO = 'barra, onda o paso de progreso: relleno sólido de estado, no una acción (regla 2)';
 const EXCEPCIONES = {
-  'components/creator/PlanCard.tsx#stepDot': 'el número de cada paso del plan: indicador, no acción (regla 2)',
   'components/creator/RejillaDeCreaciones.tsx#statusBadge': 'insignia de estado de una creación (en curso / fallo): estado, no acción',
   'components/creator/ResultCard.tsx#variantTag': 'etiqueta de variante sobre una imagen: rótulo, no acción',
   'components/creator/ResultCard.tsx#pairTag': 'etiqueta «antes/después» sobre una imagen: rótulo, no acción',

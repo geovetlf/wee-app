@@ -66,6 +66,8 @@ const crearCajon = ({ so = 'web', ancho = 390, inferior = 0, usuario = { uid: 'd
       useNavigationState: (sel) => sel({ index: 0, routes: [{ name: 'Main', state: { index: 0, routes: [{ name: 'Home' }] } }] }),
     },
     './IconoDireccional': { __esModule: true, default: Nada },
+    /* 2026-11-16: el ☰ abre la portada de WeëAI por refNavegacion (popTo); aquí no hay árbol de navegación. */
+    '../navigation/refNavegacion': { abrirPortadaDeWeeAi: () => false },
     './icons/IconoWee': { IconoWee: Nada },
     './icons/trazosDeWee': {},
     './CreditsPill': { MarcaDeCredits: Nada },
@@ -73,7 +75,10 @@ const crearCajon = ({ so = 'web', ancho = 390, inferior = 0, usuario = { uid: 'd
     /* Rediseño del 2026-11-15: el cajón pinta el logo y dos piezas nuevas (selector de identidad y tarjeta de WeëAI). Dobles mínimos, como el resto. */
     'expo-image': { Image: Nada },
     './inicio/SelectorDeIdentidad': { __esModule: true, default: Nada },
-    './inicio/TarjetaWeeAi': { __esModule: true, default: Nada },
+    './inicio/TarjetaWeeAi': { __esModule: true, default: Nada, usePrefiereQuietud: () => true },
+    /* MyWeës se despliega en el cajón (2026-11-15): sus atajos salen del mismo hook que la pantalla. */
+    '../hooks/useMyWees': { useMyWees: () => ({ accesos: [], recargar() {} }) },
+    '../constants/myWeesDestinos': { pintarAcceso: () => ({ nombre: 'x', icono: 'capas', detalle: '' }) },
     './avatars/AvatarDisplay': { __esModule: true, default: Nada },
     /* La tarjeta de MyWeës lleva su lavado en degradado (ARTE_WEEAI) y el cajón lee el sentido de lectura para reflejarlo. */
     './GradienteDeMarca': { RellenoDeMarca: Nada, RellenoDeDegradado: Nada },

@@ -231,7 +231,7 @@ console.log('\n── D · Idioma, ubicación, push, motor y sesión ──');
     /notify\(t\('settings\.about'\), t\('settings\.aboutBody', \{ anio: new Date\(\)\.getFullYear\(\) \}\)\)/.test(AJUSTES));
   const cuerpo = EN('settings.aboutBody', { anio: 2026 });
   check('14) y lleva el año, la marca y la licencia de GeoNames',
-    cuerpo.includes('2026') && cuerpo.includes('Weë (World Encode Entity)')
+    cuerpo.includes('2026') && cuerpo.includes('Weë (WORLD OF EXPRESSION & EVOLUTION)')
     && cuerpo.includes('GeoNames (geonames.org), CC BY 4.0'), cuerpo.slice(0, 60) + '…');
 }
 
@@ -268,7 +268,7 @@ console.log('\n── E · Lo dinámico, lo técnico y lo que no se movió ─�
   check('19) y ninguna navegación pasa por el traductor',
     !/navigate\(t\(/.test(AJUSTES) && !/navigate\(`/.test(AJUSTES));
   check('19) la marca tampoco se traduce',
-    /Weë v1\.0\.0/.test(CRUDO) && /World Encode Entity/.test(CRUDO) && /'Weë AI Engine',/.test(AJUSTES));
+    /Weë v1\.0\.0/.test(CRUDO) && /WORLD OF EXPRESSION & EVOLUTION/.test(CRUDO) && /'Weë AI Engine',/.test(AJUSTES));
 
   /* 15 y 16 · Accesibilidad: no había ninguna y no se añadió ninguna. */
   check('15) no se añadió ninguna etiqueta de accesibilidad',
