@@ -74,22 +74,27 @@ export const MARCA = {
  */
 export const ACENTO = {
   claro: {
-    interaccion: '#7A22E0',
-    /** Lila de fondo: la pastilla puesta, el chip, el velo de una fila elegida. */
-    velo: '#F5EFFD',
-    /** Lila fuerte: el lado puesto del selector de identidad. */
-    veloFuerte: '#E7D2FD',
+    /*
+     * Naranja de los botones (decisión del dueño, 2026-11-15: los estados activos con el mismo color que el + y la flecha
+     * de enviar). Es el tono legible más cercano al degradado #FFC21A → #FF9500. Como texto pequeño sobre blanco da 2,5:1
+     * (por debajo de AA 4,5): se usa para indicadores (subrayado, icono y etiqueta activos), no para texto de cuerpo.
+     */
+    interaccion: '#F08A00',
+    /** Crema dorada de fondo: el velo de una fila elegida, la etiqueta de una experiencia. */
+    velo: '#FFF4DB',
+    /** Amarillo dorado: la pastilla puesta («Para ti») y el lado puesto del selector; el texto encima va oscuro (11:1). */
+    veloFuerte: '#FFC21A',
     /** Contorno fino de una tarjeta. */
-    borde: '#E3D0FA',
-    /** Texto encima de un relleno violeta. */
-    sobre: '#FFFFFF',
+    borde: '#FFD58A',
+    /** Texto encima de un relleno de acento. */
+    sobre: '#1F2937',
   },
   oscuro: {
-    interaccion: '#B79CFF',
-    velo: 'rgba(183, 156, 255, 0.14)',
-    veloFuerte: 'rgba(183, 156, 255, 0.26)',
-    borde: 'rgba(183, 156, 255, 0.34)',
-    sobre: '#14082E',
+    interaccion: '#FFB547',
+    velo: 'rgba(255, 181, 71, 0.14)',
+    veloFuerte: 'rgba(255, 181, 71, 0.28)',
+    borde: 'rgba(255, 181, 71, 0.34)',
+    sobre: '#1A1D24',
   },
 } as const;
 
@@ -105,50 +110,63 @@ export const ACENTO = {
  * para el arte vectorial (components/inicio/arteDeWeeAi.ts). Solo ASCII en los colores: el arte viaja en base64.
  */
 export const ARTE_WEEAI = {
+  /*
+   * Gama de la referencia del dueño (2026-11-15): banner carbón casi negro con un resplandor dorado → naranja a la derecha,
+   * título blanco con «AI» dorado, chip blanco, caja blanca y botón de enviar en degradado dorado → naranja.
+   */
   claro: {
-    superficie: '#FFFFFF',
-    lavadoArriba: '#F1E6FE',
-    lavadoAbajo: '#FBF8FF',
-    arcoDorado: '#FFC24A',
-    arcoRosa: '#FF9CCB',
-    arcoVioleta: '#A45CF0',
-    /** Cuánta luz lleva el arco (multiplica la opacidad de sus paradas). */
-    luzDelArco: 2,
-    titulo: '#1E1B2E',
-    lema: '#6B6880',
+    superficie: '#1A1D24',
+    lavadoArriba: '#262A33',
+    lavadoAbajo: '#15171C',
+    arcoDorado: '#FFC21A',
+    arcoRosa: '#FF9500',
+    arcoVioleta: '#FF7A00',
+    luzDelArco: 2.2,
+    titulo: '#FFFFFF',
+    /** El «AI» de «WeëAI», en dorado. */
+    acentoDelTitulo: '#FFC21A',
+    lema: '#C7CBD3',
     chip: '#FFFFFF',
-    chispa: '#FFB21A',
-    /** El borde en degradado del Composer y de la tarjeta del menú: dorado → violeta. */
-    bordeDegradado: ['#FFC83D', '#F59AD0', '#9B4DF0'],
-    /** El botón de enviar: lo más saturado de la pantalla. */
-    accion: ['#FEBA03', '#FEA525', '#CF26C5', '#B20AD9'],
+    textoDelChip: '#1F2937',
+    iconoDelChip: '#F08A00',
+    chispa: '#FFC21A',
+    /** La caja de la puerta: blanca sobre el carbón, con su texto y sus iconos en gris. */
+    puerta: '#FFFFFF',
+    textoDeLaPuerta: '#6B7280',
+    iconosDeLaPuerta: '#1F2937',
+    bordeDegradado: ['#FFD84D', '#FFB000', '#FF9500'],
+    accion: ['#FFC21A', '#FFAA00', '#FF9500', '#FF8A00'],
     sobreAccion: '#FFFFFF',
-    /** El lavado de la tarjeta de MyWeës: dorado → lila. */
-    lavadoMyWees: ['#FFF4E1', '#F7EEFE', '#F0E6FE'],
-    bordeMyWees: ['#FFD98A', '#E3D0FA'],
-    sombra: '#7A22E0',
+    lavadoMyWees: ['#FFF8E6', '#FFF3D6', '#FFEDC7'],
+    bordeMyWees: ['#FFD98A', '#FFC870'],
+    sombra: '#1A1D24',
   },
   oscuro: {
-    superficie: '#15111F',
-    lavadoArriba: '#231A38',
-    lavadoAbajo: '#120F1B',
-    arcoDorado: '#FFC24A',
-    arcoRosa: '#FF8CC4',
-    arcoVioleta: '#B58CFF',
-    luzDelArco: 1.25,
+    superficie: '#1C1F27',
+    lavadoArriba: '#262A33',
+    lavadoAbajo: '#121419',
+    arcoDorado: '#FFC21A',
+    arcoRosa: '#FF9500',
+    arcoVioleta: '#FF7A00',
+    luzDelArco: 2.2,
     titulo: '#FFFFFF',
-    lema: '#B6B1C9',
-    chip: '#221B33',
-    chispa: '#FFC24A',
-    bordeDegradado: ['#FFC83D', '#F59AD0', '#B58CFF'],
-    accion: ['#FEBA03', '#FEA525', '#CF26C5', '#B20AD9'],
+    acentoDelTitulo: '#FFC21A',
+    lema: '#B6BBC6',
+    chip: '#2A2E38',
+    textoDelChip: '#FFFFFF',
+    iconoDelChip: '#FFB547',
+    chispa: '#FFC21A',
+    puerta: '#262A33',
+    textoDeLaPuerta: '#A3A9B6',
+    iconosDeLaPuerta: '#E5E7EB',
+    bordeDegradado: ['#FFD84D', '#FFB000', '#FF9500'],
+    accion: ['#FFC21A', '#FFAA00', '#FF9500', '#FF8A00'],
     sobreAccion: '#FFFFFF',
-    lavadoMyWees: ['#2A2118', '#1E1830', '#211936'],
-    bordeMyWees: ['#8A6A1E', '#5B4390'],
+    lavadoMyWees: ['#2A2318', '#231F18', '#1F1B16'],
+    bordeMyWees: ['#8A6A1E', '#7A5A1A'],
     sombra: '#000000',
   },
-  /** Radios y sombras, con nombre. */
-  radioDeTarjeta: 24,
-  sombraDeTarjeta: { opacidad: 0.16, radio: 24, desplazamiento: 10, elevacion: 6 },
-  sombraDeBoton: { opacidad: 0.32, radio: 10, desplazamiento: 4, elevacion: 4 },
+  radioDeTarjeta: 22,
+  sombraDeTarjeta: { opacidad: 0.18, radio: 20, desplazamiento: 8, elevacion: 6 },
+  sombraDeBoton: { opacidad: 0.3, radio: 10, desplazamiento: 4, elevacion: 4 },
 } as const;

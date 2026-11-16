@@ -48,7 +48,14 @@ export const INTER = {
  * siempre queda alguno suelto: se redondea al más cercano de los que existen en
  * vez de dejarlo sin familia, que es lo que devolvería la fuente del sistema.
  */
-export const familiaDelPeso = (peso?: TextStyle['fontWeight']): string => {
+/** Las tres caras de Manrope (solo estos pesos: 400/500/600); 700 y más caen en 600, lo ligero en 400. */
+export const MANROPE = { regular: 'Manrope_400Regular', medium: 'Manrope_500Medium', semibold: 'Manrope_600SemiBold' } as const;
+
+export const familiaDelPeso = (peso?: TextStyle['fontWeight'], familia: 'inter' | 'manrope' = 'inter'): string => {
+  if (familia === 'manrope') {
+    const n = peso === 'bold' ? 700 : Number(peso ?? 400) || 400;
+    return n >= 600 ? MANROPE.semibold : n >= 500 ? MANROPE.medium : MANROPE.regular;
+  }
   switch (peso) {
     case '100':
     case '200':
@@ -79,8 +86,8 @@ export const familiaDelPeso = (peso?: TextStyle['fontWeight']): string => {
  * "Cómo lo hice" y la pantalla de error— y esos no se tocan. Una tipografía
  * única no significa pisar las excepciones que existen por un motivo.
  */
-export const estiloInter = (estilo: unknown): { fontFamily: string } | null => {
+export const estiloInter = (estilo: unknown, familia: 'inter' | 'manrope' = 'inter'): { fontFamily: string } | null => {
   const plano = StyleSheet.flatten(estilo as TextStyle) || ({} as TextStyle);
   if (plano.fontFamily) return null;
-  return { fontFamily: familiaDelPeso(plano.fontWeight) };
+  return { fontFamily: familiaDelPeso(plano.fontWeight, familia) };
 };

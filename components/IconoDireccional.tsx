@@ -1,6 +1,8 @@
 import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { useDireccion } from '../hooks/useDireccion';
+import { IconoWee } from './icons/IconoWee';
+import type { NombreDeIcono } from './icons/trazosDeWee';
 
 /**
  * UN ICONO QUE SEÑALA UN SENTIDO — la quinta regla de `useDireccion`, en un solo sitio.
@@ -28,11 +30,25 @@ const DIRECCIONAL = /^(?:(?:arrow|chevron|caret)-(?:back|forward|left|right)(?:-
 
 export const esIconoDireccional = (nombre: unknown): boolean => typeof nombre === 'string' && DIRECCIONAL.test(nombre);
 
+/*
+ * REDISEÑO MONOCROMO (2026-11-16): las flechas y cheurones de uso común se dibujan con el icono de trazo de la familia IconoWee (el mismo juego que
+ * el resto de la app); el reflejo en RTL sigue siendo este y solo este. Los nombres sin equivalente caen en el glifo de siempre.
+ */
+const DE_LA_FAMILIA: Record<string, NombreDeIcono> = {
+  'arrow-back': 'atras',
+  'arrow-forward': 'adelante',
+  'chevron-back': 'chevronAtras',
+  'chevron-forward': 'chevronAdelante',
+  send: 'enviar',
+};
+
 type Props = React.ComponentProps<typeof Ionicons>;
 
 const IconoDireccional: React.FC<Props> = ({ style, ...resto }) => {
   const dir = useDireccion();
   const reflejar = dir.esRTL && esIconoDireccional(resto.name);
+  const propio = typeof resto.name === 'string' ? DE_LA_FAMILIA[resto.name] : undefined;
+  if (propio) return <IconoWee name={propio} size={Number(resto.size) || 24} color={String(resto.color)} style={(reflejar ? [dir.espejo, style] : style) as never} />;
   return <Ionicons {...resto} style={reflejar ? [dir.espejo, style] : style} />;
 };
 

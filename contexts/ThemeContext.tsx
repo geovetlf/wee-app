@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, ReactNod
 import { Appearance, ColorSchemeName, Animated, Easing, StyleSheet, Platform, StatusBar } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
 import { MARCA, ACENTO } from '../constants/marca';
+import { FamiliaDeTextoContext } from './FamiliaDeTextoContext';
 
 /*
  * Dos temas y el del sistema. Hubo un tercero —morado— que se encendía con el
@@ -273,20 +274,46 @@ export const useTheme = (): ThemeContextType => {
  * funcionando igual y todo lo que queda fuera —el cajón el primero— sigue
  * exactamente como estaba.
  */
-export const TemaClaro: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { themeMode, setThemeMode } = useTheme();
+/** Cuántas pantallas de WeëAI hay montadas: mientras haya alguna, la barra de estado y el esquema de color van en oscuro. */
+let pantallasOscuras = 0;
+
+/**
+ * EL TEMA OSCURO FIJO DE WEËAI (decisión del dueño, 2026-11-16): WeëAI, su wallet y Mis proyectos son de la CUENTA y se ven siempre
+ * oscuros, con el Perfil Real y con el Perfil Weë. Mismo mecanismo que `TemaClaro`: reemplaza el tema por el oscuro dentro de su árbol.
+ * Además alinea la barra de estado, la barra de navegación y el `color-scheme` de la web mientras haya una pantalla de WeëAI a la vista.
+ */
+export const TemaOscuro: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { theme: externo, themeMode, setThemeMode } = useTheme();
+  const externoOscuro = useRef(externo.dark);
+  externoOscuro.current = externo.dark;
+  useEffect(() => {
+    pantallasOscuras += 1;
+    const aplicar = (oscuro: boolean) => {
+      try {
+        if (Platform.OS === 'android') NavigationBar.setButtonStyleAsync(oscuro ? 'light' : 'dark');
+        if (Platform.OS !== 'web') StatusBar.setBarStyle(oscuro ? 'light-content' : 'dark-content');
+        else if (typeof document !== 'undefined') document.documentElement.style.colorScheme = oscuro ? 'dark' : 'only light';
+      } catch {
+        /* Sin estas barras se sigue: el tema ya es oscuro dentro de la pantalla. */
+      }
+    };
+    aplicar(true);
+    return () => {
+      pantallasOscuras -= 1;
+      if (pantallasOscuras <= 0) aplicar(externoOscuro.current);
+    };
+  }, []);
   return (
-    <ThemeContext.Provider value={{ theme: lightTheme, themeMode, setThemeMode }}>
+    <ThemeContext.Provider value={{ theme: darkTheme, themeMode, setThemeMode }}>
       {children}
     </ThemeContext.Provider>
   );
 };
 
-/** Lo contrario, para WeëMusic: la sección va siempre en negro, con el perfil que sea. */
-export const TemaOscuro: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const TemaClaro: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { themeMode, setThemeMode } = useTheme();
   return (
-    <ThemeContext.Provider value={{ theme: darkTheme, themeMode, setThemeMode }}>
+    <ThemeContext.Provider value={{ theme: lightTheme, themeMode, setThemeMode }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -299,6 +326,18 @@ export const TemaOscuro: React.FC<{ children: ReactNode }> = ({ children }) => {
  * tema por su cuenta ANTES de montar el marco: si el proveedor viviera dentro,
  * el marco saldría claro y el contenido que la pantalla ya ha pintado, oscuro.
  */
+export const enTemaOscuro = <P extends object>(Pantalla: React.ComponentType<P>): React.FC<P> => {
+  const Envuelta: React.FC<P> = (props) => (
+    <TemaOscuro>
+      <FamiliaDeTextoContext.Provider value="manrope">
+        <Pantalla {...props} />
+      </FamiliaDeTextoContext.Provider>
+    </TemaOscuro>
+  );
+  Envuelta.displayName = `enTemaOscuro(${Pantalla.displayName || Pantalla.name || 'Pantalla'})`;
+  return Envuelta;
+};
+
 export const enTemaClaro = <P extends object>(Pantalla: React.ComponentType<P>): React.FC<P> => {
   const Envuelta: React.FC<P> = (props) => (
     <TemaClaro>

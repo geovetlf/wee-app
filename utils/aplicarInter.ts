@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, TextInput } from 'react-native';
 import { estiloInter } from '../constants/typography';
+import { FamiliaDeTextoContext } from '../contexts/FamiliaDeTextoContext';
 
 /**
  * PONER INTER EN TODA LA APLICACIÓN, DE UNA VEZ.
@@ -53,7 +54,8 @@ const envolver = (componente: unknown): boolean => {
   const original = objetivo.render;
   objetivo.render = function (...args: unknown[]) {
     const props = args[0] as { style?: unknown } | undefined;
-    const inter = estiloInter(props?.style);
+    /* Dentro de WeëAI el contexto dice «manrope»: misma cara por peso, otra familia. Fuera, Inter como siempre. */
+    const inter = estiloInter(props?.style, React.useContext(FamiliaDeTextoContext));
     if (inter) args[0] = { ...props, style: [inter, props?.style] };
     return original.apply(this, args);
   };

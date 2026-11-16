@@ -69,12 +69,21 @@ html[dir="rtl"] textarea[dir="auto"]:placeholder-shown { direction: rtl; }
 html[dir="rtl"], html:lang(km), html:lang(hi) { font-synthesis: none; }
 `;
 
+/*
+ * WeëAI escribe en Manrope (constants/estiloWeeAi.ts), que tampoco trae estas escrituras. Se declaran las MISMAS caras bajo el
+ * nombre de Manrope y con el mismo `unicode-range`: un texto de WeëAI en árabe, hebreo, jemer o devanagari cae a Vazirmatn o
+ * a Noto igual que el resto de la app, y el latín, el griego y el cirílico se quedan en Manrope. Sin sistema nuevo.
+ */
+const DE_MANROPE: Record<string, string> = { Inter_400Regular: 'Manrope_400Regular', Inter_500Medium: 'Manrope_500Medium', Inter_600SemiBold: 'Manrope_600SemiBold' };
+
 const caras = (): string =>
   Object.values(CARAS)
     .flatMap((escritura) =>
-      PESOS.map(
-        (familia) =>
-          `@font-face{font-family:'${familia}';src:url('${Asset.fromModule(escritura[familia]).uri}') format('truetype');unicode-range:${escritura.rango};font-display:swap;}`,
+      PESOS.flatMap((peso) =>
+        [peso, DE_MANROPE[peso]].filter(Boolean).map(
+          (familia) =>
+            `@font-face{font-family:'${familia}';src:url('${Asset.fromModule(escritura[peso]).uri}') format('truetype');unicode-range:${escritura.rango};font-display:swap;}`,
+        ),
       ),
     )
     .join('\n');

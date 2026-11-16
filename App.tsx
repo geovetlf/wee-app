@@ -5,6 +5,10 @@ import { Alert, Platform, View } from 'react-native';
 import * as Linking from 'expo-linking';
 import { esPantallaDeTravel } from './screens/travel/rutas';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+/* Import por peso (no del índice del paquete): así solo se empaquetan estos tres TTF y no los siete. */
+import { Manrope_400Regular } from '@expo-google-fonts/manrope/400Regular';
+import { Manrope_500Medium } from '@expo-google-fonts/manrope/500Medium';
+import { Manrope_600SemiBold } from '@expo-google-fonts/manrope/600SemiBold';
 import { aplicarInter } from './utils/aplicarInter';
 import { INTER } from './constants/typography';
 
@@ -308,6 +312,7 @@ const linking: any = {
        */
       Reels: { path: 'weels', alias: ['Reels', 'reels'] },
       WeeCreator: { path: 'weeai', alias: ['WeeCreator'] },
+      CrearVideo: { path: 'weeai/video', alias: ['CrearVideo'] },
       Help: { path: 'help', alias: ['Help'] },
       Login: { path: 'login', alias: ['Login'] },
       Register: { path: 'register', alias: ['Register'] },
@@ -413,6 +418,10 @@ export default function App() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    /* La tipografía de WeëAI (constants/estiloWeeAi.ts): solo estos tres pesos. Wall y ☰ siguen en Inter. */
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
   });
 
   /*
