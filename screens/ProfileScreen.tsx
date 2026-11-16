@@ -16,8 +16,7 @@ import {
   Share,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
-import IconoDireccional from '../components/IconoDireccional';
+import { IconoDeTrazo } from '../components/icons/IconoDeTrazo';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -50,6 +49,8 @@ type ProfileScreenNavigationProp = StackNavigationProp<ProfileStackParamList, 'P
 const ProfileScreen: React.FC = () => {
   const { t, locale } = useIdioma();
   const { theme, setThemeMode } = useTheme();
+  /* Monocromo (2026-11-16): el estado activo se dice con tinta, no con dorado; el degradado queda para la acción principal. */
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
   const { user, logout } = useAuth();
   const { userProfile, loading: profileLoading, error: profileError, updateProfile, hasWeeProfile, activeProfileType, switchIdentity } = useUserProfile();
   const navigation = useNavigation<ProfileScreenNavigationProp>();
@@ -291,7 +292,7 @@ const ProfileScreen: React.FC = () => {
   if (profileError || !userProfile) {
     return (
       <View style={[styles.container, styles.centered, { backgroundColor: theme.colors.background }]}>
-        <Ionicons name="alert-circle-outline" size={48} color={theme.colors.textSecondary} />
+        <IconoDeTrazo name="alert-circle-outline" size={48} color={theme.colors.textSecondary} />
         <Text style={[styles.errorText, { color: theme.colors.text }]}>
           {t('profile.loadFailed')}
         </Text>
@@ -512,8 +513,7 @@ const ProfileScreen: React.FC = () => {
     <TouchableOpacity
       style={[
         styles.tabButton,
-        activeTab === tab && styles.tabButtonActive
-      ]}
+              ]}
       onPress={() => setActiveTab(tab)}
       activeOpacity={0.7}
     >
@@ -521,7 +521,7 @@ const ProfileScreen: React.FC = () => {
         style={[
           styles.tabLabel,
           {
-            color: activeTab === tab ? theme.colors.accent : theme.colors.textSecondary,
+            color: activeTab === tab ? tinta : theme.colors.textSecondary,
             fontWeight: activeTab === tab ? '600' : '400',
           }
         ]}
@@ -570,14 +570,14 @@ const ProfileScreen: React.FC = () => {
         {/* Header */}
         <View style={[styles.modalHeader, {
           backgroundColor: theme.colors.background,
-          borderBottomColor: theme.colors.border,
+          borderBottomColor: 'transparent',
           paddingTop: insets.top + 8,
         }]}>
           <TouchableOpacity
             onPress={() => setShowEditModal(false)}
             style={styles.modalHeaderButton}
           >
-            <Ionicons name="close" size={24} color={theme.colors.text} />
+            <IconoDeTrazo name="close" size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={[styles.modalTitle, { color: theme.colors.text }]}>
             {t('profile.editTitle')}
@@ -590,7 +590,7 @@ const ProfileScreen: React.FC = () => {
             {updating ? (
               <ActivityIndicator size="small" color={theme.colors.accent} />
             ) : (
-              <Text style={[styles.modalSave, { color: theme.colors.accent }]}>
+              <Text style={[styles.modalSave, { color: tinta }]}>
                 {t('common.save')}
               </Text>
             )}
@@ -611,7 +611,7 @@ const ProfileScreen: React.FC = () => {
             <TextInput
               style={[styles.input, {
                 backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
+                borderColor: 'transparent',
                 color: theme.colors.text,
               }]}
               value={tempDisplayName}
@@ -632,7 +632,7 @@ const ProfileScreen: React.FC = () => {
             <TextInput
               style={[styles.input, styles.bioInput, {
                 backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
+                borderColor: 'transparent',
                 color: theme.colors.text,
               }]}
               value={tempBio}
@@ -654,7 +654,7 @@ const ProfileScreen: React.FC = () => {
             <TextInput
               style={[styles.input, {
                 backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
+                borderColor: 'transparent',
                 color: theme.colors.text,
               }]}
               value={tempWebsite}
@@ -705,7 +705,7 @@ const ProfileScreen: React.FC = () => {
             />
           ) : (
             <View style={[styles.bannerPlaceholder, { backgroundColor: theme.colors.surface }]}>
-              <Ionicons name="camera-outline" size={32} color={theme.colors.textSecondary} />
+              <IconoDeTrazo name="camera-outline" size={32} color={theme.colors.textSecondary} />
               <Text style={[styles.bannerPlaceholderText, { color: theme.colors.textSecondary }]}>
                 {t('profile.addCover')}
               </Text>
@@ -718,14 +718,14 @@ const ProfileScreen: React.FC = () => {
               style={[styles.floatingHeaderBtn, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
               onPress={() => setDrawerVisible(true)}
             >
-              <Ionicons name="menu" size={22} color="#fff" />
+              <IconoDeTrazo name="menu" size={22} color="#fff" />
             </TouchableOpacity>
             <View style={styles.floatingHeaderRight}>
               <TouchableOpacity
                 style={[styles.floatingHeaderBtn, { backgroundColor: 'rgba(0,0,0,0.4)' }]}
                 onPress={handleSettingsPress}
               >
-                <Ionicons name="settings-outline" size={20} color="#fff" />
+                <IconoDeTrazo name="settings-outline" size={20} color="#fff" />
               </TouchableOpacity>
             </View>
           </View>
@@ -768,7 +768,7 @@ const ProfileScreen: React.FC = () => {
           <View style={styles.handleContainer}>
             <TouchableOpacity
               style={[styles.handleBadge, {
-                backgroundColor: activeProfileType === 'hidi' ? theme.colors.accent + '20' : theme.colors.surface,
+                backgroundColor: theme.colors.surface,
               }]}
               onPress={() => {
                 if (hasWeeProfile) {
@@ -779,18 +779,18 @@ const ProfileScreen: React.FC = () => {
               }}
               activeOpacity={hasWeeProfile ? 0.7 : 1}
             >
-              <Ionicons
+              <IconoDeTrazo
                 name={activeProfileType === 'hidi' ? 'eye-off' : 'eye'}
                 size={14}
-                color={activeProfileType === 'hidi' ? theme.colors.accent : theme.colors.textSecondary}
+                color={activeProfileType === 'hidi' ? tinta : theme.colors.textSecondary}
               />
               <Text style={[styles.handleText, {
-                color: activeProfileType === 'hidi' ? theme.colors.accent : theme.colors.textSecondary,
+                color: activeProfileType === 'hidi' ? tinta : theme.colors.textSecondary,
               }]}>
                 {userProfile.username || userProfile.displayName.toLocaleLowerCase(locale).replace(/\s+/g, '')}
               </Text>
               {userProfile.verified && (
-                <Ionicons name="checkmark-circle" size={16} color={theme.colors.accent} />
+                <IconoDeTrazo name="checkmark-circle" size={16} color={tinta} />
               )}
             </TouchableOpacity>
           </View>
@@ -834,7 +834,7 @@ const ProfileScreen: React.FC = () => {
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
                 {misEcontacts.cargando ? '…' : formatNumber(misEcontacts.total, locale)}
               </Text>
-              <Text style={[styles.statLabel, { color: theme.colors.accentDark }]}>
+              <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
                 {misEcontacts.nombrePlural}
               </Text>
             </TouchableOpacity>
@@ -843,39 +843,39 @@ const ProfileScreen: React.FC = () => {
           {/* Botones de acción */}
           <View style={styles.actionButtons}>
             <TouchableOpacity
-              style={[styles.editButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+              style={[styles.editButton, { backgroundColor: theme.colors.surface, borderColor: 'transparent' }]}
               onPress={handleEditProfile}
               activeOpacity={0.8}
             >
               <Text style={[styles.editButtonText, { color: theme.colors.text }]}>{t('profile.editProfile')}</Text>
-              <Ionicons name="chevron-down" size={16} color={theme.colors.text} />
+              <IconoDeTrazo name="chevron-down" size={16} color={theme.colors.text} />
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.shareButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+              style={[styles.shareButton, { backgroundColor: theme.colors.surface, borderColor: 'transparent' }]}
               onPress={handleShareProfile}
               activeOpacity={0.8}
             >
-              <IconoDireccional name="arrow-redo-outline" size={18} color={theme.colors.text} />
+              <IconoDeTrazo name="share-outline" size={18} color={theme.colors.text} />
               <Text style={[styles.shareButtonText, { color: theme.colors.text }]}>{t('common.share')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.settingsIconButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+              style={[styles.settingsIconButton, { backgroundColor: theme.colors.surface, borderColor: 'transparent' }]}
               onPress={handleSettingsPress}
               activeOpacity={0.8}
             >
-              <Ionicons name="settings-outline" size={20} color={theme.colors.text} />
+              <IconoDeTrazo name="settings-outline" size={20} color={theme.colors.text} />
             </TouchableOpacity>
           </View>
 
           {/* Botón Crear perfil Weë - solo si no existe */}
           {!hasWeeProfile && activeProfileType === 'real' && (
             <TouchableOpacity
-              style={[styles.weeProfileButton, { borderColor: theme.colors.accent }]}
+              style={[styles.weeProfileButton, { backgroundColor: theme.colors.surface }]}
               onPress={() => (navigation as any).navigate('WeeProfileCreation')}
               activeOpacity={0.8}
             >
-              <Ionicons name="eye-off-outline" size={18} color={theme.colors.accent} />
-              <Text style={[styles.weeProfileButtonText, { color: theme.colors.accent }]}>
+              <IconoDeTrazo name="eye-off-outline" size={18} color={tinta} />
+              <Text style={[styles.weeProfileButtonText, { color: tinta }]}>
                 {t('profile.createWeeProfile')}
               </Text>
             </TouchableOpacity>
@@ -883,7 +883,7 @@ const ProfileScreen: React.FC = () => {
         </View>
 
         {/* Tabs de filtros simplificados */}
-        <View style={[styles.tabsContainer, { borderBottomColor: theme.colors.border }]}>
+        <View style={[styles.tabsContainer, { borderBottomColor: 'transparent' }]}>
           {renderTabButton('posts', t('profile.posts'))}
           {renderTabButton('media', t('profile.tabMedia'))}
           {renderTabButton('reposts', t('profile.tabReposts'))}
@@ -901,7 +901,7 @@ const ProfileScreen: React.FC = () => {
             </View>
           ) : postsError ? (
             <View style={styles.errorPosts}>
-              <Ionicons name="alert-circle-outline" size={32} color={theme.colors.textSecondary} />
+              <IconoDeTrazo name="alert-circle-outline" size={32} color={theme.colors.textSecondary} />
               <Text style={[styles.errorPostsText, { color: theme.colors.text }]}>
                 {t(postsError)}
               </Text>
@@ -942,7 +942,7 @@ const ProfileScreen: React.FC = () => {
             />
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons
+              <IconoDeTrazo
                 name={
                   activeTab === 'posts' ? 'document-text-outline' :
                   activeTab === 'media' ? 'image-outline' :
@@ -1093,11 +1093,6 @@ const styles = StyleSheet.create({
   avatarWrapper: {
     borderWidth: 4,
     borderRadius: 50,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
   },
   avatarLoadingContainer: {
     width: 90,
@@ -1181,7 +1176,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
@@ -1195,7 +1189,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
@@ -1208,7 +1201,6 @@ const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1222,8 +1214,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
   },
   weeProfileButtonText: {
     fontSize: 14,
@@ -1233,7 +1223,6 @@ const styles = StyleSheet.create({
   // Tabs
   tabsContainer: {
     flexDirection: 'row',
-    borderBottomWidth: 0.5,
     marginTop: 8,
   },
   tabButton: {
@@ -1241,10 +1230,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 14,
-  },
-  tabButtonActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: MARCA.activo,
   },
   tabLabel: {
     fontSize: 14,
@@ -1303,7 +1288,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: 0.5,
   },
   modalHeaderButton: {
     width: 60,
@@ -1335,7 +1319,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,

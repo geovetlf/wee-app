@@ -17,8 +17,9 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from '../components/icons/IconoDeTrazo';
 import IconoDireccional from '../components/IconoDireccional';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
@@ -43,6 +44,8 @@ type ConvRoute = RouteProp<InboxStackParamList, 'Conversation'>;
 
 const ConversationScreen = () => {
   const { theme } = useTheme();
+  /* Monocromo (2026-11-16): la tinta del tema (#0A0A0A / #FAFAFA) dice el estado activo; el dorado→naranja queda para la acción principal. */
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
   const { t, formato } = useIdioma();
   const { user } = useAuth();
   const { userProfile, activeProfileType } = useUserProfile();
@@ -511,7 +514,7 @@ const ConversationScreen = () => {
                   {fmtTime(item.timestamp)}
                 </Text>
                 {mine && (
-                  <Ionicons name={item.read ? 'checkmark-done' : 'checkmark'} size={13} color={chatTheme.otherMetaText} style={{ marginLeft: 2 }} />
+                  <IconoDeTrazo name={item.read ? 'checkmark-done' : 'checkmark'} size={13} color={chatTheme.otherMetaText} style={{ marginLeft: 2 }} />
                 )}
               </View>
             </View>
@@ -525,7 +528,7 @@ const ConversationScreen = () => {
             ]}>
               {item.ephemeral && (
                 <View style={styles.ephemeralIcon}>
-                  <Ionicons name="eye-off" size={10} color="#fff" />
+                  <IconoDeTrazo name="eye-off" size={10} color="#fff" />
                 </View>
               )}
               {item.type === 'image' && item.viewOnce ? (
@@ -536,19 +539,19 @@ const ConversationScreen = () => {
                  */
                 mine ? (
                   <View style={styles.viewOnceSender}>
-                    <Ionicons name="eye-off" size={20} color={metaColor} />
+                    <IconoDeTrazo name="eye-off" size={20} color={metaColor} />
                     <Text style={[styles.viewOnceText, { color: metaColor }]}>
                       {item.viewOnceOpened || !item.imageUrl ? t('weetalk.photoOpened') : t('weetalk.photoOnce')}
                     </Text>
                   </View>
                 ) : item.viewOnceOpened || !item.imageUrl ? (
                   <View style={styles.viewOnceOpened}>
-                    <Ionicons name="eye-off-outline" size={20} color={metaColor} />
+                    <IconoDeTrazo name="eye-off-outline" size={20} color={metaColor} />
                     <Text style={[styles.viewOnceText, { color: metaColor }]}>{t('weetalk.photoSeen')}</Text>
                   </View>
                 ) : (
                   <TouchableOpacity style={styles.viewOnceTap} onPress={() => openViewOnce(item)}>
-                    <Ionicons name="eye" size={24} color={bubbleText} />
+                    <IconoDeTrazo name="eye" size={24} color={bubbleText} />
                     <Text style={[styles.viewOnceText, { color: bubbleText }]}>{t('weetalk.tapToView')}</Text>
                   </TouchableOpacity>
                 )
@@ -571,7 +574,7 @@ const ConversationScreen = () => {
                   {fmtTime(item.timestamp)}
                 </Text>
                 {mine && (
-                  <Ionicons name={item.read ? 'checkmark-done' : 'checkmark'} size={13} color={metaColor} style={{ marginLeft: 2 }} />
+                  <IconoDeTrazo name={item.read ? 'checkmark-done' : 'checkmark'} size={13} color={metaColor} style={{ marginLeft: 2 }} />
                 )}
               </View>
             </View>
@@ -585,7 +588,7 @@ const ConversationScreen = () => {
   if (loading) {
     return (
       <View style={[styles.screen, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
+        <ActivityIndicator size="large" color={tinta} />
       </View>
     );
   }
@@ -610,7 +613,7 @@ const ConversationScreen = () => {
         </TouchableOpacity>
 
         <TouchableOpacity hitSlop={8} onPress={() => setShowThemePicker(true)} style={styles.ephemeralBtn} accessibilityRole="button" accessibilityLabel={t('weetalk.theme')}>
-          <Ionicons name="color-palette-outline" size={20} color={chatTheme.headerIcon} />
+          <IconoDeTrazo name="color-palette-outline" size={20} color={chatTheme.headerIcon} />
         </TouchableOpacity>
         {/* Un interruptor, y se dice como tal: un lector de pantalla tiene que saber si está puesto. */}
         <TouchableOpacity
@@ -621,14 +624,14 @@ const ConversationScreen = () => {
           accessibilityState={{ checked: ephemeral }}
           accessibilityLabel={t('weetalk.ephemeralMode')}
         >
-          <Ionicons name={ephemeral ? 'eye-off' : 'eye-off-outline'} size={20} color={ephemeral ? '#22C55E' : chatTheme.headerIcon} />
+          <IconoDeTrazo name={ephemeral ? 'eye-off' : 'eye-off-outline'} size={20} color={ephemeral ? tinta : chatTheme.headerIcon} />
         </TouchableOpacity>
       </View>
 
       {/* Ephemeral banner */}
       {ephemeral && (
         <View style={[styles.ephemeralBanner, { backgroundColor: 'rgba(34,197,94,0.1)' }]}>
-          <Ionicons name="eye-off" size={14} color="#22C55E" />
+          <IconoDeTrazo name="eye-off" size={14} color={tinta} />
           <Text style={styles.ephemeralBannerText}>{t('weetalk.ephemeralOn')}</Text>
         </View>
       )}
@@ -672,7 +675,7 @@ const ConversationScreen = () => {
               </View>
             ) : (
               <View style={styles.emptyState}>
-                <Ionicons name="chatbubble-ellipses-outline" size={56} color={chatTheme.inputPlaceholder} style={{ opacity: 0.3 }} />
+                <IconoDeTrazo name="chatbubble-ellipses-outline" size={56} color={chatTheme.inputPlaceholder} style={{ opacity: 0.3 }} />
                 <Text style={[styles.emptyText, { color: chatTheme.inputPlaceholder }]}>{t('weetalk.firstMessage')}</Text>
               </View>
             )
@@ -694,7 +697,7 @@ const ConversationScreen = () => {
         ) : (
           <View style={[styles.inputBar, { backgroundColor: chatTheme.inputBarBackground, borderColor: chatTheme.inputBackground, paddingBottom: Math.max(insets.bottom, 6) }]}>
             <TouchableOpacity style={[styles.cameraBtn, { backgroundColor: chatTheme.accent }]} onPress={() => setCameraOpen(true)} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.photo')}>
-              <Ionicons name="camera" size={20} color={chatTheme.accentText} />
+              <IconoDeTrazo name="camera" size={20} color={chatTheme.accentText} />
             </TouchableOpacity>
             <View style={[styles.inputWrap, { backgroundColor: chatTheme.inputBackground }]}>
               <TextInput
@@ -715,10 +718,10 @@ const ConversationScreen = () => {
               ) : (
                 <View style={styles.inputActions}>
                   <TouchableOpacity style={styles.inputActionBtn} onPressIn={startRecording} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.recordAudio')}>
-                    <Ionicons name="mic-outline" size={22} color={chatTheme.inputPlaceholder} />
+                    <IconoDeTrazo name="mic-outline" size={22} color={chatTheme.inputPlaceholder} />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.inputActionBtn} onPress={pickImage} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.attach')}>
-                    <Ionicons name="image-outline" size={22} color={chatTheme.inputPlaceholder} />
+                    <IconoDeTrazo name="image-outline" size={22} color={chatTheme.inputPlaceholder} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -749,7 +752,7 @@ const ConversationScreen = () => {
               </View>
             ) : (
               <View style={styles.emptyState}>
-                <Ionicons name="chatbubble-ellipses-outline" size={56} color={chatTheme.inputPlaceholder} style={{ opacity: 0.3 }} />
+                <IconoDeTrazo name="chatbubble-ellipses-outline" size={56} color={chatTheme.inputPlaceholder} style={{ opacity: 0.3 }} />
                 <Text style={[styles.emptyText, { color: chatTheme.inputPlaceholder }]}>{t('weetalk.firstMessage')}</Text>
               </View>
             )
@@ -771,7 +774,7 @@ const ConversationScreen = () => {
         ) : (
           <View style={[styles.inputBar, { backgroundColor: chatTheme.inputBarBackground, borderColor: chatTheme.inputBackground, paddingBottom: androidKbHeight > 0 ? 10 : Math.max(insets.bottom, 16) }]}>
             <TouchableOpacity style={[styles.cameraBtn, { backgroundColor: chatTheme.accent }]} onPress={() => setCameraOpen(true)} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.photo')}>
-              <Ionicons name="camera" size={20} color={chatTheme.accentText} />
+              <IconoDeTrazo name="camera" size={20} color={chatTheme.accentText} />
             </TouchableOpacity>
             <View style={[styles.inputWrap, { backgroundColor: chatTheme.inputBackground }]}>
               <TextInput
@@ -792,10 +795,10 @@ const ConversationScreen = () => {
               ) : (
                 <View style={styles.inputActions}>
                   <TouchableOpacity style={styles.inputActionBtn} onPressIn={startRecording} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.recordAudio')}>
-                    <Ionicons name="mic-outline" size={22} color={chatTheme.inputPlaceholder} />
+                    <IconoDeTrazo name="mic-outline" size={22} color={chatTheme.inputPlaceholder} />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.inputActionBtn} onPress={pickImage} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.attach')}>
-                    <Ionicons name="image-outline" size={22} color={chatTheme.inputPlaceholder} />
+                    <IconoDeTrazo name="image-outline" size={22} color={chatTheme.inputPlaceholder} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -810,7 +813,7 @@ const ConversationScreen = () => {
         <View style={styles.previewModal}>
           <View style={styles.previewHeader}>
             <TouchableOpacity onPress={() => setPreviewUri(null)} accessibilityRole="button" accessibilityLabel={t('common.close')}>
-              <Ionicons name="close" size={28} color="#fff" />
+              <IconoDeTrazo name="close" size={28} color="#fff" />
             </TouchableOpacity>
           </View>
 
@@ -824,7 +827,7 @@ const ConversationScreen = () => {
               accessibilityState={{ checked: previewViewOnce }}
               accessibilityLabel={t('weetalk.photoOnce')}
             >
-              <Ionicons name={previewViewOnce ? 'eye-off' : 'eye-outline'} size={20} color="#fff" />
+              <IconoDeTrazo name={previewViewOnce ? 'eye-off' : 'eye-outline'} size={20} color="#fff" />
               <Text style={styles.previewToggleText}>
                 {previewViewOnce ? t('weetalk.viewOnceOn') : t('weetalk.keepInChat')}
               </Text>
@@ -885,7 +888,7 @@ const ConversationScreen = () => {
                     {w.preview ? (
                       <Image source={{ uri: w.preview }} style={styles.wallpaperPreview} contentFit="cover" />
                     ) : (
-                      <Ionicons name="ban-outline" size={24} color={chatTheme.inputPlaceholder} />
+                      <IconoDeTrazo name="ban-outline" size={24} color={chatTheme.inputPlaceholder} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -894,7 +897,7 @@ const ConversationScreen = () => {
                   style={[styles.wallpaperOption, { backgroundColor: chatTheme.inputBackground }]}
                   onPress={pickCustomWallpaper}
                 >
-                  <Ionicons name="add" size={28} color={chatTheme.accent} />
+                  <IconoDeTrazo name="add" size={28} color={chatTheme.accent} />
                 </TouchableOpacity>
               </View>
             </ScrollView>

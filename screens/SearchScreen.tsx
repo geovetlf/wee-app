@@ -12,9 +12,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import IconoMeGusta from '../components/IconoMeGusta';
+import { IconoDeTrazo } from '../components/icons/IconoDeTrazo';
 import IconoDireccional from '../components/IconoDireccional';
+import IconoMeGusta from '../components/IconoMeGusta';
+
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -39,6 +40,9 @@ type SearchCategory = 'comunidades' | 'usuarios' | 'posts';
 const SearchScreen: React.FC = () => {
   const { t, locale } = useIdioma();
   const { theme } = useTheme();
+  /* Monocromo (2026-11-16): la tinta del tema (#0A0A0A / #FAFAFA) dice el estado activo; el dorado→naranja queda para la acción principal. */
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
+  const sobreTinta = theme.dark ? '#0A0A0A' : '#FAFAFA';
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const { joinCommunity, leaveCommunity, isMember } = useCommunities(userProfile?.uid);
@@ -210,7 +214,7 @@ const SearchScreen: React.FC = () => {
         await joinCommunity(communityId);
       }
     } catch (error) {
-      console.error('Error toggling community membership:', error);
+      console.log('Error toggling community membership:', error);
     } finally {
       setJoiningId(null);
     }
@@ -226,7 +230,7 @@ const SearchScreen: React.FC = () => {
       {/* Header con botón de cerrar y búsqueda */}
       <View style={[styles.header, {
         backgroundColor: theme.colors.background,
-        borderBottomColor: theme.colors.border,
+        borderBottomColor: 'transparent',
         paddingTop: insets.top + 8,
       }]}>
         {/* Fila superior con título y botón cerrar */}
@@ -237,16 +241,16 @@ const SearchScreen: React.FC = () => {
             style={[styles.closeButton, { backgroundColor: theme.colors.surface }]}
             activeOpacity={0.7}
           >
-            <Ionicons name="close" size={24} color={theme.colors.text} />
+            <IconoDeTrazo name="close" size={24} color={theme.colors.text} />
           </TouchableOpacity>
         </View>
 
         {/* Campo de búsqueda */}
         <View style={[styles.searchInput, {
           backgroundColor: theme.colors.surface,
-          borderColor: theme.colors.border,
+          borderColor: 'transparent',
         }]}>
-          <Ionicons name="search" size={20} color={theme.colors.textSecondary} />
+          <IconoDeTrazo name="search" size={20} color={theme.colors.textSecondary} />
           <TextInput
             style={[styles.textInput, { color: theme.colors.text }]}
             placeholder={t('search.placeholder')}
@@ -264,11 +268,11 @@ const SearchScreen: React.FC = () => {
             autoFocus={false}
           />
           {searching && (
-            <ActivityIndicator size="small" color={theme.colors.accent} style={{ marginRight: 8 }} />
+            <ActivityIndicator size="small" color={tinta} style={{ marginRight: 8 }} />
           )}
           {searchQuery.length > 0 && !searching && (
             <TouchableOpacity onPress={handleClearSearch}>
-              <Ionicons name="close-circle" size={20} color={theme.colors.textSecondary} />
+              <IconoDeTrazo name="close-circle" size={20} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           )}
         </View>
@@ -278,20 +282,20 @@ const SearchScreen: React.FC = () => {
         <View style={styles.categories}>
           <TouchableOpacity
             style={[styles.categoryButton, {
-              backgroundColor: activeCategory === 'comunidades' ? theme.colors.accent : 'transparent',
-              borderColor: theme.colors.border,
+              backgroundColor: activeCategory === 'comunidades' ? tinta : 'transparent',
+              borderColor: 'transparent',
             }]}
             onPress={() => setActiveCategory('comunidades')}
           >
             <RellenoDeMarca radio={20} apagada={activeCategory !== 'comunidades'} />
-            <Ionicons
+            <IconoDeTrazo
               name="people"
               size={14}
-              color={activeCategory === 'comunidades' ? '#1F2937' : theme.colors.textSecondary}
+              color={activeCategory === 'comunidades' ? sobreTinta : theme.colors.textSecondary}
               style={{ marginRight: 4 }}
             />
             <Text style={[styles.categoryText, {
-              color: activeCategory === 'comunidades' ? '#1F2937' : theme.colors.textSecondary,
+              color: activeCategory === 'comunidades' ? sobreTinta : theme.colors.textSecondary,
               fontWeight: activeCategory === 'comunidades' ? '600' : '400',
             }]}>
               {t('search.communities')}
@@ -300,20 +304,20 @@ const SearchScreen: React.FC = () => {
 
           <TouchableOpacity
             style={[styles.categoryButton, {
-              backgroundColor: activeCategory === 'usuarios' ? theme.colors.accent : 'transparent',
-              borderColor: theme.colors.border,
+              backgroundColor: activeCategory === 'usuarios' ? tinta : 'transparent',
+              borderColor: 'transparent',
             }]}
             onPress={() => setActiveCategory('usuarios')}
           >
             <RellenoDeMarca radio={20} apagada={activeCategory !== 'usuarios'} />
-            <Ionicons
+            <IconoDeTrazo
               name="person"
               size={14}
-              color={activeCategory === 'usuarios' ? '#1F2937' : theme.colors.textSecondary}
+              color={activeCategory === 'usuarios' ? sobreTinta : theme.colors.textSecondary}
               style={{ marginRight: 4 }}
             />
             <Text style={[styles.categoryText, {
-              color: activeCategory === 'usuarios' ? '#1F2937' : theme.colors.textSecondary,
+              color: activeCategory === 'usuarios' ? sobreTinta : theme.colors.textSecondary,
               fontWeight: activeCategory === 'usuarios' ? '600' : '400',
             }]}>
               {t('search.people')}
@@ -322,20 +326,20 @@ const SearchScreen: React.FC = () => {
 
           <TouchableOpacity
             style={[styles.categoryButton, {
-              backgroundColor: activeCategory === 'posts' ? theme.colors.accent : 'transparent',
-              borderColor: theme.colors.border,
+              backgroundColor: activeCategory === 'posts' ? tinta : 'transparent',
+              borderColor: 'transparent',
             }]}
             onPress={() => setActiveCategory('posts')}
           >
             <RellenoDeMarca radio={20} apagada={activeCategory !== 'posts'} />
-            <Ionicons
+            <IconoDeTrazo
               name="document-text"
               size={14}
-              color={activeCategory === 'posts' ? '#1F2937' : theme.colors.textSecondary}
+              color={activeCategory === 'posts' ? sobreTinta : theme.colors.textSecondary}
               style={{ marginRight: 4 }}
             />
             <Text style={[styles.categoryText, {
-              color: activeCategory === 'posts' ? '#1F2937' : theme.colors.textSecondary,
+              color: activeCategory === 'posts' ? sobreTinta : theme.colors.textSecondary,
               fontWeight: activeCategory === 'posts' ? '600' : '400',
             }]}>
               {t('search.posts')}
@@ -356,7 +360,7 @@ const SearchScreen: React.FC = () => {
       >
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={theme.colors.accent} />
+            <ActivityIndicator size="large" color={tinta} />
             <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
               {t('search.loading')}
             </Text>
@@ -370,7 +374,7 @@ const SearchScreen: React.FC = () => {
                 {popularHashtags.length > 0 && (
                   <View style={styles.discoverSection}>
                     <View style={styles.sectionHeader}>
-                      <Ionicons name="trending-up" size={20} color={theme.colors.accent} />
+                      <IconoDeTrazo name="trending-up" size={20} color={tinta} />
                       <Text style={[styles.sectionTitle, { color: theme.colors.text, marginBottom: 0, marginLeft: 8 }]}>
                         {t('search.popularTopics')}
                       </Text>
@@ -384,17 +388,17 @@ const SearchScreen: React.FC = () => {
                         <TouchableOpacity
                           key={item.tag}
                           style={[styles.hashtagChip, {
-                            backgroundColor: theme.colors.accent + '15',
-                            borderColor: theme.colors.accent + '30',
+                            backgroundColor: theme.colors.surface,
+                            borderColor: 'transparent',
                           }]}
                           onPress={() => handleHashtagPress(item.tag)}
                           activeOpacity={0.7}
                         >
-                          <Text style={[styles.hashtagText, { color: theme.colors.accent }]}>
+                          <Text style={[styles.hashtagText, { color: tinta }]}>
                             #{item.tag}
                           </Text>
-                          <View style={[styles.hashtagCount, { backgroundColor: theme.colors.accent }]}>
-                            <Text style={styles.hashtagCountText}>{item.count}</Text>
+                          <View style={[styles.hashtagCount, { backgroundColor: tinta }]}>
+                            <Text style={[styles.hashtagCountText, { color: sobreTinta }]}>{item.count}</Text>
                           </View>
                         </TouchableOpacity>
                       ))}
@@ -406,7 +410,7 @@ const SearchScreen: React.FC = () => {
                 {trendingPosts.length > 0 && (
                   <View style={styles.discoverSection}>
                     <View style={styles.sectionHeader}>
-                      <Ionicons name="flame" size={20} color="#F97316" />
+                      <IconoDeTrazo name="flame" size={20} color={tinta} />
                       <Text style={[styles.sectionTitle, { color: theme.colors.text, marginBottom: 0, marginLeft: 8 }]}>
                         {t('search.trending')}
                       </Text>
@@ -416,13 +420,13 @@ const SearchScreen: React.FC = () => {
                         key={post.id}
                         style={[styles.trendingItem, {
                           backgroundColor: theme.colors.surface,
-                          borderColor: theme.colors.border,
+                          borderColor: 'transparent',
                         }]}
                         onPress={() => handlePostPress(post)}
                         activeOpacity={0.8}
                       >
-                        <View style={[styles.trendingRank, { backgroundColor: index < 3 ? '#F97316' : theme.colors.textSecondary }]}>
-                          <Text style={styles.trendingRankText}>{index + 1}</Text>
+                        <View style={[styles.trendingRank, { backgroundColor: index < 3 ? tinta : theme.colors.surface }]}>
+                          <Text style={[styles.trendingRankText, { color: index < 3 ? sobreTinta : theme.colors.textSecondary }]}>{index + 1}</Text>
                         </View>
                         <View style={styles.trendingContent}>
                           <Text style={[styles.trendingText, { color: theme.colors.text }]} numberOfLines={2}>
@@ -433,7 +437,7 @@ const SearchScreen: React.FC = () => {
                             <Text style={[styles.trendingStatText, { color: theme.colors.textSecondary }]}>
                               {formatNumber(post.likes || 0, locale)}
                             </Text>
-                            <Ionicons name="chatbubble" size={12} color={theme.colors.textSecondary} style={{ marginLeft: 12 }} />
+                            <IconoDeTrazo name="chatbubble" size={12} color={theme.colors.textSecondary} style={{ marginLeft: 12 }} />
                             <Text style={[styles.trendingStatText, { color: theme.colors.textSecondary }]}>
                               {post.comments || 0}
                             </Text>
@@ -459,17 +463,17 @@ const SearchScreen: React.FC = () => {
                   <TouchableOpacity onPress={clearHashtagSelection} style={styles.backButton}>
                     <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
                   </TouchableOpacity>
-                  <Text style={[styles.sectionTitle, { color: theme.colors.accent, marginBottom: 0, flex: 1 }]}>
+                  <Text style={[styles.sectionTitle, { color: tinta, marginBottom: 0, flex: 1 }]}>
                     #{selectedHashtag}
                   </Text>
                 </View>
                 {loadingHashtagPosts ? (
                   <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color={theme.colors.accent} />
+                    <ActivityIndicator size="small" color={tinta} />
                   </View>
                 ) : hashtagPosts.length === 0 ? (
                   <View style={styles.noResults}>
-                    <Ionicons name="document-text-outline" size={48} color={theme.colors.textSecondary} />
+                    <IconoDeTrazo name="document-text-outline" size={48} color={theme.colors.textSecondary} />
                     <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
                       {t('search.noPostsForTopic')}
                     </Text>
@@ -480,7 +484,7 @@ const SearchScreen: React.FC = () => {
                       key={post.id}
                       style={[styles.postItem, {
                         backgroundColor: theme.colors.card,
-                        borderColor: theme.colors.border,
+                        borderColor: 'transparent',
                       }]}
                       onPress={() => handlePostPress(post)}
                       activeOpacity={0.8}
@@ -503,7 +507,7 @@ const SearchScreen: React.FC = () => {
                           </Text>
                         </View>
                         <View style={styles.postStat}>
-                          <Ionicons name="chatbubble" size={14} color={theme.colors.textSecondary} />
+                          <IconoDeTrazo name="chatbubble" size={14} color={theme.colors.textSecondary} />
                           <Text style={[styles.postStatText, { color: theme.colors.textSecondary }]}>
                             {formatNumber(post.comments || 0, locale)}
                           </Text>
@@ -523,7 +527,7 @@ const SearchScreen: React.FC = () => {
                 </Text>
                 {filteredCommunities.length === 0 ? (
                   <View style={styles.noResults}>
-                    <Ionicons name="people-outline" size={48} color={theme.colors.textSecondary} />
+                    <IconoDeTrazo name="people-outline" size={48} color={theme.colors.textSecondary} />
                     <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
                       {t('search.noCommunities')}
                     </Text>
@@ -536,11 +540,11 @@ const SearchScreen: React.FC = () => {
                       onPress={() => handleCommunityPress(community)}
                       activeOpacity={0.8}
                     >
-                      <View style={[styles.communityIcon, { backgroundColor: theme.colors.accent + '20' }]}>
-                        <Ionicons
+                      <View style={[styles.communityIcon, { backgroundColor: theme.colors.surface }]}>
+                        <IconoDeTrazo
                           name={community.icon as any}
                           size={24}
-                          color={theme.colors.accent}
+                          color={tinta}
                         />
                       </View>
                       <View style={styles.communityInfo}>
@@ -552,11 +556,11 @@ const SearchScreen: React.FC = () => {
                         </Text>
                         {/* El plural lo elige el número; la cifra se escribe como siempre, con formatNumber. */}
                         <View style={styles.communityStats}>
-                          <Ionicons name="people" size={12} color={theme.colors.textSecondary} />
+                          <IconoDeTrazo name="people" size={12} color={theme.colors.textSecondary} />
                           <Text style={[styles.communityStat, { color: theme.colors.textSecondary }]}>
                             {t('communities.memberCount', { contador: community.memberCount || 0, cantidad: formatNumber(community.memberCount, locale) })}
                           </Text>
-                          <Ionicons name="document-text" size={12} color={theme.colors.textSecondary} style={{ marginLeft: 12 }} />
+                          <IconoDeTrazo name="document-text" size={12} color={theme.colors.textSecondary} style={{ marginLeft: 12 }} />
                           <Text style={[styles.communityStat, { color: theme.colors.textSecondary }]}>
                             {t('common.postsCount', { contador: community.postCount || 0, cantidad: formatNumber(community.postCount, locale) })}
                           </Text>
@@ -564,29 +568,28 @@ const SearchScreen: React.FC = () => {
                       </View>
                       {!!(user && community.id) && (
                         joiningId === community.id ? (
-                          <ActivityIndicator size="small" color={theme.colors.accent} style={{ marginLeft: 8 }} />
+                          <ActivityIndicator size="small" color={tinta} style={{ marginLeft: 8 }} />
                         ) : isMember(community.id) ? (
                           <TouchableOpacity
                             style={[styles.joinButton, {
                               backgroundColor: theme.colors.surface,
-                              borderColor: theme.colors.border,
-                              borderWidth: 1,
+                              borderColor: 'transparent',
                             }]}
                             onPress={(e) => { e.stopPropagation?.(); handleToggleJoin(community.id!); }}
                             activeOpacity={0.7}
                           >
-                            <Ionicons name="checkmark" size={14} color={theme.colors.textSecondary} />
+                            <IconoDeTrazo name="checkmark" size={14} color={theme.colors.textSecondary} />
                             <Text style={[styles.joinButtonText, { color: theme.colors.textSecondary }]}>{t('search.member')}</Text>
                           </TouchableOpacity>
                         ) : (
                           <TouchableOpacity
-                            style={[styles.joinButton, { backgroundColor: theme.colors.accent }]}
+                            style={[styles.joinButton, { backgroundColor: tinta }]}
                             onPress={(e) => { e.stopPropagation?.(); handleToggleJoin(community.id!); }}
                             activeOpacity={0.7}
                           >
                             <RellenoDeMarca radio={16} />
-                            <Ionicons name="add" size={14} color="#1F2937" />
-                            <Text style={[styles.joinButtonText, { color: '#1F2937' }]}>{t('communities.join')}</Text>
+                            <IconoDeTrazo name="add" size={14} color={sobreTinta} />
+                            <Text style={[styles.joinButtonText, { color: sobreTinta }]}>{t('communities.join')}</Text>
                           </TouchableOpacity>
                         )
                       )}
@@ -607,14 +610,14 @@ const SearchScreen: React.FC = () => {
                 </Text>
                 {searchQuery.trim().length < 2 ? (
                   <View style={styles.noResults}>
-                    <Ionicons name="search-outline" size={48} color={theme.colors.textSecondary} />
+                    <IconoDeTrazo name="search-outline" size={48} color={theme.colors.textSecondary} />
                     <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
                       {t('search.typeTwoForPeople')}
                     </Text>
                   </View>
                 ) : searchedUsers.length === 0 ? (
                   <View style={styles.noResults}>
-                    <Ionicons name="person-outline" size={48} color={theme.colors.textSecondary} />
+                    <IconoDeTrazo name="person-outline" size={48} color={theme.colors.textSecondary} />
                     {/* Lo que la persona escribió entra por hueco, tal cual: no se traduce. */}
                     <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
                       {t('search.noPeopleFor', { busqueda: searchQuery })}
@@ -624,7 +627,7 @@ const SearchScreen: React.FC = () => {
                   searchedUsers.map((user) => (
                     <TouchableOpacity
                       key={user.uid}
-                      style={[styles.userItem, { borderBottomColor: theme.colors.border }]}
+                      style={[styles.userItem, { borderBottomColor: 'transparent' }]}
                       onPress={() => handleUserPress(referenciaPublicaDe(user) ?? user.uid)}
                       activeOpacity={0.8}
                     >
@@ -634,7 +637,7 @@ const SearchScreen: React.FC = () => {
                         avatarId={user.avatarId || 'male'}
                         photoURL={typeof user.photoURL === 'string' ? user.photoURL : undefined}
                         photoURLThumbnail={typeof user.photoURLThumbnail === 'string' ? user.photoURLThumbnail : undefined}
-                        backgroundColor={theme.colors.accent}
+                        backgroundColor={theme.colors.surface}
                         showBorder={false}
                       />
                       <View style={styles.userInfo}>
@@ -677,14 +680,14 @@ const SearchScreen: React.FC = () => {
                 </Text>
                 {searchQuery.trim().length < 2 ? (
                   <View style={styles.noResults}>
-                    <Ionicons name="search-outline" size={48} color={theme.colors.textSecondary} />
+                    <IconoDeTrazo name="search-outline" size={48} color={theme.colors.textSecondary} />
                     <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
                       {t('search.typeTwoForPosts')}
                     </Text>
                   </View>
                 ) : searchedPosts.length === 0 ? (
                   <View style={styles.noResults}>
-                    <Ionicons name="document-text-outline" size={48} color={theme.colors.textSecondary} />
+                    <IconoDeTrazo name="document-text-outline" size={48} color={theme.colors.textSecondary} />
                     <Text style={[styles.noResultsText, { color: theme.colors.textSecondary }]}>
                       {t('search.noPostsFor', { busqueda: searchQuery })}
                     </Text>
@@ -695,7 +698,7 @@ const SearchScreen: React.FC = () => {
                       key={post.id}
                       style={[styles.postItem, {
                         backgroundColor: theme.colors.card,
-                        borderColor: theme.colors.border,
+                        borderColor: 'transparent',
                       }]}
                       onPress={() => handlePostPress(post)}
                       activeOpacity={0.8}
@@ -720,7 +723,7 @@ const SearchScreen: React.FC = () => {
                           </Text>
                         </View>
                         <View style={styles.postStat}>
-                          <Ionicons name="chatbubble" size={14} color={theme.colors.textSecondary} />
+                          <IconoDeTrazo name="chatbubble" size={14} color={theme.colors.textSecondary} />
                           <Text style={[styles.postStatText, { color: theme.colors.textSecondary }]}>
                             {formatNumber(post.comments || 0, locale)}
                           </Text>
@@ -747,7 +750,6 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingBottom: 12,
-    borderBottomWidth: 1,
   },
   headerTop: {
     flexDirection: 'row',
@@ -772,7 +774,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
-    borderWidth: 1,
   },
   textInput: {
     flex: 1,
@@ -790,7 +791,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
   },
   categoryText: {
     fontSize: 13,
@@ -865,7 +865,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 0.5,
   },
   userInfo: {
     flex: 1,
@@ -893,7 +892,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 12,
-    borderWidth: 0.5,
   },
   postContent: {
     fontSize: 14,
@@ -963,7 +961,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 20,
-    borderWidth: 1,
     marginRight: 8,
   },
   hashtagText: {
@@ -991,7 +988,6 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 8,
     borderRadius: 12,
-    borderWidth: 0.5,
   },
   trendingRank: {
     width: 28,

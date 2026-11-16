@@ -18,9 +18,10 @@ import {
   UIManager,
   Share,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import IconoMeGusta from '../components/IconoMeGusta';
+import { IconoDeTrazo } from '../components/icons/IconoDeTrazo';
 import IconoDireccional from '../components/IconoDireccional';
+import IconoMeGusta from '../components/IconoMeGusta';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { cloudinaryFeed, cloudinaryThumb } from '../services/cloudinaryService';
@@ -78,6 +79,8 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 const PostDetailContent: React.FC = () => {
   const { theme } = useTheme();
+  /* Monocromo (2026-11-16): la tinta del tema (#0A0A0A / #FAFAFA) dice el estado activo; el dorado→naranja queda para la acción principal. */
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
   const { t, locale } = useIdioma();
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
@@ -275,7 +278,7 @@ const PostDetailContent: React.FC = () => {
           onPress={() => setIsVideoMuted(prev => !prev)}
           activeOpacity={0.8}
         >
-          <Ionicons
+          <IconoDeTrazo
             name={isVideoMuted ? 'volume-mute' : 'volume-high'}
             size={scale(18)}
             color="white"
@@ -414,7 +417,7 @@ const PostDetailContent: React.FC = () => {
       {/* Header — SIEMPRE estático, FUERA del wrapper del teclado (como ConversationScreen) */}
       <View style={[styles.header, {
         backgroundColor: theme.colors.card,
-        borderBottomColor: theme.colors.border,
+        borderBottomColor: 'transparent',
         paddingTop: insets.top + SPACING.sm,
       }]}>
         <TouchableOpacity
@@ -454,7 +457,7 @@ const PostDetailContent: React.FC = () => {
           >
             {loadingAuthor ? (
               <View style={[styles.avatarPlaceholder, { backgroundColor: theme.colors.surface }]}>
-                <Ionicons name="person" size={scale(20)} color={theme.colors.textSecondary} />
+                <IconoDeTrazo name="person" size={scale(20)} color={theme.colors.textSecondary} />
               </View>
             ) : postAuthor ? (
               <AvatarDisplay
@@ -463,7 +466,7 @@ const PostDetailContent: React.FC = () => {
                 avatarId={postAuthor.avatarId || 'male'}
                 photoURL={typeof postAuthor.photoURL === 'string' ? postAuthor.photoURL : undefined}
                 photoURLThumbnail={typeof postAuthor.photoURLThumbnail === 'string' ? postAuthor.photoURLThumbnail : undefined}
-                backgroundColor={theme.colors.accent}
+                backgroundColor={theme.colors.surface}
                 showBorder={false}
               />
             ) : (
@@ -500,11 +503,11 @@ const PostDetailContent: React.FC = () => {
 
         {/* Stats */}
         <View style={[styles.stats, {
-          borderTopColor: theme.colors.border,
-          borderBottomColor: theme.colors.border,
+          borderTopColor: 'transparent',
+          borderBottomColor: 'transparent',
         }]}>
           <View style={styles.statItem}>
-            <Ionicons name="eye-outline" size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
+            <IconoDeTrazo name="eye-outline" size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
             <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: theme.colors.text }}>
                 {formatNumber(post.views || 0, locale)}
@@ -520,7 +523,7 @@ const PostDetailContent: React.FC = () => {
             </Text>
           </View>
           <View style={styles.statItem}>
-            <Ionicons name="chatbubble-outline" size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
+            <IconoDeTrazo name="chatbubble-outline" size={ICON_SIZE.sm} color={theme.colors.textSecondary} />
             <Text style={[styles.statText, { color: theme.colors.textSecondary }]}>
               <Text style={{ fontWeight: FONT_WEIGHT.semibold, color: theme.colors.text }}>
                 {formatNumber(post.comments, locale)}
@@ -530,42 +533,26 @@ const PostDetailContent: React.FC = () => {
         </View>
 
         {/* Actions */}
-        <View style={[styles.actions, { borderBottomColor: theme.colors.border }]}>
+        <View style={[styles.actions, { borderBottomColor: 'transparent' }]}>
           {/* De acuerdo */}
           <TouchableOpacity
             style={styles.actionButton}
             onPress={handleVoteAgree}
             disabled={isVoting}
           >
-            <IconoMeGusta size={ICON_SIZE.md} color={theme.colors.textSecondary} activo={voteStats.userVote === 'agree'} colorActivo="#22C55E" />
+            <IconoMeGusta size={ICON_SIZE.md} color={theme.colors.textSecondary} activo={voteStats.userVote === 'agree'} colorActivo={tinta} />
             <Text style={[styles.actionText, {
-              color: voteStats.userVote === 'agree' ? '#22C55E' : theme.colors.textSecondary
+              color: voteStats.userVote === 'agree' ? tinta : theme.colors.textSecondary
             }]}>
               {formatNumber(voteStats.agreementCount, locale)}
             </Text>
           </TouchableOpacity>
 
-          {/* En desacuerdo */}
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleVoteDisagree}
-            disabled={isVoting}
-          >
-            <Ionicons
-              name={voteStats.userVote === 'disagree' ? "thumbs-down" : "thumbs-down-outline"}
-              size={ICON_SIZE.md}
-              color={voteStats.userVote === 'disagree' ? '#EF4444' : theme.colors.textSecondary}
-            />
-            <Text style={[styles.actionText, {
-              color: voteStats.userVote === 'disagree' ? '#EF4444' : theme.colors.textSecondary
-            }]}>
-              {formatNumber(voteStats.disagreementCount, locale)}
-            </Text>
-          </TouchableOpacity>
+          {/* 👎 ya no se muestra (decisión del dueño, 2026-11-16). */}
 
           {/* Comentarios */}
           <TouchableOpacity style={styles.actionButton} onPress={() => commentInputRef.current?.focus()} accessibilityLabel={t('wall.comment')}>
-            <Ionicons
+            <IconoDeTrazo
               name="chatbubble-outline"
               size={ICON_SIZE.md}
               color={theme.colors.textSecondary}
@@ -581,7 +568,7 @@ const PostDetailContent: React.FC = () => {
             onPress={() => toggleRepost()}
             disabled={isReposting}
           >
-            <Ionicons
+            <IconoDeTrazo
               name="repeat"
               size={ICON_SIZE.md}
               color={hasReposted ? theme.colors.accent : theme.colors.textSecondary}
@@ -617,7 +604,7 @@ const PostDetailContent: React.FC = () => {
                 }
               }}
             >
-              <Ionicons
+              <IconoDeTrazo
                 name="paper-plane-outline"
                 size={ICON_SIZE.md}
                 color={theme.colors.textSecondary}
@@ -627,7 +614,7 @@ const PostDetailContent: React.FC = () => {
 
           {/* Compartir */}
           <TouchableOpacity style={styles.actionButton} onPress={handleSharePost} accessibilityLabel={t('common.share')}>
-            <Ionicons
+            <IconoDeTrazo
               name="share-social-outline"
               size={ICON_SIZE.md}
               color={theme.colors.textSecondary}
@@ -643,7 +630,7 @@ const PostDetailContent: React.FC = () => {
 
           {loadingComments ? (
             <View style={styles.loadingComments}>
-              <ActivityIndicator size="small" color={theme.colors.accent} />
+              <ActivityIndicator size="small" color={tinta} />
               <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
                 {t('wall.loadingComments')}
               </Text>
@@ -651,7 +638,7 @@ const PostDetailContent: React.FC = () => {
           ) : comments.length === 0 ? (
             <View style={styles.noComments}>
               <View style={[styles.noCommentsIcon, { backgroundColor: theme.colors.surface }]}>
-                <Ionicons name="chatbubbles-outline" size={48} color={theme.colors.textSecondary} />
+                <IconoDeTrazo name="chatbubbles-outline" size={48} color={theme.colors.textSecondary} />
               </View>
               <Text style={[styles.noCommentsText, { color: theme.colors.textSecondary }]}>
                 {t('wall.beFirstToComment')}
@@ -679,7 +666,7 @@ const PostDetailContent: React.FC = () => {
             style={[styles.removeCommentImageButton, { backgroundColor: 'rgba(0,0,0,0.6)' }]}
             onPress={removeCommentImage}
           >
-            <Ionicons name="close" size={16} color="white" />
+            <IconoDeTrazo name="close" size={16} color="white" />
           </TouchableOpacity>
         </View>
       )}
@@ -699,7 +686,7 @@ const PostDetailContent: React.FC = () => {
               avatarId={userProfile.avatarId || 'male'}
               photoURL={typeof userProfile.photoURL === 'string' ? userProfile.photoURL : undefined}
               photoURLThumbnail={typeof userProfile.photoURLThumbnail === 'string' ? userProfile.photoURLThumbnail : undefined}
-              backgroundColor={theme.colors.accent}
+              backgroundColor={theme.colors.surface}
               showBorder={false}
             />
           )}
@@ -724,7 +711,7 @@ const PostDetailContent: React.FC = () => {
             onPress={handlePickCommentImage}
             activeOpacity={0.7}
           >
-            <Ionicons
+            <IconoDeTrazo
               name="image-outline"
               size={ICON_SIZE.md}
               color={commentImage ? theme.colors.accent : theme.colors.text}
@@ -778,7 +765,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.md,
     paddingBottom: SPACING.sm,
-    borderBottomWidth: 0.5,
   },
   backButton: {
     padding: SPACING.xs,
@@ -922,8 +908,6 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
-    borderTopWidth: scale(1),
-    borderBottomWidth: scale(1),
   },
   statItem: {
     flexDirection: 'row',
@@ -937,7 +921,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: SPACING.md,
-    borderBottomWidth: scale(1),
   },
   actionButton: {
     flexDirection: 'row',
@@ -1025,10 +1008,6 @@ const styles = StyleSheet.create({
     borderRadius: scale(22),
     justifyContent: 'center',
     alignItems: 'center',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
   },
   commentImagePreview: {
     marginHorizontal: SPACING.lg,
@@ -1102,11 +1081,11 @@ const PostDetailScreen: React.FC = () => {
         <>
           <Text style={{ color: theme.colors.text, fontSize: 16, fontWeight: '600' }}>{t('wall.postNotFound')}</Text>
           <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel={t('common.back')}>
-            <Text style={{ color: theme.colors.accentDark, fontWeight: '700' }}>{t('common.back')}</Text>
+            <Text style={{ color: theme.colors.text, fontWeight: '700' }}>{t('common.back')}</Text>
           </TouchableOpacity>
         </>
       ) : (
-        <ActivityIndicator color={theme.colors.accent} />
+        <ActivityIndicator color={theme.colors.text} />
       )}
     </View>
   );

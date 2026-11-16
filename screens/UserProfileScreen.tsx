@@ -12,7 +12,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from '../components/icons/IconoDeTrazo';
 import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -48,6 +48,8 @@ type UserProfileScreenNavigationProp = StackNavigationProp<MainStackParamList, '
 const UserProfileScreen: React.FC = () => {
   const { t, formato, locale } = useIdioma();
   const { theme } = useTheme();
+  /* Monocromo (2026-11-16): el estado activo se dice con tinta, no con dorado; el degradado queda para la acción principal. */
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
   const { user } = useAuth();
   const { userProfile: currentUserProfile, updateLocalProfile } = useUserProfile();
   const navigation = useNavigation<UserProfileScreenNavigationProp>();
@@ -254,21 +256,20 @@ const UserProfileScreen: React.FC = () => {
     <TouchableOpacity
       style={[
         styles.tabButton,
-        activeTab === tab && { borderBottomColor: theme.colors.accent, borderBottomWidth: 2 }
-      ]}
+              ]}
       onPress={() => setActiveTab(tab)}
       activeOpacity={0.7}
     >
-      <Ionicons
+      <IconoDeTrazo
         name={icon as any}
         size={20}
-        color={activeTab === tab ? theme.colors.accent : theme.colors.textSecondary}
+        color={activeTab === tab ? tinta : theme.colors.textSecondary}
       />
       <Text
         style={[
           styles.tabButtonText,
           {
-            color: activeTab === tab ? theme.colors.accent : theme.colors.textSecondary,
+            color: activeTab === tab ? tinta : theme.colors.textSecondary,
             fontWeight: activeTab === tab ? '600' : '400',
           }
         ]}
@@ -331,7 +332,7 @@ const UserProfileScreen: React.FC = () => {
 
     if (cargando) {
       return (
-        <View style={[styles.followButton, { borderColor: theme.colors.border }]}>
+        <View style={[styles.followButton, { backgroundColor: theme.colors.surface }]}>
           <ActivityIndicator size="small" color={theme.colors.textSecondary} />
         </View>
       );
@@ -342,7 +343,7 @@ const UserProfileScreen: React.FC = () => {
       return (
         <>
           <TouchableOpacity
-            style={[styles.followButton, { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent }]}
+            style={[styles.followButton, { backgroundColor: theme.colors.accent }]}
             onPress={() => intentar(econtact.aceptar)}
             activeOpacity={0.8}
             disabled={trabajando}
@@ -355,13 +356,13 @@ const UserProfileScreen: React.FC = () => {
               <ActivityIndicator size="small" color={theme.colors.onPrimary} />
             ) : (
               <>
-                <Ionicons name="checkmark" size={18} color={theme.colors.onPrimary} />
+                <IconoDeTrazo name="checkmark" size={18} color={theme.colors.onPrimary} />
                 <Text style={[styles.followButtonText, { color: theme.colors.onPrimary }]}>{t('econtact.acceptLabel', { lista: nombreLista })}</Text>
               </>
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.messageButton, { borderColor: theme.colors.border }]}
+            style={[styles.messageButton, { backgroundColor: theme.colors.surface }]}
             onPress={() =>
               preguntarYHacer(t('econtact.rejectTitle'), t('econtact.rejectConfirm', { nombre: quien }), econtact.rechazar)
             }
@@ -370,7 +371,7 @@ const UserProfileScreen: React.FC = () => {
             accessibilityRole="button"
             accessibilityLabel={t('econtact.rejectRequestLabel', { lista: nombreLista })}
           >
-            <Ionicons name="close" size={20} color={theme.colors.text} />
+            <IconoDeTrazo name="close" size={20} color={theme.colors.text} />
           </TouchableOpacity>
         </>
       );
@@ -404,8 +405,7 @@ const UserProfileScreen: React.FC = () => {
         style={[
           styles.followButton,
           {
-            backgroundColor: porEstado.relleno ? theme.colors.accent : 'transparent',
-            borderColor: porEstado.relleno ? theme.colors.accent : theme.colors.border,
+            backgroundColor: porEstado.relleno ? theme.colors.accent : theme.colors.surface,
           },
         ]}
         onPress={porEstado.onPress}
@@ -419,7 +419,7 @@ const UserProfileScreen: React.FC = () => {
           <ActivityIndicator size="small" color={porEstado.relleno ? '#1F2937' : theme.colors.text} />
         ) : (
           <>
-            <Ionicons name={porEstado.icono} size={18} color={porEstado.relleno ? '#1F2937' : theme.colors.text} />
+            <IconoDeTrazo name={porEstado.icono} size={18} color={porEstado.relleno ? '#1F2937' : theme.colors.text} />
             <Text style={[styles.followButtonText, { color: porEstado.relleno ? '#1F2937' : theme.colors.text }]}>
               {porEstado.etiqueta}
             </Text>
@@ -461,7 +461,6 @@ const UserProfileScreen: React.FC = () => {
             styles.header,
             {
               backgroundColor: theme.colors.card,
-              borderBottomColor: theme.colors.border,
               paddingTop: insets.top + SPACING.sm,
             },
           ]}
@@ -478,7 +477,7 @@ const UserProfileScreen: React.FC = () => {
         </View>
 
         <View style={styles.centered}>
-          <Ionicons name="alert-circle-outline" size={48} color={theme.colors.textSecondary} />
+          <IconoDeTrazo name="alert-circle-outline" size={48} color={theme.colors.textSecondary} />
           <Text style={[styles.errorText, { color: theme.colors.text }]}>
             {t('profile.otherLoadFailed')}
           </Text>
@@ -518,7 +517,7 @@ const UserProfileScreen: React.FC = () => {
               />
             ) : (
               <LinearGradient
-                colors={[theme.colors.accent, theme.colors.background]}
+                colors={[theme.colors.surface, theme.colors.background]}
                 style={styles.bannerImage}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -542,7 +541,7 @@ const UserProfileScreen: React.FC = () => {
               <IconoDireccional name="arrow-back" size={22} color="#fff" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerBtn} onPress={handleShareProfile}>
-              <Ionicons name="share-outline" size={22} color="#fff" />
+              <IconoDeTrazo name="share-outline" size={22} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -561,7 +560,7 @@ const UserProfileScreen: React.FC = () => {
               avatarId={userProfile.avatarId || 'male'}
               photoURL={userProfile.photoURL}
               photoURLThumbnail={userProfile.photoURLThumbnail}
-              backgroundColor={theme.colors.accent}
+              backgroundColor={theme.colors.surface}
               showBorder={false}
             />
           </TouchableOpacity>
@@ -572,7 +571,7 @@ const UserProfileScreen: React.FC = () => {
           {/* Nombre y bio */}
           <Text style={[styles.displayName, { color: theme.colors.text }]}>
             {userProfile.displayName}
-            <EtiquetaDemo de={[userProfile]} color={theme.colors.accent} />
+            <EtiquetaDemo de={[userProfile]} color={theme.colors.textSecondary} />
           </Text>
 
           {!!userProfile.bio && (
@@ -593,14 +592,14 @@ const UserProfileScreen: React.FC = () => {
                   Linking.openURL(url);
                 }}
               >
-                <Ionicons name="link-outline" size={14} color={theme.colors.accent} />
-                <Text style={[styles.infoText, { color: theme.colors.accent }]} numberOfLines={1}>
+                <IconoDeTrazo name="link-outline" size={14} color={tinta} />
+                <Text style={[styles.infoText, { color: tinta, fontWeight: '600' }]} numberOfLines={1}>
                   {userProfile.website}
                 </Text>
               </TouchableOpacity>
             )}
             <View style={styles.infoRow}>
-              <Ionicons name="calendar-outline" size={14} color={theme.colors.textSecondary} />
+              <IconoDeTrazo name="calendar-outline" size={14} color={theme.colors.textSecondary} />
               {/* El mes y el año los escribe Intl con el locale activo, no un 'es-ES' fijo. */}
               <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>
                 {t('profile.joinedOn', { fecha: formato.fecha(userProfile.createdAt.toDate(), { month: 'long', year: 'numeric' }) })}
@@ -609,7 +608,7 @@ const UserProfileScreen: React.FC = () => {
           </View>
 
           {/* Estadísticas horizontales */}
-          <View style={[styles.statsRow, { borderColor: theme.colors.border }]}>
+          <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
                 {formatNumber(userProfile.posts, locale)}
@@ -624,19 +623,19 @@ const UserProfileScreen: React.FC = () => {
               {renderEContact()}
 
               <TouchableOpacity
-                style={[styles.messageButton, { borderColor: theme.colors.border }]}
+                style={[styles.messageButton, { backgroundColor: theme.colors.surface }]}
                 onPress={handleSendMessage}
                 activeOpacity={0.8}
               >
-                <Ionicons name="chatbubble-outline" size={20} color={theme.colors.text} />
+                <IconoDeTrazo name="chatbubble-outline" size={20} color={theme.colors.text} />
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.moreButton, { borderColor: theme.colors.border }]}
+                style={[styles.moreButton, { backgroundColor: theme.colors.surface }]}
                 onPress={() => {/* Menu de opciones */}}
                 activeOpacity={0.8}
               >
-                <Ionicons name="ellipsis-horizontal" size={20} color={theme.colors.text} />
+                <IconoDeTrazo name="ellipsis-horizontal" size={20} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
           )}
@@ -656,7 +655,7 @@ const UserProfileScreen: React.FC = () => {
         </View>
 
         {/* Tabs de filtros */}
-        <View style={[styles.tabsContainer, { borderBottomColor: theme.colors.border }]}>
+        <View style={styles.tabsContainer}>
           {renderTabButton('posts', 'document-text-outline', t('profile.posts'))}
           {/* Las mismas pestañas que el perfil propio, con sus mismas claves; Encuestas solo existe aquí. */}
           {renderTabButton('reposts', 'repeat-outline', t('profile.tabReposts'))}
@@ -676,7 +675,7 @@ const UserProfileScreen: React.FC = () => {
             </View>
           ) : postsError ? (
             <View style={styles.errorPosts}>
-              <Ionicons name="alert-circle-outline" size={32} color={theme.colors.textSecondary} />
+              <IconoDeTrazo name="alert-circle-outline" size={32} color={theme.colors.textSecondary} />
               <Text style={[styles.errorPostsText, { color: theme.colors.text }]}>{t(postsError)}</Text>
             </View>
           ) : getFilteredPosts().length > 0 ? (
@@ -689,7 +688,7 @@ const UserProfileScreen: React.FC = () => {
             />
           ) : (
             <View style={styles.emptyState}>
-              <Ionicons name="camera-outline" size={48} color={theme.colors.textSecondary} />
+              <IconoDeTrazo name="camera-outline" size={48} color={theme.colors.textSecondary} />
               <Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>
                 {t('profile.emptyCategory')}
               </Text>
@@ -771,11 +770,6 @@ const styles = StyleSheet.create({
   avatarWrapper: {
     borderWidth: 4,
     borderRadius: AVATAR_SIZE / 2 + 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 8,
   },
   // Profile info
   profileInfo: {
@@ -822,8 +816,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 16,
     marginBottom: 16,
-    borderTopWidth: 0.5,
-    borderBottomWidth: 0.5,
     width: '100%',
   },
   statItem: {
@@ -858,7 +850,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    borderWidth: 1.5,
   },
   followButtonText: {
     fontSize: 15,
@@ -868,7 +859,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -876,7 +866,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -899,7 +888,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.md,
     paddingBottom: SPACING.sm,
-    borderBottomWidth: 0.5,
   },
   backButton: {
     padding: SPACING.xs,
@@ -945,7 +933,6 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     flexDirection: 'row',
-    borderBottomWidth: 0.5,
     marginTop: 8,
   },
   tabButton: {

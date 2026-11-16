@@ -14,8 +14,9 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from '../components/icons/IconoDeTrazo';
 import IconoDireccional from '../components/IconoDireccional';
+
 import { notify } from '../utils/notify';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
@@ -47,6 +48,8 @@ const OnboardingScreen: React.FC = () => {
    */
   const { t, idioma, locale, cambiarIdioma, formato } = useIdioma();
   const { theme } = useTheme();
+  /* Monocromo (2026-11-16): la tinta del tema (#0A0A0A / #FAFAFA) dice el estado activo; el dorado→naranja queda para la acción principal. */
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
   const { user } = useAuth();
   const { updateProfile, userProfile } = useUserProfile();
   const { isDesktop } = useResponsive();
@@ -385,7 +388,7 @@ const OnboardingScreen: React.FC = () => {
       {/* Hero Section */}
       <View style={styles.heroSection}>
         <View style={[styles.iconContainer, { backgroundColor: `${theme.colors.accent}20` }]}>
-          <Ionicons name="sparkles" size={40} color={theme.colors.accent} />
+          <IconoDeTrazo name="sparkles" size={40} color={tinta} />
         </View>
         <Text style={[styles.title, { color: theme.colors.text }]}>
           {t('onboarding.welcome')}
@@ -406,7 +409,7 @@ const OnboardingScreen: React.FC = () => {
         <TextInput
           style={[styles.input, {
             backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.border,
+            borderColor: 'transparent',
             color: theme.colors.text,
           }]}
           placeholder={t('onboarding.yourNamePlaceholder')}
@@ -440,7 +443,7 @@ const OnboardingScreen: React.FC = () => {
                 key={parte}
                 style={[styles.dateSelector, parte === 'month' && styles.dateSelectorMonth, {
                   backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
+                  borderColor: 'transparent',
                 }]}
                 onPress={() => openDateModal(parte)}
               >
@@ -450,7 +453,7 @@ const OnboardingScreen: React.FC = () => {
                 ]}>
                   {texto}
                 </Text>
-                <Ionicons name="chevron-down" size={16} color={theme.colors.textSecondary} />
+                <IconoDeTrazo name="chevron-down" size={16} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             );
           })}
@@ -474,7 +477,7 @@ const OnboardingScreen: React.FC = () => {
             onPress={() => setGender('male')}
           >
             <RellenoDeMarca radio={scale(12)} apagada={gender !== 'male'} />
-            <Ionicons
+            <IconoDeTrazo
               name="male"
               size={20}
               color={gender === 'male' ? '#1F2937' : theme.colors.text}
@@ -498,7 +501,7 @@ const OnboardingScreen: React.FC = () => {
             onPress={() => setGender('female')}
           >
             <RellenoDeMarca radio={scale(12)} apagada={gender !== 'female'} />
-            <Ionicons
+            <IconoDeTrazo
               name="female"
               size={20}
               color={gender === 'female' ? '#1F2937' : theme.colors.text}
@@ -522,7 +525,7 @@ const OnboardingScreen: React.FC = () => {
             onPress={() => setGender('other')}
           >
             <RellenoDeMarca radio={scale(12)} apagada={gender !== 'other'} />
-            <Ionicons
+            <IconoDeTrazo
               name="person"
               size={20}
               color={gender === 'other' ? '#1F2937' : theme.colors.text}
@@ -545,7 +548,7 @@ const OnboardingScreen: React.FC = () => {
         <TouchableOpacity
           style={[styles.countrySelector, {
             backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.border,
+            borderColor: 'transparent',
           }]}
           onPress={() => {
             setCountrySearch('');
@@ -561,7 +564,7 @@ const OnboardingScreen: React.FC = () => {
               {t('onboarding.pickCountry')}
             </Text>
           )}
-          <Ionicons name="chevron-down" size={18} color={theme.colors.textSecondary} />
+          <IconoDeTrazo name="chevron-down" size={18} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -580,7 +583,7 @@ const OnboardingScreen: React.FC = () => {
         <TouchableOpacity
           style={[styles.countrySelector, {
             backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.border,
+            borderColor: 'transparent',
           }]}
           onPress={() => setShowLanguageModal(true)}
           accessibilityRole="button"
@@ -588,7 +591,7 @@ const OnboardingScreen: React.FC = () => {
           <Text style={[styles.countrySelectorText, { color: theme.colors.text }]}>
             {nombreDelIdiomaPuesto}
           </Text>
-          <Ionicons name="chevron-down" size={18} color={theme.colors.textSecondary} />
+          <IconoDeTrazo name="chevron-down" size={18} color={theme.colors.textSecondary} />
         </TouchableOpacity>
       </View>
 
@@ -636,7 +639,7 @@ const OnboardingScreen: React.FC = () => {
         <TextInput
           style={[styles.bioInput, {
             backgroundColor: theme.colors.surface,
-            borderColor: theme.colors.border,
+            borderColor: 'transparent',
             color: theme.colors.text,
           }]}
           placeholder={t('onboarding.bioPlaceholder')}
@@ -707,7 +710,7 @@ const OnboardingScreen: React.FC = () => {
             <View style={styles.desktopFooter}>
               {step > 1 && (
                 <TouchableOpacity
-                  style={[styles.backButton, { borderColor: theme.colors.border }]}
+                  style={[styles.backButton, { borderColor: 'transparent' }]}
                   onPress={handleBack}
                   disabled={uploading}
                 >
@@ -733,7 +736,7 @@ const OnboardingScreen: React.FC = () => {
                   </>
                 ) : completed ? (
                   <>
-                    <Ionicons name="checkmark-circle" size={18} color="white" />
+                    <IconoDeTrazo name="checkmark-circle" size={18} color="white" />
                     <Text style={styles.continueButtonText}>{t('onboarding.completed')}</Text>
                   </>
                 ) : (
@@ -770,12 +773,12 @@ const OnboardingScreen: React.FC = () => {
           {/* Footer Buttons */}
           <View style={[styles.footer, {
             backgroundColor: theme.colors.background,
-            borderTopColor: theme.colors.border,
+            borderTopColor: 'transparent',
             paddingBottom: Math.max(insets.bottom, scale(16)) + scale(8),
           }]}>
             {step > 1 && (
               <TouchableOpacity
-                style={[styles.backButton, { borderColor: theme.colors.border }]}
+                style={[styles.backButton, { borderColor: 'transparent' }]}
                 onPress={handleBack}
                 disabled={uploading}
               >
@@ -801,7 +804,7 @@ const OnboardingScreen: React.FC = () => {
                 </>
               ) : completed ? (
                 <>
-                  <Ionicons name="checkmark-circle" size={scale(20)} color="white" />
+                  <IconoDeTrazo name="checkmark-circle" size={scale(20)} color="white" />
                   <Text style={styles.continueButtonText}>{t('onboarding.completed')}</Text>
                 </>
               ) : (
@@ -830,12 +833,12 @@ const OnboardingScreen: React.FC = () => {
           onPress={() => setShowDateModal(false)}
         >
           <View style={[styles.dateModalContent, { backgroundColor: theme.colors.surface }]}>
-            <View style={[styles.dateModalHeader, { borderBottomColor: theme.colors.border }]}>
+            <View style={[styles.dateModalHeader, { borderBottomColor: 'transparent' }]}>
               <Text style={[styles.dateModalTitle, { color: theme.colors.text }]}>
                 {getDateModalTitle()}
               </Text>
               <TouchableOpacity onPress={() => setShowDateModal(false)}>
-                <Ionicons name="close" size={24} color={theme.colors.text} />
+                <IconoDeTrazo name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -845,7 +848,7 @@ const OnboardingScreen: React.FC = () => {
                 <TouchableOpacity
                   style={[
                     styles.dateModalItem,
-                    { borderBottomColor: theme.colors.border }
+                    { borderBottomColor: 'transparent' }
                   ]}
                   onPress={() => selectDateValue(item.value)}
                 >
@@ -855,7 +858,7 @@ const OnboardingScreen: React.FC = () => {
                   {((dateModalType === 'day' && birthDay === item.value) ||
                     (dateModalType === 'month' && birthMonth === item.value) ||
                     (dateModalType === 'year' && birthYear === item.value)) && (
-                    <Ionicons name="checkmark" size={20} color={theme.colors.accent} />
+                    <IconoDeTrazo name="checkmark" size={20} color={tinta} />
                   )}
                 </TouchableOpacity>
               )}
@@ -883,16 +886,16 @@ const OnboardingScreen: React.FC = () => {
             style={[styles.countryModalContent, { backgroundColor: theme.colors.surface }]}
             onStartShouldSetResponder={() => true}
           >
-            <View style={[styles.dateModalHeader, { borderBottomColor: theme.colors.border }]}>
+            <View style={[styles.dateModalHeader, { borderBottomColor: 'transparent' }]}>
               <Text style={[styles.dateModalTitle, { color: theme.colors.text }]}>
                 {t('onboarding.pickCountry')}
               </Text>
               <TouchableOpacity onPress={() => setShowCountryModal(false)}>
-                <Ionicons name="close" size={24} color={theme.colors.text} />
+                <IconoDeTrazo name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
-            <View style={[styles.countrySearchContainer, { borderBottomColor: theme.colors.border }]}>
-              <Ionicons name="search" size={18} color={theme.colors.textSecondary} />
+            <View style={[styles.countrySearchContainer, { borderBottomColor: 'transparent' }]}>
+              <IconoDeTrazo name="search" size={18} color={theme.colors.textSecondary} />
               <TextInput
                 style={[styles.countrySearchInput, { color: theme.colors.text }]}
                 placeholder={t('onboarding.searchCountry')}
@@ -903,7 +906,7 @@ const OnboardingScreen: React.FC = () => {
               />
               {countrySearch.length > 0 && (
                 <TouchableOpacity onPress={() => setCountrySearch('')}>
-                  <Ionicons name="close-circle" size={18} color={theme.colors.textSecondary} />
+                  <IconoDeTrazo name="close-circle" size={18} color={theme.colors.textSecondary} />
                 </TouchableOpacity>
               )}
             </View>
@@ -912,7 +915,7 @@ const OnboardingScreen: React.FC = () => {
               keyExtractor={(item) => item.code}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  style={[styles.dateModalItem, { borderBottomColor: theme.colors.border }]}
+                  style={[styles.dateModalItem, { borderBottomColor: 'transparent' }]}
                   onPress={() => {
                     setSelectedCountry(item);
                     setShowCountryModal(false);
@@ -922,7 +925,7 @@ const OnboardingScreen: React.FC = () => {
                     {item.flag}  {nombreDelPais(item)}
                   </Text>
                   {selectedCountry?.code === item.code && (
-                    <Ionicons name="checkmark" size={20} color={theme.colors.accent} />
+                    <IconoDeTrazo name="checkmark" size={20} color={tinta} />
                   )}
                 </TouchableOpacity>
               )}
@@ -965,12 +968,12 @@ const OnboardingScreen: React.FC = () => {
             style={[styles.countryModalContent, { backgroundColor: theme.colors.surface }]}
             onStartShouldSetResponder={() => true}
           >
-            <View style={[styles.dateModalHeader, { borderBottomColor: theme.colors.border }]}>
+            <View style={[styles.dateModalHeader, { borderBottomColor: 'transparent' }]}>
               <Text style={[styles.dateModalTitle, { color: theme.colors.text }]}>
                 {t('language.title')}
               </Text>
               <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
-                <Ionicons name="close" size={24} color={theme.colors.text} />
+                <IconoDeTrazo name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -980,7 +983,7 @@ const OnboardingScreen: React.FC = () => {
                 const puesta = filaPuesta(item.clave, item.idioma);
                 return (
                   <TouchableOpacity
-                    style={[styles.dateModalItem, { borderBottomColor: theme.colors.border }]}
+                    style={[styles.dateModalItem, { borderBottomColor: 'transparent' }]}
                     onPress={() => {
                       cambiarIdioma(item.clave);
                       setShowLanguageModal(false);
@@ -993,7 +996,7 @@ const OnboardingScreen: React.FC = () => {
                       {item.nombreNativo}
                     </Text>
                     {puesta && (
-                      <Ionicons name="checkmark" size={20} color={theme.colors.accent} />
+                      <IconoDeTrazo name="checkmark" size={20} color={tinta} />
                     )}
                   </TouchableOpacity>
                 );
@@ -1171,7 +1174,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: scale(16),
     paddingVertical: scale(14),
-    borderBottomWidth: 1,
   },
   dateModalTitle: {
     fontSize: scale(16),
@@ -1186,7 +1188,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: scale(14),
     paddingHorizontal: scale(16),
-    borderBottomWidth: 0.5,
   },
   dateModalItemText: {
     fontSize: scale(15),
@@ -1249,7 +1250,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: scale(20),
     paddingTop: scale(16),
     gap: scale(12),
-    borderTopWidth: scale(1),
     maxWidth: 500,
     alignSelf: 'center',
     width: '100%',
@@ -1318,7 +1318,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: scale(16),
     paddingVertical: scale(10),
-    borderBottomWidth: 1,
     gap: scale(8),
   },
   countrySearchInput: {

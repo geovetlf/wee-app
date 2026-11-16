@@ -12,6 +12,7 @@ import {
   Image as RNImage,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { IconoWee } from '../icons/IconoWee';
 import IconoDireccional from '../IconoDireccional';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
@@ -274,8 +275,8 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
         onPress={() => setShowPicker(true)}
       >
         {renderCurrentAvatar()}
-        <View style={[styles.editBadge, { backgroundColor: theme.colors.accent }]}>
-          <Ionicons name="camera" size={12} color="white" />
+        <View style={[styles.editBadge, { backgroundColor: theme.dark ? '#FAFAFA' : '#0A0A0A' }]}>
+          <IconoWee name="camara" size={14} color={theme.dark ? '#0A0A0A' : '#FAFAFA'} />
         </View>
       </TouchableOpacity>
 
