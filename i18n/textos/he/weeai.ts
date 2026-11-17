@@ -371,4 +371,11 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   /* Sonido de los videos: lo genera la IA (2026-11-16). SIN REVISIÓN NATIVA. */
   soundTitle: 'סאונד',
   soundHelp: 'הסאונד נוצר על ידי בינה מלאכותית.',
+  /* Portada de WeëAI v2 (2026-11-17). SIN REVISIÓN NATIVA. */
+  portadaEtiqueta: 'סטודיו יצירתי',
+  portadaTitulo: 'צור ללא גבולות',
+  portadaSub: 'דמיין, תאר והפוך את הרעיונות שלך עם בינה מלאכותית',
+  portadaPlantillas: 'תבניות',
+  /* Marca: no se traduce (2026-11-17). */
+  portadaFilmmaker: 'Filmmaker',
 };

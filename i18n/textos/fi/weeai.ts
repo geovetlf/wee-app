@@ -354,4 +354,11 @@ export const weeai: typeof import('../es/weeai').weeai = {
   /* Sonido de los videos: lo genera la IA (2026-11-16). SIN REVISIÓN NATIVA. */
   soundTitle: 'Ääni',
   soundHelp: 'Äänen luo tekoäly.',
+  /* Portada de WeëAI v2 (2026-11-17). SIN REVISIÓN NATIVA. */
+  portadaEtiqueta: 'Luova studio',
+  portadaTitulo: 'Luo ilman rajoja',
+  portadaSub: 'Kuvittele, kuvaile ja muuta ideasi tekoälyllä',
+  portadaPlantillas: 'Mallit',
+  /* Marca: no se traduce (2026-11-17). */
+  portadaFilmmaker: 'Filmmaker',
 };

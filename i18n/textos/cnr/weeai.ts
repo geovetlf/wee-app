@@ -360,4 +360,11 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   /* Sonido de los videos: lo genera la IA (2026-11-16). SIN REVISIÓN NATIVA. */
   soundTitle: 'Zvuk',
   soundHelp: 'Zvuk generiše vještačka inteligencija.',
+  /* Portada de WeëAI v2 (2026-11-17). SIN REVISIÓN NATIVA. */
+  portadaEtiqueta: 'Kreativni studio',
+  portadaTitulo: 'Stvaraj bez granica',
+  portadaSub: 'Zamisli, opiši i pretvori svoje ideje uz AI',
+  portadaPlantillas: 'Šabloni',
+  /* Marca: no se traduce (2026-11-17). */
+  portadaFilmmaker: 'Filmmaker',
 };

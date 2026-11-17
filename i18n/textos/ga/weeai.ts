@@ -375,4 +375,11 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   /* Sonido de los videos: lo genera la IA (2026-11-16). SIN REVISIÓN NATIVA. */
   soundTitle: 'Fuaim',
   soundHelp: 'Cruthaíonn AI an fhuaim.',
+  /* Portada de WeëAI v2 (2026-11-17). SIN REVISIÓN NATIVA. */
+  portadaEtiqueta: 'Stiúideo cruthaitheach',
+  portadaTitulo: 'Cruthaigh gan teorainn',
+  portadaSub: 'Samhlaigh, déan cur síos agus athraigh do chuid smaointe le AI',
+  portadaPlantillas: 'Teimpléid',
+  /* Marca: no se traduce (2026-11-17). */
+  portadaFilmmaker: 'Filmmaker',
 };

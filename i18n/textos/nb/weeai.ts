@@ -361,4 +361,11 @@ export const weeai: typeof import('../es/weeai').weeai = {
   /* Sonido de los videos: lo genera la IA (2026-11-16). SIN REVISIÓN NATIVA. */
   soundTitle: 'Lyd',
   soundHelp: 'Lyden lages av KI.',
+  /* Portada de WeëAI v2 (2026-11-17). SIN REVISIÓN NATIVA. */
+  portadaEtiqueta: 'Kreativt studio',
+  portadaTitulo: 'Skap uten grenser',
+  portadaSub: 'Forestill deg, beskriv og forvandle ideene dine med KI',
+  portadaPlantillas: 'Maler',
+  /* Marca: no se traduce (2026-11-17). */
+  portadaFilmmaker: 'Filmmaker',
 };

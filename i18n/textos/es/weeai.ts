@@ -357,4 +357,11 @@ export const weeai = {
   /* Sonido de los videos: lo genera la IA (2026-11-16). SIN REVISIÓN NATIVA. */
   soundTitle: 'Sonido',
   soundHelp: 'El sonido lo genera la IA.',
+  /* Portada de WeëAI v2 (2026-11-17). */
+  portadaEtiqueta: 'CREATIVE STUDIO',
+  portadaTitulo: 'Crea sin límites',
+  portadaSub: 'Imagina, describe y transforma tus ideas con IA',
+  portadaPlantillas: 'Plantillas',
+  /* Marca: no se traduce (2026-11-17). */
+  portadaFilmmaker: 'Filmmaker',
 };

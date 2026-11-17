@@ -365,4 +365,11 @@ export const weeai: typeof import('../es/weeai').weeai = {
   /* Sonido de los videos: lo genera la IA (2026-11-16). SIN REVISIÓN NATIVA. */
   soundTitle: 'Hljóð',
   soundHelp: 'Gervigreind býr til hljóðið.',
+  /* Portada de WeëAI v2 (2026-11-17). SIN REVISIÓN NATIVA. */
+  portadaEtiqueta: 'Skapandi stúdíó',
+  portadaTitulo: 'Skapaðu án takmarka',
+  portadaSub: 'Ímyndaðu þér, lýstu og umbreyttu hugmyndum þínum með gervigreind',
+  portadaPlantillas: 'Sniðmát',
+  /* Marca: no se traduce (2026-11-17). */
+  portadaFilmmaker: 'Filmmaker',
 };

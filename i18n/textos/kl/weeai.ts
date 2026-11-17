@@ -370,4 +370,11 @@ export const weeai: typeof import('../es/weeai').weeai = {
   /* Sonido de los videos: lo genera la IA (2026-11-16). SIN REVISIÓN NATIVA. */
   soundTitle: 'Nipi',
   soundHelp: 'Nipi AI-mit pilersinneqarpoq.',
+  /* Portada de WeëAI v2 (2026-11-17): PROVISIONAL en inglés, SIN TRADUCIR al groenlandés (pendiente de revisión nativa). */
+  portadaEtiqueta: 'Creative Studio',
+  portadaTitulo: 'Create without limits',
+  portadaSub: 'Imagine, describe and transform your ideas with AI',
+  portadaPlantillas: 'Templates',
+  /* Marca: no se traduce (2026-11-17). */
+  portadaFilmmaker: 'Filmmaker',
 };

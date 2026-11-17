@@ -353,4 +353,11 @@ export const weeai: typeof import('../es/weeai').weeai = {
   /* Sonido de los videos: lo genera la IA (2026-11-16). SIN REVISIÓN NATIVA. */
   soundTitle: 'Âm thanh',
   soundHelp: 'Âm thanh do AI tạo ra.',
+  /* Portada de WeëAI v2 (2026-11-17). SIN REVISIÓN NATIVA. */
+  portadaEtiqueta: 'Studio sáng tạo',
+  portadaTitulo: 'Sáng tạo không giới hạn',
+  portadaSub: 'Hình dung, mô tả và biến ý tưởng của bạn bằng AI',
+  portadaPlantillas: 'Mẫu',
+  /* Marca: no se traduce (2026-11-17). */
+  portadaFilmmaker: 'Filmmaker',
 };

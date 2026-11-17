@@ -402,4 +402,11 @@ export const weeai: typeof import('../es/weeai').weeai = {
   /* Sonido de los videos: lo genera la IA (2026-11-16). SIN REVISIÓN NATIVA. */
   soundTitle: 'Tunog',
   soundHelp: 'Ang tunog ay gawa ng AI.',
+  /* Portada de WeëAI v2 (2026-11-17). SIN REVISIÓN NATIVA. */
+  portadaEtiqueta: 'Creative Studio',
+  portadaTitulo: 'Lumikha nang walang hangganan',
+  portadaSub: 'Mag-isip, ilarawan at gawing totoo ang iyong mga ideya gamit ang AI',
+  portadaPlantillas: 'Mga template',
+  /* Marca: no se traduce (2026-11-17). */
+  portadaFilmmaker: 'Filmmaker',
 };
