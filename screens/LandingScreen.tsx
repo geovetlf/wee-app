@@ -41,7 +41,7 @@ import { scale } from '../utils/scale';
 import { sembrarMuro } from '../utils/semillaDelMuro';
 import PestanasDeInicio, { AtajoDeInicio } from '../components/inicio/PestanasDeInicio';
 import TarjetaWeeAi from '../components/inicio/TarjetaWeeAi';
-import PastillasDelFeed from '../components/inicio/PastillasDelFeed';
+import { abrirPortadaDeWeeAi } from '../navigation/refNavegacion';
 import { HomeFeedId, filterBySections, seccionesDelFeed } from '../utils/feedFilters';
 import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
 import { RellenoDeMarca } from '../components/GradienteDeMarca';
@@ -417,7 +417,7 @@ const LandingScreen: React.FC = () => {
    */
   const renderWeeAi = () => (
     <View style={styles.weeAiSlot}>
-      <TarjetaWeeAi variante="portada" onOpenWeeAi={() => irAlPrincipal('WeeCreator')} onOpenBrain={() => irAlPrincipal('Specialist', { id: 'brain' })} />
+      <TarjetaWeeAi variante="portada" onOpenWeeAi={() => { if (!abrirPortadaDeWeeAi()) irAlPrincipal('WeeCreator'); }} />
     </View>
   );
 
@@ -649,8 +649,7 @@ const LandingScreen: React.FC = () => {
     );
   };
 
-  /* Las pastillas del muro: Para ti · Creatividad. Un filtro; no navegan (components/inicio/PastillasDelFeed.tsx). */
-  const renderFeedFilters = () => <PastillasDelFeed puesto={feedFilter} onSelect={setFeedFilter} />;
+  /* Las pastillas «Para ti · Creatividad» se quitaron del Home (encargo del dueño, 2026-11-16): el muro sube justo bajo WeëAI y se ve entero. */
 
   /* El muro, acotado por la pastilla puesta. Con «Para ti», entero. */
   const filteredFeedPosts = useMemo(() => filterBySections(feedPosts, seccionesDelFeed(feedFilter)), [feedPosts, feedFilter]);
@@ -666,7 +665,6 @@ const LandingScreen: React.FC = () => {
   const listHeader = useMemo(() => (
     <>
       {renderWeeAi()}
-      {feedPosts.length > 0 && renderFeedFilters()}
       {/* Boost: UNA publicación promocionada de otra cuenta, si el servidor tiene alguna para ti (docs/BOOST.md). */}
       <PromotedSlot pintar={(p, abrir) => <PostCard post={p} onPress={abrir} onComment={handleComment} onPrivateMessage={handlePrivateMessage} isVisible variante="muro" />} />
     </>

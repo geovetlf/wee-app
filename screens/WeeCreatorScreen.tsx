@@ -1,40 +1,28 @@
-import React, { useState } from 'react';
-import { StyleSheet, RefreshControl } from 'react-native';
+import React from 'react';
+import { StyleSheet } from 'react-native';
 import { enTemaOscuro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import CreatorShell from '../components/creator/CreatorShell';
 import { PortadaWeeAi } from '../components/weeai/PortadaWeeAi';
 import { SPACING } from '../constants/design';
-import { usePlantillas } from '../hooks/usePlantillas';
+import { PORTADA_WEEAI } from '../constants/estiloWeeAi';
 
 /**
- * LA PORTADA DE WEËAI — lo que se ve al entrar (boceto v2 aprobado por el dueño, 2026-11-15).
+ * LA PORTADA DE WEËAI — lo que se ve al entrar (v2, 2026-11-17: referencia del dueño, pantalla FIJA).
  *
- * Dos puertas —Video y Herramientas— y debajo el muro «Plantillas para ti»: una plantilla se abre a pantalla completa,
- * «Recrear» lleva a la maqueta «Tu versión» y «Generar» al flujo de creación de siempre. La cabecera (flecha de volver, WeëAI y el
- * saldo) es la del marco de Weë AI: el saldo y la compra siguen siendo de `CreditsPill`. Todo está en
- * `components/weeai/`; esta pantalla solo la monta.
+ * Cabecera, hero, la caja común y una rejilla de módulos —Imagen, Video, Audio, Filmmaker, Texto, 3D, Plantillas y Herramientas—
+ * que caben en una sola pantalla sin desplazarse. Las plantillas viven en su pantalla (`Plantillas`, módulo «Plantillas»);
+ * Herramientas abre una hoja con Weë Brain, Moda y el avatar. La cabecera es la propia de la portada (volver, WeëAI y el
+ * saldo de `CreditsPill`). Todo está en `components/weeai/`; esta pantalla solo la monta.
  *
- * Esta portada sustituye a la anterior (buscador por intención, las once tarjetas de especialistas, «Mis creaciones»,
- * «Disponible hoy» y la caja de Credits). Nada de eso se borró de la app: las pantallas de cada experiencia, Mis creaciones
- * (por Proyectos), el avatar (por Herramientas) y la compra de Credits (por el saldo) siguen donde estaban.
- *
- * Experiencias en la portada (`PORTADA_DE_WEEAI` en constants/weeExperiences.ts): Video (id `studio`), Imagen (`design`) y
- * Moda (`business`); Comida es una categoría de plantillas (`chef`), Travel está apagada y Music oculta.
+ * Nada de lo anterior se borró de la app: las pantallas de cada experiencia, Mis creaciones (por Proyectos), el avatar (por
+ * Herramientas) y la compra de Credits (por el saldo) siguen donde estaban.
  */
 const WeeCreatorScreen: React.FC = () => {
   const t = useT();
-  const { plantillas, estado, recargar } = usePlantillas();
-  /* Tirar para refrescar: vuelve a leer las mismas plantillas (el muro general), sin nada nuevo en el servidor. */
-  const [refrescando, setRefrescando] = useState(false);
-  const refrescar = async () => {
-    setRefrescando(true);
-    await recargar();
-    setRefrescando(false);
-  };
   return (
-    <CreatorShell activeId="creator" title={t('nav.weeAi')} breadcrumb={t('nav.weeAi')} contentStyle={styles.content} refreshControl={<RefreshControl refreshing={refrescando} onRefresh={refrescar} />}>
-      <PortadaWeeAi plantillas={plantillas} estado={estado} recargar={recargar} />
+    <CreatorShell activeId="creator" title={t('nav.weeAi')} breadcrumb={t('nav.weeAi')} fondo={PORTADA_WEEAI.fondo} sinFranjaSuperior fija contentStyle={styles.content}>
+      <PortadaWeeAi />
     </CreatorShell>
   );
 };
@@ -45,5 +33,5 @@ const styles = StyleSheet.create({
   },
 });
 
-/* Como antes: la pantalla se pinta con el tema claro de Weë AI, también con el Perfil Weë. */
+/* WeëAI es siempre oscura: la pantalla se pinta con el tema oscuro de Weë AI, también con el Perfil Real. */
 export default enTemaOscuro(WeeCreatorScreen);

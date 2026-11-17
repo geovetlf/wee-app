@@ -25,7 +25,7 @@ import DrawerMenu from '../components/DrawerMenu';
 import PromotedSlot from '../components/boost/PromotedSlot';
 import PestanasDeInicio, { AtajoDeInicio } from '../components/inicio/PestanasDeInicio';
 import TarjetaWeeAi from '../components/inicio/TarjetaWeeAi';
-import PastillasDelFeed from '../components/inicio/PastillasDelFeed';
+import { abrirPortadaDeWeeAi } from '../navigation/refNavegacion';
 import { HomeFeedId, filterBySections, seccionesDelFeed } from '../utils/feedFilters';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -175,7 +175,6 @@ const WebLandingScreen: React.FC = () => {
   };
 
   /* Weë Brain no tiene ruta propia: se entra por `Specialist { id: 'brain' }`, como desde el centro creativo. Sin texto ni adjuntos. */
-  const abrirBrain = () => navigation.navigate('Specialist', { id: 'brain' });
 
   // ── Feed ──
   /* Tocar una publicación abre el Ẅall inmersivo en ella, con lo que el muro ya tiene cargado (utils/semillaDelMuro.ts). */
@@ -221,11 +220,8 @@ const WebLandingScreen: React.FC = () => {
           Brain; no es un campo, no lleva texto ni adjuntos (TarjetaWeeAi).
         */}
         <div style={{ padding: '12px 16px 4px' }}>
-          <TarjetaWeeAi variante="portada" onOpenWeeAi={() => navigation.navigate('WeeCreator')} onOpenBrain={abrirBrain} />
+          <TarjetaWeeAi variante="portada" onOpenWeeAi={() => { if (!abrirPortadaDeWeeAi()) navigation.navigate('WeeCreator'); }} />
         </div>
-
-        {/* Las pastillas del muro: Para ti · Creatividad. Un filtro; no navegan. */}
-        <PastillasDelFeed puesto={feedFilter} onSelect={setFeedFilter} />
 
         {/* Creado por la comunidad: el Ẅall, el centro del Home. */}
         <div style={{ padding: '4px 16px 100px' }}>

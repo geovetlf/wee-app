@@ -3,13 +3,11 @@ import { AccessibilityInfo, Animated, Easing, Platform, Pressable, StyleSheet, T
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import IconoDireccional from '../IconoDireccional';
-import { IconoWee } from '../icons/IconoWee';
 import { RellenoDeDegradado } from '../GradienteDeMarca';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useDireccion } from '../../hooks/useDireccion';
 import { ARTE_WEEAI } from '../../constants/marca';
-import { NOMBRE_CORTO_DE_BRAIN } from '../../constants/myWeesDestinos';
 import { uriDelHalo, uriDeLasOndas } from './arteDeWeeAi';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -48,8 +46,6 @@ interface Props {
   variante: 'portada' | 'menu';
   /** Abre el centro creativo de WeëAI (`WeeCreator`). */
   onOpenWeeAi: () => void;
-  /** Abre Weë Brain. Solo en la portada: es lo que hacen la puerta y el chip. */
-  onOpenBrain?: () => void;
 }
 
 const isWeb = Platform.OS === 'web';
@@ -77,7 +73,7 @@ export const usePrefiereQuietud = (): boolean => {
   return quieto;
 };
 
-const TarjetaWeeAi: React.FC<Props> = ({ variante, onOpenWeeAi, onOpenBrain }) => {
+const TarjetaWeeAi: React.FC<Props> = ({ variante, onOpenWeeAi }) => {
   const { theme } = useTheme();
   const t = useT();
   const dir = useDireccion();
@@ -193,24 +189,6 @@ const TarjetaWeeAi: React.FC<Props> = ({ variante, onOpenWeeAi, onOpenBrain }) =
             {titulo(true)}
             <Text style={[styles.lema, dir.texto, { color: arte.lema }]} numberOfLines={2}>{t('home.weeAiTagline')}</Text>
           </Pressable>
-          {/* El chip de Weë Brain: una píldora blanca con su sombra, posada sobre el arco. Abre lo mismo que la puerta. */}
-          <Pressable
-            onPress={onOpenBrain}
-            accessibilityRole="button"
-            accessibilityLabel={t('home.openBrain')}
-            hitSlop={4}
-            style={({ pressed, focused }: { pressed: boolean; focused?: boolean }) => [
-              styles.chip,
-              { backgroundColor: arte.chip, borderColor: 'transparent' },
-              sombraDeBoton,
-              { shadowColor: arte.sombra, shadowOpacity: 0.16 },
-              pressed && styles.hundido,
-              focused && aroDeFoco,
-            ]}
-          >
-            <IconoWee name="cerebro" size={scale(18)} color={arte.iconoDelChip} />
-            <Text style={[styles.chipTexto, { color: arte.textoDelChip }]} numberOfLines={1}>{NOMBRE_CORTO_DE_BRAIN}</Text>
-          </Pressable>
         </View>
 
         {/*
@@ -219,9 +197,9 @@ const TarjetaWeeAi: React.FC<Props> = ({ variante, onOpenWeeAi, onOpenBrain }) =
           control aparte, y por eso no lleva nombre propio para el lector de pantalla.
         */}
         <Pressable
-          onPress={onOpenBrain}
+          onPress={onOpenWeeAi}
           accessibilityRole="button"
-          accessibilityLabel={`${t('nav.weeAiQuestion')} ${t('home.openBrain')}`}
+          accessibilityLabel={`${t('nav.weeAiQuestion')} ${t('nav.openWeeAi')}`}
           style={({ pressed }) => [styles.puerta, sombraDeBoton, { shadowColor: arte.accion[3], shadowOpacity: 0.14 }, pressed && styles.pulsada]}
         >
           {({ pressed, focused }: { pressed: boolean; focused?: boolean }) => (

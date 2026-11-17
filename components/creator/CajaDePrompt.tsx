@@ -13,6 +13,10 @@ import { scale } from '../../utils/scale';
 import { MARCA } from '../../constants/marca';
 import { RellenoDeMarca } from '../GradienteDeMarca';
 import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
+import { IconoWee } from '../icons/IconoWee';
+import type { NombreDeIcono } from '../icons/trazosDeWee';
+import { PORTADA_WEEAI as P, textoPortada } from '../../constants/estiloWeeAi';
+import { emDeTexto } from '../weeai/medidaDeTexto';
 
 const isWeb = Platform.OS === 'web';
 
@@ -27,6 +31,12 @@ export interface AccionDeLaCaja {
   alPulsar: () => void;
   /** En Weë versión creator, con sitio: la palabra corta que se ve al lado del icono. */
   texto?: string;
+  /** Solo en la caja de la portada de WeëAI: el icono de trazo de la familia Weë (si no, `icono`). */
+  iconoWee?: NombreDeIcono;
+  /** Solo en la caja de la portada: el botón está puesto (el contexto del envío). */
+  activa?: boolean;
+  /** Solo en la caja de la portada: sin flujo real todavía; se ve apagado y no hace nada. */
+  deshabilitada?: boolean;
 }
 
 interface Props {
@@ -87,6 +97,12 @@ interface Props {
   vitrina?: boolean;
   /** La frase de dentro solo en el traje de vitrina (WeëChef la lleva vacía fuera de él). */
   textoDeVitrina?: string;
+  /**
+   * EL TRAJE DE LA PORTADA DE WEËAI v2 (referencia del dueño, 2026-11-17): superficie #11141A con borde frío y reflejo blanco en el
+   * borde de abajo, botones de trazo en blanco y el de crear BLANCO con flecha negra. Es la MISMA caja: crece igual con `useCajaQueCrece`
+   * y sus botones no se van; solo cambia el dibujo.
+   */
+  portada?: boolean;
 }
 
 /**
@@ -115,7 +131,7 @@ interface Props {
  * largo que sea el prompt. Eso lo resuelve `useCajaQueCrece`.
  */
 const CajaDePrompt: React.FC<Props> = ({
-  valor, onCambiar, onEnviar, etiquetaEnviar, placeholder, etiqueta, acciones, accionesDerecha, ocupado, enviarConIntro, editable, sinMarco, textoEnviar, monocromo, vitrina, textoDeVitrina,
+  valor, onCambiar, onEnviar, etiquetaEnviar, placeholder, etiqueta, acciones, accionesDerecha, ocupado, enviarConIntro, editable, sinMarco, textoEnviar, monocromo, vitrina, textoDeVitrina, portada,
 }) => {
   const { theme } = useTheme();
   const c = useEstiloWeeAi();
@@ -131,7 +147,14 @@ const CajaDePrompt: React.FC<Props> = ({
   const conPalabras = pro && width >= 600;
   const hayTexto = valor.trim().length > 0;
   /* Sin nada escrito, la caja vuelve a medir una línea. No se fía de la medida vieja. */
-  const caja = useCajaQueCrece({ altoMinimo: ALTO_MINIMO, vacia: !hayTexto });
+  /*
+   * En la caja de la portada, si el texto de ejemplo no cabe en una línea (se estima por el ancho de la caja y la escritura), la caja vacía mide
+   * dos: así la segunda línea del ejemplo no se corta (el campo no cuenta el ejemplo al medir su contenido).
+   */
+  /* El ancho del campo de la portada: de él sale si el ejemplo cabe en una línea. */
+  const [anchoDeLaCaja, setAnchoDeLaCaja] = useState(0);
+  const ejemploLargo = !!portada && anchoDeLaCaja > 0 && emDeTexto(placeholder, 0.55) * 17 > anchoDeLaCaja - 2 * SPACING.xs - 2;
+  const caja = useCajaQueCrece({ altoMinimo: ALTO_MINIMO + (ejemploLargo ? scale(24) : 0), vacia: !hayTexto });
   const puedeEnviar = hayTexto && !ocupado && editable !== false;
 
   /*
@@ -182,9 +205,44 @@ const CajaDePrompt: React.FC<Props> = ({
         /* Weë Brain la pide sin contorno también aquí: la define su relleno. */
         pro && sinMarco && styles.cajaSinMarco,
         vitrina && !pro && styles.cajaVitrina,
+        portada && !pro && styles.cajaPortada,
       ]}
     >
-      {vitrina && !pro ? (
+      {portada && !pro ? (
+        <>
+          <TextInput
+            {...caja.propsDelCampo}
+            onLayout={(e) => setAnchoDeLaCaja(Math.round(e.nativeEvent.layout.width))}
+            style={[styles.campo, styles.campoPortada, textoPortada(scale(17), '400'), { color: P.tinta, height: caja.altoDelTexto }, isWeb && ({ outlineStyle: 'none' } as any)]}
+            value={valor}
+            onChangeText={onCambiar}
+            placeholder={placeholder}
+            placeholderTextColor={P.tintaSecundaria}
+            selectionColor={P.luz}
+            editable={editable}
+            accessibilityLabel={etiqueta ?? placeholder}
+            {...(enviarConIntro ? { onSubmitEditing: enviar, blurOnSubmit: true, returnKeyType: 'send' as const } : null)}
+          />
+          <View style={[styles.acciones, styles.accionesPortada, dir.contenedor]}>
+            {(acciones ?? []).map((accion, i) => <AccionDePortada key={accion.icono + '·' + accion.etiqueta} accion={accion} conMarco={i === 0} />)}
+            <View style={styles.empuje} />
+            {(accionesDerecha ?? []).map((accion) => <AccionDePortada key={accion.icono + '·' + accion.etiqueta} accion={accion} />)}
+            <TouchableOpacity
+              style={[styles.enviarPortada, { opacity: puedeEnviar ? 1 : 0.5 }, isWeb && ({ cursor: puedeEnviar ? 'pointer' : 'default' } as any)]}
+              onPress={enviar}
+              disabled={!puedeEnviar}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={etiquetaEnviar}
+              accessibilityState={{ disabled: !puedeEnviar }}
+            >
+              <IconoDireccional name="arrow-forward" size={scale(24)} color={P.sobreAccion} />
+            </TouchableOpacity>
+          </View>
+          {/* El reflejo frío del borde de abajo. */}
+          <LinearGradient pointerEvents="none" colors={['transparent', 'rgba(229,236,255,0.55)', 'transparent']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.reflejoPortada} />
+        </>
+      ) : vitrina && !pro ? (
         <>
           <View style={styles.filaVitrina}>
             <Ionicons name="sparkles" size={scale(24)} color={theme.colors.accent} style={styles.destelloVitrina} />
@@ -345,6 +403,28 @@ const CajaDePrompt: React.FC<Props> = ({
   );
 };
 
+/** Un botón de la fila de la caja de la portada: trazo blanco; el primero (+) lleva marco; el apagado dice «Próximamente» y no hace nada. */
+const AccionDePortada: React.FC<{ accion: AccionDeLaCaja; conMarco?: boolean }> = ({ accion, conMarco }) => (
+  <TouchableOpacity
+    style={[
+      styles.accionPortada,
+      conMarco && styles.accionPortadaConMarco,
+      accion.activa && styles.accionPortadaActiva,
+      isWeb && ({ cursor: accion.deshabilitada ? 'default' : 'pointer' } as any),
+    ]}
+    onPress={accion.deshabilitada ? undefined : accion.alPulsar}
+    disabled={accion.deshabilitada}
+    activeOpacity={0.7}
+    accessibilityRole="button"
+    accessibilityLabel={accion.etiqueta}
+    accessibilityState={{ disabled: !!accion.deshabilitada, selected: !!accion.activa }}
+  >
+    {accion.iconoWee
+      ? <IconoWee name={accion.iconoWee} size={scale(24)} color={accion.deshabilitada ? P.tintaDeshabilitada : P.icono} />
+      : <Ionicons name={accion.icono as any} size={scale(22)} color={accion.deshabilitada ? P.tintaDeshabilitada : P.icono} />}
+  </TouchableOpacity>
+);
+
 /** Un botón de la fila, en creator: 36 de alto, y su palabra si hay sitio para ella. */
 const AccionDeCreator: React.FC<{ accion: AccionDeLaCaja; conPalabras: boolean }> = ({ accion, conPalabras }) => {
   const { theme } = useTheme();
@@ -365,6 +445,18 @@ const AccionDeCreator: React.FC<{ accion: AccionDeLaCaja; conPalabras: boolean }
 };
 
 const styles = StyleSheet.create({
+  cajaPortada: {
+    backgroundColor: P.superficie, borderColor: P.bordeCapsula, borderWidth: 1, borderRadius: scale(30),
+    paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: SPACING.sm, overflow: 'hidden',
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: scale(18), shadowOffset: { width: 0, height: scale(6) }, elevation: 6,
+  },
+  campoPortada: { paddingHorizontal: SPACING.xs, paddingTop: SPACING.sm },
+  accionesPortada: { gap: SPACING.xs },
+  accionPortada: { width: scale(44), height: scale(44), borderRadius: scale(14), alignItems: 'center', justifyContent: 'center' },
+  accionPortadaConMarco: { borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.superficieAlta },
+  accionPortadaActiva: { backgroundColor: P.superficieAlta, borderWidth: 1, borderColor: P.bordeLuz },
+  enviarPortada: { width: scale(52), height: scale(52), borderRadius: scale(26), backgroundColor: P.accion, alignItems: 'center', justifyContent: 'center', shadowColor: P.luz, shadowOpacity: 0.25, shadowRadius: scale(10), shadowOffset: { width: 0, height: 0 }, elevation: 3 },
+  reflejoPortada: { position: 'absolute', start: scale(28), end: scale(28), bottom: 0, height: 1.5 },
   cajaPro: {
     borderRadius: 14, borderWidth: 0, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10,
     shadowOpacity: 0, shadowRadius: 0, elevation: 0,

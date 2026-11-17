@@ -9,6 +9,8 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 import { MARCA } from '../constants/marca';
 import { RellenoDeMarca } from './GradienteDeMarca';
+import { IconoWee } from './icons/IconoWee';
+import { PORTADA_WEEAI } from '../constants/estiloWeeAi';
 
 interface CreditsPillProps {
   /** Versión compacta para el header (solo número). */
@@ -16,6 +18,8 @@ interface CreditsPillProps {
   /** Sobre fondos oscuros/transparentes (héroe, Weëls). */
   light?: boolean;
   onPress?: () => void;
+  /** La cápsula de la portada de WeëAI v2: transparente, con borde frío, icono lineal y texto blanco. El mismo saldo; solo cambia el dibujo. */
+  sobria?: boolean;
 }
 
 /**
@@ -79,7 +83,7 @@ export const PilaDeMonedas: React.FC = () => (
  * se le pasaba el uid del perfil activo; el hook lo ignoraba (la cuenta manda),
  * así que era una indirección que solo podía confundir a quien la leyera.
  */
-const CreditsPill: React.FC<CreditsPillProps> = ({ compact = false, light = false, onPress }) => {
+const CreditsPill: React.FC<CreditsPillProps> = ({ compact = false, light = false, onPress, sobria = false }) => {
   const { theme } = useTheme();
   const { t, formato } = useIdioma();
   const { user } = useAuth();
@@ -97,6 +101,22 @@ const CreditsPill: React.FC<CreditsPillProps> = ({ compact = false, light = fals
   };
 
   const value = balance === null ? '…' : formato.numero(balance);
+
+  if (sobria) {
+    return (
+      <TouchableOpacity
+        onPress={handlePress}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={t('credits.youHaveLabel', { saldo: value })}
+        style={[styles.pill, styles.sobria]}
+      >
+        {conMonedas && <IconoWee name="capas" size={scale(18)} color={PORTADA_WEEAI.tinta} />}
+        <MarcaDeCredits color={PORTADA_WEEAI.tinta} />
+        <Text style={[styles.value, { color: PORTADA_WEEAI.tinta }]} numberOfLines={1}>{value}</Text>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <TouchableOpacity
@@ -138,6 +158,7 @@ const CreditsPill: React.FC<CreditsPillProps> = ({ compact = false, light = fals
 };
 
 const styles = StyleSheet.create({
+  sobria: { backgroundColor: PORTADA_WEEAI.superficie, borderColor: PORTADA_WEEAI.bordeCapsula, height: scale(38), paddingHorizontal: SPACING.sm + 4 },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',

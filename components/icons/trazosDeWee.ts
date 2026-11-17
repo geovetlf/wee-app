@@ -116,7 +116,13 @@ export type NombreDeIcono =
   | 'pausa'
   | 'copiar'
   | 'chevronArriba'
-  | 'meGusta';
+  | 'meGusta'
+  | 'ondas'
+  | 'cubo'
+  | 'rejilla'
+  | 'texto'
+  | 'camaraCine'
+  | 'plantillas';
 
 /*
  * El color se escribe como `%C%` y se sustituye al generar. Un icono que quiera
@@ -423,6 +429,27 @@ export const TRAZOS: Record<NombreDeIcono, string> = {
     '<path d="M5 15l7-7 7 7"/>',
   meGusta:
     '<path d="M7 11v9H4.5A1.5 1.5 0 0 1 3 18.5v-6A1.5 1.5 0 0 1 4.5 11z"/><path d="M7 11l3.5-7c1.5 0 2.5 1 2.5 2.5V9h5.2a2 2 0 0 1 2 2.3l-1.1 7A2 2 0 0 1 17.1 20H7"/>',
+  /* Cinco barras de audio de alturas distintas: el sonido (portada de WeëAI v2). */
+  ondas:
+    '<path d="M4 10.5v3"/><path d="M8 8v8"/><path d="M12 4.5v15"/><path d="M16 8v8"/><path d="M20 10.5v3"/>',
+  /* Un cubo en perspectiva: el 3D. */
+  cubo:
+    '<path d="M12 3 20 7.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5"/><path d="M12 12v9"/>',
+  /* Cuatro cuadrados: el resto de herramientas. */
+  rejilla:
+    '<rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/>',
+  /* Una T con sus remates: el texto. */
+  texto:
+    '<path d="M5 6V4.5h14V6"/><path d="M12 4.5v15"/><path d="M9 19.5h6"/>',
+  /* Una cámara de cine clásica: dos carretes arriba, el cuerpo con su objetivo y el visor. Weë Filmmaker. */
+  camaraCine:
+    '<circle cx="7.2" cy="6.2" r="3"/><circle cx="14" cy="6.2" r="3"/>'
+    + '<rect x="3" y="10.6" width="13" height="8.8" rx="2"/>'
+    + '<path d="M16 13.6l5-2.4v7.6l-5-2.4z"/>'
+    + '<circle cx="9.5" cy="15" r="1.7"/>',
+  /* Un collage de fotogramas: una pieza grande y dos pequeñas. Plantillas. */
+  plantillas:
+    '<rect x="3.5" y="3.5" width="10" height="17" rx="2.2"/><rect x="16" y="3.5" width="4.5" height="7.5" rx="1.6"/><rect x="16" y="13.5" width="4.5" height="7" rx="1.6"/><path d="M3.8 16.5l3.4-3.2 2.6 2.4 3.4-3.4"/>',
 };
 
 /** Cuánto pesa el trazo. Uno solo para los veintidós: es lo que los hermana. */

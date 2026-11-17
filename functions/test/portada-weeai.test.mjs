@@ -22,7 +22,7 @@ const codigo = sinComentarios(todo);
 check('1) ninguna reproducción automática de video', !/autoPlay|shouldPlay|<Video\b|useVideoPlayer|expo-av|expo-video/.test(codigo));
 check('2) la portada no toca Credits: ni cobro, ni reserva, ni consumo (solo navega al flujo de creación)',
   !/spendCredits|completeCredits|refundCredits|creditsService|httpsCallable|getCreditsBalance/.test(codigo));
-check('3) «Generar» y «Recrear» navegan al flujo de siempre (CreatorFlow) y nada más', /navigation\.navigate\('CreatorFlow'/.test(leer('components/weeai/PortadaWeeAi.tsx')));
+check('3) «Generar» y «Recrear» navegan al flujo de siempre (CreatorFlow) y nada más', /navigation\.navigate\('CreatorFlow'/.test(leer('components/weeai/PantallaDePlantillas.tsx')));
 check('4) las plantillas salen del muro existente: sin colección, ni callable, ni consulta nueva',
   /getMuroGeneralPaginado/.test(leer('hooks/usePlantillas.ts')) && !/collection\(|httpsCallable|addDoc|setDoc/.test(codigo + leer('hooks/usePlantillas.ts') + leer('utils/plantillas.ts')));
 check('5) las muestras solo existen en el entorno de pruebas declarado y van marcadas como ejemplo',
@@ -40,7 +40,7 @@ const experiencias = leer('constants/weeExperiences.ts');
 check('9) WeëMusic: la bandera está apagada por defecto y solo se enciende con una variable de entorno',
   /MUSICA_EN_LA_UI: boolean = process\.env\.EXPO_PUBLIC_WEEMUSIC_UI === '1'/.test(experiencias));
 check('10) la entrada WeëMusic de Herramientas sigue tras su bandera apagada; el sonido de los videos lo genera la IA: «Automático» real y Música/Efectos/Voz «Próximamente», sin pistas, artistas ni buscador de canciones',
-  leer('components/weeai/PortadaWeeAi.tsx').includes('MUSICA_EN_LA_UI ? filaDeHerramienta')
+  leer('components/weeai/ListaDeHerramientas.tsx').includes('MUSICA_EN_LA_UI ? fila(')
   && leer('components/weeai/video/SonidoDeVideo.tsx').includes("t('weeai.soundHelp')") && leer('components/weeai/video/SonidoDeVideo.tsx').includes("t('filmmaker.audioSfx')")
   && !/PISTAS_DE_MUESTRA|pickTrack|publishAsSound|Subir mi canción/.test(codigo) && !fs.existsSync(path.join(RAIZ, 'components/weeai/MusicaDeVideo.tsx')));
 check('11) las experiencias apagadas no se borran: ids intactos y la bandera es la única diferencia',
@@ -60,8 +60,12 @@ check('16) «Ajustes avanzados» plegados por defecto: duración y modelo solo a
 check('17) confianza: «todavía no se ha gastado nada» antes de crear (plan y vista previa), sin cifras inventadas',
   leer('components/creator/PlanCard.tsx').includes("t('weeai.notChargedYet')") && leer('components/weeai/VistaPreviaDePlantilla.tsx').includes("t('weeai.notChargedYet')"));
 
-check('18) sin líneas: ningún borde ni divisor en lo de WeëAI (se separa con tono, espacio y sombra sutil)',
-  !/borderWidth|borderColor|borderTopWidth|hairlineWidth|borderStyle/.test(codigo));
+/* PORTADA v2 (2026-11-17): la referencia del dueño lleva bordes finos en módulos, caja y píldoras. Solo las piezas de la portada v2 pueden dibujarlos y SOLO con los tokens PORTADA_WEEAI (nunca un color suelto); el resto de WeëAI sigue sin líneas. */
+const PIEZAS_PORTADA_V2 = ['CabeceraDePortada', 'HeroDePortada', 'ModulosDePortada', 'GaleriaDePlantillas', 'PortadaWeeAi', 'arteDePortada'];
+const codigoSinPortadaV2 = carpeta.filter((f) => !PIEZAS_PORTADA_V2.some((p) => f.includes('/' + p + '.'))).map(leer).map(sinComentarios).join(' ');
+const codigoPortadaV2 = carpeta.filter((f) => PIEZAS_PORTADA_V2.some((p) => f.includes('/' + p + '.'))).map(leer).map(sinComentarios).join(' ');
+check('18) sin líneas fuera de la portada v2; en la portada v2 los bordes salen solo de los tokens PORTADA_WEEAI (ni un color suelto)',
+  !/borderWidth|borderColor|borderTopWidth|hairlineWidth|borderStyle/.test(codigoSinPortadaV2) && !/border[A-Za-z]*Color: ['"#r]/.test(codigoPortadaV2));
 check('19) monocromo OSCURO: paleta única del token de WeëAI (no lee tema ni perfil); el único color es el degradado de la acción principal',
   leer('constants/estiloWeeAi.ts').includes("fondo: '#0A0A0A'") && leer('constants/estiloWeeAi.ts').includes("seleccion: '#FAFAFA'") && !/theme.dark|useTheme/.test(leer('hooks/useEstiloWeeAi.ts')) && !/#(FF9500|FFC21A|FF7A00|F08A00|FFF7EA)/i.test(codigo));
 check('20) tipografía: cinco tamaños (13 mínimo), pesos 400/500/600 y números tabulares en costes y contadores',
@@ -76,8 +80,8 @@ check('22) WeëAI entera en Manrope por el límite de enTemaClaro; Wall y ☰ no
   && leer('utils/escriturasDeLaInterfaz.web.ts').includes("Inter_400Regular: 'Manrope_400Regular'"));
 
 check('23) funcional: «Más como esta» (misma categoría, ya cargadas), tirar para refrescar con lo que ya se lee y rueda en la descarga; sin llamadas nuevas',
-  leer('components/weeai/DetalleDePlantilla.tsx').includes("t('weeai.moreLikeThis')") && leer('components/weeai/PortadaWeeAi.tsx').includes('p.categoria === abierta.categoria')
-  && leer('screens/WeeCreatorScreen.tsx').includes('<RefreshControl') && leer('screens/WeeCreatorScreen.tsx').includes('await recargar()')
+  leer('components/weeai/DetalleDePlantilla.tsx').includes("t('weeai.moreLikeThis')") && leer('components/weeai/PantallaDePlantillas.tsx').includes('p.categoria === abierta.categoria')
+  && leer('screens/PlantillasWeeAiScreen.tsx').includes('<RefreshControl') && leer('screens/PlantillasWeeAiScreen.tsx').includes('await recargar()')
   && leer('components/creator/ResultCard.tsx').includes('descargando ? <ActivityIndicator'));
 
 check('24) viajes: filtro «Viajes» y 6 plantillas de muestra con título y explicación por clave, prompt como dato y siempre «Ejemplo»; la experiencia Travel sigue apagada',
@@ -127,10 +131,10 @@ check('30) WeëAI es SIEMPRE OSCURA, igual con las dos caras: todas sus pantalla
   && leer('navigation/NavegacionGlobal.tsx').includes("puesto === 'WeeAI' ? TemaOscuro : React.Fragment"));
 
 check('31) personalizar: Cara/Cuerpo de una palabra, ranuras «Tú»/«Otro» con + y ✕, por defecto el de la plantilla, coste y aviso antes de Recrear, entrada rechazada con mensaje accionable; nada se envía',
-  leer('components/weeai/video/PersonalizarVideo.tsx').includes("t('menu.customize')") && /modeFace/.test(leer('components/weeai/video/PersonalizarVideo.tsx')) && /modoPorDefectoDe/.test(leer('components/weeai/PortadaWeeAi.tsx'))
+  leer('components/weeai/video/PersonalizarVideo.tsx').includes("t('menu.customize')") && /modeFace/.test(leer('components/weeai/video/PersonalizarVideo.tsx')) && /modoPorDefectoDe/.test(leer('components/weeai/PantallaDePlantillas.tsx'))
   && /ranurasDe/.test(leer('constants/plantillasWeeAi.ts')) && /r2', rol: 'other'/.test(leer('constants/plantillasWeeAi.ts'))
   && leer('components/weeai/DetalleDePlantilla.tsx').includes("t('filmmaker.cost')") && leer('components/weeai/video/PersonalizarVideo.tsx').includes("t('weeai.ownImageNotice')")
-  && leer('screens/CreatorFlowScreen.tsx').includes("t('weeai.inputRejected')") && !/huecos[^;\n]*creatorService|plantilla[^;\n]*httpsCallable/.test(leer('components/weeai/PortadaWeeAi.tsx')));
+  && leer('screens/CreatorFlowScreen.tsx').includes("t('weeai.inputRejected')") && !/huecos[^;\n]*creatorService|plantilla[^;\n]*httpsCallable/.test(leer('components/weeai/PantallaDePlantillas.tsx')));
 check('32) reacciones del Wall: sin 👎 en la publicación; Fuego y Risa ACTIVAS por defecto (interruptor =0), votan por voteService con contadores propios, comentarios intactos, reglas con fire/laugh',
   !/thumbs-down/.test(leer('components/PostCard.tsx')) && leer('constants/reacciones.ts').includes("EXPO_PUBLIC_REACCIONES_NUEVAS !== '0'") && /fuego:/.test(leer('components/icons/trazosDeWee.ts')) && /risa:/.test(leer('components/icons/trazosDeWee.ts'))
   && leer('components/PostCard.tsx').includes('REACCIONES_NUEVAS_EN_LA_UI ? <ReaccionesNuevas ') && leer('components/PostCard.tsx').includes('onVotar={handleVoteNueva}')
@@ -170,6 +174,32 @@ check('36) la pestaña WeëAI lleva SIEMPRE a la portada: abrirPortadaDeWeeAi us
 check('37) Brain: título «Brain» de una palabra, sin lema ni descripción decorativos en su cabecera',
   !/<Text>Weë <\/Text>/.test(leer('components/brain/CabeceraDeWeeBrain.tsx')) && leer('screens/BrainChatScreen.tsx').includes('title="Brain"')
   && !/styles\.presentacion\}/.test(leer('components/brain/CabeceraDeWeeBrain.tsx')));
+
+/* RONDA 2 (2026-11-17): portada FIJA, módulo «Plantillas» con su pantalla, módulo «Filmmaker» y «Herramientas». */
+const portada = sinComentarios(leer('components/weeai/PortadaWeeAi.tsx'));
+check('38) la portada es FIJA: el marco la monta sin desplazamiento (prop fija), y no lleva el muro, ni filtros, ni RefreshControl; el tope de la caja sale de la altura medida',
+  leer('screens/WeeCreatorScreen.tsx').includes('fija') && leer('components/creator/CreatorShell.tsx').includes('{fija ? (') && !/TarjetaDePlantilla|FiltrosDePlantillas|RefreshControl|usePlantillas/.test(portada + sinComentarios(leer('screens/WeeCreatorScreen.tsx')))
+  && portada.includes('topeDeLaCaja') && portada.includes('<CajaAnclada alto={topeDeLaCaja}>'));
+check('39) ocho módulos: Imagen, Video, Audio, Filmmaker, Texto, 3D, Plantillas y Herramientas; Plantillas navega a la pantalla propia y «Herramientas» reutiliza weeai.tools (sin la clave de «Más»)',
+  ['imagen:', 'video:', 'audio:', 'filmmaker:', 'texto:', 'tresD:', 'plantillas:', 'herramientas:'].every((k) => portada.includes(k)) && portada.includes("navigation.navigate('Plantillas')") && portada.includes("clave: 'weeai.tools'") && portada.includes("navigation.navigate('Herramientas')") && !/portadaMas/.test(portada + leer('i18n/textos/es/weeai.ts')));
+check('40) Filmmaker: icono de cámara de cine propio, navega a la producción existente (Production) y la puerta está ABIERTA desde 2026-11-17; con la puerta cerrada volvería a «Próximamente» sin navegar',
+  portada.includes("icono: 'camaraCine'") && portada.includes("alPulsar: FILMMAKER_EN_LA_APP ? () => navigation.navigate('Production') : undefined") && /camaraCine:/.test(leer('components/icons/trazosDeWee.ts')) && /export const FILMMAKER_EN_LA_APP = true/.test(leer('constants/studioExperiences.ts')));
+check('41) la ruta Plantillas está en la pila principal (con su enlace web y su pestaña WeëAI) y la barra inferior no se toca; la pestaña sigue abriendo la portada con popTo',
+  leer('navigation/MainStackNavigator.tsx').includes('<Stack.Screen name="Plantillas" component={PlantillasWeeAiScreen} />') && leer('App.tsx').includes("Plantillas: { path: 'weeai/plantillas'") && leer('navigation/NavegacionGlobal.tsx').includes("Plantillas: 'WeeAI'")
+  && /StackActions\.popTo\('WeeCreator'\)/.test(leer('navigation/refNavegacion.ts')));
+check('42) una palabra, una línea en los módulos: el tamaño se calcula (mínimo 0,7 del base) y se pasa a tres columnas si el nombre más largo del idioma no cabe en cuatro',
+  leer('components/weeai/ModulosDePortada.tsx').includes('tamanoQueCabe') && leer('components/weeai/ModulosDePortada.tsx').includes('cabenEnUnaLinea') && portada.includes('cabenEnUnaLinea(') && leer('components/weeai/ModulosDePortada.tsx').includes('numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}'));
+
+/* HERRAMIENTAS EN SU PANTALLA (2026-11-17): ya no es una hoja inferior. */
+const lista = sinComentarios(leer('components/weeai/ListaDeHerramientas.tsx'));
+check('43) Herramientas es una pantalla propia (ruta registrada, con enlace web y pestaña WeëAI) y la portada ya no lleva hoja inferior ni la lista; la lista conserva Weë Brain, Moda con todos sus modos, WeëMusic tras bandera y el avatar, con la navegación de siempre',
+  leer('navigation/MainStackNavigator.tsx').includes('<Stack.Screen name="Herramientas" component={HerramientasWeeAiScreen} />') && leer('App.tsx').includes("Herramientas: { path: 'weeai/herramientas'") && leer('navigation/NavegacionGlobal.tsx').includes("Herramientas: 'WeeAI'")
+  && !/Modal|Pressable|FASHION_MODOS|getExperienceById/.test(portada) && lista.includes("irA('brain')") && lista.includes('FASHION_MODOS.map') && lista.includes("navigate('Specialist', { id: ID_DE_MODA, modo })")
+  && lista.includes("hasWeeProfile ? 'AiAvatar' : 'WeeProfileCreation'") && leer('screens/HerramientasWeeAiScreen.tsx').includes('<ListaDeHerramientas />') && leer('screens/HerramientasWeeAiScreen.tsx').includes('enTemaOscuro('));
+
+check('44) todos los idiomas: la medida de texto de la portada distingue escrituras (CJK/hangul 1 em, jemer, devanagari, árabe/hebreo), el titular se acota a sus dos líneas, la caja vacía reserva dos líneas si el ejemplo no cabe, y el nombre de módulo se calcula por em (no por letras)',
+  /0x3000/.test(leer('components/weeai/medidaDeTexto.ts')) && /0x1780/.test(leer('components/weeai/medidaDeTexto.ts')) && leer('components/weeai/ModulosDePortada.tsx').includes('emDeTexto(texto)') && !/ANCHO_DE_LETRA/.test(leer('components/weeai/ModulosDePortada.tsx'))
+  && leer('components/weeai/HeroDePortada.tsx').includes('emDeTexto(t(') && leer('components/creator/CajaDePrompt.tsx').includes('ejemploLargo'));
 
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);

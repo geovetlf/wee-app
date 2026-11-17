@@ -14,6 +14,7 @@ import CreateSheet, { CreateKind } from './CreateSheet';
 import { MENU_ITEM, MenuItemId, WEE_MENU } from '../constants/weeMenu';
 import SelectorDeIdentidad, { Identidad } from './inicio/SelectorDeIdentidad';
 import TarjetaWeeAi from './inicio/TarjetaWeeAi';
+import { abrirPortadaDeWeeAi } from '../navigation/refNavegacion';
 import { IconoWee } from './icons/IconoWee';
 import { MarcaDeCredits } from './CreditsPill';
 import { NombreDeIcono } from './icons/trazosDeWee';
@@ -245,7 +246,7 @@ const Sidebar: React.FC = () => {
         {user && <SelectorDeIdentidad activa={activeProfileType === 'hidi' ? 'hidi' : 'real'} tieneWee={hasWeeProfile} onElegir={elegirIdentidad} />}
 
         {/* WeëAI: la tarjeta que abre el centro creativo, donde están las experiencias. */}
-        <TarjetaWeeAi variante="menu" onOpenWeeAi={() => navigation.navigate('WeeCreator')} />
+        <TarjetaWeeAi variante="menu" onOpenWeeAi={() => { if (!abrirPortadaDeWeeAi()) navigation.navigate('WeeCreator'); }} />
 
         {/* Menú: las mismas filas y el mismo orden que el cajón, del mismo catálogo. */}
         <View style={styles.nav}>
@@ -336,7 +337,7 @@ const Sidebar: React.FC = () => {
         onSelect={handleSelectKind}
         onOpenCreator={() => {
           setSheetVisible(false);
-          navigation.navigate('WeeCreator');
+          if (!abrirPortadaDeWeeAi()) navigation.navigate('WeeCreator');
         }}
       />
     </View>

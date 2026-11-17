@@ -82,6 +82,13 @@ interface CreatorShellProps {
    * nuevo que leer, una vez por mensaje; abrir el teclado no mueve nada.
    */
   seguirAlFinal?: unknown;
+  /** Un fondo propio para la pantalla (la portada de WeëAI v2 va en negro profundo). Sin él, el del tema. */
+  fondo?: string;
+  /**
+   * PANTALLA FIJA (portada de WeëAI v2, 2026-11-17): en el teléfono el contenido NO se desplaza; ocupa lo que queda entre la
+   * franja de arriba y la barra de abajo, y quien lo pinta reparte esa altura. En escritorio se comporta como siempre.
+   */
+  fija?: boolean;
 }
 
 /**
@@ -110,7 +117,7 @@ const ALTO_MINIMO_DE_LA_CAJA = scale(150);
  * Escritorio: barra lateral con los especialistas + barra superior (buscar,
  * notificaciones, perfil) + contenido ancho. Móvil: cabecera compacta + contenido.
  */
-const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, mark, breadcrumb = 'Weë AI', onBack, children, contentStyle, refreshControl, sinFranjaSuperior, pie, seguirAlFinal }) => {
+const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, mark, breadcrumb = 'Weë AI', onBack, children, contentStyle, refreshControl, sinFranjaSuperior, pie, seguirAlFinal, fondo, fija }) => {
   const { theme } = useTheme();
   const c = useEstiloWeeAi();
   const t = useT();
@@ -202,7 +209,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
 
   if (!isDesktop) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: fondo ?? theme.colors.background }]} edges={['top']}>
         {!sinFranjaSuperior && (
         <View style={[styles.mobileHeader, { borderBottomColor: c.superficieAlta }]}>
           <TouchableOpacity onPress={back} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
@@ -252,7 +259,11 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
           la caja y el teclado —medido en el teléfono—.
         */}
         <EspacioDeEscritura style={styles.fill} descuento={ALTO_BARRA}>
-          {pie ? (
+          {fija ? (
+            <View style={styles.fill}>
+              <ConMarcoDeSeccion saldoALaVista={!sinFranjaSuperior} aireLateral={0}>{children}</ConMarcoDeSeccion>
+            </View>
+          ) : pie ? (
             <View style={styles.fill} onLayout={medirEscritura}>
               <PaginaDeCajas
                 ref={refPagina}
@@ -288,7 +299,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
   }
 
   return (
-    <View style={[styles.desktop, { backgroundColor: enProfesional ? theme.colors.background : c.superficieAlta }]}>
+    <View style={[styles.desktop, { backgroundColor: enProfesional ? theme.colors.background : (fondo ?? c.superficieAlta) }]}>
       {!enProfesional && <CreatorSidebar activeId={activeId} />}
       <View style={styles.main}>
         {!enProfesional && <View style={[styles.topBar, { backgroundColor: theme.colors.background, borderBottomColor: c.superficieAlta }]}>

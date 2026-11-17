@@ -80,14 +80,19 @@ check('C2) las doce experiencias de vídeo conectadas siguen siendo de un clip: 
  * LA PUERTA (integración de producción en main, 2026-10-01): el dueño no ha decidido lanzar Filmmaker. Cerrada —que es
  * como está—, «Varias escenas» se enseña como en main: bloqueada con su motivo y en su sitio. Abierta, todo lo de F1-C.
  */
-check('C3) con la puerta cerrada, las tres que no se pueden hacer —«Varias escenas» incluida— siguen bloqueadas con su motivo, como en main',
-  E.FILMMAKER_EN_LA_APP === false && JSON.stringify(video.filter((x) => x.pendiente).map((x) => `${x.id}:${x.pendiente}`))
+/* 2026-11-17: el dueño habilitó Filmmaker (FILMMAKER_EN_LA_APP = true). El pin pasa de exigir false a exigir true; la función con la puerta CERRADA sigue fijada abajo. */
+check('C3) la puerta está ABIERTA (decisión del dueño, 2026-11-17): de lo que no se puede hacer queda bloqueado solo lo de siempre —«Varias escenas» ya no—',
+  E.FILMMAKER_EN_LA_APP === true && JSON.stringify(video.filter((x) => x.pendiente).map((x) => `${x.id}:${x.pendiente}`))
+  === JSON.stringify(['musicVideo:studio.pendMusic', 'beforeAfter:studio.pendTwoRefs']));
+const videoCerrada = E.conLaPuertaDeFilmmaker(E.EXPERIENCIAS_POR_ENTRADA.videos, false);
+check('C3a) y con la puerta cerrada (cerrarla es poner la bandera a false), el catálogo vuelve a ser el de main: las tres bloqueadas con su motivo',
+  JSON.stringify(videoCerrada.filter((x) => x.pendiente).map((x) => `${x.id}:${x.pendiente}`))
   === JSON.stringify(['musicVideo:studio.pendMusic', 'multiScene:studio.pendCompose', 'beforeAfter:studio.pendTwoRefs']));
 const videoAbierta = E.conLaPuertaDeFilmmaker(E.EXPERIENCIAS_POR_ENTRADA.videos, true);
 check('C3b) con la puerta abierta, solo las dos de siempre', JSON.stringify(videoAbierta.filter((x) => x.pendiente).map((x) => `${x.id}:${x.pendiente}`))
   === JSON.stringify(['musicVideo:studio.pendMusic', 'beforeAfter:studio.pendTwoRefs']));
-check('C3c) y cerrada, el orden de la puerta de vídeo es el de main: Videoclip · Varias escenas · Antes y después',
-  video.map((x) => x.id).slice(-3).join() === 'musicVideo,multiScene,beforeAfter' && !video.some((x) => x.produccion));
+check('C3c) cerrada, el orden de la puerta de vídeo es el de main: Videoclip · Varias escenas · Antes y después y ninguna abre producción; abierta, la que abre producción es solo «Varias escenas»',
+  videoCerrada.map((x) => x.id).slice(-3).join() === 'musicVideo,multiScene,beforeAfter' && !videoCerrada.some((x) => x.produccion) && video.filter((x) => x.produccion).map((x) => x.id).join() === 'multiScene');
 const alCrear = studio.slice(studio.indexOf('const alCrear = useCallback'), studio.indexOf('const alElegir = useCallback'));
 check('C4) el Studio sigue yendo a CreatorFlow con el destino de siempre', /const destino = destinoDeIntencion\(texto, \{/.test(alCrear)
   && /navigation\.navigate\('CreatorFlow', contexto\);/.test(alCrear) && /dentroDe: 'studio'/.test(alCrear));
@@ -99,9 +104,9 @@ console.log('\n── D · «Varias escenas» abre la producción ──');
 const multi = videoAbierta.find((x) => x.id === 'multiScene');
 check('D1) en el catálogo, la experiencia declara que abre una producción (con la puerta abierta, sin bloqueo)', multi.produccion === true && !multi.pendiente && multi.clave === 'studio.xpMultiScene'
   && E.EXPERIENCIAS_POR_ENTRADA.videos.find((x) => x.id === 'multiScene').produccion === true);
-check('D2) la regla la da el catálogo: solo «Varias escenas» abre la producción; y con la puerta cerrada, nada la abre',
+check('D2) la regla la da el catálogo: solo «Varias escenas» abre la producción (puerta abierta); ninguna otra, ni vacío, la abre',
   Object.values(E.EXPERIENCIAS_POR_ENTRADA).flat().filter((x) => x.produccion).map((x) => x.id).join() === 'multiScene'
-  && !E.abreLaProduccion('multiScene') && !E.abreLaProduccion('scene') && !E.abreLaProduccion(null) && !E.abreLaProduccion(undefined)
+  && E.abreLaProduccion('multiScene') && !E.abreLaProduccion('scene') && !E.abreLaProduccion(null) && !E.abreLaProduccion(undefined)
   && /export const abreLaProduccion = \(experienciaId\?: string \| null\): boolean =>\s*FILMMAKER_EN_LA_APP && !!experienciaId && Object\.values\(EXPERIENCIAS_POR_ENTRADA\)\.some\(\(xs\) => \(xs \?\? \[\]\)\.some\(\(e\) => e\.id === experienciaId && e\.produccion === true\)\);/.test(capas));
 const rama = alCrear.search(/if \(abreLaProduccion\(experiencia\?\.id\)\) \{\s*navigation\.navigate\('Production', \{ intencion: texto, creativo: filtrarCreativo\(controles\) \}\);\s*return;\s*\}/);
 check('D3) el Studio la abre con lo escrito y los controles elegidos, y no sigue', rama >= 0);

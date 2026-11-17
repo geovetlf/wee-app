@@ -68,3 +68,37 @@ export const NUMEROS_TABULARES: TextStyle = { fontVariant: ['tabular-nums'] };
 /** Alias para las hojas de estilo: las claves de siempre apuntan a la escala corta (13 · 15 · 17 · 22) y a los pesos 400/500/600. */
 export const FONT_SIZE_WEEAI = { sm: TAMANO_WEEAI.nota, base: TAMANO_WEEAI.cuerpo, md: TAMANO_WEEAI.enfasis, lg: TAMANO_WEEAI.enfasis, xl: TAMANO_WEEAI.titulo } as const;
 export const FONT_WEIGHT_WEEAI = { regular: '400', medium: '500', semibold: '600', bold: '600' } as const;
+
+/**
+ * LA PORTADA DE WEËAI v2 (referencia del dueño, 2026-11-17): negro profundo, luz blanca fría y superficies de módulo. Extiende
+ * el estilo de WeëAI —no lo sustituye— y solo lo lee la portada y su caja. Sin degradados de color: el único color de la
+ * pantalla es el isotipo de Weë. La acción principal de la portada es BLANCA con flecha negra (no el degradado dorado).
+ */
+export const PORTADA_WEEAI = {
+  fondo: '#050608',
+  fondoSecundario: '#0A0C10',
+  modulo: '#101319',
+  superficie: '#11141A',
+  superficieAlta: '#171B22',
+  borde: '#292E38',
+  bordeLuz: '#596170',
+  bordeCapsula: '#353A44',
+  tinta: '#F5F6F8',
+  tintaSecundaria: '#A1A7B2',
+  tintaDeshabilitada: '#646B76',
+  icono: '#E8EBF0',
+  iconoModulo: '#F1F3F6',
+  luz: '#E5ECFF',
+  luzSecundaria: '#AAB9D8',
+  halo: 'rgba(210,220,255,0.16)',
+  esfera: '#090B10',
+  accion: '#F5F6F8',
+  sobreAccion: '#050608',
+  sombraModulo: { shadowColor: '#000000', shadowOpacity: 0.28, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 4 } as ViewStyle,
+} as const;
+
+/** Texto de la portada: Manrope (la familia de WeëAI), con los tres pesos cargados. Los 700/800 del boceto no existen aquí: se queda el 600. */
+export const textoPortada = (size: number, peso: PesoWeeAi = '400', extra?: TextStyle): TextStyle => {
+  const base: TextStyle = { fontSize: size, lineHeight: Math.round(size * 1.25) };
+  return { ...(FAMILIA_WEEAI ? { ...base, fontFamily: FAMILIA_WEEAI[peso] } : { ...base, fontWeight: peso }), ...extra };
+};

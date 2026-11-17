@@ -412,10 +412,13 @@ export const EXPERIENCIAS_POR_ENTRADA: Readonly<Partial<Record<EntradaDeStudio, 
  * bloqueada con su motivo (`studio.pendCompose`), en su sitio de siempre, y sin
  * abrir la producción, ni desde el Studio ni por enlace.
  *
- * Lanzarlo es poner esto a `true`, después de desplegar las reglas y el índice
- * de `productions` (docs/INTEGRACION-PRODUCCION.md §2 y §7).
+ * 2026-11-17 — ABIERTA por decisión del dueño («Nosotros ya trabajamos Filmmaker, necesitamos habilitarla»), en la rama
+ * ui/rediseno-home-burger: «Varias escenas» ya no sale bloqueada, la producción tiene su ruta y su enlace, y el módulo «Filmmaker» de la portada
+ * de WeëAI navega a ella. PRECONDICIÓN PENDIENTE antes de que usuarios reales entren desde la app publicada: desplegar a producción las reglas
+ * (`productions`, `shots`) y los índices de `productions`/`shots` (docs/INTEGRACION-PRODUCCION.md §2 y §7); sin eso la pantalla falla al leer.
+ * Cerrarla de nuevo es volver a poner esto a `false`.
  */
-export const FILMMAKER_EN_LA_APP = false;
+export const FILMMAKER_EN_LA_APP = true;
 
 /**
  * Pura: el catálogo tal como se enseña. Con la puerta abierta, el de Filmmaker

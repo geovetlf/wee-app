@@ -53,6 +53,8 @@ const ANIDADAS_SIN_BARRA = new Set(['Conversation']);
 const DESTINO_DE_RUTA: Record<string, DestinoId> = {
   WeeCreator: 'WeeAI',
   CrearVideo: 'WeeAI',
+  Plantillas: 'WeeAI',
+  Herramientas: 'WeeAI',
   Specialist: 'WeeAI',
   CreatorFlow: 'WeeAI',
   Studio: 'WeeAI',

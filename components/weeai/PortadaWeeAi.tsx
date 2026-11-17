@@ -1,254 +1,127 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, useWindowDimensions } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import IconoDireccional from '../IconoDireccional';
-import { IconoWee } from '../icons/IconoWee';
 import type { NombreDeIcono } from '../icons/trazosDeWee';
-import { TarjetaDePlantilla } from './TarjetaDePlantilla';
-import { DetalleDePlantilla } from './DetalleDePlantilla';
-import { VistaPreviaDePlantilla } from './VistaPreviaDePlantilla';
-import HojaDeElementos from './video/HojaDeElementos';
-import type { EstadoDePersonalizar } from './video/PersonalizarVideo';
-import type { ElementoElegido } from '../../constants/catalogoElementos';
+import { CabeceraDePortada } from './CabeceraDePortada';
+import { FondoDeEsfera, HeroDePortada } from './HeroDePortada';
+import { ModulosDePortada, ModuloDePortada, HUECO_DE_MODULOS, cabenEnUnaLinea } from './ModulosDePortada';
+import CajaDePrompt, { AccionDeLaCaja } from '../creator/CajaDePrompt';
+import { CajaAnclada } from '../creator/CajaQueCrece';
 import { useT } from '../../contexts/IdiomaContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useUserProfile } from '../../contexts/UserProfileContext';
-import { useDireccion } from '../../hooks/useDireccion';
-import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
-import { useUserById } from '../../hooks/useUserById';
-import type { EstadoDePlantillas } from '../../hooks/usePlantillas';
-import { EXPERIENCIA_DE_CATEGORIA, FILTROS_DE_PLANTILLA, FiltroDePlantilla, PlantillaWeeAi, tituloDePlantilla, ModoDePersonalizar, modoPorDefectoDe } from '../../constants/plantillasWeeAi';
-import { MUSICA_EN_LA_UI, PORTADA_DE_WEEAI, getExperienceById } from '../../constants/weeExperiences';
-import { FASHION_MODOS } from '../../constants/fashionModes';
-import { ESPACIO_WEEAI as SPACING, RADIO_WEEAI, textoWeeAi } from '../../constants/estiloWeeAi';
-import { scale } from '../../utils/scale';
+import { useResponsive } from '../../hooks/useResponsive';
+import { MUSICA_EN_LA_UI, PORTADA_DE_WEEAI } from '../../constants/weeExperiences';
+import { MUNDO_3D_EN_LA_APP, FILMMAKER_EN_LA_APP } from '../../constants/studioExperiences';
+import { ESPACIO_WEEAI as SPACING } from '../../constants/estiloWeeAi';
 
-/*
- * Áreas de la portada: Video e Imagen (2026-11-16). Todo lo demás se alcanza desde «Herramientas»; Moda es un GRUPO de ahí que reúne el ecosistema
- * de Fashion (sus modos, las pantallas que ya existen) con el id interno de siempre, `business`, que no se movió.
- */
-const ID_DE_MODA = 'business';
 /* Qué se ofrece sale de la bandera de siempre (PORTADA_DE_WEEAI); ninguna experiencia ni id se mueve. */
 const HAY_IMAGEN = (PORTADA_DE_WEEAI.puertas as readonly string[]).includes('design');
-const HAY_MODA = (PORTADA_DE_WEEAI.puertas as readonly string[]).includes(ID_DE_MODA);
 
 const ANCHO_MAXIMO = 760;
-/** Alturas de los esqueletos, variadas como las del muro real: sin saltos al llegar las tarjetas. */
-const ESQUELETOS = [150, 110, 130, 170, 120, 140];
+/** Lo que mide la cabecera y lo mínimo que se reserva al hero cuando la caja crece. */
+const ALTO_DE_CABECERA = 56;
+const ALTO_MINIMO_DEL_HERO = 96;
+/** Aire entre bloques (hero, caja y rejilla) y bajo la rejilla. */
+const AIRE = 12;
 
 /**
- * LA PORTADA DE WEËAI (boceto v2, pantallas 1 y 2), en monocromo y sin líneas: dos puertas —Video y Herramientas—, y debajo
- * el muro de plantillas. Se separa con tono y espacio, no con trazos; lo seleccionado se dice invirtiendo (tinta sobre fondo).
+ * LA PORTADA DE WEËAI v2 — PANTALLA FIJA (2026-11-17): cabecera, hero, la caja común y la rejilla de módulos caben SIEMPRE en una
+ * sola pantalla, sin desplazarse. Lo que sobra o falta se reparte entre el hero (que se comprime) y las tarjetas (cuyo alto
+ * se ajusta a la altura de la ventana); la caja crece con lo escrito hasta un tope y el texto se desplaza DENTRO de ella.
+ * Las plantillas y las herramientas ya no viven aquí: son los módulos «Plantillas» y «Herramientas», cada uno con su pantalla propia
+ * (`PantallaDePlantillas`, `ListaDeHerramientas`).
  * El saldo y la compra viven en la cabecera (`CreditsPill`): aquí no hay precios ni lógica de Credits.
  */
-export const PortadaWeeAi: React.FC<{ plantillas: PlantillaWeeAi[]; estado: EstadoDePlantillas; recargar: () => void }> = ({ plantillas, estado, recargar }) => {
-  const c = useEstiloWeeAi();
+export const PortadaWeeAi: React.FC = () => {
   const t = useT();
-  const dir = useDireccion();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
-  const { hasWeeProfile } = useUserProfile();
-  const { width } = useWindowDimensions();
-  const [filtro, setFiltro] = useState<FiltroDePlantilla>('todas');
-  const [herramientas, setHerramientas] = useState(false);
-  const [moda, setModa] = useState(false);
-  const [abierta, setAbierta] = useState<PlantillaWeeAi | null>(null);
-  const [vista, setVista] = useState<PlantillaWeeAi | null>(null);
-  /* «Personalizar» (cara o cuerpo) y las ranuras de personaje de la plantilla abierta: el detalle y «Tu versión» comparten el mismo estado. Solo interfaz: no se envía. */
-  const [modo, setModo] = useState<ModoDePersonalizar>('cara');
-  const [huecos, setHuecos] = useState<Record<string, ElementoElegido | null>>({});
-  const [ranuraAbierta, setRanuraAbierta] = useState<string | null>(null);
-  const abrir = (p: PlantillaWeeAi | null) => {
-    setAbierta(p);
-    if (p) {
-      setModo(modoPorDefectoDe(p));
-      setHuecos({});
-    }
-  };
-  const personalizar: EstadoDePersonalizar = {
-    modo,
-    onModo: setModo,
-    huecos,
-    onElegir: setRanuraAbierta,
-    onQuitar: (id) => setHuecos((h) => ({ ...h, [id]: null })),
-  };
-
-  /* El nombre de quien publicó la plantilla abierta: lo lee la atribución del resultado. */
-  const { userProfile: autorAbierto } = useUserById((vista ?? abierta)?.autorId);
-  const visibles = useMemo(() => plantillas.filter((p) => filtro === 'todas' || p.categoria === filtro), [plantillas, filtro]);
-  /* Dos columnas: cada tarjeta a la columna más baja, para que el muro quede parejo. */
-  const columnas = useMemo(() => {
-    const cols: { items: PlantillaWeeAi[]; alto: number }[] = [{ items: [], alto: 0 }, { items: [], alto: 0 }];
-    for (const p of visibles) {
-      const col = cols[0].alto <= cols[1].alto ? cols[0] : cols[1];
-      col.items.push(p);
-      col.alto += 1 / p.aspecto + 0.45;
-    }
-    return cols;
-  }, [visibles]);
-  const anchoUtil = Math.min(width, ANCHO_MAXIMO) - SPACING.md * 2;
-  const anchoDeColumna = Math.floor((anchoUtil - SPACING.sm) / 2);
+  const { isDesktop } = useResponsive();
+  /* La caja universal: lo escrito y, si se marcó imagen o video, el contexto con el que viaja. Sin marca, Weë Brain. */
+  const [texto, setTexto] = useState('');
+  const [tipo, setTipo] = useState<null | 'imagen' | 'video'>(null);
+  const [medida, setMedida] = useState({ ancho: 0, alto: 0 });
 
   const conCuenta = (fn: () => void) => () => (user ? fn() : navigation.navigate('Login'));
   const irA = (id: string) => navigation.navigate('Specialist', { id });
-  const irAModa = (modo: string) => navigation.navigate('Specialist', { id: ID_DE_MODA, modo });
-  const avatar = conCuenta(() => navigation.navigate(hasWeeProfile ? 'AiAvatar' : 'WeeProfileCreation'));
-  const generar = (p: PlantillaWeeAi, duracion?: number) => {
-    if (!user) return navigation.navigate('Login');
-    /* El flujo de siempre: el prompt llega predefinido y solo pide lo que falta (la foto). La duración, si hay, va en el pedido. */
-    const goal = duracion ? `${p.prompt}\n${duracion} s` : p.prompt;
-    const nombreDelAutor = p.autorNombre || autorAbierto?.displayName;
-    setVista(null);
-    setAbierta(null);
-    navigation.navigate('CreatorFlow', { experienceId: p.experiencia ?? EXPERIENCIA_DE_CATEGORIA[p.categoria], goal, plantilla: { titulo: tituloDePlantilla(p, t), ...(nombreDelAutor ? { autor: nombreDelAutor } : {}) } });
+  /* La caja es la misma inteligencia que las demás: solo cambia el experienceId que viaja (Brain, o el de imagen o video si se marcó). */
+  const enviar = conCuenta(() => {
+    const goal = texto.trim();
+    if (!goal) return;
+    const experienceId = tipo === 'imagen' ? 'design' : tipo === 'video' ? 'studio' : 'brain';
+    setTexto('');
+    navigation.navigate('CreatorFlow', { experienceId, goal });
+  });
+
+  const acciones: AccionDeLaCaja[] = [
+    { icono: 'add', iconoWee: 'mas', etiqueta: `${t('studio.addLabel')}. ${t('common.comingSoon')}`, alPulsar: () => {}, deshabilitada: true },
+  ];
+  const accionesDerecha: AccionDeLaCaja[] = [
+    ...(HAY_IMAGEN ? [{ icono: 'image-outline', iconoWee: 'galeria' as NombreDeIcono, etiqueta: t('composer.kindImage'), alPulsar: () => setTipo((v) => (v === 'imagen' ? null : 'imagen')), activa: tipo === 'imagen' }] : []),
+    { icono: 'videocam-outline', iconoWee: 'claqueta' as NombreDeIcono, etiqueta: t('composer.kindVideo'), alPulsar: () => setTipo((v) => (v === 'video' ? null : 'video')), activa: tipo === 'video' },
+    { icono: 'pulse', iconoWee: 'ondas' as NombreDeIcono, etiqueta: `${t('creaciones.kindAudio')}. ${t('common.comingSoon')}`, alPulsar: () => {}, deshabilitada: true },
+  ];
+
+  /* Cada módulo va a su flujo REAL o queda apagado con «Próximamente»: nada simulado. */
+  const m = {
+    imagen: { id: 'imagen', icono: 'galeria', clave: 'composer.kindImage', textura: 'imagen', alPulsar: HAY_IMAGEN ? () => irA('design') : undefined } as ModuloDePortada,
+    video: { id: 'video', icono: 'claqueta', clave: 'composer.kindVideo', textura: 'video', alPulsar: () => navigation.navigate('CrearVideo') } as ModuloDePortada,
+    audio: { id: 'audio', icono: 'ondas', clave: 'creaciones.kindAudio', textura: 'audio', alPulsar: MUSICA_EN_LA_UI ? () => irA('music') : undefined } as ModuloDePortada,
+    /* Filmmaker: la producción existe (`Production`) pero su puerta está cerrada (`FILMMAKER_EN_LA_APP`): abierta desde 2026-11-17, navega a Production; cerrada, «Próximamente» y sin navegar. */
+    filmmaker: { id: 'filmmaker', icono: 'camaraCine', clave: 'weeai.portadaFilmmaker', textura: 'video', alPulsar: FILMMAKER_EN_LA_APP ? () => navigation.navigate('Production') : undefined } as ModuloDePortada,
+    texto: { id: 'texto', icono: 'texto', clave: 'composer.kindText', textura: 'texto' } as ModuloDePortada,
+    tresD: { id: 'tresD', icono: 'cubo', clave: 'creaciones.kindModel3d', textura: 'tresD', alPulsar: MUNDO_3D_EN_LA_APP ? () => navigation.navigate('Mundo3D') : undefined } as ModuloDePortada,
+    plantillas: { id: 'plantillas', icono: 'plantillas', clave: 'weeai.portadaPlantillas', textura: 'imagen', alPulsar: () => navigation.navigate('Plantillas') } as ModuloDePortada,
+    herramientas: { id: 'herramientas', icono: 'capas', clave: 'weeai.tools', textura: 'mas', alPulsar: () => navigation.navigate('Herramientas') } as ModuloDePortada,
   };
 
-  const puerta = (icono: NombreDeIcono, clave: string, onPress: () => void, grande: boolean, expandida?: boolean) => (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.8}
-      accessibilityRole="button"
-      accessibilityState={expandida === undefined ? undefined : { expanded: expandida }}
-      aria-expanded={expandida}
-      style={[styles.puerta, { flex: grande ? 1.5 : 1, backgroundColor: grande ? c.seleccion : c.superficie }]}
-    >
-      <IconoWee name={icono} size={scale(28)} color={grande ? c.sobreSeleccion : c.tinta} />
-      <Text style={[styles.puertaTexto, textoWeeAi('enfasis', '600'), dir.texto, { color: grande ? c.sobreSeleccion : c.tinta }]} numberOfLines={2}>{t(clave)}</Text>
-    </TouchableOpacity>
-  );
-
-  const filaDeHerramienta = (clave: string, icono: NombreDeIcono, onPress: () => void, texto?: string) => (
-    <TouchableOpacity key={clave} onPress={onPress} activeOpacity={0.7} accessibilityRole="button" style={[styles.herramienta, dir.contenedor, { backgroundColor: c.superficie }]}>
-      <IconoWee name={icono} size={scale(22)} color={c.tinta} />
-      <Text style={[styles.herramientaTexto, textoWeeAi('cuerpo', '500'), dir.texto, { color: c.tinta }]} numberOfLines={2}>{texto ?? t(clave)}</Text>
-      <IconoDireccional name="chevron-forward" size={scale(16)} color={c.tintaTerciaria} />
-    </TouchableOpacity>
-  );
+  /*
+   * LA MEDIDA: 4 columnas (Imagen · Video · Audio · Filmmaker / Texto · 3D · Plantillas · Herramientas) si el ancho da para
+   * rótulos legibles; si no, 3 (Imagen · Video · Filmmaker / Audio · Texto · Plantillas / 3D · Herramientas).
+   */
+  const ancho = medida.ancho || ANCHO_MAXIMO;
+  const alto = isDesktop ? Math.max(medida.alto, 720) : medida.alto || 700;
+  const anchoUtil = ancho - SPACING.md * 2;
+  /* Cuatro columnas si el ancho da y si el nombre más largo del idioma cabe en una línea sin bajar del 0,7; si no, tres. */
+  const lado4 = Math.floor((anchoUtil - HUECO_DE_MODULOS * 3) / 4);
+  const columnas = ancho >= 380 && cabenEnUnaLinea(Object.values(m).map((x) => t(x.clave)), lado4) ? 4 : 3;
+  const modulos = columnas === 4
+    ? [m.imagen, m.video, m.audio, m.filmmaker, m.texto, m.tresD, m.plantillas, m.herramientas]
+    : [m.imagen, m.video, m.filmmaker, m.audio, m.texto, m.plantillas, m.tresD, m.herramientas];
+  const filas = Math.ceil(modulos.length / columnas);
+  const lado = Math.floor((anchoUtil - HUECO_DE_MODULOS * (columnas - 1)) / columnas);
+  const altoDeTarjeta = columnas === 4 ? Math.max(76, Math.min(alto >= 780 ? 104 : 92, Math.round(lado * (alto >= 780 ? 1.2 : 0.95)))) : (alto < 700 ? 70 : 82);
+  const altoDeRejilla = filas * altoDeTarjeta + (filas - 1) * HUECO_DE_MODULOS;
+  /* Hasta dónde crece la caja: lo que queda tras la cabecera, la rejilla, el aire y un hero mínimo. */
+  const topeDeLaCaja = Math.max(130, alto - (isDesktop ? 0 : ALTO_DE_CABECERA) - altoDeRejilla - AIRE * 3 - ALTO_MINIMO_DEL_HERO);
 
   return (
-    <View style={styles.raiz}>
-      <View style={[styles.puertas, dir.contenedor]}>
-        {puerta('claqueta', 'composer.kindVideo', () => navigation.navigate('CrearVideo'), true)}
-        {HAY_IMAGEN ? puerta('galeria', 'composer.kindImage', () => irA('design'), false) : null}
-        {puerta('capas', 'weeai.tools', () => setHerramientas((v) => !v), false, herramientas)}
+    <View style={styles.raiz} onLayout={(e: LayoutChangeEvent) => { const { width, height } = e.nativeEvent.layout; setMedida((antes) => (Math.abs(antes.ancho - width) > 1 || Math.abs(antes.alto - height) > 1 ? { ancho: Math.round(width), alto: Math.round(height) } : antes)); }}>
+      <FondoDeEsfera ancho={ancho} />
+      {!isDesktop ? <CabeceraDePortada /> : null}
+      <HeroDePortada ancho={ancho} />
+      <View style={[styles.bloque, { marginBottom: AIRE }]}>
+        <CajaAnclada alto={topeDeLaCaja}>
+          <CajaDePrompt
+            portada
+            valor={texto}
+            onCambiar={setTexto}
+            onEnviar={enviar}
+            etiquetaEnviar={t('studio.sendLabel')}
+            placeholder={t('nav.weeAiQuestion')}
+            acciones={acciones}
+            accionesDerecha={accionesDerecha}
+          />
+        </CajaAnclada>
       </View>
-      {herramientas ? (
-        <View style={styles.herramientas}>
-          {/* Weë Brain es marca: no se traduce. */}
-          {filaDeHerramienta('brain', 'cerebro', () => irA('brain'), 'Weë Brain')}
-          {/* Moda: un grupo de una palabra que plega su ecosistema (los modos de Fashion, con sus pantallas de siempre). */}
-          {HAY_MODA ? <TouchableOpacity onPress={() => setModa((v) => !v)} activeOpacity={0.7} accessibilityRole="button" accessibilityState={{ expanded: moda }} aria-expanded={moda} style={[styles.herramienta, dir.contenedor, { backgroundColor: c.superficie }]}>
-            <IconoWee name="vestido" size={scale(22)} color={c.tinta} />
-            <Text style={[styles.herramientaTexto, textoWeeAi('cuerpo', '500'), dir.texto, { color: c.tinta }]} numberOfLines={1}>{t('weeai.filterFashion')}</Text>
-            <IconoWee name={moda ? 'chevronArriba' : 'chevronAbajo'} size={scale(16)} color={c.tintaTerciaria} />
-          </TouchableOpacity> : null}
-          {HAY_MODA && moda ? FASHION_MODOS.map((m) => (
-            <TouchableOpacity key={m.id} onPress={() => irAModa(m.id)} activeOpacity={0.7} accessibilityRole="button" style={[styles.herramienta, styles.subherramienta, dir.contenedor, { backgroundColor: c.superficie }]}>
-              <Text style={[styles.herramientaTexto, textoWeeAi('cuerpo', '500'), dir.texto, { color: c.tinta }]} numberOfLines={2}>{t(m.claveTitulo)}</Text>
-              <IconoDireccional name="chevron-forward" size={scale(16)} color={c.tintaTerciaria} />
-            </TouchableOpacity>
-          )) : null}
-          {/* El nombre de WeëMusic es marca: sale de la experiencia, no se traduce. Detrás de la bandera MUSICA_EN_LA_UI (apagada por defecto). */}
-          {MUSICA_EN_LA_UI ? filaDeHerramienta('music', 'notas', () => irA('music'), getExperienceById('music')?.name) : null}
-          {filaDeHerramienta('weeai.avatarForWeeProfile', 'perfilWee', avatar)}
-        </View>
-      ) : null}
-
-      <Text style={[styles.seccion, textoWeeAi('titulo', '600'), dir.texto, { color: c.tinta }]} accessibilityRole="header">{t('weeai.templatesTitle')}</Text>
-      <Text style={[styles.sub, textoWeeAi('cuerpo'), dir.texto, { color: c.tintaSecundaria }]}>{t('weeai.templatesSub')}</Text>
-      <View style={[styles.filtros, dir.contenedor]}>
-        {FILTROS_DE_PLANTILLA.map((f) => {
-          const puesto = f.id === filtro;
-          return (
-            <TouchableOpacity
-              key={f.id}
-              onPress={() => setFiltro(f.id)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: puesto }}
-              aria-pressed={puesto}
-              style={[styles.filtro, { backgroundColor: puesto ? c.seleccion : c.superficie }]}
-            >
-              <Text style={[textoWeeAi('nota', puesto ? '600' : '500'), { color: puesto ? c.sobreSeleccion : c.tinta }]} numberOfLines={1}>{t(f.clave)}</Text>
-            </TouchableOpacity>
-          );
-        })}
+      <View style={[styles.bloque, { paddingBottom: AIRE }]}>
+        <ModulosDePortada modulos={modulos} ancho={anchoUtil} columnas={columnas} alto={altoDeTarjeta} />
       </View>
-
-      {estado === 'cargando' ? (
-        <View style={[styles.muro, dir.contenedor]} accessibilityLabel={t('common.loading')}>
-          {[0, 1].map((col) => (
-            <View key={col} style={styles.columna}>
-              {ESQUELETOS.filter((_, i) => i % 2 === col).map((alto, i) => (
-                <View key={i} style={[styles.esqueleto, { height: alto, backgroundColor: c.superficie }]} />
-              ))}
-            </View>
-          ))}
-          <ActivityIndicator style={styles.girando} color={c.tintaSecundaria} />
-        </View>
-      ) : estado === 'error' ? (
-        <View style={styles.aviso}>
-          <Text style={[textoWeeAi('cuerpo'), styles.avisoTexto, dir.texto, { color: c.tintaSecundaria }]}>{t('weeai.templatesError')}</Text>
-          <TouchableOpacity onPress={recargar} accessibilityRole="button" style={[styles.reintentar, { backgroundColor: c.superficie }]}>
-            <Text style={[textoWeeAi('cuerpo', '600'), { color: c.tinta }]}>{t('creaciones.retry')}</Text>
-          </TouchableOpacity>
-        </View>
-      ) : visibles.length === 0 ? (
-        <View style={styles.aviso}>
-          <Text style={[textoWeeAi('cuerpo'), styles.avisoTexto, dir.texto, { color: c.tintaSecundaria }]}>{t('weeai.noTemplates')}</Text>
-        </View>
-      ) : (
-        <View style={[styles.muro, dir.contenedor]}>
-          {columnas.map((col, i) => (
-            <View key={i} style={styles.columna}>
-              {col.items.map((p) => <TarjetaDePlantilla key={p.id} plantilla={p} ancho={anchoDeColumna} onPress={() => abrir(p)} />)}
-            </View>
-          ))}
-        </View>
-      )}
-
-      <DetalleDePlantilla
-        plantilla={abierta && !vista ? abierta : null}
-        onClose={() => setAbierta(null)}
-        similares={abierta ? plantillas.filter((p) => p.categoria === abierta.categoria && p.id !== abierta.id).slice(0, 6) : []}
-        onElegirSimilar={(p) => abrir(p)}
-        personalizar={personalizar}
-        onRecrear={(p) => setVista(p)}
-        onAbrirPublicacion={(postId) => { setAbierta(null); navigation.navigate('PostDetail', { postId }); }}
-      />
-      <VistaPreviaDePlantilla plantilla={vista} onClose={() => setVista(null)} onGenerar={generar} personalizar={personalizar} />
-      <HojaDeElementos
-        visible={ranuraAbierta !== null}
-        paraRanura
-        elegidos={[]}
-        onClose={() => setRanuraAbierta(null)}
-        onListo={(sel) => {
-          const primero = sel.find((e) => e.tipo === 'personaje' || e.tipo === 'galeria') ?? null;
-          if (ranuraAbierta) setHuecos((h) => ({ ...h, [ranuraAbierta]: primero }));
-          setRanuraAbierta(null);
-        }}
-      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  raiz: { width: '100%', maxWidth: ANCHO_MAXIMO, alignSelf: 'center' },
-  puertas: { flexDirection: 'row', gap: SPACING.sm },
-  puerta: { minHeight: 104, borderRadius: RADIO_WEEAI.tarjeta, alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, padding: SPACING.md, overflow: 'hidden' },
-  puertaTexto: { textAlign: 'center' },
-  herramientas: { marginTop: SPACING.sm, gap: SPACING.sm },
-  subherramienta: { marginStart: SPACING.lg },
-  herramienta: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, minHeight: 52, paddingHorizontal: SPACING.md, borderRadius: RADIO_WEEAI.control },
-  herramientaTexto: { flex: 1, minWidth: 0 },
-  seccion: { marginTop: SPACING.lg },
-  sub: { marginTop: SPACING.xs, marginBottom: SPACING.md },
-  filtros: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.md },
-  filtro: { minHeight: 44, borderRadius: RADIO_WEEAI.pastilla, paddingHorizontal: SPACING.md, alignItems: 'center', justifyContent: 'center' },
-  muro: { flexDirection: 'row', gap: SPACING.sm, alignItems: 'flex-start' },
-  columna: { flex: 1, minWidth: 0 },
-  esqueleto: { borderRadius: RADIO_WEEAI.tarjeta, marginBottom: SPACING.sm },
-  girando: { position: 'absolute', alignSelf: 'center', top: scale(60), start: '48%' },
-  aviso: { alignItems: 'center', gap: SPACING.md, paddingVertical: SPACING.xl },
-  avisoTexto: { textAlign: 'center' },
-  reintentar: { minHeight: 44, borderRadius: RADIO_WEEAI.pastilla, paddingHorizontal: SPACING.lg, alignItems: 'center', justifyContent: 'center' },
+  raiz: { flex: 1, width: '100%', maxWidth: ANCHO_MAXIMO, alignSelf: 'center' },
+  bloque: { paddingHorizontal: SPACING.md },
 });
