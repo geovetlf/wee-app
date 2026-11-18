@@ -94,9 +94,10 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
   return (
     <View style={styles.raiz}>
       <ScrollView style={{ flex: 1, minHeight: 120 }} contentContainerStyle={[styles.contenido, bajo && { paddingTop: 2, gap: 8 }]} keyboardShouldPersistTaps="handled">
-        {bajo ? null : <View style={[styles.cabeza, dir.contenedor]}>
-          <Text style={[textoPortada(compacto ? 18 : 22, '600'), dir.texto, { color: P.tinta, flex: 1 }]} accessibilityRole="header" numberOfLines={1}>{t('filmmaker.uniTitle')}</Text>
-        </View>}
+        {/* En pantalla baja la fila de etapas se oculta: el título dice dónde está la persona. */}
+        <View style={[styles.cabeza, dir.contenedor]}>
+          <Text style={[textoPortada(bajo ? 16 : compacto ? 18 : 22, '600'), dir.texto, { color: P.tinta, flex: 1 }]} accessibilityRole="header" numberOfLines={1}>{t('filmmaker.uniTitle')}</Text>
+        </View>
         {bajo ? null : <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>{[t('filmmakerProd.cntCharacters', { contador: n.character }), t('filmmakerProd.cntPlaces', { contador: n.place }), t('filmmakerProd.cntObjects', { contador: n.object })].join(' · ')}</Text>}
 
         {universo.elementos.length === 0 && !bajo ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} testID="universo-construir-cerrado">{t('filmmakerProd.uniBuildClosed')}</Text> : null}

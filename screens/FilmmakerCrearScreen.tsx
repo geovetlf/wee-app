@@ -448,7 +448,7 @@ const FilmmakerCrearScreen: React.FC = () => {
         ) : null}
 
         {/* Las etapas solo aparecen cuando sirven (después de la Idea) y solo las que existen: nunca bloqueadas. */}
-        {enEtapas && !(enTandas && enCapitulo) ? <BarraDeEtapas activa={enJuntar ? 'join' : enProduccion ? 'production' : enTandas ? 'batches' : 'universe'} onIr={irA} onProyecto={() => { setFoco(null); setProyecto(true); }} /> : null}
+        {enEtapas && !(enTandas && enCapitulo) && !(enUniverso && alto < 600) ? <BarraDeEtapas activa={enJuntar ? 'join' : enProduccion ? 'production' : enTandas ? 'batches' : 'universe'} onIr={irA} onProyecto={() => { setFoco(null); setProyecto(true); }} /> : null}
 
         {/* EL MUNDO de encima de la caja: las tarjetas de tipo, o el hilo del taller de Idea. */}
         <View style={styles.mundo} onLayout={(e: LayoutChangeEvent) => { const h = Math.round(e.nativeEvent.layout.height); setAltoMundo((a) => (Math.abs(a - h) > 1 ? h : a)); }}>
