@@ -58,7 +58,7 @@ export interface TandasDelTaller {
 export const OBJETIVO_POR_TANDA = 180;
 export const DURACION_DE_CUADRO_POR_DEFECTO = 6;
 /** Tope de un cuadro hoy: 15 s (Seedance 2.0). 2.5 llega a 30 s, pero la presentación por modelo es la decisión D7, pendiente: se sube cambiando esta constante. */
-export const TOPE_DE_CUADRO = 15;
+export const TOPE_DE_CUADRO = 30;
 export const TOPES_TANDAS = { tandas: 24, cuadros: 60, texto: 240, titulo: 60 } as const;
 /** Lo que admite hoy el montaje final del contrato: se enseña, nunca se promete más. */
 export const LIMITE_DEL_MONTAJE = { planos: 60, segundos: 600 } as const;

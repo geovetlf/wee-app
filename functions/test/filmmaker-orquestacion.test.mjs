@@ -44,7 +44,7 @@ console.log('── B · Estados ──');
 check('B1) toma en marcha → en_proceso → tanda «producing»', O.estadoDeCuadro({ fase: 'en_proceso' }) === 'en_proceso' && O.produccionDeTanda(['lista', 'en_proceso']) === 'producing');
 check('B2) todos listos → «done»; alguno fallido sin nada en marcha → «error»; nada → sin estado', O.produccionDeTanda(['lista', 'lista']) === 'done' && O.produccionDeTanda(['lista', 'fallida']) === 'error' && O.produccionDeTanda(['sin_toma']) === undefined);
 check('B3) vídeo en el plano manda: lista', O.estadoDeCuadro({ fase: 'elige_calidad', enElPlano: { assetId: 'a' } }) === 'lista');
-check('B4) duración fuera de toma: <4 s «corta», >15 s «larga»', O.duracionFueraDeToma(3) === 'corta' && O.duracionFueraDeToma(20) === 'larga' && O.duracionFueraDeToma(6) === null);
+check('B4) duración fuera de toma: <4 s «corta», >30 s «larga»', O.duracionFueraDeToma(3) === 'corta' && O.duracionFueraDeToma(35) === 'larga' && O.duracionFueraDeToma(6) === null);
 
 console.log('── C · Sincronizar ──');
 {

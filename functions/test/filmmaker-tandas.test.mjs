@@ -75,7 +75,7 @@ console.log('── B · Honestidad ──');
   check('B8) la intensidad es el ritmo del movimiento del contrato (movement.speed)', K.INTENSIDADES.every((i) => CAM.VALORES_CREATIVOS['movement.speed'].includes(i.valor)) && K.INTENSIDADES.length === 3);
   check('B9) cámara lenta, time-lapse, zoom de impacto y plano inclinado salen CERRADOS con motivo y ninguno está en el contrato', ['slowmo', 'timelapse', 'dollyzoom', 'dutch'].every((id) => K.EFECTOS_CERRADOS.some((f) => f.id === id && f.claveMotivo)));
   check('B10) cinco acciones de D1 listas para recibirse (referencia, primer, último, extender, editar)', K.ACCIONES_D1.map((a) => a.id).join() === 'reference,firstFrame,lastFrame,extend,edit');
-  check('B11) el tope de un cuadro es 15 s (D7 pendiente) y el montaje 600 s / 60 planos', U.TOPE_DE_CUADRO === 15 && U.LIMITE_DEL_MONTAJE.segundos === 600);
+  check('B11) el tope de un cuadro es 30 s (D7: Seedance 2.5) y el montaje 600 s / 60 planos', U.TOPE_DE_CUADRO === 30 && U.LIMITE_DEL_MONTAJE.segundos === 600);
   check('B12) producir, ver y reintentar salen cerrados con motivo; crear y revisar abiertos', !T.ACCION_DE_ESTADO.approved.abierta && T.ACCION_DE_ESTADO.approved.claveMotivo && T.ACCION_DE_ESTADO.none.abierta && T.ACCION_DE_ESTADO.review.abierta);
   check('B13) los seis estados tienen texto', U.ESTADOS_DE_TANDA.every((e) => T.CLAVE_DE_ESTADO[e]));
 }

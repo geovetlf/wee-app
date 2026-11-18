@@ -1,7 +1,7 @@
 import { LIMITES, aplicarOperaciones, configuracionDePreset, produccionVacia } from '../services/filmmaker/dominio';
 import type {
   AspectRatio, DialogueLine, FilmmakerOperation, FilmmakerProduction, FormatPresetId, ProductionCharacter, ProductionLocation,
-  ProductionObject, ProductionScene, ProductionShot, ProductionType,
+  ProductionObject, ProductionScene, ProductionShot, ProductionType, ResolutionTarget,
 } from '../services/filmmaker/dominio';
 import { OPERACION_DE_LA_RUTA } from '../constants/filmmaker';
 import type { Tanda, CuadroDeStoryboard, TandasDelTaller } from './tandasDeFilmmaker';
@@ -61,6 +61,8 @@ export interface ExperienciaDeFilmmaker {
   readonly estilo: string;
   readonly duracionSegundos?: number;
   readonly aspectRatio: AspectRatio;
+  /** La resolución del nivel Avanzado (vacía = Auto). */
+  readonly resolution?: ResolutionTarget;
   readonly preset?: FormatPresetId;
   readonly universo?: UniversoDelTaller;
   readonly tandas?: TandasDelTaller;
@@ -121,7 +123,7 @@ export const produccionDesdeLaExperiencia = (e: ExperienciaDeFilmmaker): Resulta
   const omisiones: Omision[] = [];
   const vozSinDestino: { ownerId: string; voz: string }[] = [];
   const idea = recorta(e.idea, LIMITES.textoLibre);
-  let prod: FilmmakerProduction = produccionVacia({ title: recorta(idea.split(/[\n.!?]/)[0] || idea, LIMITES.nombre) || 'Filmmaker', aspectRatio: e.aspectRatio, id: e.productionId });
+  let prod: FilmmakerProduction = produccionVacia({ title: recorta(idea.split(/[\n.!?]/)[0] || idea, LIMITES.nombre) || 'Filmmaker', aspectRatio: e.aspectRatio, ...(e.resolution ? { resolution: e.resolution } : {}), id: e.productionId });
   if (e.preset) prod = { ...prod, ...configuracionDePreset(e.preset) };
   const tipo = TIPO_DE_PRODUCCION[e.tipo];
   if (!tipo) omisiones.push({ motivo: 'tipo_sin_equivalente', id: e.tipo });
@@ -237,6 +239,6 @@ export const conProduccion = (t: Tanda, porCuadro: Readonly<Record<string, Estad
 export const planosPorProducir = (t: Tanda, porCuadro: Readonly<Record<string, EstadoDeCuadroEnServidor>>): readonly string[] =>
   t.cuadros.filter((c) => !c.ejemplo && (porCuadro[c.id] ?? 'sin_toma') !== 'lista' && porCuadro[c.id] !== 'en_proceso').map((c) => idDePlano(c.id));
 
-/** Cuadros cuya duración el generador no podría tomar tal cual: <4 s se genera en 4; >15 s se rechaza (`creator/plano.ts`: duración 4–15). */
-export const AJUSTE_DE_TOMA = Object.freeze({ minimoSeg: 4, maximoSeg: 15 });
+/** Cuadros cuya duración el generador no podría tomar tal cual: <4 s se genera en 4; >30 s se rechaza (`creator/plano.ts`: duración 4–30; 15 s si no hay modelo delante). */
+export const AJUSTE_DE_TOMA = Object.freeze({ minimoSeg: 4, maximoSeg: 30 });
 export const duracionFueraDeToma = (seg: number): 'corta' | 'larga' | null => (seg > AJUSTE_DE_TOMA.maximoSeg ? 'larga' : seg < AJUSTE_DE_TOMA.minimoSeg ? 'corta' : null);

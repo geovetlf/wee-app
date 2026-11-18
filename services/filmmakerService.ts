@@ -276,6 +276,8 @@ export interface NuevaProduccion {
   readonly preset?: FormatPresetId;
   /** …o una producción entera, como borrador en su revisión 0. Lo uno o lo otro. */
   readonly production?: FilmmakerProduction;
+  /** Las imágenes de la persona (subidas a `creator-inputs`) con su papel; el servidor las vuelve material de la cuenta al crear. */
+  readonly references?: readonly { readonly role: 'reference' | 'character' | 'world'; readonly url: string }[];
 }
 
 export interface LoteParaAplicar {
@@ -309,6 +311,7 @@ export const crearFilmmakerService = (llamar: LlamadaAProducciones, opciones: { 
       const r = await llamarConLimite(limpio({
         op: 'create', productionId: p.productionId ?? nuevoIdDeProduccion(), operationId: p.operationId,
         title: p.title, aspectRatio: p.aspectRatio, resolution: p.resolution, preset: p.preset, production: p.production,
+        references: p.references && p.references.length ? p.references : undefined,
       }));
       return { created: esObj(r) && r.created === true, produccion: aProduccion(r) };
     }),

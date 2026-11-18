@@ -58,6 +58,7 @@ import { filmmakerSonido } from './filmmakerSonido';
 import { filmmakerTandas } from './filmmakerTandas';
 import { filmmakerDocumentos } from './filmmakerDocumentos';
 import { filmmakerImagenes } from './filmmakerImagenes';
+import { filmmakerProd } from './filmmakerProd';
 export const es = {
   common,
   help,
@@ -106,6 +107,7 @@ export const es = {
   filmmakerTandas,
   filmmakerDocumentos,
   filmmakerImagenes,
+  filmmakerProd,
 };
 
 /**

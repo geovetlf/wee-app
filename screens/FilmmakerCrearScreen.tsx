@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -32,11 +32,11 @@ import { TandasDelTaller, tandasVacias } from '../utils/tandasDeFilmmaker';
 import { TallerDeIdea, EstadoDelTaller } from '../components/filmmaker/TallerDeIdea';
 import { ElegirEstilo } from '../components/filmmaker/ElegirEstilo';
 import { ESTILOS } from '../constants/filmmakerEstilos';
-import { crearProduccion, nuevoIdDeProduccion, useProducciones } from '../hooks/useProducciones';
+import { nuevoIdDeProduccion, useProducciones } from '../hooks/useProducciones';
+import { useProduccionDeFilmmaker } from '../hooks/useProduccionDeFilmmaker';
 import { fraseDelFallo } from '../utils/mensajesDeFilmmaker';
-import { tituloDesdeLaIdea } from '../utils/presentacionDeProduccion';
-import { IdeaDelTaller, alRecibir, estaLista, fraseDe, duracionDe, etiquetaAccesible, cambiarDeTipo, esTipoConTaller, ideaVacia, poner, sumarALaFrase, tituloDeLaIdea } from '../utils/ideaDeFilmmaker';
-import { LIMITES } from '../services/filmmaker/dominio';
+import type { FalloDeProducciones } from '../services/filmmakerService';
+import { IdeaDelTaller, alRecibir, estaLista, fraseDe, duracionDe, etiquetaAccesible, cambiarDeTipo, esTipoConTaller, ideaVacia, poner, sumarALaFrase } from '../utils/ideaDeFilmmaker';
 import type { AspectRatio, ResolutionTarget } from '../services/filmmaker/dominio';
 import { PORTADA_WEEAI as P, textoPortada, ESPACIO_WEEAI as SPACING } from '../constants/estiloWeeAi';
 import { CHIP_DE_MARCA_EN_COMPOSER, PILDORA_DE_FORMATO_VISIBLE, FORMATO_POR_DEFECTO, TIPOS_DE_PROYECTO, TipoDeProyecto } from '../constants/filmmakerCrear';
@@ -92,6 +92,11 @@ const FilmmakerCrearScreen: React.FC = () => {
   const [aviso, setAviso] = useState<string | null>(null);
   /* Un solo id por intento: repetir con el mismo no crea dos producciones. */
   const idDeProduccion = useRef(nuevoIdDeProduccion());
+  /* La producción del servidor: la crea la idea y la mantienen al día los capítulos (hooks/useProduccionDeFilmmaker). */
+  const pf = useProduccionDeFilmmaker();
+  const idProduccionGuardada = pf.guardada?.productionId ?? null;
+  const vocesLocales = (pf.omitido?.vozSinDestino.length ?? 0) > 0;
+  const avisoDeVoces = useRef(false);
 
   /* Solo si ya hay producciones activas: «Continuar tu producción» con la más reciente. Sin datos (o con error) no se muestra nada. */
   const { carga, producciones } = useProducciones('active', !!user);
@@ -109,6 +114,23 @@ const FilmmakerCrearScreen: React.FC = () => {
   const enUniverso = capa === 'universo';
   const enTandas = capa === 'tandas';
 
+  /* Los capítulos y cuadros que la persona escribe se guardan en su producción (escenas y planos) un momento después de cada cambio; sin cambios reales no se llama al servidor. */
+  useEffect(() => {
+    if (!idProduccionGuardada || !tipoId || !estilo) return;
+    const espera = setTimeout(() => {
+      void pf.asegurar({ idea: fraseDe(idea), tipo: tipoId, estilo, aspectRatio: aspectoDeLaIdea(idea), ...((idea.valores.resolution as ResolutionTarget | undefined) ? { resolution: idea.valores.resolution as ResolutionTarget } : {}), duracionSegundos: duracionDe(idea), universo, tandas });
+    }, 1200);
+    return () => clearTimeout(espera);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tandas, universo, idProduccionGuardada]);
+  /* Lo que no se pudo guardar se dice en una línea; la voz elegida, que hoy solo vive en esta pantalla, también (una vez). */
+  useEffect(() => {
+    if (!enTandas) return;
+    if (pf.fallo) setAviso(t('filmmakerProd.syncFailed'));
+    else if (vocesLocales && !avisoDeVoces.current) { avisoDeVoces.current = true; setAviso(t('filmmakerProd.voiceLocal')); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enTandas, pf.fallo, vocesLocales]);
+
   const atras = () => {
     setAviso(null);
     if (enTandas) setCapa('universo');
@@ -117,6 +139,7 @@ const FilmmakerCrearScreen: React.FC = () => {
     else if (enEstilo) { setCapa('entrada'); setPreguntado(false); }
     else navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main');
   };
+  const aspectoDeLaIdea = (base: IdeaDelTaller): AspectRatio => (base.valores.format as AspectRatio | undefined) ?? (TIPOS_DE_PROYECTO.find((x) => x.id === base.tipo)?.formato as AspectRatio | undefined) ?? '16:9';
   const cerrado = (clave: string) => () => setAviso(t(clave));
 
   /** Tocar una tarjeta de tipo: conserva lo ya escrito y abre la segunda capa, la del estilo. */
@@ -134,20 +157,24 @@ const FilmmakerCrearScreen: React.FC = () => {
     if (creando) return;
     if (!user) { navigation.navigate('Login'); return; }
     setCapa('taller'); setCreando(true); setFallo(null); setAviso(null);
-    /* Formato y resolución del nivel Avanzado mandan; sin ellos, el anuncio nace con su preset y el resto con lo de siempre. */
-    const aspectRatio = base.valores.format as AspectRatio | undefined;
-    const resolution = base.valores.resolution as ResolutionTarget | undefined;
-    const propios = aspectRatio || resolution ? { ...(aspectRatio ? { aspectRatio } : {}), ...(resolution ? { resolution } : {}) } : base.tipo === 'ad' ? { preset: 'ads' as const } : {};
-    const r = await crearProduccion({ productionId: idDeProduccion.current, title: tituloDeLaIdea(base, (f, max) => tituloDesdeLaIdea(f, Math.min(max, LIMITES.nombre))), ...propios });
-    setCreando(false);
-    if (!r.ok) { setFallo(fraseDelFallo(r.fallo, t)); setTexto(fraseDe(base)); return; }
-    idDeProduccion.current = nuevoIdDeProduccion();
-    setProduccionId(r.valor.produccion.productionId);
     /* Lo que la persona aportó llega al Universo: cada personaje (imagen) cuenta como un personaje suyo —el requisito de al menos uno— y cada mundo, como un lugar. */
-    setUniverso((u) => {
-      const conPersonajes = personajes(refs.referencias).reduce((acc, _p, i) => anadir(acc, 'character', t('filmmaker.refCharacterName', { n: formato.numero(i + 1) })), u);
-      return listas(refs.referencias).filter((x) => x.rol === 'world').reduce((acc) => anadir(acc, 'place', t('filmmaker.refWorldName')), conPersonajes);
+    const conPersonajes = personajes(refs.referencias).reduce((acc, _p, i) => anadir(acc, 'character', t('filmmaker.refCharacterName', { n: formato.numero(i + 1) })), universoVacio());
+    const universoInicial = listas(refs.referencias).filter((x) => x.rol === 'world').reduce((acc) => anadir(acc, 'place', t('filmmaker.refWorldName')), conPersonajes);
+    /* Formato y resolución del nivel Avanzado mandan; sin ellos, el anuncio nace con su preset y el resto con lo de siempre. */
+    const tipoDeProyecto = TIPOS_DE_PROYECTO.find((x) => x.id === base.tipo);
+    const aspectRatio = aspectoDeLaIdea(base);
+    const idUsado = idDeProduccion.current;
+    /* La producción nace en el servidor con la idea, el tipo, el estilo, el universo que ya hay y las imágenes de la persona (con su papel). Mismo id en cada intento: no se duplica. */
+    const ok = await pf.asegurar({
+      productionId: idUsado, idea: fraseDe(base), tipo: base.tipo, estilo: estilo ?? '', aspectRatio, ...((base.valores.resolution as ResolutionTarget | undefined) ? { resolution: base.valores.resolution as ResolutionTarget } : {}), duracionSegundos: duracionDe(base),
+      ...(tipoDeProyecto?.preset ? { preset: tipoDeProyecto.preset } : {}), universo: universoInicial,
+      references: listas(refs.referencias).map((x) => ({ role: x.rol, url: x.url as string })),
     });
+    setCreando(false);
+    if (!ok) { setFallo(fraseDelFallo(pf.falloReciente() as FalloDeProducciones, t)); setTexto(fraseDe(base)); return; }
+    idDeProduccion.current = nuevoIdDeProduccion();
+    setProduccionId(idUsado);
+    setUniverso(universoInicial);
     setPreguntado(false);
     setCapa('universo');
   };

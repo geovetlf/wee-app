@@ -1,5 +1,5 @@
 import { filmmakerService, nuevoIdDeOperacion, nuevoIdDeProduccion } from './filmmakerService';
-import type { FilmmakerService, ProduccionGuardada, Resultado } from './filmmakerService';
+import type { FilmmakerService, NuevaProduccion, ProduccionGuardada, Resultado } from './filmmakerService';
 import type { FilmmakerOperation, NewScene } from './filmmaker/dominio';
 import { produccionDesdeLaExperiencia } from '../utils/filmmakerOrquestacion';
 import type { ExperienciaDeFilmmaker, ResultadoDelBorrador } from '../utils/filmmakerOrquestacion';
@@ -31,10 +31,10 @@ export interface SincronizadaConElServidor {
 }
 
 export const crearOrquestacion = (servicio: Pick<FilmmakerService, 'createProduction' | 'applyProductionOperations'>) => ({
-  crear: async (e: Omit<ExperienciaDeFilmmaker, 'productionId'> & { readonly productionId?: string }): Promise<Resultado<CreadaDesdeLaExperiencia>> => {
+  crear: async (e: Omit<ExperienciaDeFilmmaker, 'productionId'> & { readonly productionId?: string; readonly references?: NuevaProduccion['references'] }): Promise<Resultado<CreadaDesdeLaExperiencia>> => {
     const productionId = e.productionId ?? nuevoIdDeProduccion();
     const { production, omisiones, vozSinDestino } = produccionDesdeLaExperiencia({ ...e, productionId });
-    const r = await servicio.createProduction({ productionId, title: production.title, production });
+    const r = await servicio.createProduction({ productionId, title: production.title, production, ...(e.references && e.references.length ? { references: e.references } : {}) });
     return r.ok ? { ok: true, valor: { created: r.valor.created, produccion: r.valor.produccion, borrador: { omisiones, vozSinDestino } } } : r;
   },
 

@@ -58,6 +58,7 @@ import { filmmakerSonido } from './filmmakerSonido';
 import { filmmakerTandas } from './filmmakerTandas';
 import { filmmakerDocumentos } from './filmmakerDocumentos';
 import { filmmakerImagenes } from './filmmakerImagenes';
+import { filmmakerProd } from './filmmakerProd';
 import { FormaDelDiccionario } from '../es';
 
 export const en: FormaDelDiccionario = {
@@ -108,4 +109,5 @@ export const en: FormaDelDiccionario = {
   filmmakerTandas,
   filmmakerDocumentos,
   filmmakerImagenes,
+  filmmakerProd,
 };

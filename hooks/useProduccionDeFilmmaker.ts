@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { filmmakerOrquestacionService } from '../services/filmmakerOrquestacionService';
 import type { CreadaDesdeLaExperiencia, SincronizadaConElServidor } from '../services/filmmakerOrquestacionService';
-import type { FalloDeProducciones, ProduccionGuardada } from '../services/filmmakerService';
+import type { FalloDeProducciones, NuevaProduccion, ProduccionGuardada } from '../services/filmmakerService';
 import type { ExperienciaDeFilmmaker } from '../utils/filmmakerOrquestacion';
 import { conProduccion } from '../utils/filmmakerOrquestacion';
 import type { EstadoDeCuadroEnServidor } from '../utils/filmmakerOrquestacion';
@@ -28,14 +28,16 @@ export const useProduccionDeFilmmaker = () => {
   /* Una sola escritura a la vez: dos `asegurar` seguidos esperan al primero (evita el conflicto de revisión por pisarse). */
   const cola = useRef<Promise<unknown>>(Promise.resolve());
   const ultima = useRef<ProduccionGuardada | null>(null);
+  /* El último fallo, legible en el mismo instante en que `asegurar` resuelve (el estado de React llega un pintado después). */
+  const ultimoFallo = useRef<FalloDeProducciones | null>(null);
 
-  const asegurar = useCallback((e: Omit<ExperienciaDeFilmmaker, 'productionId'>): Promise<boolean> => {
+  const asegurar = useCallback((e: Omit<ExperienciaDeFilmmaker, 'productionId'> & { readonly productionId?: string; readonly references?: NuevaProduccion['references'] }): Promise<boolean> => {
     const tarea = cola.current.then(async () => {
-      setCarga('trabajando'); setFallo(null);
+      setCarga('trabajando'); setFallo(null); ultimoFallo.current = null;
       const r = ultima.current
         ? await filmmakerOrquestacionService.sincronizar(ultima.current, e)
         : await filmmakerOrquestacionService.crear(e);
-      if (!r.ok) { setFallo(r.fallo); setCarga('error'); return false; }
+      if (!r.ok) { ultimoFallo.current = r.fallo; setFallo(r.fallo); setCarga('error'); return false; }
       const v = r.valor as CreadaDesdeLaExperiencia | SincronizadaConElServidor;
       ultima.current = v.produccion; setGuardada(v.produccion); setOmitido(v.borrador); setCarga('libre');
       return true;
@@ -47,5 +49,7 @@ export const useProduccionDeFilmmaker = () => {
   const tandasConEstado = useCallback((t: TandasDelTaller, porCuadro: Readonly<Record<string, EstadoDeCuadroEnServidor>>): TandasDelTaller =>
     ({ ...t, tandas: t.tandas.map((x) => conProduccion(x, porCuadro)) }), []);
 
-  return useMemo(() => ({ guardada, carga, fallo, omitido, asegurar, tandasConEstado }), [guardada, carga, fallo, omitido, asegurar, tandasConEstado]);
+  const falloReciente = useCallback(() => ultimoFallo.current, []);
+
+  return useMemo(() => ({ guardada, carga, fallo, omitido, asegurar, tandasConEstado, falloReciente }), [guardada, carga, fallo, omitido, asegurar, tandasConEstado, falloReciente]);
 };
