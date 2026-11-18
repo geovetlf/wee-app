@@ -97,5 +97,12 @@ check('19) `producing`/`done`/`error` no se guardan: salen de las tomas', !ok(r)
 r = aplica(p, [{ op: 'update_scene', sceneId: 'sc01', changes: { batch: null } }]);
 check('20) y se retira con `null`', ok(r) && r.production.scenes[0].batch === undefined);
 
+console.log('── La idea larga ──');
+const conIdea = (len) => aplica(p, [{ op: 'change_intent', changes: { freeText: 'x'.repeat(len) } }]);
+const errIdea = (res) => validacion.validarProduccion(res.production).problems.filter((x) => x.path === 'intent.freeText' && x.severity === 'error');
+check('21) una idea de 12 000 caracteres cabe (ampliación documentada: lo que Pegar texto admite)', ok(conIdea(12000)) && errIdea(conIdea(12000)).length === 0);
+check('22) una de 12 001 se RECHAZA con el máximo, no se recorta en silencio', (() => { const x = conIdea(12001); return !ok(x) ? true : errIdea(x).some((e) => e.parameters.reason === 'too_long' && e.parameters.max === 12000); })());
+check('23) el resto de los textos libres siguen en 4000', modelo.LIMITES.textoLibre === 4000 && modelo.LIMITES.ideaLibre === 12000);
+
 console.log(fallos ? `\n✘ ${fallos} fallan de ${n}` : `\n✔ ${n} comprobaciones`);
 process.exit(fallos ? 1 : 0);

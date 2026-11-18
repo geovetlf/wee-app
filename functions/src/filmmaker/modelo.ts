@@ -211,6 +211,12 @@ export const LIMITES = Object.freeze({
   texto: 2000,
   linea: 1000,
   textoLibre: 4000,
+  /**
+   * Convergencia (2026-11-18) · AMPLIACIÓN DOCUMENTADA: la IDEA (`intent.freeText`) admite hasta 12 000 caracteres, lo que
+   * «Pegar texto» ya acepta en la app. Sobre ese tope se RECHAZA (`too_long`, con el máximo): nunca se recorta en silencio.
+   * El resto de los textos libres siguen en `textoLibre`.
+   */
+  ideaLibre: 12000,
   elementosPorBloque: MAX_ELEMENTOS_POR_NODO,
   dependencias: MAX_DEPENDENCIAS_DE_PLANO,
   anclajes: MAX_ANCLAJES,

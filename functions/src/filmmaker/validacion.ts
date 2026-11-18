@@ -782,7 +782,7 @@ const intencion = (c: Ctx, v: unknown): void => {
   uno(c, v.aspectRatio, PROPORCIONES, 'intent.aspectRatio', 'format_invalid');
   uno(c, v.preset, PRESETS, 'intent.preset');
   for (const k of ['tone', 'style', 'theme', 'narrative']) texto(c, v[k], `intent.${k}`, LIMITES.texto);
-  texto(c, v.freeText, 'intent.freeText', LIMITES.textoLibre);
+  texto(c, v.freeText, 'intent.freeText', LIMITES.ideaLibre);
   refs(c, v.referenceIds, 'intent.referenceIds', ['reference'], LIMITES.referenciasPorCosa);
   if (arreglo(c, v.priorities, 'intent.priorities', PRIORIDADES.length)) {
     const vistas = new Set<unknown>();
