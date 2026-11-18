@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useT, useIdioma } from '../../../contexts/IdiomaContext';
@@ -7,9 +7,11 @@ import { PORTADA_WEEAI as P, textoPortada } from '../../../constants/estiloWeeAi
 import { PRODUCCION_ABIERTA } from '../../../constants/filmmakerCamara';
 import { useTomaDePlano } from '../../../hooks/useTomaDePlano';
 import type { ProduccionGuardada } from '../../../services/filmmakerService';
-import { CALIDADES_DE_TOMA } from '../../../utils/controladorDeToma';
+import { CALIDADES_DE_TOMA, CalidadDeToma } from '../../../utils/controladorDeToma';
+import { videoService } from '../../../services/videoService';
+import type { PresupuestoDeLote } from '../../../services/videoService';
 import { CLAVE_DE_CALIDAD, fraseDelRechazoDeToma } from '../../../utils/mensajesDeFilmmaker';
-import { idDePlano, duracionFueraDeToma } from '../../../utils/filmmakerOrquestacion';
+import { idDePlano, idDeEscena, duracionFueraDeToma } from '../../../utils/filmmakerOrquestacion';
 import { CuadroDeStoryboard, Tanda, TandasDelTaller, duracionDe, tandaEsDeEjemplo } from '../../../utils/tandasDeFilmmaker';
 import { BotonBlanco, BotonContorno, useTiempo } from '../tandas/comunes';
 
@@ -27,7 +29,7 @@ interface Props {
 const reales = (t: Tanda): readonly CuadroDeStoryboard[] => t.cuadros.filter((c) => !c.ejemplo && c.texto.trim().length > 0);
 
 /** UN CUADRO, SU TOMA. Pinta lo que dice la toma del servidor (precio, calidad, progreso, vídeo) y nada más: no calcula nada ni cobra por su cuenta. */
-const FilaDeToma: React.FC<{ cuadro: CuadroDeStoryboard; numero: number; guardada: ProduccionGuardada | null; guardando: boolean }> = ({ cuadro, numero, guardada, guardando }) => {
+const FilaDeToma: React.FC<{ cuadro: CuadroDeStoryboard; numero: number; escenaId: string; guardada: ProduccionGuardada | null; guardando: boolean; onCambio: () => void }> = ({ cuadro, numero, escenaId, guardada, guardando, onCambio }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
@@ -64,7 +66,7 @@ const FilaDeToma: React.FC<{ cuadro: CuadroDeStoryboard; numero: number; guardad
       {f === 'sin_unidad' ? null
         : f === 'no_disponible' ? nota(t(fase.porque === 'sin_guardar' ? 'filmmaker.takeNeedsSaving' : fase.porque === 'archivada' ? 'filmmaker.takeArchived' : 'filmmaker.takeNeedsReady'))
         : f === 'consultando' ? nota(t('filmmaker.takeChecking'))
-        : f === 'en_proceso' || f === 'terminando' ? nota(t(f === 'en_proceso' ? 'filmmaker.takeWorking' : 'filmmaker.takeLinking'), true)
+        : f === 'en_proceso' || f === 'terminando' ? (<>{nota(t(f === 'en_proceso' ? 'filmmaker.takeWorking' : 'filmmaker.takeLinking'), true)}{f === 'en_proceso' && guardada ? boton(t('filmmakerProd.cancelTake'), () => { void videoService.cancelTake({ productionId: guardada.productionId, sceneId: escenaId, unitId: idDePlano(cuadro.id), revision: guardada.revision, requirement: null, take: fase.toma }).then(onCambio); }) : null}</>)
         : f === 'error' ? (<>{nota(fraseDelRechazoDeToma(fase.rechazo, t, formato))}{boton(t('common.retry'), toma.reintentar)}</>)
         : eligiendo ? (
           <View style={{ gap: 8 }}>
@@ -92,6 +94,64 @@ const FilaDeToma: React.FC<{ cuadro: CuadroDeStoryboard; numero: number; guardad
   );
 };
 
+/** PRODUCIR UN CAPÍTULO ENTERO: calidad → presupuesto (≈ N Credits, qué ya está o no se puede) → confirmar → el servidor pide cada cuadro en orden y para al primer fallo. */
+const BloqueDeLote: React.FC<{ tanda: Tanda; cuadros: readonly CuadroDeStoryboard[]; guardada: ProduccionGuardada | null; guardando: boolean; onCambio: () => void }> = ({ tanda, cuadros, guardada, guardando, onCambio }) => {
+  const t = useT();
+  const { formato } = useIdioma();
+  const dir = useDireccion();
+  const [calidad, setCalidad] = useState<CalidadDeToma | null>(null);
+  const [fase, setFase] = useState<'libre' | 'cotizando' | 'cotizado' | 'generando' | 'listo'>('libre');
+  const [presupuesto, setPresupuesto] = useState<PresupuestoDeLote | null>(null);
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  const lote = (q: CalidadDeToma) => ({ productionId: (guardada as ProduccionGuardada).productionId, revision: (guardada as ProduccionGuardada).revision, quality: q, units: cuadros.map((c) => idDePlano(c.id)) });
+  const cotizar = async (q: CalidadDeToma) => {
+    if (!guardada || guardando) return;
+    setCalidad(q); setFase('cotizando'); setMensaje(null);
+    const r = await videoService.quoteBatch(lote(q));
+    if (!r.ok) { setMensaje(fraseDelRechazoDeToma(r.rechazo, t, formato)); setFase('libre'); return; }
+    setPresupuesto(r.valor); setFase('cotizado');
+  };
+  const confirmar = async () => {
+    if (!guardada || !calidad || !presupuesto) return;
+    setFase('generando');
+    const r = await videoService.generateBatch(lote(calidad), presupuesto.total.credits);
+    if (!r.ok) { setMensaje(fraseDelRechazoDeToma(r.rechazo, t, formato)); setFase('libre'); onCambio(); return; }
+    setMensaje(r.valor.stoppedAt || r.valor.reason ? t('filmmakerProd.batchStopped') : t('filmmakerProd.batchDone'));
+    setFase('listo'); onCambio();
+  };
+  const boton = (texto: string, onPress: () => void, apagado = false) => (
+    <TouchableOpacity onPress={onPress} disabled={apagado} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={texto} accessibilityState={{ disabled: apagado }} style={[styles.boton, apagado && { opacity: 0.5 }]}>
+      <Text style={[textoPortada(14, '600'), { color: P.tinta, textAlign: 'center' }]} numberOfLines={2}>{texto}</Text>
+    </TouchableOpacity>
+  );
+  const nota = (x: string, fuerte = false) => <Text style={[textoPortada(12, fuerte ? '600' : '400'), dir.texto, { color: fuerte ? P.tinta : P.tintaSecundaria }]} accessibilityLiveRegion="polite">{x}</Text>;
+  return (
+    <View style={styles.fila} testID={'lote-' + tanda.id}>
+      <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tinta }]}>{t('filmmakerProd.batchProduce')}</Text>
+      <View style={[styles.calidades, dir.contenedor]}>
+        {CALIDADES_DE_TOMA.map((c) => (
+          <TouchableOpacity key={c} onPress={() => { void cotizar(c); }} disabled={fase === 'cotizando' || fase === 'generando' || guardando || !guardada} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t(CLAVE_DE_CALIDAD[c])} accessibilityState={{ selected: c === calidad }} style={[styles.calidad, c === calidad && styles.calidadSel]}>
+            <Text style={[textoPortada(13, c === calidad ? '600' : '500'), { color: c === calidad ? P.tinta : P.tintaSecundaria }]} numberOfLines={1}>{t(CLAVE_DE_CALIDAD[c])}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {guardando || !guardada ? nota(t('filmmaker.takeNeedsSaving')) : null}
+      {fase === 'cotizando' ? nota(t('filmmaker.takeQuoting')) : null}
+      {fase === 'cotizado' && presupuesto ? (
+        <>
+          {nota(t('filmmakerProd.batchQuote', { credits: formato.numero(presupuesto.total.credits), contador: presupuesto.total.units }), true)}
+          {presupuesto.skipped.done + presupuesto.skipped.inFlight > 0 ? nota(t('filmmakerProd.batchSkipped', { n: formato.numero(presupuesto.skipped.done + presupuesto.skipped.inFlight) })) : null}
+          {presupuesto.skipped.blocked > 0 ? nota(t('filmmakerProd.batchBlocked', { n: formato.numero(presupuesto.skipped.blocked) })) : null}
+          {!presupuesto.enough ? nota(t('filmmakerProd.batchNoCredits'), true) : null}
+          {boton(t('filmmakerProd.batchConfirm'), () => { void confirmar(); }, !presupuesto.enough || presupuesto.total.units === 0)}
+        </>
+      ) : null}
+      {fase === 'generando' ? nota(t('filmmakerProd.batchWorking'), true) : null}
+      {mensaje ? nota(mensaje) : null}
+    </View>
+  );
+};
+
 /**
  * PRODUCCIÓN (etapa 4): los cuadros de los capítulos aprobados, cada uno con su toma. Se produce cuadro a cuadro, con su precio «≈ N Credits» junto al
  * botón que lo causa y la confirmación de cada uno (es la toma que ya existe en el servidor: cotizar → reservar → generar → enlazar). Mientras la
@@ -102,6 +162,8 @@ export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guard
   const { formato } = useIdioma();
   const dir = useDireccion();
   const tiempo = useTiempo();
+  const [version, setVersion] = useState(0);
+  const refrescar = () => setVersion((v) => v + 1);
   const aprobadas = tandas.tandas.filter((x) => x.aprobada && !tandaEsDeEjemplo(x) && reales(x).length > 0);
 
   return (
@@ -121,7 +183,8 @@ export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guard
             <View key={tanda.id} style={{ gap: 8 }}>
               <Text style={[textoPortada(15, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header">{tanda.titulo || t('filmmakerTandas.chapterN', { n: formato.numero(indice) })}</Text>
               <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.frames', { contador: cuadros.length })} · {tiempo.solo(duracionDe(tanda))}</Text>
-              {PRODUCCION_ABIERTA ? cuadros.map((c, i) => <FilaDeToma key={c.id} cuadro={c} numero={i + 1} guardada={guardada} guardando={guardando} />) : null}
+              {PRODUCCION_ABIERTA ? <BloqueDeLote key={'l' + tanda.id + version} tanda={tanda} cuadros={cuadros} guardada={guardada} guardando={guardando} onCambio={refrescar} /> : null}
+              {PRODUCCION_ABIERTA ? cuadros.map((c, i) => <FilaDeToma key={c.id + version} cuadro={c} numero={i + 1} escenaId={idDeEscena(tanda.id)} guardada={guardada} guardando={guardando} onCambio={refrescar} />) : null}
             </View>
           );
         })}

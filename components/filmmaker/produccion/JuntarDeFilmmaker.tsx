@@ -7,6 +7,9 @@ import { JUNTAR_ABIERTO } from '../../../constants/filmmakerCamara';
 import { LIMITE_DEL_MONTAJE, TandasDelTaller, excesoDelMontaje, tandaEsDeEjemplo, totales } from '../../../utils/tandasDeFilmmaker';
 import { BotonBlanco, useTiempo } from '../tandas/comunes';
 
+/** El tope diario de montajes del servidor (render): se enseña para que nadie se encuentre el límite al final. */
+const MONTAJES_POR_DIA = 5;
+
 interface Props {
   tandas: TandasDelTaller;
   /** Une los cuadros en un solo vídeo. Sin él (o con `JUNTAR_ABIERTO = false`) el botón sale cerrado con su motivo. */
@@ -38,6 +41,7 @@ export const JuntarDeFilmmaker: React.FC<Props> = ({ tandas, onJuntar }) => {
         <Text style={[textoPortada(12, '400'), dir.texto, { color: pasado ? P.tinta : P.tintaSecundaria }]} accessibilityLiveRegion="polite">
           {t(pasado ? 'filmmakerTandas.limitOver' : 'filmmakerTandas.limitNote', { planos: formato.numero(LIMITE_DEL_MONTAJE.planos), duracion: tiempo.solo(LIMITE_DEL_MONTAJE.segundos) })}
         </Text>
+        <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerProd.joinDaily', { n: formato.numero(MONTAJES_POR_DIA) })}</Text>
       </ScrollView>
       <View style={styles.pie}>
         <BotonBlanco texto={t('filmmakerProd.joinAction')} onPress={() => { if (abierto && onJuntar) onJuntar(); }} apagado={!abierto} motivo={motivo} testID="juntar-accion" />
