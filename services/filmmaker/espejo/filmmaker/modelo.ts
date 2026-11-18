@@ -101,6 +101,7 @@ export const LIMITES = Object.freeze({
     texto: 2000,
     linea: 1000,
     textoLibre: 4000,
+    ideaLibre: 12000,
     elementosPorBloque: MAX_ELEMENTOS_POR_NODO,
     dependencias: MAX_DEPENDENCIAS_DE_PLANO,
     anclajes: MAX_ANCLAJES,
@@ -229,7 +230,14 @@ export interface ProductionScene {
     readonly audio?: AudioDirection;
     readonly continuity?: ContinuityRule;
     readonly dependsOn?: readonly string[];
+    readonly batch?: SceneBatch;
     readonly shots: readonly ProductionShot[];
+}
+export const ESTADOS_DE_TANDA_GUARDADOS = Object.freeze(['draft', 'approved'] as const);
+export type SceneBatchStatus = typeof ESTADOS_DE_TANDA_GUARDADOS[number];
+export interface SceneBatch {
+    readonly status: SceneBatchStatus;
+    readonly stored?: boolean;
 }
 export interface ProductionShot {
     readonly id: string;
@@ -249,6 +257,7 @@ export interface ProductionShot {
     readonly dependsOn?: readonly string[];
     readonly generation?: ShotGeneration;
     readonly advanced?: AdvancedDirection;
+    readonly revision?: ShotRevision;
 }
 export interface ShotSubject {
     readonly characterId?: string;
@@ -264,6 +273,17 @@ export interface CharacterState {
 export interface ShotGeneration {
     readonly quality?: ProductionQuality;
 }
+export const MODOS_DE_REVISION = Object.freeze(['edit', 'extend'] as const);
+export type TakeRevisionMode = typeof MODOS_DE_REVISION[number];
+export const DIRECCIONES_DE_EXTENSION = Object.freeze(['forward', 'backward'] as const);
+export type ExtensionDirection = typeof DIRECCIONES_DE_EXTENSION[number];
+export interface ShotRevision {
+    readonly mode: TakeRevisionMode;
+    readonly instruction: string;
+    readonly fromTake?: number;
+    readonly direction?: ExtensionDirection;
+    readonly seconds?: number;
+}
 export interface AdvancedDirection {
     readonly prompt: string;
 }
@@ -275,6 +295,7 @@ export interface DialogueLine {
     readonly language?: string;
     readonly emotion?: string;
     readonly estimatedSec?: number;
+    readonly voice?: VoiceReference;
 }
 export interface ProductionCharacter {
     readonly id: string;
@@ -624,9 +645,9 @@ export const estadoEfectivo = (scene: ProductionScene, shot: ProductionShot | un
     };
 };
 export const repartoDelPlano = (scene: ProductionScene, shot?: ProductionShot): readonly string[] => shot?.characterIds ?? scene.characterIds ?? [];
-export const vozDeLinea = (prod: FilmmakerProduction, line: DialogueLine): VoiceReference | undefined => line.kind === 'narration'
+export const vozDeLinea = (prod: FilmmakerProduction, line: DialogueLine): VoiceReference | undefined => line.voice ?? (line.kind === 'narration'
     ? prod.audio.narrator
-    : prod.characters.find((c) => c.id === line.characterId)?.voice;
+    : prod.characters.find((c) => c.id === line.characterId)?.voice);
 export const idiomaDeLinea = (prod: FilmmakerProduction, line: DialogueLine): string | undefined => line.language ?? prod.metadata.locale;
 export const RITMO_DE_HABLA = Object.freeze({ palabrasPorSegundo: 3, caracteresCjkPorSegundo: 6 });
 const rango = (desde: number, hasta: number): string => `${String.fromCharCode(desde)}-${String.fromCharCode(hasta)}`;

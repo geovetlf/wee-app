@@ -4,7 +4,7 @@ import { FUERZAS_DE_CONTINUIDAD, RELACIONES_ESPACIALES, anclajeValido, validarCo
 import { PROPORCIONES, validarCreativos } from '../core/creative';
 import { normalizarEtiqueta } from '../core/language';
 import { claveProhibidaDeNodo } from '../core/shot';
-import { CALIDADES, CLIMAS, ENFOQUES, ESTILOS_DE_SUBTITULO, LIMITES, MODOS_DE_SUBTITULO, MOMENTOS_DEL_DIA, PAPELES_DE_REFERENCIA, PISTAS, POSICIONES_DE_SUBTITULO, PRESETS, PREVISUALIZACIONES, PRIORIDADES, PROPOSITOS_DE_EXPORTACION, PROPOSITOS_NARRATIVOS, RASGOS, RELACIONES_ENTRE_PERSONAJES, RESOLUCIONES, RITMOS, TIPOS_DE_LINEA, TIPOS_DE_OBJETO, TIPOS_DE_PRODUCCION, TIPOS_DE_RESTRICCION, TIPOS_DE_SONIDO, AMBIENTES, FILMMAKER_MODEL_VERSION, aMs, aSec, canonico, compararTexto, esId, } from './modelo';
+import { CALIDADES, CLIMAS, ENFOQUES, ESTILOS_DE_SUBTITULO, LIMITES, MODOS_DE_SUBTITULO, MOMENTOS_DEL_DIA, PAPELES_DE_REFERENCIA, PISTAS, POSICIONES_DE_SUBTITULO, PRESETS, PREVISUALIZACIONES, PRIORIDADES, PROPOSITOS_DE_EXPORTACION, PROPOSITOS_NARRATIVOS, RASGOS, RELACIONES_ENTRE_PERSONAJES, RESOLUCIONES, RITMOS, TIPOS_DE_LINEA, TIPOS_DE_OBJETO, TIPOS_DE_PRODUCCION, TIPOS_DE_RESTRICCION, TIPOS_DE_SONIDO, AMBIENTES, FILMMAKER_MODEL_VERSION, aMs, aSec, canonico, compararTexto, esId, DIRECCIONES_DE_EXTENSION, MODOS_DE_REVISION, ESTADOS_DE_TANDA_GUARDADOS, } from './modelo';
 export type Severity = 'error' | 'warning' | 'info';
 export type ParamValue = string | number | boolean | readonly string[];
 export type Params = Readonly<Record<string, ParamValue>>;
@@ -327,7 +327,7 @@ const direccionDeAudio = (c: Ctx, v: unknown, ruta: string): void => {
     texto(c, v.notes, unir(ruta, 'notes'), LIMITES.frase);
     booleano(c, v.withSound, unir(ruta, 'withSound'));
 };
-const LINEA = ['id', 'kind', 'characterId', 'text', 'language', 'emotion', 'estimatedSec'];
+const LINEA = ['id', 'kind', 'characterId', 'text', 'language', 'emotion', 'estimatedSec', 'voice'];
 const lineas = (c: Ctx, v: unknown, ruta: string): readonly {
     readonly l: Obj;
     readonly ruta: string;
@@ -359,6 +359,8 @@ const lineas = (c: Ctx, v: unknown, ruta: string): readonly {
         idioma(c, l.language, unir(r, 'language'));
         texto(c, l.emotion, unir(r, 'emotion'), LIMITES.frase);
         duracion(c, l.estimatedSec, unir(r, 'estimatedSec'), LIMITES.planoMaxSec);
+        if (l.voice !== undefined)
+            voz(c, l.voice, unir(r, 'voice'));
     });
     return buenas;
 };
@@ -414,8 +416,25 @@ const referenciasDePlano = (c: Ctx, v: unknown, ruta: string): void => {
 const pertenece = (id: unknown, visibles: ReadonlySet<string> | undefined): boolean => visibles === undefined || (typeof id === 'string' && visibles.has(id));
 const PLANO = [
     'id', 'order', 'durationSec', 'description', 'visual', 'subject', 'characterIds', 'objectIds', 'characterStates',
-    'actions', 'dialogue', 'audio', 'referenceIds', 'continuity', 'dependsOn', 'generation', 'advanced',
+    'actions', 'dialogue', 'audio', 'referenceIds', 'continuity', 'dependsOn', 'generation', 'advanced', 'revision',
 ];
+const MAX_TOMA_DE_PARTIDA = 50;
+const revisionDePlano = (c: Ctx, v: unknown, ruta: string): void => {
+    if (!objeto(c, v, ruta))
+        return;
+    claves(c, v, ['mode', 'instruction', 'fromTake', 'direction', 'seconds'], ruta, 'instruction');
+    uno(c, v.mode, MODOS_DE_REVISION, unir(ruta, 'mode'), 'value_invalid', true);
+    texto(c, v.instruction, unir(ruta, 'instruction'), LIMITES.textoLibre, true);
+    numero(c, v.fromTake, unir(ruta, 'fromTake'), 1, MAX_TOMA_DE_PARTIDA, true);
+    if (v.mode !== 'extend') {
+        for (const k of ['direction', 'seconds'])
+            if (v[k] !== undefined)
+                mal(c, 'constraints_incompatible', 'error', unir(ruta, k), { reason: 'only_when_extending' });
+        return;
+    }
+    uno(c, v.direction, DIRECCIONES_DE_EXTENSION, unir(ruta, 'direction'));
+    numero(c, v.seconds, unir(ruta, 'seconds'), LIMITES.duracionMinimaSec, LIMITES.planoMaxSec);
+};
 const plano = (c: Ctx, p: unknown, j: number, rutaDeEscena: string, reparto: ReadonlySet<string> | undefined): void => {
     const r = unir(unir(rutaDeEscena, 'shots'), tramo(p, j));
     if (!objeto(c, p, r, true))
@@ -447,6 +466,7 @@ const plano = (c: Ctx, p: unknown, j: number, rutaDeEscena: string, reparto: Rea
         claves(c, p.advanced, ['prompt'], unir(r, 'advanced'), 'prompt');
         texto(c, p.advanced.prompt, unir(r, 'advanced.prompt'), LIMITES.textoLibre, true);
     }
+    revisionDePlano(c, p.revision, unir(r, 'revision'));
     if (reparto) {
         for (const id of personajes)
             if (!reparto.has(id))
@@ -475,13 +495,26 @@ const plano = (c: Ctx, p: unknown, j: number, rutaDeEscena: string, reparto: Rea
 };
 const ESCENA = [
     'id', 'order', 'title', 'description', 'narrativePurpose', 'durationSec', 'timeOfDay', 'weather', 'locationId',
-    'characterIds', 'objectIds', 'characterStates', 'actions', 'dialogue', 'visual', 'audio', 'continuity', 'dependsOn', 'shots',
+    'characterIds', 'objectIds', 'characterStates', 'actions', 'dialogue', 'visual', 'audio', 'continuity', 'dependsOn', 'batch', 'shots',
 ];
+const tanda = (c: Ctx, v: unknown, ruta: string): void => {
+    if (v === undefined)
+        return;
+    if (!objeto(c, v, ruta))
+        return;
+    claves(c, v, ['status', 'stored'], ruta, 'status');
+    uno(c, v.status, ESTADOS_DE_TANDA_GUARDADOS, unir(ruta, 'status'), 'value_invalid', true);
+    if (v.stored !== undefined && typeof v.stored !== 'boolean')
+        mal(c, 'value_invalid', 'error', unir(ruta, 'stored'), { reason: 'not_boolean' });
+    if (v.stored === true && v.status !== 'approved')
+        mal(c, 'constraints_incompatible', 'error', unir(ruta, 'stored'), { reason: 'only_when_approved' });
+};
 const escena = (c: Ctx, s: unknown, i: number): void => {
     const r = unir('scenes', tramo(s, i));
     if (!objeto(c, s, r, true))
         return;
     claves(c, s, ESCENA, r);
+    tanda(c, s.batch, unir(r, 'batch'));
     if (s.order !== i)
         mal(c, 'order_mismatch', 'error', unir(r, 'order'), { expected: i });
     texto(c, s.title, unir(r, 'title'), LIMITES.nombre);
@@ -733,7 +766,7 @@ const intencion = (c: Ctx, v: unknown): void => {
     uno(c, v.preset, PRESETS, 'intent.preset');
     for (const k of ['tone', 'style', 'theme', 'narrative'])
         texto(c, v[k], `intent.${k}`, LIMITES.texto);
-    texto(c, v.freeText, 'intent.freeText', LIMITES.textoLibre);
+    texto(c, v.freeText, 'intent.freeText', LIMITES.ideaLibre);
     refs(c, v.referenceIds, 'intent.referenceIds', ['reference'], LIMITES.referenciasPorCosa);
     if (arreglo(c, v.priorities, 'intent.priorities', PRIORIDADES.length)) {
         const vistas = new Set<unknown>();
