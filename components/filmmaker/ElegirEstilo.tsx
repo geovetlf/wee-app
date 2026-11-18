@@ -18,7 +18,11 @@ import { ESTILOS, IMAGEN_DE_ESTILO } from '../../constants/filmmakerEstilos';
 const ALTO_COMODO = 78;
 const ALTO_MINIMO = 44;
 
-export function medidasDeRejilla(alto: number, ancho: number, n: number): { columnas: number; w: number; h: number; hueco: number } {
+/** Con pantalla alta (≥ 760 dp de ventana) se prefieren siempre DOS columnas: tarjetas más altas que llenan sin desplazar y sin partir los nombres. */
+const VENTANA_ALTA = 760;
+const ALTO_COMODO_EN_ALTA = 58;
+
+export function medidasDeRejilla(alto: number, ancho: number, n: number, altoDeVentana = 0): { columnas: number; w: number; h: number; hueco: number } {
   const hueco = alto < 520 ? 8 : 10;
   const calcular = (columnas: number) => {
     const filas = Math.ceil(n / columnas);
@@ -27,7 +31,7 @@ export function medidasDeRejilla(alto: number, ancho: number, n: number): { colu
     return { columnas, w, h: Math.min(h, Math.round(w * 0.8)), hueco };
   };
   const dos = calcular(2);
-  if (dos.h >= ALTO_COMODO) return dos;
+  if (dos.h >= (altoDeVentana >= VENTANA_ALTA ? ALTO_COMODO_EN_ALTA : ALTO_COMODO)) return dos;
   const tres = calcular(3);
   const cuatro = calcular(4);
   return tres.h >= ALTO_MINIMO || cuatro.h < tres.h ? { ...tres, h: Math.max(tres.h, ALTO_MINIMO) } : { ...cuatro, h: Math.max(cuatro.h, ALTO_MINIMO) };
@@ -42,7 +46,7 @@ export const ElegirEstilo: React.FC<{ ancho: number; elegido: string | null; onE
   const arriba = 52;
   const disponible = (medido > 0 ? medido : Math.max(ventana.height - 230, 300)) - arriba - 14;
   const anchoDeFila = Math.min(ancho, 760) - lado * 2;
-  const m = medidasDeRejilla(disponible, anchoDeFila, ESTILOS.length);
+  const m = medidasDeRejilla(disponible, anchoDeFila, ESTILOS.length, ventana.height);
   const compacta = m.columnas > 2 || m.h < 96;
   return (
     <View style={styles.zona} onLayout={(e: LayoutChangeEvent) => { const h = Math.round(e.nativeEvent.layout.height); setMedido((a) => (Math.abs(a - h) > 1 ? h : a)); }}>

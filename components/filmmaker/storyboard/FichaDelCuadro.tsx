@@ -225,6 +225,7 @@ export const FichaDelCuadro: React.FC<Props> = ({ cuadro, numero, inicio, fin, e
                   <View style={{ gap: 8 }}>
                     {pedirCambio.contenido}
                     <CajaDePrompt portada enviarDiscreto valor={cambio} onCambiar={setCambio} onEnviar={() => { const dicho = cambio.trim(); if (dicho) { pedirCambio.enviar(dicho); setCambio(''); } }} etiquetaEnviar={t('studio.sendLabel')} placeholder={t('filmmakerDirector.askChangePlaceholder')} />
+                    <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerDirector.askChangeExample')}</Text>
                   </View>
                 ) : null}
               </>

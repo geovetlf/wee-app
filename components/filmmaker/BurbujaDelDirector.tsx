@@ -104,7 +104,13 @@ export const BurbujaDelDirector: React.FC<Props> = ({ burbuja, propuesta, aviso,
       ) : null}
       {aplicada && !propuesta ? <Text style={[textoPortada(13, '500'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerDirector.applied')}</Text> : null}
       {aviso && !(obsoleta && propuesta) ? <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tinta }]} accessibilityRole="alert">{aviso}</Text> : null}
-      {!propuesta && !burbuja && aviso ? (
+      {!propuesta && !burbuja && aviso && onRehacer ? (
+        <TouchableOpacity onPress={onRehacer} accessibilityRole="button" accessibilityLabel={t('common.retry')} style={styles.reintentar} activeOpacity={0.8}>
+          <Ionicons name="refresh" size={16} color={P.tinta} />
+          <Text style={[textoPortada(14, '600'), { color: P.tinta }]}>{t('common.retry')}</Text>
+        </TouchableOpacity>
+      ) : null}
+      {!propuesta && !burbuja && aviso && !onRehacer ? (
         <TouchableOpacity onPress={onDescartar} accessibilityRole="button" accessibilityLabel={t('filmmakerDirector.dismiss')} style={styles.cerrarAviso} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Text style={[textoPortada(12, '500'), { color: P.tintaSecundaria }]}>{t('filmmakerDirector.dismiss')}</Text>
         </TouchableOpacity>
@@ -123,5 +129,6 @@ const styles = StyleSheet.create({
   secundario: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.bordeCapsula, alignItems: 'center', justifyContent: 'center' },
   crear: { alignSelf: 'flex-start', minHeight: 44, paddingHorizontal: 20, borderRadius: 22, backgroundColor: P.tinta, alignItems: 'center', justifyContent: 'center' },
   cerrar: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center' },
+  reintentar: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.bordeCapsula },
   cerrarAviso: { alignSelf: 'flex-end', minHeight: 28, justifyContent: 'center' },
 });

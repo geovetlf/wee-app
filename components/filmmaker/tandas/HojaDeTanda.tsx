@@ -7,11 +7,11 @@ import { useDireccion } from '../../../hooks/useDireccion';
 import { PORTADA_WEEAI as P, textoPortada } from '../../../constants/estiloWeeAi';
 import { etiquetaAccesible } from '../../../utils/ideaDeFilmmaker';
 import { Tanda, TOPES_TANDAS } from '../../../utils/tandasDeFilmmaker';
-import { EFECTOS_DE_SONIDO_ABIERTOS, MUSICA_DE_ESCENA_ABIERTA, VOCES_PREDETERMINADAS } from '../../../constants/filmmakerSonido';
+import { VOCES_PREDETERMINADAS } from '../../../constants/filmmakerSonido';
 import { VOZ_AUTO, herenciaDe, vozPorId } from '../../../utils/sonidoDeFilmmaker';
 import { SelectorDeVoz } from '../sonido/SelectorDeVoz';
 import CajaDePrompt from '../../creator/CajaDePrompt';
-import { BotonBlanco, BotonContorno, FilaCerrada, estilosComunes as E, useTiempo } from './comunes';
+import { BotonBlanco, BotonContorno, estilosComunes as E, useTiempo } from './comunes';
 
 interface Props {
   tanda: Tanda | null;
@@ -47,7 +47,6 @@ export const HojaDeTanda: React.FC<Props> = ({ tanda, posicion, total, puedePart
   const [objetivo, setObjetivo] = useState(180);
   const [seguro, setSeguro] = useState(false);
   const [selector, setSelector] = useState(false);
-  const [aviso, setAviso] = useState<string | null>(null);
   const [pide, setPide] = useState(false);
   const [cambio, setCambio] = useState('');
   useEffect(() => { if (tanda) { setTitulo(tanda.titulo); setObjetivo(tanda.objetivo); setSeguro(false); } }, [tanda?.id, pedirCambio?.version]);
@@ -84,9 +83,6 @@ export const HojaDeTanda: React.FC<Props> = ({ tanda, posicion, total, puedePart
               </View>
               <Text style={[textoPortada(13, '600'), { color: P.tinta }]}>{t('filmmakerTandas.voiceChange')}</Text>
             </TouchableOpacity>
-            {!MUSICA_DE_ESCENA_ABIERTA ? <FilaCerrada compacta titulo={t('filmmakerSonido.layerMusic')} motivo={t('filmmakerSonido.musicClosed')} icono="musical-notes-outline" onAviso={setAviso} /> : null}
-            {!EFECTOS_DE_SONIDO_ABIERTOS ? <FilaCerrada compacta titulo={t('filmmakerSonido.layerEffects')} motivo={t('filmmakerSonido.effectsClosed')} icono="volume-high-outline" onAviso={setAviso} /> : null}
-            {aviso ? <Text style={[textoPortada(13, '500'), dir.texto, { color: P.tinta, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: P.bordeLuz }]} accessibilityLiveRegion="polite">{aviso}</Text> : null}
 
             {/* «Pídele un cambio a Weë»: una fila plegada, la misma de la ficha del cuadro; abre la caja común de Weë Brain. */}
             {pedirCambio ? (
@@ -100,6 +96,7 @@ export const HojaDeTanda: React.FC<Props> = ({ tanda, posicion, total, puedePart
                   <View style={{ gap: 8 }}>
                     {pedirCambio.contenido}
                     <CajaDePrompt portada enviarDiscreto valor={cambio} onCambiar={setCambio} onEnviar={() => { const dicho = cambio.trim(); if (dicho) { pedirCambio.enviar(dicho); setCambio(''); } }} etiquetaEnviar={t('studio.sendLabel')} placeholder={t('filmmakerDirector.askChangePlaceholder')} />
+                    <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerDirector.askChangeExample')}</Text>
                   </View>
                 ) : null}
               </>

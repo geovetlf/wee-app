@@ -84,7 +84,8 @@ export const useDirectorDeFilmmaker = (o: OpcionesDelDirector) => {
     ultimo.current = { texto: mensaje, extra };
     if (o.demo) {
       /* Demo: ninguna llamada. Una respuesta de ejemplo, marcada. */
-      setBurbuja({ texto: t('filmmakerDirector.demoReply'), demo: true });
+      /* Pedir un cambio sobre un capítulo o un cuadro: la respuesta de ejemplo repite lo que la persona pidió, completa y sin cortes. */
+      setBurbuja({ texto: extra.etapa === 'capitulos' || extra.etapa === 'cuadro' ? t('filmmakerDirector.demoChangeReply', { texto: mensaje }) : t('filmmakerDirector.demoReply'), demo: true });
       return 'respondida';
     }
     enCurso.current = true; setEstado('pensando'); setBurbuja(null);

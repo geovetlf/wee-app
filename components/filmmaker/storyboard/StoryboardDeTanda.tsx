@@ -19,6 +19,8 @@ interface Props {
   compacto: boolean;
   /** Con volver, la tanda se ve a pantalla completa (móvil); sin él, está junto a la lista (tableta y escritorio). */
   onVolver?: () => void;
+  /** Abre «Editar capítulo» (duración, voz, mover, partir, unir, quitar y «Cambiar con Weë») sobre este capítulo. */
+  onEditar: () => void;
   onAbrirCuadro: (id: string) => void;
   onAnadir: () => void;
   onAprobar: () => void;
@@ -45,7 +47,7 @@ const iconoDelCuadro = (c: CuadroDeStoryboard): keyof typeof Ionicons.glyphMap =
  * con el recuento y la duración contra el objetivo. La miniatura es un marcador con el icono de su cámara: generar las imágenes está CERRADO (regla 10)
  * y la rejilla se rotula «referencia visual, no vista previa exacta». Un único botón blanco: añadir → aprobar → guardar en el almacén → producir (cerrado).
  */
-export const StoryboardDeTanda: React.FC<Props> = ({ tanda, posicion, ancho, compacto, onVolver, onAbrirCuadro, onAnadir, onAprobar, onGuardarEnAlmacen, onProducir, onEjemplo, onQuitarEjemplo, hayEjemplos, onAviso }) => {
+export const StoryboardDeTanda: React.FC<Props> = ({ tanda, posicion, ancho, compacto, onVolver, onEditar, onAbrirCuadro, onAnadir, onAprobar, onGuardarEnAlmacen, onProducir, onEjemplo, onQuitarEjemplo, hayEjemplos, onAviso }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
@@ -94,7 +96,8 @@ export const StoryboardDeTanda: React.FC<Props> = ({ tanda, posicion, ancho, com
         <View style={[styles.cabeza, dir.contenedor]}>
           {onVolver ? <TouchableOpacity onPress={onVolver} accessibilityRole="button" accessibilityLabel={t('filmmakerTandas.backToChapters')} style={styles.volver}><Ionicons name={dir.esRTL ? 'chevron-forward' : 'chevron-back'} size={22} color={P.tinta} /></TouchableOpacity> : null}
           <Text style={[textoPortada(compacto ? 18 : 22, '600'), dir.texto, { color: P.tinta, flex: 1 }]} accessibilityRole="header" numberOfLines={2}>{titulo}</Text>
-          <PastillaDeEstado estado={estado} />
+          {estado !== 'none' && estado !== 'review' && estado !== 'approved' ? <PastillaDeEstado estado={estado} /> : null}
+          <TouchableOpacity testID="editar-capitulo" onPress={onEditar} accessibilityRole="button" accessibilityLabel={t('filmmakerTandas.options')} style={styles.editarCap}><Ionicons name="options-outline" size={22} color={P.tinta} /></TouchableOpacity>
         </View>
         <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>
           {t('filmmakerTandas.frames', { contador: tanda.cuadros.length })} · {t('filmmakerTandas.durationOf', { hecho: tiempo.solo(dur), objetivo: tiempo.solo(tanda.objetivo) })}
@@ -144,6 +147,7 @@ const styles = StyleSheet.create({
   raiz: { flex: 1 },
   contenido: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12, gap: 12 },
   cabeza: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  editarCap: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginEnd: -8 },
   volver: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginStart: -10 },
   barra: { height: 4, borderRadius: 2, backgroundColor: P.superficieAlta, overflow: 'hidden' },
   relleno: { height: 4, borderRadius: 2, backgroundColor: P.tinta },

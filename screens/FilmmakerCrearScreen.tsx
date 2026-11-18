@@ -111,6 +111,8 @@ const FilmmakerCrearScreen: React.FC = () => {
   /* La idea tal como quedó tras hablar con Weë Brain, lista para «Crear la producción» (sin producción guardada aún). */
   /* Sube cuando Weë aplicó un cambio: la ficha del cuadro abierta se relee de lo guardado. */
   const [versionDelDirector, setVersionDelDirector] = useState(0);
+  /* Con un capítulo abierto a pantalla completa, la cabecera del capítulo es la única: la fila de etapas se oculta. */
+  const [enCapitulo, setEnCapitulo] = useState(false);
   const [borradorListo, setBorradorListo] = useState<IdeaDelTaller | null>(null);
   const [creando, setCreando] = useState(false);
   /* La causa del fallo al crear, ya en palabras de persona (sin conexión, sin sesión…): sale en línea bajo la caja. */
@@ -313,12 +315,13 @@ const FilmmakerCrearScreen: React.FC = () => {
       if (director.disponible) {
         void director.enviar(dicho, {
           etapa: 'universo', borrador: { universo: universo.elementos.map((e) => `${e.nombre}${e.linea ? `: ${e.linea}` : ''}`).join('\n') },
-        }).then((r) => { if (r === 'cerrado' && !enDemo) anadirAMano(); });
+        }).then((r) => { if (r === 'cerrado' && !enDemo) anadirAMano(); else if (r === 'fallo') setTexto(dicho); });
         return;
       }
       anadirAMano();
       return;
     }
+    const ideaPrevia = idea;
     const base = sumarALaFrase(idea, dicho);
     if (!aceptar(base)) { if (tipoId) setTexto(''); return; }
     setTexto('');
@@ -330,7 +333,11 @@ const FilmmakerCrearScreen: React.FC = () => {
     if (enIdea && director.disponible) {
       setPreguntado(false);
       const primeraImagen = listas(refs.referencias).find((x) => !!x.url)?.url as string | undefined;
-      void director.enviar(dicho, { etapa: 'idea', borrador: { idea: fraseDe(base) }, ...(primeraImagen ? { imageUrl: primeraImagen } : {}) }).then((r) => { if (r === 'cerrado') recibir(base); else setBorradorListo(base); });
+      void director.enviar(dicho, { etapa: 'idea', borrador: { idea: fraseDe(base) }, ...(primeraImagen ? { imageUrl: primeraImagen } : {}) }).then((r) => {
+        if (r === 'cerrado') recibir(base);
+        else if (r === 'fallo') { setIdea(ideaPrevia); setTexto(dicho); setBorradorListo(null); } /* la idea de la persona nunca se pierde: vuelve a la caja y se puede reintentar */
+        else setBorradorListo(base);
+      });
       return;
     }
     recibir(base);
@@ -412,14 +419,21 @@ const FilmmakerCrearScreen: React.FC = () => {
     <CreatorShell activeId="creator" title={t('weeai.portadaFilmmaker')} breadcrumb={t('nav.weeAi')} fondo={P.fondo} sinFranjaSuperior fija contentStyle={styles.contenido}>
       <View style={styles.raiz} onLayout={(e: LayoutChangeEvent) => { const { width, height } = e.nativeEvent.layout; setMedida((a) => (Math.abs(a.ancho - width) > 1 || Math.abs(a.alto - height) > 1 ? { ancho: Math.round(width), alto: Math.round(height) } : a)); }}>
         <View style={[styles.cabecera, dir.contenedor]}>
-          <TouchableOpacity onPress={atras} style={styles.boton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
-            <IconoDireccional name="arrow-back" size={scale(24)} color={P.tinta} />
-          </TouchableOpacity>
+          {/* Dentro de un capítulo la flecha atrás es la del propio capítulo (una sola por nivel). */}
+          {enTandas && enCapitulo ? <View style={styles.boton} /> : (
+            <TouchableOpacity onPress={atras} style={styles.boton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
+              <IconoDireccional name="arrow-back" size={scale(24)} color={P.tinta} />
+            </TouchableOpacity>
+          )}
           <View style={[styles.marcaDeCabecera, dir.contenedor]}>
             {/* Dentro de Capítulos el título lo pone la propia pantalla («Capítulos», «Capítulo 1»): una sola cabecera. */}
             {enTandas ? null : <IsotipoWee alto={28} />}
             {enTandas ? null : <Text style={[textoPortada(scale(22), '600'), { color: P.tinta }]} numberOfLines={1} accessibilityRole="header">{t('weeai.portadaFilmmaker')}</Text>}
           </View>
+          {/* «Probar con demo» (solo desarrollo): un sitio propio en la cabecera, de 44 dp, sin amontonarse con la ayuda ni la píldora. */}
+          {__DEV__ && !enDemo && (capa === 'entrada' || capa === 'estilo' || capa === 'taller') && !fallo ? (
+            <TouchableOpacity onPress={() => cargarDemo('universo')} style={styles.boton} accessibilityRole="button" accessibilityLabel={t('filmmakerProd.demoTry')} testID="probar-demo"><Ionicons name="flask-outline" size={scale(22)} color={P.tinta} /></TouchableOpacity>
+          ) : null}
           <TouchableOpacity onPress={() => setHoja(true)} style={styles.boton} accessibilityRole="button" accessibilityLabel={etiquetaCarpeta}>
             <IconoWee name="carpeta" size={scale(22)} color={P.tinta} />
           </TouchableOpacity>
@@ -434,7 +448,7 @@ const FilmmakerCrearScreen: React.FC = () => {
         ) : null}
 
         {/* Las etapas solo aparecen cuando sirven (después de la Idea) y solo las que existen: nunca bloqueadas. */}
-        {enEtapas ? <BarraDeEtapas activa={enJuntar ? 'join' : enProduccion ? 'production' : enTandas ? 'batches' : 'universe'} onIr={irA} onProyecto={() => { setFoco(null); setProyecto(true); }} /> : null}
+        {enEtapas && !(enTandas && enCapitulo) ? <BarraDeEtapas activa={enJuntar ? 'join' : enProduccion ? 'production' : enTandas ? 'batches' : 'universe'} onIr={irA} onProyecto={() => { setFoco(null); setProyecto(true); }} /> : null}
 
         {/* EL MUNDO de encima de la caja: las tarjetas de tipo, o el hilo del taller de Idea. */}
         <View style={styles.mundo} onLayout={(e: LayoutChangeEvent) => { const h = Math.round(e.nativeEvent.layout.height); setAltoMundo((a) => (Math.abs(a - h) > 1 ? h : a)); }}>
@@ -445,7 +459,7 @@ const FilmmakerCrearScreen: React.FC = () => {
           ) : enProduccion ? (
             <ProduccionDeFilmmaker tandas={tandas} guardada={pf.guardada} guardando={pf.carga !== 'libre'} demo={enDemo} calidadDelProyecto={preferenciasDeLaIdea(idea).quality as 'standard' | 'high' | 'max' | undefined} ajustes={(() => { const e = efectivas(idea); return { modelo: e.modelo.nombre, formato: e.formato, resolucion: e.resolucion }; })()} onJuntar={() => { setAviso(null); setCapa('juntar'); }} onIrACapitulos={() => setCapa('tandas')} />
           ) : enTandas ? (
-            <TandasYStoryboard ancho={Math.min(ancho, 1040)} compacto={compacto} personajes={universo.elementos.filter((e) => e.tipo === 'character').map((e) => ({ id: e.id, nombre: e.nombre, voz: e.voz }))} duracionTotalSeg={duracionDe(idea)} valor={tandas} onCambio={setTandas} onAviso={setAviso} onProducir={() => { setAviso(null); setCapa('produccion'); }} pedirCambio={director.disponible && (!!idProduccionGuardada || enDemo) ? { version: versionDelDirector, enviar: (texto, seleccion) => { void director.enviar(texto, { etapa: seleccion.shotId ? 'cuadro' : 'capitulos', seleccion, productionId: idProduccionGuardada ?? undefined }); }, contenido: <BurbujaDelDirector burbuja={director.burbuja} propuesta={director.propuesta} aviso={director.aviso} estado={director.estado} aplicada={director.aplicada} onAprobar={() => { void director.aprobar(); }} onDescartar={director.descartar} compacta obsoleta={director.obsoleta} onRehacer={() => { void director.rehacer(); }} /> } : undefined} />
+            <TandasYStoryboard onCapitulo={setEnCapitulo} ancho={Math.min(ancho, 1040)} compacto={compacto} personajes={universo.elementos.filter((e) => e.tipo === 'character').map((e) => ({ id: e.id, nombre: e.nombre, voz: e.voz }))} duracionTotalSeg={duracionDe(idea)} valor={tandas} onCambio={setTandas} onAviso={setAviso} onProducir={() => { setAviso(null); setCapa('produccion'); }} pedirCambio={director.disponible && (!!idProduccionGuardada || enDemo) ? { version: versionDelDirector, enviar: (texto, seleccion) => { void director.enviar(texto, { etapa: seleccion.shotId ? 'cuadro' : 'capitulos', seleccion, productionId: idProduccionGuardada ?? undefined }); }, contenido: <BurbujaDelDirector burbuja={director.burbuja} propuesta={director.propuesta} aviso={director.aviso} estado={director.estado} aplicada={director.aplicada} onAprobar={() => { void director.aprobar(); }} onDescartar={director.descartar} obsoleta={director.obsoleta} onRehacer={() => { void director.rehacer(); }} /> } : undefined} />
           ) : enUniverso ? (
             <UniversoDeFilmmaker universo={universo} ancho={Math.min(ancho, 1040)} compacto={compacto} bajo={alto < 600} seccion={seccion} onSeccion={setSeccion} onAbrir={(e) => setFichaId(e.id)} onAprobar={() => setUniverso(aprobar)} onEjemplo={() => setUniverso((u) => anadirEjemplos(u, EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))))} onQuitarEjemplo={() => setUniverso(quitarEjemplos)} onContinuar={() => { setAviso(null); setCapa('tandas'); }} onAviso={(clave) => setAviso(t(clave))} imagenes={imagenes} peticionDeImagenes={peticionDeUniverso(universo, { estilo, tipo: tipoId ?? undefined, referencia: (personajes(refs.referencias)[0] ?? listas(refs.referencias)[0])?.url ?? null, aspecto: aspectoDeLaIdea(idea) })} />
           ) : enIdea ? (
@@ -479,10 +493,7 @@ const FilmmakerCrearScreen: React.FC = () => {
             </TouchableOpacity>
           ) : null}
           {!enEtapas && !enEstilo ? <ReferenciasAdjuntas referencias={refs.referencias} onQuitar={refs.quitar} onReintentar={refs.reintentar} onCambiarRol={refs.cambiarRol} /> : null}
-          {__DEV__ && !enDemo && (capa === 'entrada' || capa === 'estilo' || capa === 'taller') && !fallo ? (
-            <TouchableOpacity onPress={() => cargarDemo('universo')} accessibilityRole="button" accessibilityLabel={t('filmmakerProd.demoTry')} testID="probar-demo" style={styles.demoEntrada}><Text style={[textoPortada(13, '600'), { color: P.tintaSecundaria }]}>{t('filmmakerProd.demoTry')}</Text></TouchableOpacity>
-          ) : null}
-          {(enIdea || enUniverso) ? <BurbujaDelDirector burbuja={director.burbuja} propuesta={director.propuesta} aviso={director.aviso} estado={director.estado} aplicada={director.aplicada} onAprobar={() => { void director.aprobar(); }} onDescartar={director.descartar} compacta={alto < 600 && !enIdea} onCrear={enIdea && borradorListo ? () => recibir(borradorListo) : undefined} obsoleta={director.obsoleta} onRehacer={() => { void director.rehacer(); }} /> : null}
+          {(enIdea || enUniverso) ? <BurbujaDelDirector burbuja={director.burbuja} propuesta={director.propuesta} aviso={director.aviso} estado={director.estado} aplicada={director.aplicada} onAprobar={() => { void director.aprobar(); }} onDescartar={director.descartar} compacta={alto < 600 && !enIdea} onCrear={enIdea && borradorListo ? () => recibir(borradorListo) : undefined} obsoleta={director.obsoleta} onRehacer={() => { if (director.obsoleta) void director.rehacer(); else enviar(); }} /> : null}
           {!enEstilo && !enProduccion && !enJuntar && !enTandas ? <CajaAnclada alto={topeDeLaCaja}>
             <CajaDePrompt portada enviarDiscreto={enUniverso} valor={texto} onCambiar={setTexto} onEnviar={enviar} etiquetaEnviar={t('studio.sendLabel')} placeholder={placeholder} acciones={acciones} />
           </CajaAnclada> : null}

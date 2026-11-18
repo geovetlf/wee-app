@@ -73,5 +73,19 @@ const HT = sinComentarios(leer('components/filmmaker/tandas/HojaDeTanda.tsx'));
 const TS = sinComentarios(leer('components/filmmaker/tandas/TandasYStoryboard.tsx'));
 check('D9) «Pídele un cambio a Weë» por capítulo: fila plegada en las opciones del capítulo con la caja común (CajaDePrompt), etapa «capitulos» y escena, y la propuesta se aprueba con la burbuja (no se aplica sola)', HT.includes("t('filmmakerDirector.askChange')") && HT.includes('<CajaDePrompt portada enviarDiscreto') && TS.includes('sceneId: idDeEscena(enOpciones.id)') && P.includes("etapa: seleccion.shotId ? 'cuadro' : 'capitulos'") && P.includes('onAprobar={() => { void director.aprobar(); }}'));
 
+console.log('── E · Ronda 6 del auditor: Editar capítulo, idea conservada, una cabecera, estilos, Universo ──');
+const LT = sinComentarios(leer('components/filmmaker/tandas/ListaDeTandas.tsx'));
+const SB = sinComentarios(leer('components/filmmaker/storyboard/StoryboardDeTanda.tsx'));
+const UN = sinComentarios(leer('components/filmmaker/UniversoDeFilmmaker.tsx'));
+const BU = sinComentarios(leer('components/filmmaker/BurbujaDelDirector.tsx'));
+const EE2 = sinComentarios(leer('components/filmmaker/ElegirEstilo.tsx'));
+check('E1) la lista de capítulos no tiene menú «⋯»: cada fila lleva «Editar capítulo» y el capítulo abierto trae sus ajustes (HojaDeTanda) y «Cambiar con Weë»', !LT.includes('ellipsis') && !LT.includes('onOpciones') && LT.includes("t('filmmakerTandas.options')") && SB.includes('onEditar') && TS.includes('onEditar={() => setOpcionesId(actual.id)}') && !HT.includes('FilaCerrada') && !HT.includes('layerMusic'));
+check('E2) si Weë Brain falla, la idea vuelve a la caja (y a su valor previo) y la burbuja ofrece Reintentar, sin «Cerrar»', P.includes("else if (r === 'fallo') { setIdea(ideaPrevia); setTexto(dicho); setBorradorListo(null); }") && BU.includes("t('common.retry')") && BU.includes('aviso && onRehacer'));
+check('E3) dentro de un capítulo hay UNA cabecera (la del capítulo con su flecha): sin fila de etapas ni flecha de la pantalla', TS.includes('onCapitulo?.(') && P.includes('enTandas && enCapitulo') && P.includes('<TandasYStoryboard onCapitulo={setEnCapitulo}'));
+check('E4) estilos: con ventana alta (≥ 760) siempre dos columnas; solo se pasa a tres en pantallas cortas', EE2.includes('VENTANA_ALTA = 760') && EE2.includes('ventana.height'));
+check('E5) Universo: «Continuar» siempre fijo abajo (también en pantalla corta) y la lista se desplaza', !/\{bajo \? \(?<View style=\{\{ gap: 6 \}\}>\{botonContinuar\}/.test(UN) && UN.includes('<View style={[styles.pie, bajo &&') && !/bajo \? null : \(\s*<View style=\{styles\.pie\}>/.test(UN));
+check('E6) «Cambiar con Weë» con un ejemplo bajo el campo, en capítulo y en cuadro; el demo repite lo pedido sin cortes', HT.includes('askChangeExample') && sinComentarios(leer('components/filmmaker/storyboard/FichaDelCuadro.tsx')).includes('askChangeExample') && sinComentarios(leer('hooks/useDirectorDeFilmmaker.ts')).includes('demoChangeReply') && !/pedirCambio[^\n]*compacta/.test(P) && /askChange: 'Cambiar con Weë'/.test(leer('i18n/textos/es/filmmakerDirector.ts')));
+check('E7) «Probar con demo» (solo dev) vive en la cabecera con un área de 44 dp; el demo no repite nombres (Mara solo en el ejemplo)', /__DEV__ && !enDemo[^\n]*\n[^\n]*testID="probar-demo"/.test(P) && !/demoEntrada \}/.test(P) && /demoCharacter: 'Kai — /.test(leer('i18n/textos/es/filmmakerProd.ts')));
+
 console.log(failures ? `\n${failures} FALLO(S)` : `\nTodo en verde (${n}).`);
 process.exit(failures ? 1 : 0);

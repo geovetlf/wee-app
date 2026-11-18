@@ -17,7 +17,6 @@ interface Props {
   /** Tanda enseñada a la derecha cuando hay dos zonas. */
   seleccionada?: string | null;
   onAbrir: (id: string) => void;
-  onOpciones: (id: string) => void;
   onAnadir: () => void;
   onAutomatico: () => void;
   onEjemplo: () => void;
@@ -31,9 +30,9 @@ interface Props {
 /**
  * LA LISTA DE TANDAS (capítulos): una fila por tanda con miniatura, nombre, duración objetivo (≈ 3:00), nº de cuadros, su estado y UN botón contextual
  * (crear storyboard · revisar · producir…). Abajo, los totales contra lo que admite el montaje final (60 cuadros / 10:00) y el único botón blanco: el
- * siguiente paso (crear o revisar el storyboard pendiente). Sin tandas, «Weë lo hace por mí» las reparte por duración. «⋯» abre partir, unir, mover y quitar.
+ * siguiente paso (crear o revisar el storyboard pendiente). Sin tandas, «Weë lo hace por mí» las reparte por duración. Cada fila lleva «Editar capítulo» (abre el capítulo: cuadros y ajustes).
  */
-export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, seleccionada, onAbrir, onOpciones, onAnadir, onAutomatico, onEjemplo, onQuitarEjemplo, hayEjemplos, onAviso, onProducir }) => {
+export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, seleccionada, onAbrir, onAnadir, onAutomatico, onEjemplo, onQuitarEjemplo, hayEjemplos, onAviso, onProducir }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
@@ -62,12 +61,13 @@ export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, selecc
             <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={2}>{meta}</Text>
             <View style={[styles.pie, dir.contenedor]}>
               {e !== 'none' && e !== 'review' ? <PastillaDeEstado estado={e} /> : null}
+              <View style={[styles.editar, dir.contenedor]}>
+                <Text style={[textoPortada(13, '600'), { color: P.tinta }]}>{t('filmmakerTandas.options')}</Text>
+                <Ionicons name={dir.esRTL ? 'chevron-back' : 'chevron-forward'} size={16} color={P.tinta} />
+              </View>
             </View>
           </View>
         </TouchableOpacity>
-        <View style={styles.lado}>
-          <TouchableOpacity testID={`opciones-${n}`} onPress={() => onOpciones(ta.id)} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmakerTandas.options'), titulo)} style={styles.mas}><Ionicons name="ellipsis-horizontal" size={20} color={P.tinta} /></TouchableOpacity>
-        </View>
       </View>
     );
   };
@@ -129,9 +129,8 @@ const styles = StyleSheet.create({
   cuerpo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 72 },
   miniatura: { width: 64, height: 64, borderRadius: 12, borderWidth: 1, borderColor: P.bordeLuz, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   num: { position: 'absolute', top: 4, minWidth: 20, height: 20, paddingHorizontal: 4, borderRadius: 5, borderWidth: 1, borderColor: P.tinta, backgroundColor: 'rgba(5,6,8,0.8)', alignItems: 'center', justifyContent: 'center' },
-  pie: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  lado: { alignItems: 'center', gap: 6 },
-  mas: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  pie: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  editar: { flexDirection: 'row', alignItems: 'center', gap: 2, minHeight: 28 },
   vacio: { minHeight: 140, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 24, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', borderColor: P.bordeCapsula },
   fila2: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   piePrincipal: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, gap: 6 },

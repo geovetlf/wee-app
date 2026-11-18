@@ -169,14 +169,12 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
           <Text style={[textoPortada(14, '600'), { color: P.tinta }]} numberOfLines={2}>{t(ejemplos ? 'filmmaker.uniClearExample' : 'filmmaker.uniLoadExample')}</Text>
         </TouchableOpacity>
         {imagenes?.abierta && peticionDeImagenes ? <ImagenesDelUniverso imagenes={imagenes} peticion={peticionDeImagenes} /> : !GENERAR_IMAGENES_DEL_UNIVERSO && puede ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniRegenerateClosed')}</Text> : null}
-        {bajo ? <View style={{ gap: 6 }}>{botonContinuar}{!puede ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniApproveWhy')}</Text> : null}</View> : null}
       </ScrollView>
-      {bajo ? null : (
-        <View style={styles.pie}>
-          {botonContinuar}
-          {!puede && !bajo ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{t('filmmaker.uniApproveWhy')}</Text> : null}
-        </View>
-      )}
+      {/* La acción principal SIEMPRE a la vista (fija abajo); en pantalla corta, sin la línea del motivo (el botón apagado lo dice al lector). */}
+      <View style={[styles.pie, bajo && { paddingTop: 4, paddingBottom: 4 }]}>
+        {botonContinuar}
+        {!puede && !bajo ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{t('filmmaker.uniApproveWhy')}</Text> : null}
+      </View>
     </View>
   );
 };

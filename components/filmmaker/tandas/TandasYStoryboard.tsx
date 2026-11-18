@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useT } from '../../../contexts/IdiomaContext';
 import { useDireccion } from '../../../hooks/useDireccion';
@@ -33,6 +33,8 @@ export interface TandasYStoryboardProps {
   /** Pasa a la etapa de Producción (el botón «Producir» del storyboard con el capítulo ya guardado en el almacén). */
   onProducir?: () => void;
   /** «Pídele un cambio a Weë» en la ficha del cuadro: la pantalla anfitriona pone a Weë Brain; aquí solo se le da la selección (escena y plano del servidor). */
+  /** Avisa a la pantalla de si hay un capítulo abierto a pantalla completa (móvil): dentro, la cabecera del capítulo es la única (sin la fila de etapas). */
+  onCapitulo?: (abierto: boolean) => void;
   pedirCambio?: { enviar: (texto: string, seleccion: { sceneId: string; shotId?: string }) => void; contenido: React.ReactNode; version: number };
 }
 
@@ -45,7 +47,7 @@ export interface TandasYStoryboardProps {
  * interfaz: el contrato no persiste tandas ni storyboards todavía, y la pantalla lo dice. La generación de imágenes del storyboard y la Producción
  * salen cerradas con su motivo.
  */
-export const TandasYStoryboard: React.FC<TandasYStoryboardProps> = ({ ancho, compacto = false, personajes = [], duracionTotalSeg, valor, onCambio, onAviso, onAccionD1, onProducir, pedirCambio }) => {
+export const TandasYStoryboard: React.FC<TandasYStoryboardProps> = ({ ancho, compacto = false, personajes = [], duracionTotalSeg, valor, onCambio, onAviso, onAccionD1, onProducir, pedirCambio, onCapitulo }) => {
   const t = useT();
   const dir = useDireccion();
   const [propio, setPropio] = useState<TandasDelTaller>(() => tandasVacias());
@@ -58,6 +60,8 @@ export const TandasYStoryboard: React.FC<TandasYStoryboardProps> = ({ ancho, com
   const aviso = (m: string) => (onAviso ? onAviso(m) : setAvisoLocal(m));
 
   const dosZonas = ancho >= 900;
+  useEffect(() => { onCapitulo?.(!dosZonas && !!abierta && estado.tandas.some((x) => x.id === abierta)); }, [dosZonas, abierta, estado.tandas, onCapitulo]);
+  useEffect(() => () => onCapitulo?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
   const actual = estado.tandas.find((x) => x.id === abierta) ?? (dosZonas ? estado.tandas[0] ?? null : null);
   const posicionDe = (id: string) => estado.tandas.findIndex((x) => x.id === id) + 1;
   const enFicha = actual?.cuadros.find((c) => c.id === fichaId) ?? null;
@@ -84,7 +88,7 @@ export const TandasYStoryboard: React.FC<TandasYStoryboardProps> = ({ ancho, com
   const storyboard = actual ? (
     <StoryboardDeTanda
       tanda={actual} posicion={posicionDe(actual.id)} ancho={dosZonas ? ancho - 380 : ancho} compacto={compacto}
-      onVolver={dosZonas ? undefined : () => setAbierta(null)}
+      onVolver={dosZonas ? undefined : () => setAbierta(null)} onEditar={() => setOpcionesId(actual.id)}
       onAbrirCuadro={setFichaId} onAnadir={anadirCuadroYAbrir}
       onAprobar={() => poner((s) => aprobarTanda(s, actual.id))} onGuardarEnAlmacen={() => poner((s) => guardarEnAlmacen(s, actual.id))}
       onProducir={onProducir} onEjemplo={ejemploEnTanda} onQuitarEjemplo={() => poner(quitarEjemplos)} hayEjemplos={hayEjemplos(estado)} onAviso={aviso}
@@ -94,7 +98,7 @@ export const TandasYStoryboard: React.FC<TandasYStoryboardProps> = ({ ancho, com
   const lista = (
     <ListaDeTandas
       estado={estado} ancho={dosZonas ? 380 : ancho} compacto={compacto} seleccionada={dosZonas ? actual?.id ?? null : null}
-      onAbrir={abrirTanda} onOpciones={setOpcionesId} onAnadir={anadirTandaNueva} onAutomatico={automatico}
+      onAbrir={abrirTanda} onAnadir={anadirTandaNueva} onAutomatico={automatico}
       onEjemplo={cargarEjemplo} onQuitarEjemplo={() => poner(quitarEjemplos)} hayEjemplos={hayEjemplos(estado)} onAviso={aviso} onProducir={onProducir}
     />
   );
