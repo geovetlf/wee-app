@@ -12,7 +12,7 @@ import { VOZ_AUTO, herenciaDe, resolverVoz, vozPorId } from '../../../utils/soni
 import { SelectorDeVoz } from '../sonido/SelectorDeVoz';
 import { CuadroDeStoryboard, NARRADOR, SIN_HABLANTE, TOPES_TANDAS, TOPE_DE_CUADRO, conCreativo } from '../../../utils/tandasDeFilmmaker';
 import { etiquetaAccesible } from '../../../utils/ideaDeFilmmaker';
-import { BotonBlanco, BotonContorno, FilaCerrada, estilosComunes as E, useTiempo } from '../tandas/comunes';
+import { BotonBlanco, BotonContorno, estilosComunes as E, useTiempo } from '../tandas/comunes';
 
 /** Un personaje del universo, tal como lo necesita un cuadro: su id, su nombre y su voz por defecto (id del catálogo o 'auto'), que el cuadro hereda. */
 export interface PersonajeDeCuadro { id: string; nombre: string; voz?: string | null }
@@ -59,12 +59,13 @@ export const FichaDelCuadro: React.FC<Props> = ({ cuadro, numero, inicio, fin, e
   const [creativo, setCreativo] = useState<SeleccionCreativa>({});
   const [familia, setFamilia] = useState<string>(FAMILIAS_DEL_CUADRO[0]?.id ?? 'movement');
   const [seguro, setSeguro] = useState(false);
-  const [aviso, setAviso] = useState<string | null>(null);
+  const [panel, setPanel] = useState<'shot' | 'camera' | 'duration' | 'voice' | null>(null);
+  const [mas, setMas] = useState(false);
 
   useEffect(() => {
     if (!cuadro) return;
     setTexto(cuadro.texto); setHablante(cuadro.hablante); setVoz(cuadro.voz ?? null); setDuracion(cuadro.duracion); setCreativo(cuadro.creativo);
-    setFamilia(FAMILIAS_DEL_CUADRO[0]?.id ?? 'movement'); setSeguro(false); setAviso(null);
+    setFamilia(FAMILIAS_DEL_CUADRO[0]?.id ?? 'movement'); setSeguro(false); setPanel(null); setMas(false);
   }, [cuadro?.id]);
   if (!cuadro) return null;
 
@@ -83,6 +84,15 @@ export const FichaDelCuadro: React.FC<Props> = ({ cuadro, numero, inicio, fin, e
   const ancha = anchoDeVentana >= 900;
   const hablantes = [{ id: SIN_HABLANTE, nombre: t('filmmakerTandas.speakerNone') }, { id: NARRADOR, nombre: t('filmmakerTandas.speakerNarrator') }, ...personajes.map((p) => ({ id: p.id, nombre: p.nombre }))];
 
+  const planoActual = claveDelValor('shot.type', creativo['shot.type'] ?? '');
+  const movimientoActual = conMovimiento ? claveDelValor('movement.type', movimiento as string) : null;
+  const quienHabla = hablantes.find((h) => h.id === hablante)?.nombre ?? '';
+  const resumen = (id: 'shot' | 'camera' | 'duration', clave: string, valor: string) => (
+    <TouchableOpacity key={id} testID={`ficha-${id}`} onPress={() => setPanel((p) => (p === id ? null : id))} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t(clave), valor)} accessibilityState={{ expanded: panel === id }} style={[styles.resumen, panel === id && styles.resumenSel]}>
+      <Text style={[textoPortada(12, '500'), { color: P.tintaSecundaria }]} numberOfLines={1}>{t(clave)}</Text>
+      <Text style={[textoPortada(14, '600'), { color: P.tinta, textAlign: 'center' }]} numberOfLines={2}>{valor}</Text>
+    </TouchableOpacity>
+  );
   const seccion = (clave: string) => <Text style={[textoPortada(15, '600'), dir.texto, { color: P.tinta, marginTop: 6 }]} accessibilityRole="header">{t(clave)}</Text>;
 
   return (
@@ -100,120 +110,127 @@ export const FichaDelCuadro: React.FC<Props> = ({ cuadro, numero, inicio, fin, e
           </View>
 
           <ScrollView contentContainerStyle={{ gap: 10, paddingBottom: 8 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <TextInput value={texto} onChangeText={setTexto} maxLength={TOPES_TANDAS.texto} multiline placeholder={t('filmmakerTandas.frameTextPlaceholder')} placeholderTextColor={P.tintaSecundaria} selectionColor={P.luz} accessibilityLabel={t('filmmakerTandas.frameText')} style={[...campo, { minHeight: 76 }]} textAlignVertical="top" />
+            <TextInput value={texto} onChangeText={setTexto} maxLength={TOPES_TANDAS.texto} multiline placeholder={t('filmmakerTandas.frameTextPlaceholder')} placeholderTextColor={P.tintaSecundaria} selectionColor={P.luz} accessibilityLabel={t('filmmakerTandas.frameText')} style={[...campo, { minHeight: 64 }]} textAlignVertical="top" />
 
-            {seccion('filmmakerTandas.frameSpeaker')}
-            <View style={[E.fila, dir.contenedor]}>
-              {hablantes.map((h) => (
-                <TouchableOpacity key={h.id || 'none'} onPress={() => setHablante(h.id)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={h.nombre} accessibilityState={{ selected: hablante === h.id }} style={[E.chip, hablante === h.id && E.chipSel]}>
-                  <Text style={[textoPortada(14, hablante === h.id ? '600' : '500'), { color: P.tinta }]} numberOfLines={1}>{h.nombre}</Text>
-                </TouchableOpacity>
-              ))}
+            {/* Lo que más se toca, arriba y de un vistazo: encuadre, cámara y duración. Cada uno abre su panel aquí mismo, uno a la vez. */}
+            <View style={[styles.resumenes, dir.contenedor]}>
+              {resumen('shot', 'studio.ctlShot', planoActual ? t(planoActual) : t('filmmakerTandas.shotUndecided'))}
+              {resumen('camera', 'filmmakerTandas.frameCamera', movimientoActual ? t(movimientoActual) : t('filmmakerTandas.cameraNone'))}
+              {resumen('duration', 'filmmakerTandas.frameDuration', t('filmmaker.hubSeconds', { n: formato.numero(duracion) }))}
             </View>
-            {hablante !== SIN_HABLANTE ? (
-              <TouchableOpacity onPress={() => setSelector(true)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmakerSonido.layerVoice'), lineaDeVoz, t('filmmakerTandas.voiceChange'))} style={[styles.voz, dir.contenedor]}>
-                <Ionicons name="mic-outline" size={18} color={P.tinta} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tinta }]} numberOfLines={1}>{t('filmmakerSonido.layerVoice')}</Text>
-                  <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={2}>{lineaDeVoz}</Text>
+
+            {panel === 'shot' ? (
+              <View style={[E.fila, dir.contenedor]}>
+                {PLANOS_DEL_CUADRO.map((v) => {
+                  const clave = claveDelValor('shot.type', v);
+                  if (!clave) return null;
+                  const sel = creativo['shot.type'] === v;
+                  return (
+                    <TouchableOpacity key={v} onPress={() => setCreativo((c) => conCreativo(c, 'shot.type', v))} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t(clave)} accessibilityState={{ selected: sel }} style={[E.chip, sel && E.chipSel]}>
+                      <Text style={[textoPortada(14, sel ? '600' : '500'), { color: P.tinta }]} numberOfLines={1}>{t(clave)}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ) : null}
+
+            {panel === 'camera' ? (
+              <View style={{ gap: 10 }}>
+                <View style={[E.fila, dir.contenedor]} accessibilityRole="tablist">
+                  {FAMILIAS_DEL_CUADRO.map((f) => (
+                    <TouchableOpacity key={f.id} onPress={() => setFamilia(f.id)} activeOpacity={0.8} accessibilityRole="tab" accessibilityLabel={t(f.clave)} accessibilityState={{ selected: f.id === familia }} style={[E.chip, f.id === familia && E.chipSel]}>
+                      <Text style={[textoPortada(14, f.id === familia ? '600' : '500'), { color: P.tinta }]} numberOfLines={1}>{t(f.clave)}</Text>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-                <Text style={[textoPortada(13, '600'), { color: P.tinta }]}>{t('filmmakerTandas.voiceChange')}</Text>
-              </TouchableOpacity>
-            ) : <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.voiceNone')}</Text>}
-            {!MUSICA_DE_ESCENA_ABIERTA ? <FilaCerrada compacta titulo={t('filmmakerSonido.layerMusic')} motivo={t('filmmakerSonido.musicClosed')} icono="musical-notes-outline" onAviso={setAviso} /> : null}
-            {!EFECTOS_DE_SONIDO_ABIERTOS ? <FilaCerrada compacta titulo={t('filmmakerSonido.layerEffects')} motivo={t('filmmakerSonido.effectsClosed')} icono="volume-high-outline" onAviso={setAviso} /> : null}
+                <View style={[styles.galeria, dir.contenedor]}>
+                  {fam?.comandos.map((c) => {
+                    const sel = creativo[c.ruta] === c.valor;
+                    return (
+                      <TouchableOpacity key={c.alias} testID={`gal-${c.ruta}-${c.valor}`} onPress={() => setCreativo((x) => conCreativo(x, c.ruta, c.valor))} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t(c.clave)} accessibilityState={{ selected: sel }} style={[styles.tesela, sel && styles.teselaSel]}>
+                        <Ionicons name={c.icono as any} size={22} color={P.tinta} />
+                        <Text style={[textoPortada(12, sel ? '600' : '500'), { color: P.tinta, textAlign: 'center' }]} numberOfLines={2}>{t(c.clave)}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                {conMovimiento ? (
+                  <View style={{ gap: 6 }}>
+                    {seccion('filmmakerTandas.frameIntensity')}
+                    <View style={[E.fila, dir.contenedor]}>
+                      {INTENSIDADES.map((i) => {
+                        const sel = creativo['movement.speed'] === i.valor;
+                        return (
+                          <TouchableOpacity key={i.valor} onPress={() => setCreativo((c) => conCreativo(c, 'movement.speed', i.valor))} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t(i.clave)} accessibilityState={{ selected: sel }} style={[E.chip, { flex: 1 }, sel && E.chipSel]}>
+                            <Text style={[textoPortada(14, sel ? '600' : '500'), { color: P.tinta }]} numberOfLines={1}>{t(i.clave)}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
 
-            {seccion('studio.ctlShot')}
-            <View style={[E.fila, dir.contenedor]}>
-              {PLANOS_DEL_CUADRO.map((v) => {
-                const clave = claveDelValor('shot.type', v);
-                if (!clave) return null;
-                const sel = creativo['shot.type'] === v;
-                return (
-                  <TouchableOpacity key={v} onPress={() => setCreativo((c) => conCreativo(c, 'shot.type', v))} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t(clave)} accessibilityState={{ selected: sel }} style={[E.chip, sel && E.chipSel]}>
-                    <Text style={[textoPortada(14, sel ? '600' : '500'), { color: P.tinta }]} numberOfLines={1}>{t(clave)}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            {panel === 'duration' ? (
+              <View style={[styles.paso, dir.contenedor]}>
+                <TouchableOpacity onPress={() => setDuracion((d) => Math.max(1, d - 1))} disabled={duracion <= 1} accessibilityRole="button" accessibilityLabel={t('filmmakerTandas.durationLess')} accessibilityState={{ disabled: duracion <= 1 }} style={[styles.boton, duracion <= 1 && { opacity: 0.4 }]}><Ionicons name="remove" size={20} color={P.tinta} /></TouchableOpacity>
+                <Text style={[textoPortada(18, '600'), { color: P.tinta, minWidth: 64, textAlign: 'center' }]} accessibilityLiveRegion="polite">{t('filmmaker.hubSeconds', { n: formato.numero(duracion) })}</Text>
+                <TouchableOpacity onPress={() => setDuracion((d) => Math.min(TOPE_DE_CUADRO, d + 1))} disabled={duracion >= TOPE_DE_CUADRO} accessibilityRole="button" accessibilityLabel={t('filmmakerTandas.durationMore')} accessibilityState={{ disabled: duracion >= TOPE_DE_CUADRO }} style={[styles.boton, duracion >= TOPE_DE_CUADRO && { opacity: 0.4 }]}><Ionicons name="add" size={20} color={P.tinta} /></TouchableOpacity>
+                <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria, flex: 1 }]}>{t('filmmakerTandas.durationMax', { n: formato.numero(TOPE_DE_CUADRO) })}</Text>
+              </View>
+            ) : null}
 
-            {seccion('filmmakerTandas.frameCamera')}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.pestanas, dir.contenedor]} accessibilityRole="tablist">
-              {FAMILIAS_DEL_CUADRO.map((f) => (
-                <TouchableOpacity key={f.id} onPress={() => setFamilia(f.id)} activeOpacity={0.8} accessibilityRole="tab" accessibilityLabel={t(f.clave)} accessibilityState={{ selected: f.id === familia }} style={[E.chip, f.id === familia && E.chipSel]}>
-                  <Text style={[textoPortada(14, f.id === familia ? '600' : '500'), { color: P.tinta }]} numberOfLines={1}>{t(f.clave)}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <View style={[styles.galeria, dir.contenedor]}>
-              {fam?.comandos.map((c) => {
-                const sel = creativo[c.ruta] === c.valor;
-                return (
-                  <TouchableOpacity key={c.alias} testID={`gal-${c.ruta}-${c.valor}`} onPress={() => setCreativo((x) => conCreativo(x, c.ruta, c.valor))} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t(c.clave)} accessibilityState={{ selected: sel }} style={[styles.tesela, sel && styles.teselaSel]}>
-                    <Ionicons name={c.icono as any} size={22} color={P.tinta} />
-                    <Text style={[textoPortada(12, sel ? '600' : '500'), { color: P.tinta, textAlign: 'center' }]} numberOfLines={2}>{t(c.clave)}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            {/* UNA sola fila de voz y sonido: quién habla, su voz (heredada) y, cuando existan, música y efectos. */}
+            <TouchableOpacity onPress={() => setPanel((p) => (p === 'voice' ? null : 'voice'))} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmakerTandas.frameVoiceSound'), hablante === SIN_HABLANTE ? lineaDeVoz : `${quienHabla}, ${lineaDeVoz}`)} accessibilityState={{ expanded: panel === 'voice' }} style={[styles.voz, panel === 'voice' && styles.vozAbierta, dir.contenedor]}>
+              <Ionicons name="mic-outline" size={18} color={P.tinta} />
+              <View style={{ flex: 1 }}>
+                <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tinta }]} numberOfLines={1}>{t('filmmakerTandas.frameVoiceSound')}</Text>
+                <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={1}>{hablante === SIN_HABLANTE ? lineaDeVoz : `${quienHabla} · ${lineaDeVoz}`}</Text>
+              </View>
+              <Ionicons name={panel === 'voice' ? 'chevron-up' : 'chevron-down'} size={18} color={P.tintaSecundaria} />
+            </TouchableOpacity>
+            {panel === 'voice' ? (
+              <View style={{ gap: 10 }}>
+                {seccion('filmmakerTandas.frameSpeaker')}
+                <View style={[E.fila, dir.contenedor]}>
+                  {hablantes.map((h) => (
+                    <TouchableOpacity key={h.id || 'none'} onPress={() => setHablante(h.id)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={h.nombre} accessibilityState={{ selected: hablante === h.id }} style={[E.chip, hablante === h.id && E.chipSel]}>
+                      <Text style={[textoPortada(14, hablante === h.id ? '600' : '500'), { color: P.tinta }]} numberOfLines={1}>{h.nombre}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                {hablante !== SIN_HABLANTE ? <BotonContorno texto={`${t('filmmakerSonido.layerVoice')}: ${nombreDeVoz} · ${t('filmmakerTandas.voiceChange')}`} icono="mic-outline" onPress={() => setSelector(true)} /> : null}
+                {!MUSICA_DE_ESCENA_ABIERTA || !EFECTOS_DE_SONIDO_ABIERTOS ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.soundSoon')}</Text> : null}
+              </View>
+            ) : null}
 
-            {seccion('filmmakerTandas.frameIntensity')}
-            <View style={[E.fila, dir.contenedor]} accessibilityState={{ disabled: !conMovimiento }}>
-              {INTENSIDADES.map((i) => {
-                const sel = conMovimiento && creativo['movement.speed'] === i.valor;
-                return (
-                  <TouchableOpacity key={i.valor} onPress={() => setCreativo((c) => conCreativo(c, 'movement.speed', i.valor))} disabled={!conMovimiento} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t(i.clave)} accessibilityState={{ selected: sel, disabled: !conMovimiento }} style={[E.chip, { flex: 1 }, sel && E.chipSel, !conMovimiento && { opacity: 0.5 }]}>
-                    <Text style={[textoPortada(14, sel ? '600' : '500'), { color: P.tinta }]} numberOfLines={1}>{t(i.clave)}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-            <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{conMovimiento ? t('filmmakerTandas.intensityNote') : t('filmmakerTandas.intensityNeedsMove')}</Text>
-
-            {seccion('filmmakerTandas.frameDuration')}
-            <View style={[styles.paso, dir.contenedor]}>
-              <TouchableOpacity onPress={() => setDuracion((d) => Math.max(1, d - 1))} disabled={duracion <= 1} accessibilityRole="button" accessibilityLabel={t('filmmakerTandas.durationLess')} accessibilityState={{ disabled: duracion <= 1 }} style={[styles.boton, duracion <= 1 && { opacity: 0.4 }]}><Ionicons name="remove" size={20} color={P.tinta} /></TouchableOpacity>
-              <Text style={[textoPortada(18, '600'), { color: P.tinta, minWidth: 64, textAlign: 'center' }]} accessibilityLiveRegion="polite">{t('filmmaker.hubSeconds', { n: formato.numero(duracion) })}</Text>
-              <TouchableOpacity onPress={() => setDuracion((d) => Math.min(TOPE_DE_CUADRO, d + 1))} disabled={duracion >= TOPE_DE_CUADRO} accessibilityRole="button" accessibilityLabel={t('filmmakerTandas.durationMore')} accessibilityState={{ disabled: duracion >= TOPE_DE_CUADRO }} style={[styles.boton, duracion >= TOPE_DE_CUADRO && { opacity: 0.4 }]}><Ionicons name="add" size={20} color={P.tinta} /></TouchableOpacity>
-              <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria, flex: 1 }]}>{t('filmmakerTandas.durationMax', { n: formato.numero(TOPE_DE_CUADRO) })}</Text>
-            </View>
-
-            {seccion('filmmakerTandas.frameEffects')}
-            <View style={[E.fila, dir.contenedor]}>
-              {EFECTOS_CERRADOS.map((f) => (
-                <TouchableOpacity key={f.id} onPress={() => setAviso(t(f.claveMotivo))} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t(f.clave), t(f.claveMotivo))} accessibilityState={{ disabled: true }} style={[E.chip, styles.cerrado]}>
-                  <Ionicons name={f.icono as any} size={14} color={P.tintaDeshabilitada} />
-                  <Text style={[textoPortada(14, '500'), { color: P.tintaSecundaria }]} numberOfLines={1}>{t(f.clave)}</Text>
-                  <Ionicons name="lock-closed-outline" size={12} color={P.tintaDeshabilitada} />
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {seccion('filmmakerTandas.frameD1')}
-            <View style={[E.fila, dir.contenedor]}>
-              {ACCIONES_D1.map((a) => D1_ABIERTO && onAccionD1 ? (
-                <TouchableOpacity key={a.id} onPress={() => onAccionD1(a.id, cuadro.id)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t(a.clave)} style={E.chip}>
-                  <Ionicons name={a.icono as any} size={14} color={P.tinta} />
-                  <Text style={[textoPortada(14, '500'), { color: P.tinta }]} numberOfLines={1}>{t(a.clave)}</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity key={a.id} onPress={() => setAviso(t('filmmakerTandas.d1Closed'))} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t(a.clave), t('filmmakerTandas.d1Closed'))} accessibilityState={{ disabled: true }} style={[E.chip, styles.cerrado]}>
-                  <Ionicons name={a.icono as any} size={14} color={P.tintaDeshabilitada} />
-                  <Text style={[textoPortada(14, '500'), { color: P.tintaSecundaria }]} numberOfLines={1}>{t(a.clave)}</Text>
-                  <Ionicons name="lock-closed-outline" size={12} color={P.tintaDeshabilitada} />
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {aviso ? <Text style={[textoPortada(13, '500'), dir.texto, styles.aviso, { color: P.tinta }]} accessibilityLiveRegion="polite">{aviso}</Text> : null}
-
-            <View style={[E.fila, dir.contenedor, { marginTop: 4 }]}>
-              <BotonContorno texto={t('filmmakerTandas.frameMoveBefore')} icono={dir.esRTL ? 'arrow-forward' : 'arrow-back'} apagado={esPrimero} onPress={accion(() => onMover(cuadro.id, -1))} />
-              <BotonContorno texto={t('filmmakerTandas.frameMoveAfter')} icono={dir.esRTL ? 'arrow-back' : 'arrow-forward'} apagado={esUltimo} onPress={accion(() => onMover(cuadro.id, 1))} />
-              <BotonContorno texto={t('filmmakerTandas.frameDuplicate')} icono="copy-outline" onPress={accion(() => onDuplicar(cuadro.id))} />
-              {puedePartir ? <BotonContorno texto={t('filmmakerTandas.frameSplitHere')} icono="git-branch-outline" onPress={accion(() => onPartirAqui(cuadro.id))} /> : null}
-              <BotonContorno texto={seguro ? t('filmmakerTandas.frameRemoveSure') : t('filmmakerTandas.frameRemove')} icono="trash-outline" peligro onPress={() => { if (seguro) { onQuitar(cuadro.id); onClose(); } else setSeguro(true); }} />
-            </View>
+            {/* Todo lo demás, plegado. */}
+            <TouchableOpacity onPress={() => setMas((m) => !m)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmakerTandas.frameMore')} accessibilityState={{ expanded: mas }} style={[styles.masFila, dir.contenedor]}>
+              <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tinta, flex: 1 }]}>{t('filmmakerTandas.frameMore')}</Text>
+              <Ionicons name={mas ? 'chevron-up' : 'chevron-down'} size={18} color={P.tintaSecundaria} />
+            </TouchableOpacity>
+            {mas ? (
+              <View style={{ gap: 10 }}>
+                {D1_ABIERTO && onAccionD1 ? (
+                  <View style={[E.fila, dir.contenedor]}>
+                    {ACCIONES_D1.map((a) => (
+                      <TouchableOpacity key={a.id} onPress={() => onAccionD1(a.id, cuadro.id)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t(a.clave)} style={E.chip}>
+                        <Ionicons name={a.icono as any} size={14} color={P.tinta} />
+                        <Text style={[textoPortada(14, '500'), { color: P.tinta }]} numberOfLines={1}>{t(a.clave)}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.moreSoon', { lista: formato.lista([...EFECTOS_CERRADOS, ...ACCIONES_D1].map((x) => t(x.clave))) })}</Text>}
+                <View style={[E.fila, dir.contenedor]}>
+                  <BotonContorno texto={t('filmmakerTandas.frameMoveBefore')} icono={dir.esRTL ? 'arrow-forward' : 'arrow-back'} apagado={esPrimero} onPress={accion(() => onMover(cuadro.id, -1))} />
+                  <BotonContorno texto={t('filmmakerTandas.frameMoveAfter')} icono={dir.esRTL ? 'arrow-back' : 'arrow-forward'} apagado={esUltimo} onPress={accion(() => onMover(cuadro.id, 1))} />
+                  <BotonContorno texto={t('filmmakerTandas.frameDuplicate')} icono="copy-outline" onPress={accion(() => onDuplicar(cuadro.id))} />
+                  {puedePartir ? <BotonContorno texto={t('filmmakerTandas.frameSplitHere')} icono="git-branch-outline" onPress={accion(() => onPartirAqui(cuadro.id))} /> : null}
+                  <BotonContorno texto={seguro ? t('filmmakerTandas.frameRemoveSure') : t('filmmakerTandas.frameRemove')} icono="trash-outline" peligro onPress={() => { if (seguro) { onQuitar(cuadro.id); onClose(); } else setSeguro(true); }} />
+                </View>
+              </View>
+            ) : null}
           </ScrollView>
 
           <BotonBlanco texto={t('filmmakerTandas.frameDone')} onPress={guardar} testID="ficha-listo" />
@@ -232,12 +249,14 @@ const styles = StyleSheet.create({
   cabeza: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   cerrar: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   voz: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingHorizontal: 12, borderRadius: 16, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.superficie },
-  pestanas: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
   galeria: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tesela: { width: 88, minHeight: 76, borderRadius: 16, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.superficie, alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 6, paddingVertical: 8 },
   teselaSel: { borderColor: '#FFFFFF', borderWidth: 2, backgroundColor: P.superficieAlta },
   paso: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   boton: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.superficie, alignItems: 'center', justifyContent: 'center' },
-  cerrado: { borderStyle: 'dashed', backgroundColor: 'transparent' },
-  aviso: { padding: 10, borderRadius: 12, borderWidth: 1, borderColor: P.bordeLuz, backgroundColor: P.superficie },
+  resumenes: { flexDirection: 'row', gap: 8 },
+  resumen: { flex: 1, minHeight: 64, borderRadius: 16, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.superficie, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 6, paddingVertical: 8 },
+  resumenSel: { borderColor: '#FFFFFF', borderWidth: 2, backgroundColor: P.superficieAlta },
+  vozAbierta: { borderColor: P.bordeLuz },
+  masFila: { flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingHorizontal: 4 },
 });

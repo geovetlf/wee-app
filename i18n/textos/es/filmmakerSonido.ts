@@ -13,7 +13,7 @@ export const filmmakerSonido = {
   layerMusic: 'Música',
   layerEffects: 'Efectos de sonido',
 
-  voiceAuto: 'Weë lo hace por mí',
+  voiceAuto: 'Voz por defecto',
   voiceAutoNote: 'Weë elige la voz que mejor le queda.',
   voiceInherit: 'Usar la voz de {{origen}}',
   voiceInheritNow: 'Ahora suena: {{voz}}',

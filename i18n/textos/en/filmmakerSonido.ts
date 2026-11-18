@@ -12,7 +12,7 @@ export const filmmakerSonido: typeof import('../es/filmmakerSonido').filmmakerSo
   layerMusic: 'Music',
   layerEffects: 'Sound effects',
 
-  voiceAuto: 'Weë does it for me',
+  voiceAuto: 'Default voice',
   voiceAutoNote: 'Weë picks the voice that suits it best.',
   voiceInherit: 'Use the voice of {{origen}}',
   voiceInheritNow: 'Sounds like: {{voz}}',

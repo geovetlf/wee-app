@@ -9,7 +9,7 @@ import { COMANDOS_DE_CAMARA, claveDelValor } from '../../../constants/camaraCine
 import { ALMACEN_DE_LA_CUENTA_ABIERTO, GENERAR_IMAGENES_DEL_STORYBOARD, PRODUCCION_ABIERTA } from '../../../constants/filmmakerCamara';
 import { CuadroDeStoryboard, NARRADOR, Tanda, duracionDe, estadoDe, puedeAprobar, puedeGuardarEnAlmacen, tandaEsDeEjemplo, tiemposDe } from '../../../utils/tandasDeFilmmaker';
 import { etiquetaAccesible } from '../../../utils/ideaDeFilmmaker';
-import { BotonBlanco, BotonContorno, FilaCerrada, PastillaDeEstado, useTiempo } from '../tandas/comunes';
+import { BotonBlanco, BotonContorno, PastillaDeEstado, useTiempo } from '../tandas/comunes';
 
 interface Props {
   tanda: Tanda;
@@ -29,8 +29,10 @@ interface Props {
   onAviso: (mensaje: string) => void;
 }
 
-/** El icono del movimiento elegido en un cuadro (o el de cámara si no hay ninguno), para su miniatura. */
+/** El pictograma del ENCUADRE elegido en un cuadro (o el de su movimiento o cámara si no hay encuadre), para su miniatura. */
 const iconoDelCuadro = (c: CuadroDeStoryboard): keyof typeof Ionicons.glyphMap => {
+  const plano = COMANDOS_DE_CAMARA.find((x) => x.ruta === 'shot.type' && x.valor === c.creativo['shot.type']);
+  if (plano) return plano.icono as keyof typeof Ionicons.glyphMap;
   const mov = c.creativo['movement.type'];
   const cmd = COMANDOS_DE_CAMARA.find((x) => (mov && x.ruta === 'movement.type' && x.valor === mov) || (!mov && x.ruta === 'camera.type' && c.creativo['camera.type'] === x.valor));
   return (cmd?.icono as keyof typeof Ionicons.glyphMap) ?? 'videocam-outline';
@@ -62,13 +64,12 @@ export const StoryboardDeTanda: React.FC<Props> = ({ tanda, posicion, ancho, com
     const rango = tiempo.rango(tiempos[i].inicio, tiempos[i].fin);
     const plano = claveDePlano ? t(claveDePlano) : t('filmmakerTandas.shotUndecided');
     return (
-      <TouchableOpacity key={c.id} testID={`cuadro-${i + 1}`} onPress={() => onAbrirCuadro(c.id)} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmakerTandas.frameTitle', { n: formato.numero(i + 1) }), rango, plano, c.texto || null, c.ejemplo ? t('filmmakerTandas.exampleBadge') : null, t('filmmakerTandas.openFrame'))} style={{ width: lado }}>
+      <TouchableOpacity key={c.id} testID={`cuadro-${i + 1}`} onPress={() => onAbrirCuadro(c.id)} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmakerTandas.frameTitle', { n: formato.numero(i + 1) }), rango, plano, c.texto || null, t('filmmakerTandas.openFrame'))} style={{ width: lado }}>
         <View style={[styles.miniatura, { height: Math.round((lado * 9) / 16) }]}>
           <LinearGradient colors={['#0A0D13', '#1B2029']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <Ionicons name={iconoDelCuadro(c)} size={Math.round(lado * 0.2)} color={P.tintaDeshabilitada} />
           <View style={[styles.numero, { start: 6 }]}><Text style={[textoPortada(12, '600'), { color: P.tinta }]}>{formato.numero(i + 1)}</Text></View>
           <View style={[styles.tiempo, { end: 6 }]}><Text style={[textoPortada(11, '600'), { color: P.tinta }]} numberOfLines={1}>{rango}</Text></View>
-          {c.ejemplo ? <View style={[styles.ejemplo, { start: 6 }]}><Text style={[textoPortada(11, '600'), { color: P.tintaSecundaria }]}>{t('filmmakerTandas.exampleBadge')}</Text></View> : null}
         </View>
         <Text style={[textoPortada(12, '600'), dir.texto, { color: P.luz, marginTop: 6 }]} numberOfLines={1}>{plano}</Text>
         {c.hablante === NARRADOR ? <Text style={[textoPortada(11, '600'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={1}>{t('filmmakerTandas.speakerNarrator')}</Text> : null}
@@ -97,17 +98,13 @@ export const StoryboardDeTanda: React.FC<Props> = ({ tanda, posicion, ancho, com
           {t('filmmakerTandas.frames', { contador: tanda.cuadros.length })} · {t('filmmakerTandas.durationOf', { hecho: tiempo.solo(dur), objetivo: tiempo.solo(tanda.objetivo) })}
         </Text>
         <View style={styles.barra} accessible accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(pct * 100) }}><View style={[styles.relleno, { width: `${Math.round(pct * 100)}%` }]} /></View>
-        <View style={[styles.barraDeTanda, dir.contenedor]} testID="barra-de-tanda">
-          {tanda.cuadros.length > 0 ? <BotonContorno texto={t('filmmakerTandas.addFrame')} icono="add" onPress={onAnadir} testID="anadir-cuadro" /> : null}
-          <View style={{ flex: 1, minWidth: 150 }}><BotonBlanco texto={principal.texto} onPress={principal.onPress} apagado={principal.apagado} motivo={principal.motivo} testID="principal-storyboard" /></View>
-        </View>
-        {principal.nota ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{principal.nota}</Text> : null}
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
 
         {ejemplo ? (
           <View style={[styles.nota, dir.contenedor]}>
             <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tintaSecundaria, flex: 1 }]}>{t('filmmakerTandas.exampleNote')}</Text>
+            <TouchableOpacity onPress={onQuitarEjemplo} accessibilityRole="button" accessibilityLabel={t('filmmakerTandas.clearExample')} style={styles.quitar}><Text style={[textoPortada(13, '600'), { color: P.tinta }]}>{t('filmmakerTandas.clearExample')}</Text></TouchableOpacity>
           </View>
         ) : null}
 
@@ -118,15 +115,25 @@ export const StoryboardDeTanda: React.FC<Props> = ({ tanda, posicion, ancho, com
             <BotonContorno texto={t('filmmakerTandas.loadExample')} icono="sparkles-outline" onPress={onEjemplo} testID="cargar-ejemplo" />
           </View>
         ) : (
-          <View style={[styles.rejilla, dir.contenedor]}>{tanda.cuadros.map(cuadro)}</View>
+          <View style={[styles.rejilla, dir.contenedor]}>
+            {tanda.cuadros.map(cuadro)}
+            <TouchableOpacity testID="anadir-cuadro" onPress={onAnadir} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={t('filmmakerTandas.addFrame')} style={{ width: lado }}>
+              <View style={[styles.nuevo, { height: Math.round((lado * 9) / 16) }]}>
+                <Ionicons name="add" size={26} color={P.tinta} />
+                <Text style={[textoPortada(12, '600'), { color: P.tinta }]} numberOfLines={1}>{t('filmmakerTandas.addFrame')}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         )}
 
-        <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.styleNote')}</Text>
         {tanda.almacen ? <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tinta }]} accessibilityLiveRegion="polite">{ALMACEN_DE_LA_CUENTA_ABIERTO ? t('filmmakerTandas.storedAccount') : t('filmmakerTandas.storedSession')}</Text> : null}
-        {!GENERAR_IMAGENES_DEL_STORYBOARD ? <FilaCerrada titulo={t('filmmakerTandas.generateImages')} motivo={t('filmmakerTandas.generateImagesClosed')} icono="images-outline" onAviso={onAviso} /> : null}
-        {hayEjemplos && tanda.cuadros.length > 0 ? <BotonContorno texto={t('filmmakerTandas.clearExample')} icono="close-circle-outline" onPress={onQuitarEjemplo} /> : null}
+        {!GENERAR_IMAGENES_DEL_STORYBOARD ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.generateImagesClosed')}</Text> : null}
       </ScrollView>
 
+      <View style={styles.barraDeTanda} testID="barra-de-tanda">
+        <BotonBlanco texto={principal.texto} onPress={principal.onPress} apagado={principal.apagado} motivo={principal.motivo} testID="principal-storyboard" />
+        {principal.nota ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{principal.nota}</Text> : null}
+      </View>
     </View>
   );
 };
@@ -142,9 +149,10 @@ const styles = StyleSheet.create({
   miniatura: { borderRadius: 12, borderWidth: 1, borderColor: P.bordeLuz, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   numero: { position: 'absolute', top: 6, minWidth: 24, height: 24, paddingHorizontal: 5, borderRadius: 6, borderWidth: 1, borderColor: P.tinta, backgroundColor: 'rgba(5,6,8,0.8)', alignItems: 'center', justifyContent: 'center' },
   tiempo: { position: 'absolute', top: 6, maxWidth: '62%', height: 20, paddingHorizontal: 6, borderRadius: 6, backgroundColor: 'rgba(5,6,8,0.8)', justifyContent: 'center' },
-  ejemplo: { position: 'absolute', bottom: 6, height: 20, paddingHorizontal: 6, borderRadius: 10, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: 'rgba(5,6,8,0.8)', justifyContent: 'center' },
+  nuevo: { borderRadius: 12, borderWidth: 1, borderStyle: 'dashed', borderColor: P.bordeCapsula, alignItems: 'center', justifyContent: 'center', gap: 6 },
+  barraDeTanda: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, gap: 6 },
   vacio: { minHeight: 150, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 20, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', borderColor: P.bordeCapsula },
   nota: { padding: 10, borderRadius: 12, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.superficie, flexDirection: 'row', alignItems: 'center' },
   fijo: { paddingHorizontal: 16, paddingTop: 8, gap: 10 },
-  barraDeTanda: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  quitar: { minHeight: 44, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center' },
 });

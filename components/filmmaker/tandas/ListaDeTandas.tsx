@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useT, useIdioma } from '../../../contexts/IdiomaContext';
 import { useDireccion } from '../../../hooks/useDireccion';
 import { PORTADA_WEEAI as P, textoPortada } from '../../../constants/estiloWeeAi';
-import { ACCION_DE_ESTADO, CLAVE_DE_ESTADO } from '../../../constants/filmmakerTandas';
-import { LIMITE_DEL_MONTAJE, Tanda, TandasDelTaller, duracionDe, estadoDe, excesoDelMontaje, siguientePendiente, tandaEsDeEjemplo, todasAprobadas, totales } from '../../../utils/tandasDeFilmmaker';
+import { CLAVE_DE_ESTADO } from '../../../constants/filmmakerTandas';
+import { LIMITE_DEL_MONTAJE, Tanda, TandasDelTaller, duracionDe, estadoDe, excesoDelMontaje, siguientePendiente, todasAprobadas, totales } from '../../../utils/tandasDeFilmmaker';
 import { etiquetaAccesible } from '../../../utils/ideaDeFilmmaker';
 import { BotonBlanco, BotonContorno, PastillaDeEstado, useTiempo } from './comunes';
 
@@ -45,12 +45,11 @@ export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, selecc
     const e = estadoDe(ta);
     const n = posicion(ta.id);
     const titulo = ta.titulo || t('filmmakerTandas.chapterN', { n: formato.numero(n) });
-    const acc = ACCION_DE_ESTADO[e];
     const sel = seleccionada === ta.id;
     const meta = `${t('filmmakerTandas.targetShort', { objetivo: tiempo.solo(ta.objetivo) })} · ${t('filmmakerTandas.frames', { contador: ta.cuadros.length })}`;
     return (
       <View key={ta.id} style={[styles.fila, sel && styles.filaSel, dir.contenedor]}>
-        <TouchableOpacity testID={`tanda-${n}`} onPress={() => onAbrir(ta.id)} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(titulo, meta, t(CLAVE_DE_ESTADO[e]), tandaEsDeEjemplo(ta) ? t('filmmakerTandas.exampleBadge') : null)} accessibilityState={{ selected: sel }} style={[styles.cuerpo, dir.contenedor]}>
+        <TouchableOpacity testID={`tanda-${n}`} onPress={() => onAbrir(ta.id)} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(titulo, meta, t(CLAVE_DE_ESTADO[e]))} accessibilityState={{ selected: sel }} style={[styles.cuerpo, dir.contenedor]}>
           <View style={styles.miniatura}>
             <LinearGradient colors={['#0A0D13', '#1B2029']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <Ionicons name="film-outline" size={20} color={P.tintaDeshabilitada} />
@@ -60,18 +59,12 @@ export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, selecc
             <Text style={[textoPortada(16, '600'), dir.texto, { color: P.tinta }]} numberOfLines={1}>{titulo}</Text>
             <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={2}>{meta}</Text>
             <View style={[styles.pie, dir.contenedor]}>
-              <PastillaDeEstado estado={e} />
-              {tandaEsDeEjemplo(ta) ? <Text style={[textoPortada(11, '600'), { color: P.tintaSecundaria }]}>{t('filmmakerTandas.exampleBadge')}</Text> : null}
+              {e !== 'none' ? <PastillaDeEstado estado={e} /> : null}
             </View>
           </View>
         </TouchableOpacity>
         <View style={styles.lado}>
           <TouchableOpacity testID={`opciones-${n}`} onPress={() => onOpciones(ta.id)} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmakerTandas.options'), titulo)} style={styles.mas}><Ionicons name="ellipsis-horizontal" size={20} color={P.tinta} /></TouchableOpacity>
-          {compacto ? null : (
-            <TouchableOpacity onPress={() => (acc.abierta ? onAbrir(ta.id) : onAviso(t(acc.claveMotivo as string)))} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t(acc.clave), acc.abierta ? null : t(acc.claveMotivo as string))} accessibilityState={{ disabled: !acc.abierta }} style={[styles.contextual, !acc.abierta && { borderStyle: 'dashed' }]}>
-              <Text style={[textoPortada(13, '600'), { color: acc.abierta ? P.tinta : P.tintaSecundaria }]} numberOfLines={1}>{t(acc.clave)}</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </View>
     );
@@ -79,7 +72,7 @@ export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, selecc
 
   const todas = todasAprobadas(estado);
   const principal = (() => {
-    if (estado.tandas.length === 0) return { texto: t('filmmakerTandas.autoSplit'), onPress: onAutomatico, apagado: false, motivo: null as string | null };
+    if (estado.tandas.length === 0) return { texto: t('filmmakerTandas.addChapter'), onPress: onAnadir, apagado: false, motivo: null as string | null };
     if (pendiente) {
       const n = posicion(pendiente.id);
       return { texto: t(estadoDe(pendiente) === 'none' ? 'filmmakerTandas.nextCreate' : 'filmmakerTandas.nextReview', { n: formato.numero(n) }), onPress: () => onAbrir(pendiente.id), apagado: false, motivo: null };
@@ -99,6 +92,7 @@ export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, selecc
           <View style={styles.vacio}>
             <Ionicons name="albums-outline" size={28} color={P.tintaDeshabilitada} />
             <Text style={[textoPortada(15, '500'), { color: P.tintaSecundaria, textAlign: 'center' }]}>{t('filmmakerTandas.listEmpty')}</Text>
+            <BotonContorno texto={t('filmmakerTandas.autoSplit')} icono="sparkles-outline" onPress={onAutomatico} testID="proponer-tandas" />
           </View>
         ) : estado.tandas.map(fila)}
 
@@ -112,7 +106,7 @@ export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, selecc
         <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.sessionNote')}</Text>
 
         <View style={[styles.fila2, dir.contenedor]}>
-          <BotonContorno texto={t('filmmakerTandas.addChapter')} icono="add" onPress={onAnadir} testID="anadir-tanda" />
+          {estado.tandas.length > 0 ? <BotonContorno texto={t('filmmakerTandas.addChapter')} icono="add" onPress={onAnadir} testID="anadir-tanda" /> : null}
           {estado.tandas.length === 0 ? <BotonContorno texto={t('filmmakerTandas.loadExample')} icono="sparkles-outline" onPress={onEjemplo} testID="ejemplo-tandas" /> : null}
           {hayEjemplos ? <BotonContorno texto={t('filmmakerTandas.clearExample')} icono="close-circle-outline" onPress={onQuitarEjemplo} /> : null}
         </View>
@@ -137,7 +131,6 @@ const styles = StyleSheet.create({
   pie: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   lado: { alignItems: 'center', gap: 6 },
   mas: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  contextual: { minHeight: 44, minWidth: 96, paddingHorizontal: 10, borderRadius: 22, borderWidth: 1, borderColor: P.bordeCapsula, alignItems: 'center', justifyContent: 'center' },
   vacio: { minHeight: 140, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 24, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', borderColor: P.bordeCapsula },
   fila2: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   piePrincipal: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, gap: 6 },
