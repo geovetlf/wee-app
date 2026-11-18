@@ -272,6 +272,9 @@ export interface CharacterState {
 }
 export interface ShotGeneration {
     readonly quality?: ProductionQuality;
+    readonly preferredModel?: string;
+    readonly variants?: number;
+    readonly consistencySeed?: number;
 }
 export const MODOS_DE_REVISION = Object.freeze(['edit', 'extend'] as const);
 export type TakeRevisionMode = typeof MODOS_DE_REVISION[number];
@@ -399,6 +402,9 @@ export type AudioTarget = {
 export interface GenerationPreferences {
     readonly quality?: ProductionQuality;
     readonly preview?: PreviewPolicy;
+    readonly preferredModel?: string;
+    readonly variants?: number;
+    readonly consistencySeed?: number;
 }
 export interface EditPlan {
     readonly tracks?: readonly EditTrack[];

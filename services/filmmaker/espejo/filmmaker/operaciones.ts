@@ -299,6 +299,9 @@ export type FilmmakerOperation = {
     readonly target: GenerationTarget;
     readonly quality?: ProductionQuality | null;
     readonly preview?: PreviewPolicy | null;
+    readonly preferredModel?: string | null;
+    readonly variants?: number | null;
+    readonly consistencySeed?: number | null;
 } | {
     readonly op: 'update_scene';
     readonly sceneId: string;
@@ -372,7 +375,7 @@ const CAMPOS: Readonly<Record<OperationName, {
     change_mood: { req: ['target', 'mood'], opt: [] },
     change_transition: { req: ['target', 'transition'], opt: [] },
     change_continuity: { req: ['target', 'continuity'], opt: [] },
-    change_generation: { req: ['target'], opt: ['quality', 'preview'] },
+    change_generation: { req: ['target'], opt: ['quality', 'preview', 'preferredModel', 'variants', 'consistencySeed'] },
     update_scene: { req: ['sceneId', 'changes'], opt: [] },
     update_shot: { req: ['shotId', 'changes'], opt: [] },
     move_shot: { req: ['shotId', 'toSceneId'], opt: ['atOrder'] },
@@ -1423,8 +1426,9 @@ const ejecutar = (prod: Prod, op: FilmmakerOperation): Paso => {
             return falla('operation_invalid', 'target.scope', { reason: 'not_in_vocabulary' });
         }
         case 'change_generation': {
-            if (op.quality === undefined && op.preview === undefined)
+            if (op.quality === undefined && op.preview === undefined && op.preferredModel === undefined && op.variants === undefined && op.consistencySeed === undefined)
                 return falla('operation_invalid', '', { reason: 'nothing_to_change' });
+            const ELECCIONES = ['preferredModel', 'variants', 'consistencySeed'] as const;
             const t = op.target as unknown;
             if (!esObj(t))
                 return falla('operation_invalid', 'target', { reason: 'not_object' });
@@ -1434,6 +1438,9 @@ const ejecutar = (prod: Prod, op: FilmmakerOperation): Paso => {
                     g = fijar(g, 'quality', op.quality);
                 if (op.preview !== undefined)
                     g = fijar(g, 'preview', op.preview);
+                for (const k of ELECCIONES)
+                    if (op[k] !== undefined)
+                        g = fijar(g, k, op[k]);
                 return bien({ ...prod, generation: g });
             }
             if (t.scope === 'shot') {
@@ -1443,7 +1450,10 @@ const ejecutar = (prod: Prod, op: FilmmakerOperation): Paso => {
                 if (!u)
                     return falla('operation_target_missing', 'target.shotId', { id: String(t.shotId) });
                 return bien(cambiarPlano(prod, u.shot.id, (p) => {
-                    const g = fijar(p.generation ?? {}, 'quality', op.quality);
+                    let g = op.quality !== undefined ? fijar(p.generation ?? {}, 'quality', op.quality) : (p.generation ?? {});
+                    for (const k of ELECCIONES)
+                        if (op[k] !== undefined)
+                            g = fijar(g, k, op[k]);
                     return fijar(p, 'generation', Object.keys(g).length ? g : undefined);
                 }));
             }

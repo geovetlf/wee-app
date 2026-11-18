@@ -62,6 +62,9 @@ export interface CapacidadesDeModelo {
     readonly lipSync: Soporte;
     readonly borrador: Soporte;
     readonly semilla: Soporte;
+    readonly variantes: {
+        readonly max: number;
+    };
     readonly asincronia: {
         readonly sondeo: boolean;
         readonly webhook: boolean;
