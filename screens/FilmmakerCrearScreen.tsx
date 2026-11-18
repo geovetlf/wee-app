@@ -42,7 +42,7 @@ import { peticionDeUniverso } from '../utils/imagenesDelUniverso';
 import { fraseDelFallo } from '../utils/mensajesDeFilmmaker';
 import { filmmakerService } from '../services/filmmakerService';
 import type { FalloDeProducciones } from '../services/filmmakerService';
-import { tandasDesdeLaProduccion, tipoDeLaExperiencia, universoDesdeLaProduccion } from '../utils/filmmakerOrquestacion';
+import { tandasDesdeLaProduccion, tipoDeLaProduccion, universoDesdeLaProduccion } from '../utils/filmmakerOrquestacion';
 import { IdeaDelTaller, alRecibir, estaLista, fraseDe, duracionDe, etiquetaAccesible, cambiarDeTipo, esTipoConTaller, ideaVacia, poner, sumarALaFrase } from '../utils/ideaDeFilmmaker';
 import type { AspectRatio, ResolutionTarget } from '../services/filmmaker/dominio';
 import { PORTADA_WEEAI as P, textoPortada, ESPACIO_WEEAI as SPACING } from '../constants/estiloWeeAi';
@@ -152,7 +152,7 @@ const FilmmakerCrearScreen: React.FC = () => {
     void filmmakerService.getProduction(abrirId).then((r) => {
       if (!r.ok) { setAviso(fraseDelFallo(r.fallo, t)); return; }
       const p = r.valor;
-      const tipoLeido = tipoDeLaExperiencia(p.production.intent?.productionType) ?? 'short';
+      const tipoLeido = tipoDeLaProduccion(p.production);
       pf.adoptar(p);
       setProduccionId(p.productionId);
       setTipoId(tipoLeido as TipoDeTaller);

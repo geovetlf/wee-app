@@ -289,3 +289,6 @@ export const universoDesdeLaProduccion = (prod: FilmmakerProduction): UniversoDe
   ];
   return { elementos, aprobado: false, siguiente: max + 1 };
 };
+
+/** El tipo de la experiencia de una producción guardada (por defecto, cortometraje). */
+export const tipoDeLaProduccion = (prod: FilmmakerProduction): string => tipoDeLaExperiencia(prod.intent?.productionType) ?? 'short';
