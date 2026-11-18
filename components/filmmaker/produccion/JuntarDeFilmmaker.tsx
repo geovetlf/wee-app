@@ -1,0 +1,54 @@
+import React from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { useT, useIdioma } from '../../../contexts/IdiomaContext';
+import { useDireccion } from '../../../hooks/useDireccion';
+import { PORTADA_WEEAI as P, textoPortada } from '../../../constants/estiloWeeAi';
+import { JUNTAR_ABIERTO } from '../../../constants/filmmakerCamara';
+import { LIMITE_DEL_MONTAJE, TandasDelTaller, excesoDelMontaje, tandaEsDeEjemplo, totales } from '../../../utils/tandasDeFilmmaker';
+import { BotonBlanco, useTiempo } from '../tandas/comunes';
+
+interface Props {
+  tandas: TandasDelTaller;
+  /** Une los cuadros en un solo vídeo. Sin él (o con `JUNTAR_ABIERTO = false`) el botón sale cerrado con su motivo. */
+  onJuntar?: () => void;
+}
+
+/**
+ * JUNTAR (etapa 5): todos los cuadros de los capítulos, en orden, en un solo vídeo. Una sola acción. Lo que se enseña es lo real: cuántos cuadros y
+ * cuánto dura contra el límite del montaje (60 cuadros y 10:00) y, si te pasas, cuánto. El coste, si lo hay, va junto al botón; mientras el montaje
+ * esté cerrado el botón dice por qué en una línea y no se simula nada.
+ */
+export const JuntarDeFilmmaker: React.FC<Props> = ({ tandas, onJuntar }) => {
+  const t = useT();
+  const { formato } = useIdioma();
+  const dir = useDireccion();
+  const tiempo = useTiempo();
+  const reales: TandasDelTaller = { ...tandas, tandas: tandas.tandas.filter((x) => !tandaEsDeEjemplo(x)) };
+  const suma = totales(reales);
+  const exceso = excesoDelMontaje(reales);
+  const pasado = exceso.planos || exceso.segundos;
+  const abierto = JUNTAR_ABIERTO && !!onJuntar && suma.cuadros > 0 && !pasado;
+  const motivo = suma.cuadros === 0 ? t('filmmakerProd.joinEmpty') : pasado ? null : !JUNTAR_ABIERTO ? t('filmmakerProd.joinClosed') : null;
+
+  return (
+    <View style={styles.raiz}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
+        <Text style={[textoPortada(22, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header">{t('filmmakerProd.joinTitle')}</Text>
+        <Text style={[textoPortada(15, '500'), dir.texto, { color: P.tinta }]}>{t('filmmakerTandas.frames', { contador: suma.cuadros })} · {tiempo.solo(suma.segundos)}</Text>
+        <Text style={[textoPortada(12, '400'), dir.texto, { color: pasado ? P.tinta : P.tintaSecundaria }]} accessibilityLiveRegion="polite">
+          {t(pasado ? 'filmmakerTandas.limitOver' : 'filmmakerTandas.limitNote', { planos: formato.numero(LIMITE_DEL_MONTAJE.planos), duracion: tiempo.solo(LIMITE_DEL_MONTAJE.segundos) })}
+        </Text>
+      </ScrollView>
+      <View style={styles.pie}>
+        <BotonBlanco texto={t('filmmakerProd.joinAction')} onPress={() => { if (abierto && onJuntar) onJuntar(); }} apagado={!abierto} motivo={motivo} testID="juntar-accion" />
+        {motivo ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{motivo}</Text> : null}
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  raiz: { flex: 1 },
+  contenido: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, gap: 10 },
+  pie: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, gap: 6 },
+});

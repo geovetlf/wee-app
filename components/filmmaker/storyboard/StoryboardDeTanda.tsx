@@ -23,6 +23,8 @@ interface Props {
   onAnadir: () => void;
   onAprobar: () => void;
   onGuardarEnAlmacen: () => void;
+  /** Lleva a la etapa de Producción, donde el precio y el estado de cada cuadro viven junto a su botón. Sin él, el botón avisa de que está cerrado. */
+  onProducir?: () => void;
   onEjemplo: () => void;
   onQuitarEjemplo: () => void;
   hayEjemplos: boolean;
@@ -43,7 +45,7 @@ const iconoDelCuadro = (c: CuadroDeStoryboard): keyof typeof Ionicons.glyphMap =
  * con el recuento y la duración contra el objetivo. La miniatura es un marcador con el icono de su cámara: generar las imágenes está CERRADO (regla 10)
  * y la rejilla se rotula «referencia visual, no vista previa exacta». Un único botón blanco: añadir → aprobar → guardar en el almacén → producir (cerrado).
  */
-export const StoryboardDeTanda: React.FC<Props> = ({ tanda, posicion, ancho, compacto, onVolver, onAbrirCuadro, onAnadir, onAprobar, onGuardarEnAlmacen, onEjemplo, onQuitarEjemplo, hayEjemplos, onAviso }) => {
+export const StoryboardDeTanda: React.FC<Props> = ({ tanda, posicion, ancho, compacto, onVolver, onAbrirCuadro, onAnadir, onAprobar, onGuardarEnAlmacen, onProducir, onEjemplo, onQuitarEjemplo, hayEjemplos, onAviso }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
@@ -83,7 +85,7 @@ export const StoryboardDeTanda: React.FC<Props> = ({ tanda, posicion, ancho, com
     if (tanda.cuadros.length === 0) return { texto: t('filmmakerTandas.addFrame'), onPress: onAnadir, apagado: false, motivo: null, nota: null };
     if (!tanda.aprobada) return { texto: t('filmmakerTandas.approveBoard'), onPress: onAprobar, apagado: !puedeAprobar(tanda), motivo: null, nota: null };
     if (!tanda.almacen) return { texto: t('filmmakerTandas.saveToStore'), onPress: onGuardarEnAlmacen, apagado: !puedeGuardarEnAlmacen(tanda), motivo: null, nota: null };
-    return { texto: t('filmmakerTandas.actProduce'), onPress: () => onAviso(t('filmmakerTandas.produceClosed')), apagado: !PRODUCCION_ABIERTA, motivo: t('filmmakerTandas.produceClosed'), nota: `${t('filmmakerSonido.priceTitle')}: ${t('filmmakerSonido.priceUnknown')} · ${t('filmmakerTandas.produceClosed')}` };
+    return { texto: t('filmmakerTandas.actProduce'), onPress: onProducir ?? (() => onAviso(t('filmmakerTandas.produceClosed'))), apagado: !onProducir && !PRODUCCION_ABIERTA, motivo: t('filmmakerTandas.produceClosed'), nota: PRODUCCION_ABIERTA ? null : `${t('filmmakerSonido.priceTitle')}: ${t('filmmakerSonido.priceUnknown')} · ${t('filmmakerTandas.produceClosed')}` };
   })();
 
   return (

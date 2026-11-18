@@ -9,8 +9,10 @@ import { FAMILIAS_DE_CAMARA, FamiliaDeCamara, VALORES_CREATIVOS } from './camara
 
 /** Generar las imágenes del storyboard: CERRADO. Es una capacidad que Filmmaker hoy no pide al Core; abrirla exige autorización expresa (regla 10). */
 export const GENERAR_IMAGENES_DEL_STORYBOARD = false;
-/** Producir una tanda (etapa 4): todavía no existe. */
+/** Producir los cuadros de un capítulo (etapa 4), cuadro a cuadro con la toma del servidor. CERRADO hasta que la producción por la puerta del vídeo esté abierta en producción; con `true` cada fila pide su toma de verdad. */
 export const PRODUCCION_ABIERTA = false;
+/** Juntar los cuadros en un solo vídeo (etapa 5): el montaje (FFmpeg, 600 s / 60 planos) está portado en el servidor pero cerrado y sin cliente. Con `true` y un `onJuntar` conectado, el botón actúa. */
+export const JUNTAR_ABIERTO = false;
 /** D1 (referencias, primer/último fotograma, extender, editar): el contrato está propuesto y sin aplicar. Con `true` las filas llaman a `onAccionD1`. */
 export const D1_ABIERTO = false;
 /** El almacén de la cuenta: sin contrato de datos que lo persista. Hoy «guardar» fija el storyboard en esta sesión y la pantalla lo dice. */

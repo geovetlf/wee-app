@@ -22,12 +22,15 @@ import { ReferenciasAdjuntas } from '../components/filmmaker/ReferenciasAdjuntas
 import { useReferenciasDeFilmmaker } from '../hooks/useReferenciasDeFilmmaker';
 import { personajes, listas, subiendo } from '../utils/referenciasDeFilmmaker';
 import { HojaDeProyecto } from '../components/filmmaker/HojaDeProyecto';
+import { ResumenDeEspecificaciones } from '../components/filmmaker/PanelDeEspecificaciones';
 import { BarraDeEtapas } from '../components/filmmaker/BarraDeEtapas';
 import { UniversoDeFilmmaker } from '../components/filmmaker/UniversoDeFilmmaker';
 import { FichaDeElemento } from '../components/filmmaker/FichaDeElemento';
 import { SECCIONES_DEL_UNIVERSO, EJEMPLO_DEL_UNIVERSO, EtapaId } from '../constants/filmmakerUniverso';
 import { UniversoDelTaller, TipoDeElemento, anadir, anadirEjemplos, aprobar, editar, quitar, quitarEjemplos, universoVacio } from '../utils/universoDeFilmmaker';
 import { TandasYStoryboard } from '../components/filmmaker/tandas/TandasYStoryboard';
+import { ProduccionDeFilmmaker } from '../components/filmmaker/produccion/ProduccionDeFilmmaker';
+import { JuntarDeFilmmaker } from '../components/filmmaker/produccion/JuntarDeFilmmaker';
 import { TandasDelTaller, tandasVacias } from '../utils/tandasDeFilmmaker';
 import { TallerDeIdea, EstadoDelTaller } from '../components/filmmaker/TallerDeIdea';
 import { ElegirEstilo } from '../components/filmmaker/ElegirEstilo';
@@ -76,7 +79,7 @@ const FilmmakerCrearScreen: React.FC = () => {
   const [creaciones, setCreaciones] = useState(false);
   const refs = useReferenciasDeFilmmaker();
   const [texto, setTexto] = useState('');
-  const [capa, setCapa] = useState<'entrada' | 'estilo' | 'taller' | 'universo' | 'tandas'>('entrada');
+  const [capa, setCapa] = useState<'entrada' | 'estilo' | 'taller' | 'universo' | 'tandas' | 'produccion' | 'juntar'>('entrada');
   const [universo, setUniverso] = useState<UniversoDelTaller>(() => universoVacio());
   const [seccion, setSeccion] = useState<TipoDeElemento>('character');
   const [tandas, setTandas] = useState<TandasDelTaller>(() => tandasVacias());
@@ -117,6 +120,9 @@ const FilmmakerCrearScreen: React.FC = () => {
   const enIdea = capa === 'taller';
   const enUniverso = capa === 'universo';
   const enTandas = capa === 'tandas';
+  const enProduccion = capa === 'produccion';
+  const enJuntar = capa === 'juntar';
+  const enEtapas = enUniverso || enTandas || enProduccion || enJuntar;
 
   /* Los capítulos y cuadros que la persona escribe se guardan en su producción (escenas y planos) un momento después de cada cambio; sin cambios reales no se llama al servidor. */
   useEffect(() => {
@@ -137,7 +143,9 @@ const FilmmakerCrearScreen: React.FC = () => {
 
   const atras = () => {
     setAviso(null);
-    if (enTandas) setCapa('universo');
+    if (enJuntar) setCapa('produccion');
+    else if (enProduccion) setCapa('tandas');
+    else if (enTandas) setCapa('universo');
     else if (enUniverso) setCapa('taller');
     else if (enIdea) setCapa('estilo');
     else if (enEstilo) { setCapa('entrada'); setPreguntado(false); }
@@ -222,6 +230,8 @@ const FilmmakerCrearScreen: React.FC = () => {
     if (id === 'idea') setCapa('taller');
     else if (id === 'batches' && produccionId) setCapa('tandas');
     else if (id === 'universe' && produccionId) setCapa('universo');
+    else if (id === 'production' && produccionId) setCapa('produccion');
+    else if (id === 'join' && produccionId) setCapa('juntar');
   };
 
   /* El «+» abre la hoja de adjuntos; el resto de lo que antes eran iconos cerrados vive ahora dentro de ella, con su motivo. */
@@ -299,18 +309,22 @@ const FilmmakerCrearScreen: React.FC = () => {
         </View>
 
         {/* Las etapas solo aparecen cuando sirven (después de la Idea) y solo las que existen: nunca bloqueadas. */}
-        {enUniverso || enTandas ? <BarraDeEtapas activa={enTandas ? 'batches' : 'universe'} onIr={irA} onProyecto={() => setProyecto(true)} /> : null}
+        {enEtapas ? <BarraDeEtapas activa={enJuntar ? 'join' : enProduccion ? 'production' : enTandas ? 'batches' : 'universe'} onIr={irA} onProyecto={() => setProyecto(true)} /> : null}
 
         {/* EL MUNDO de encima de la caja: las tarjetas de tipo, o el hilo del taller de Idea. */}
         <View style={styles.mundo} onLayout={(e: LayoutChangeEvent) => { const h = Math.round(e.nativeEvent.layout.height); setAltoMundo((a) => (Math.abs(a - h) > 1 ? h : a)); }}>
           {enEstilo ? (
             <ElegirEstilo ancho={ancho} elegido={estilo} onElegir={elegirEstilo} />
+          ) : enJuntar ? (
+            <JuntarDeFilmmaker tandas={tandas} />
+          ) : enProduccion ? (
+            <ProduccionDeFilmmaker tandas={tandas} guardada={pf.guardada} guardando={pf.carga !== 'libre'} onJuntar={() => { setAviso(null); setCapa('juntar'); }} onIrACapitulos={() => setCapa('tandas')} />
           ) : enTandas ? (
-            <TandasYStoryboard ancho={Math.min(ancho, 1040)} compacto={compacto} personajes={universo.elementos.filter((e) => e.tipo === 'character').map((e) => ({ id: e.id, nombre: e.nombre, voz: e.voz }))} duracionTotalSeg={duracionDe(idea)} valor={tandas} onCambio={setTandas} onAviso={setAviso} />
+            <TandasYStoryboard ancho={Math.min(ancho, 1040)} compacto={compacto} personajes={universo.elementos.filter((e) => e.tipo === 'character').map((e) => ({ id: e.id, nombre: e.nombre, voz: e.voz }))} duracionTotalSeg={duracionDe(idea)} valor={tandas} onCambio={setTandas} onAviso={setAviso} onProducir={() => { setAviso(null); setCapa('produccion'); }} />
           ) : enUniverso ? (
             <UniversoDeFilmmaker universo={universo} ancho={Math.min(ancho, 1040)} compacto={compacto} seccion={seccion} onSeccion={setSeccion} onAbrir={(e) => setFichaId(e.id)} onAprobar={() => setUniverso(aprobar)} onEjemplo={() => setUniverso((u) => anadirEjemplos(u, EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))))} onQuitarEjemplo={() => setUniverso(quitarEjemplos)} onContinuar={() => { setAviso(null); setCapa('tandas'); }} onAviso={(clave) => setAviso(t(clave))} imagenes={imagenes} peticionDeImagenes={peticionDeUniverso(universo, { estilo, tipo: tipoId ?? undefined, referencia: (personajes(refs.referencias)[0] ?? listas(refs.referencias)[0])?.url ?? null, aspecto: aspectoDeLaIdea(idea) })} />
           ) : enIdea ? (
-            <TallerDeIdea tipo={idea.tipo} estado={estadoDelTaller} compacto={alto < 600} />
+            <TallerDeIdea tipo={idea.tipo} estado={estadoDelTaller} compacto={alto < 600} especificaciones={<ResumenDeEspecificaciones idea={idea} compacto={alto < 700} onAbrir={() => setProyecto(true)} />} />
           ) : conScroll ? <ScrollView style={styles.lista} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">{entrada}</ScrollView> : entrada}
         </View>
 
@@ -337,8 +351,8 @@ const FilmmakerCrearScreen: React.FC = () => {
               <Ionicons name="chevron-down" size={12} color={P.tintaSecundaria} />
             </TouchableOpacity>
           ) : null}
-          {!enTandas && !enEstilo && !enUniverso ? <ReferenciasAdjuntas referencias={refs.referencias} onQuitar={refs.quitar} onReintentar={refs.reintentar} /> : null}
-          {!enTandas && !enEstilo ? <CajaAnclada alto={topeDeLaCaja}>
+          {!enEtapas && !enEstilo ? <ReferenciasAdjuntas referencias={refs.referencias} onQuitar={refs.quitar} onReintentar={refs.reintentar} onCambiarRol={refs.cambiarRol} /> : null}
+          {!enEstilo && !enProduccion && !enJuntar && !enTandas ? <CajaAnclada alto={topeDeLaCaja}>
             <CajaDePrompt portada enviarDiscreto={enUniverso} valor={texto} onCambiar={setTexto} onEnviar={enviar} etiquetaEnviar={t('studio.sendLabel')} placeholder={placeholder} acciones={acciones} />
           </CajaAnclada> : null}
           {/* El fallo al crear sale EN LÍNEA, bajo la caja, con la idea conservada en ella: enviar de nuevo reintenta (mismo id, no duplica). */}
@@ -355,7 +369,7 @@ const FilmmakerCrearScreen: React.FC = () => {
         <HojaDeTrabajo visible={hoja} onClose={() => setHoja(false)} onAbrirProduccion={(id) => navigation.navigate('Production', { productionId: id })} onAbrirCreaciones={() => navigation.navigate('MisCreaciones')} />
         <HojaDeProyecto visible={proyecto} onClose={() => setProyecto(false)} idea={idea} onIdea={setIdea} />
         <FichaDeElemento elemento={universo.elementos.find((e) => e.id === fichaId) ?? null} onClose={() => setFichaId(null)} onGuardar={(id, c) => setUniverso((u) => editar(u, id, c))} onQuitar={(id) => setUniverso((u) => quitar(u, id))} />
-        <HojaDeAdjuntos visible={adjuntos} onClose={() => setAdjuntos(false)} onUsarTexto={usarTextoPegado} onImagen={(rol) => { void refs.elegirDelDispositivo(rol); }} onDesdeCreaciones={() => setCreaciones(true)} />
+        <HojaDeAdjuntos visible={adjuntos} onClose={() => setAdjuntos(false)} onUsarTexto={usarTextoPegado} onImagen={() => { void refs.elegirDelDispositivo(); }} onDesdeCreaciones={() => setCreaciones(true)} />
         <HojaDeCreaciones visible={creaciones} onClose={() => setCreaciones(false)} onElegir={refs.usarCreacion} />
       </View>
     </CreatorShell>

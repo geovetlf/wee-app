@@ -29,6 +29,8 @@ export interface TandasYStoryboardProps {
   onAviso?: (mensaje: string) => void;
   /** Receptor de D1 (solo se usa con `D1_ABIERTO`). */
   onAccionD1?: (accion: AccionD1, cuadroId: string) => void;
+  /** Pasa a la etapa de Producción (el botón «Producir» del storyboard con el capítulo ya guardado en el almacén). */
+  onProducir?: () => void;
 }
 
 /**
@@ -40,7 +42,7 @@ export interface TandasYStoryboardProps {
  * interfaz: el contrato no persiste tandas ni storyboards todavía, y la pantalla lo dice. La generación de imágenes del storyboard y la Producción
  * salen cerradas con su motivo.
  */
-export const TandasYStoryboard: React.FC<TandasYStoryboardProps> = ({ ancho, compacto = false, personajes = [], duracionTotalSeg, valor, onCambio, onAviso, onAccionD1 }) => {
+export const TandasYStoryboard: React.FC<TandasYStoryboardProps> = ({ ancho, compacto = false, personajes = [], duracionTotalSeg, valor, onCambio, onAviso, onAccionD1, onProducir }) => {
   const t = useT();
   const dir = useDireccion();
   const [propio, setPropio] = useState<TandasDelTaller>(() => tandasVacias());
@@ -82,7 +84,7 @@ export const TandasYStoryboard: React.FC<TandasYStoryboardProps> = ({ ancho, com
       onVolver={dosZonas ? undefined : () => setAbierta(null)}
       onAbrirCuadro={setFichaId} onAnadir={anadirCuadroYAbrir}
       onAprobar={() => poner((s) => aprobarTanda(s, actual.id))} onGuardarEnAlmacen={() => poner((s) => guardarEnAlmacen(s, actual.id))}
-      onEjemplo={ejemploEnTanda} onQuitarEjemplo={() => poner(quitarEjemplos)} hayEjemplos={hayEjemplos(estado)} onAviso={aviso}
+      onProducir={onProducir} onEjemplo={ejemploEnTanda} onQuitarEjemplo={() => poner(quitarEjemplos)} hayEjemplos={hayEjemplos(estado)} onAviso={aviso}
     />
   ) : null;
 

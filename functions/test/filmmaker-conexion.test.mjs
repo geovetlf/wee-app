@@ -30,5 +30,17 @@ check('B2) los capítulos se guardan como escenas y planos tras cada cambio (con
 check('B3) las imágenes del universo usan el hook probado y la fila se monta solo con la capacidad abierta; si no, su línea de «Pronto»', P.includes('useImagenesDeFilmmaker()') && U.includes('imagenes?.abierta && peticionDeImagenes') && U.includes('uniRegenerateClosed'));
 check('B4) los retratos y la lámina se pintan con la imagen cuando la petición salió «lista»', U.includes("estado === 'lista'") && U.includes('styles.lamina'));
 
+console.log('── C · Producción y Juntar ──');
+const PR = sinComentarios(leer('components/filmmaker/produccion/ProduccionDeFilmmaker.tsx'));
+const JU = sinComentarios(leer('components/filmmaker/produccion/JuntarDeFilmmaker.tsx'));
+const KC = sinComentarios(leer('constants/filmmakerCamara.ts'));
+const KU = sinComentarios(leer('constants/filmmakerUniverso.ts'));
+check('C1) Producción pide la toma de cada cuadro con el hook de siempre (useTomaDePlano) y solo con la capacidad abierta; cerrada, una línea con el motivo', PR.includes('useTomaDePlano(guardada, guardando, seleccion)') && PR.includes('PRODUCCION_ABIERTA ? cuadros.map') && PR.includes('filmmakerTandas.produceClosed') && /PRODUCCION_ABIERTA = false/.test(KC));
+check('C2) el precio sale de la toma (≈ N Credits) junto al botón que lo causa, con confirmación por cuadro; la pantalla no calcula ni cobra', PR.includes("t('filmmaker.takePrice'") && PR.includes('toma.generar') && !/spendCredits|creditsService/.test(PR));
+check('C3) solo se producen los cuadros aprobados, reales (sin ejemplos ni vacíos), con el id de plano de la orquestación', PR.includes('x.aprobada && !tandaEsDeEjemplo(x)') && PR.includes('!c.ejemplo && c.texto.trim()') && PR.includes('idDePlano(cuadro.id)'));
+check('C4) Juntar enseña lo real contra el límite (60 cuadros · 10:00) y el botón sale cerrado con su motivo mientras el montaje lo esté; nada se simula', JU.includes('excesoDelMontaje(reales)') && JU.includes('LIMITE_DEL_MONTAJE.planos') && JU.includes('JUNTAR_ABIERTO && !!onJuntar') && /JUNTAR_ABIERTO = false/.test(KC));
+check('C5) las etapas Producción y Juntar existen en la barra (ya no son «próxima fase») y la pantalla las monta; Salida sigue sin existir', /id: 'production'[^}]*abierta: true/.test(KU) && /id: 'join'[^}]*abierta: true/.test(KU) && /id: 'output'[^}]*abierta: false/.test(KU) && P.includes('<ProduccionDeFilmmaker') && P.includes('<JuntarDeFilmmaker'));
+check('C6) «Producir» del storyboard lleva a la etapa de Producción, donde viven el precio y el estado', P.includes('onProducir={() =>') && sinComentarios(leer('components/filmmaker/storyboard/StoryboardDeTanda.tsx')).includes('onProducir ??'));
+
 console.log(failures ? `\n${failures} FALLO(S)` : `\nTodo en verde (${n}).`);
 process.exit(failures ? 1 : 0);

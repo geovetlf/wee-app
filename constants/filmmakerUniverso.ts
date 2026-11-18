@@ -17,8 +17,8 @@ export const ETAPAS: readonly { id: EtapaId; clave: string; abierta: boolean; cl
   { id: 'idea', clave: 'filmmaker.stageIdea', abierta: true },
   { id: 'universe', clave: 'filmmaker.stageUniverse', abierta: true },
   { id: 'batches', clave: 'filmmaker.stageBatches', abierta: true },
-  { id: 'production', clave: 'filmmaker.stageProduction', abierta: false, claveMotivo: 'filmmaker.stageSoon' },
-  { id: 'join', clave: 'filmmaker.stageJoin', abierta: false, claveMotivo: 'filmmaker.stageSoon' },
+  { id: 'production', clave: 'filmmaker.stageProduction', abierta: true },
+  { id: 'join', clave: 'filmmaker.stageJoin', abierta: true },
   { id: 'output', clave: 'filmmaker.stageOutput', abierta: false, claveMotivo: 'filmmaker.stageSoon' },
 ];
 
