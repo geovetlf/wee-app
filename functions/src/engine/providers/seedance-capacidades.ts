@@ -37,6 +37,7 @@ const base = {
   version: MODEL_CAPABILITIES_VERSION,
   proveedor: 'seedance',
   proporciones: RATIOS,
+  variantes: { max: 4 },
   asincronia: { sondeo: true, webhook: true },
   personasReales: 'activo_autorizado' as const,
   precio: { unidad: 'token' as const, fuente: 'credits/aiPricing#priceVideo', verificado: false },
@@ -94,6 +95,7 @@ export const seedanceCapacidades: readonly CapacidadesDeModelo[] = Object.freeze
     editar: { soporte: 'no_implementado' },
     origen: { formatos: ['mp4', 'mov'], maxSecDeVideo: 15, ventanaDeConfianzaDias: 30 },
     audioNativo: 'no_implementado', lipSync: 'no_verificado', borrador: 'no', semilla: 'no_implementado',
+    variantes: { max: 1 },
     fuentes: [
       fuente('duracion', OFI_25, 'OFI'), fuente('resoluciones', OFI_25, 'OFI'), fuente('referencias', OFI_25, 'OFI'),
       fuente('referencias.segundosDeVideo', 'sin fuente: se usa el valor prudente de la serie 2.0', 'NV'),

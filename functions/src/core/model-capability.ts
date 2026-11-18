@@ -83,6 +83,8 @@ export interface CapacidadesDeModelo {
   readonly lipSync: Soporte;
   readonly borrador: Soporte;
   readonly semilla: Soporte;
+  /** Cuántas variantes (tomas alternativas del mismo cuadro) admite pedir a la vez. 1 = una sola. */
+  readonly variantes: { readonly max: number };
   readonly asincronia: { readonly sondeo: boolean; readonly webhook: boolean };
   readonly personasReales: 'rechaza' | 'activo_autorizado' | 'permite' | 'no_verificado';
   /** NO es un precio: de dónde sale y si está verificado. El dinero lo calcula `credits/aiPricing`. */
