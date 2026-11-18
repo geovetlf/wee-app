@@ -486,8 +486,9 @@ const plano = (c: Ctx, p: unknown, j: number, rutaDeEscena: string, reparto: Rea
   regla(c, p.continuity, unir(r, 'continuity'));
   refs(c, p.dependsOn, unir(r, 'dependsOn'), ['shot'], LIMITES.dependencias, 'dependency_invalid');
   if (objeto(c, p.generation, unir(r, 'generation'))) {
-    claves(c, p.generation, ['quality'], unir(r, 'generation'));
+    claves(c, p.generation, ['quality', 'preferredModel', 'variants', 'consistencySeed'], unir(r, 'generation'));
     uno(c, p.generation.quality, CALIDADES, unir(r, 'generation.quality'));
+    preferenciasDeGeneracion(c, p.generation, unir(r, 'generation'));
   }
   if (objeto(c, p.advanced, unir(r, 'advanced'))) {
     claves(c, p.advanced, ['prompt'], unir(r, 'advanced'), 'prompt');
@@ -849,9 +850,21 @@ const plan = (c: Ctx, v: unknown): void => {
   if (arreglo(c, v.cues, 'audio.cues', LIMITES.sonidos, true)) v.cues.forEach((x, i) => sonido(c, x, i));
 };
 
+/** Convergencia: la FORMA de lo que la persona elige del modelo. Si el modelo lo admite lo decide el servidor al guardar y al generar. */
+const preferenciasDeGeneracion = (c: Ctx, v: Record<string, unknown>, ruta: string): void => {
+  if (v.preferredModel !== undefined && (typeof v.preferredModel !== 'string' || !/^[A-Za-z0-9._:-]{2,128}$/.test(v.preferredModel))) {
+    mal(c, 'value_invalid', 'error', unir(ruta, 'preferredModel'), { reason: 'model_id_invalid' });
+  }
+  numero(c, v.variants, unir(ruta, 'variants'), 1, 4);
+  if (v.variants !== undefined && !Number.isInteger(v.variants)) mal(c, 'value_invalid', 'error', unir(ruta, 'variants'), { reason: 'not_integer' });
+  numero(c, v.consistencySeed, unir(ruta, 'consistencySeed'), 0, 4294967295);
+  if (v.consistencySeed !== undefined && !Number.isInteger(v.consistencySeed)) mal(c, 'value_invalid', 'error', unir(ruta, 'consistencySeed'), { reason: 'not_integer' });
+};
+
 const generacion = (c: Ctx, v: unknown): void => {
   if (!objeto(c, v, 'generation', true)) return;
-  claves(c, v, ['quality', 'preview'], 'generation');
+  claves(c, v, ['quality', 'preview', 'preferredModel', 'variants', 'consistencySeed'], 'generation');
+  preferenciasDeGeneracion(c, v, 'generation');
   uno(c, v.quality, CALIDADES, 'generation.quality');
   uno(c, v.preview, PREVISUALIZACIONES, 'generation.preview');
 };

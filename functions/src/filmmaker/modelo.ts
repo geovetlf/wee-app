@@ -484,6 +484,15 @@ export interface CharacterState {
 
 export interface ShotGeneration {
   readonly quality?: ProductionQuality;
+  /**
+   * Convergencia (2026-11-18) · LO QUE LA PERSONA ELIGE DEL MODELO (panel de especificaciones). Opcionales. `preferredModel` es un
+   * id del catálogo (`CapacidadesDeModelo.modeloId`), solo de un modelo integrado; `variants` 1–4 según el modelo; `seed` un
+   * entero, solo si el modelo lo soporta. Lo valida el servidor contra las capacidades del modelo (`engine/preferenciasDeModelo.ts`).
+   */
+  readonly preferredModel?: string;
+  readonly variants?: number;
+  /** La semilla de consistencia (`seed` en la toma). El dominio no admite la clave `seed`: es un parámetro de proveedor. */
+  readonly consistencySeed?: number;
 }
 
 /** Qué se le puede pedir a una toma que ya existe. */
@@ -675,6 +684,15 @@ export type AudioTarget =
 export interface GenerationPreferences {
   readonly quality?: ProductionQuality;
   readonly preview?: PreviewPolicy;
+  /**
+   * Convergencia (2026-11-18) · LO QUE LA PERSONA ELIGE DEL MODELO (panel de especificaciones). Opcionales. `preferredModel` es un
+   * id del catálogo (`CapacidadesDeModelo.modeloId`), solo de un modelo integrado; `variants` 1–4 según el modelo; `seed` un
+   * entero, solo si el modelo lo soporta. Lo valida el servidor contra las capacidades del modelo (`engine/preferenciasDeModelo.ts`).
+   */
+  readonly preferredModel?: string;
+  readonly variants?: number;
+  /** La semilla de consistencia (`seed` en la toma). El dominio no admite la clave `seed`: es un parámetro de proveedor. */
+  readonly consistencySeed?: number;
 }
 
 /**

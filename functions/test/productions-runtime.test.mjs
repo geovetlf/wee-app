@@ -1046,7 +1046,7 @@ await seccion('Y', async () => {
       .some((x) => x.field === 'prompt' && x.reason === 'forbidden_key'));
   const imports = ['index.ts', 'puerta.ts'].flatMap((f) => [...sinComentarios(leer(`functions/src/productions/${f}`)).matchAll(/from '([^']+)'/g)].map((x) => x[1]));
   const PERMITIDOS = ['crypto', 'firebase-admin/firestore', 'firebase-functions/v2/https', '../core/creative', '../core/element', '../content',
-    '../filmmaker/modelo', '../filmmaker/validacion', '../filmmaker/operaciones', '../identity/cuentas', './index', './referenciasAlCrear'];
+    '../filmmaker/modelo', '../filmmaker/validacion', '../filmmaker/operaciones', '../identity/cuentas', './index', './referenciasAlCrear', './preferenciasAlGuardar'];
   check('Y3) importa solo lo que necesita: Firestore, la puerta, dos piezas del Core, el Content Core, la cuenta y el dominio de F1-A',
     imports.every((x) => PERMITIDOS.includes(x)), imports.filter((x) => !PERMITIDOS.includes(x)).join(', '));
   const codigo = sinComentarios(leer('functions/src/productions/index.ts'));

@@ -4,6 +4,7 @@ import type { AspectRatio } from '../core/creative';
 import { puedeReferenciar } from '../core/element';
 import type { FichaDeMaterial, MotivoDeNoReferenciar } from '../core/element';
 import { leerMaterial } from '../content';
+import { preferenciasRechazadas } from './preferenciasAlGuardar';
 import {
   FILMMAKER_MODEL_VERSION, FORMA_DE_ID, FilmmakerProduction, FormatPresetId, LIMITES, PRESETS, ProductionReference, ProductionScene,
   ResolutionTarget, canonico, configuracionDePreset, produccionVacia,
@@ -484,6 +485,9 @@ const politica = async (
   if (vinculos.length) {
     return rechazo('element_binding_not_supported', vinculos.map((r) => problema('element_binding_not_supported', r, { until: 'F3' })));
   }
+  /* Lo que la persona elige del modelo (modelo preferido, variantes, semilla): contra las capacidades de ese modelo. */
+  const malasPreferencias = preferenciasRechazadas(despues).map((m) => problema('production_invalid', m.path, { reason: m.reason, ...m.parameters }));
+  if (malasPreferencias.length) return rechazo('production_invalid', malasPreferencias);
   const reservados = despues.scenes.filter((s) => reservado(s.id));
   if (reservados.length) return rechazo('id_not_storable', reservados.map((s) => problema('id_not_storable', `scenes.${s.id}`)));
 
