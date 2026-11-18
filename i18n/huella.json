@@ -2,9 +2,9 @@
   "_leeme": "GENERADO por scripts/i18n-huella.mjs. Si una prueba dice que no coincide, revisa el cambio de textos, ejecuta las pruebas de idioma y vuelve a generarlo.",
   "catalogos": {
     "es/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "c2d6131d243cbbfd"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "4f1c07e873269b27"
     },
     "es/servidor": {
       "claves": 748,
@@ -12,9 +12,9 @@
       "huellaDeTextos": "cc1621f1afe350bb"
     },
     "en/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "ce367cbe16dcbe6f"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "5c4d9c21e248a873"
     },
     "en/servidor": {
       "claves": 748,
@@ -22,9 +22,9 @@
       "huellaDeTextos": "2d86f3b51b7e7eb9"
     },
     "de/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "a85e16c2fc577384"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "883e2a7ee8c919c5"
     },
     "de/servidor": {
       "claves": 748,
@@ -32,9 +32,9 @@
       "huellaDeTextos": "a781dcbe16c096ba"
     },
     "fr/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "b71d5665920a6052"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "ab8ef5ea84b5efb9"
     },
     "fr/servidor": {
       "claves": 748,
@@ -42,9 +42,9 @@
       "huellaDeTextos": "15803d32e89f01cf"
     },
     "it/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "538515639c137d51"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "47cf6319ee53e81b"
     },
     "it/servidor": {
       "claves": 748,
@@ -52,9 +52,9 @@
       "huellaDeTextos": "8a1f0420f78238cb"
     },
     "pt/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "5a406f64148054b0"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "4564de1d67b73999"
     },
     "pt/servidor": {
       "claves": 748,
@@ -62,9 +62,9 @@
       "huellaDeTextos": "d2d82660fb091651"
     },
     "pt-PT/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "5a96c5ae5f5c7225"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "f806eb4936bccb13"
     },
     "pt-PT/servidor": {
       "claves": 748,
@@ -72,9 +72,9 @@
       "huellaDeTextos": "7d96c8948563ace9"
     },
     "ru/app": {
-      "claves": 5322,
-      "huellaDeClaves": "f482a770e96ab145",
-      "huellaDeTextos": "eb0fe60622688558"
+      "claves": 5323,
+      "huellaDeClaves": "115e0524ce2a8986",
+      "huellaDeTextos": "880ace5d23ab453b"
     },
     "ru/servidor": {
       "claves": 764,
@@ -82,9 +82,9 @@
       "huellaDeTextos": "63ba60aa21fc52e1"
     },
     "ko/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "7e22fbfbbda61b41"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "43eda0de584b9745"
     },
     "ko/servidor": {
       "claves": 748,
@@ -92,9 +92,9 @@
       "huellaDeTextos": "07d99d97401231a8"
     },
     "zh/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "50df0b329f09f837"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "d42897f0c70af5fb"
     },
     "zh/servidor": {
       "claves": 748,
@@ -102,9 +102,9 @@
       "huellaDeTextos": "bf2be33a5cd234c9"
     },
     "zh-TW/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "76fe9e8e73e9f6e7"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "64fba95b79e4fba4"
     },
     "zh-TW/servidor": {
       "claves": 748,
@@ -112,9 +112,9 @@
       "huellaDeTextos": "255d3a7015c937cd"
     },
     "ja/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "937dff350567f4f8"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "6d527985a74d44cc"
     },
     "ja/servidor": {
       "claves": 748,
@@ -122,9 +122,9 @@
       "huellaDeTextos": "5424f5f7bd51aed4"
     },
     "tr/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "25c84122e65a31ad"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "fb99b754c1f16542"
     },
     "tr/servidor": {
       "claves": 748,
@@ -132,9 +132,9 @@
       "huellaDeTextos": "0cb9823425d49894"
     },
     "sv/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "20cba23d617b3e54"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "b36c4abad3ac2c31"
     },
     "sv/servidor": {
       "claves": 748,
@@ -142,9 +142,9 @@
       "huellaDeTextos": "05df137e57de2a9e"
     },
     "da/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "14b6832b1d6eb27a"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "01c4a83beb4281b1"
     },
     "da/servidor": {
       "claves": 748,
@@ -152,9 +152,9 @@
       "huellaDeTextos": "92fa1ede0df9749d"
     },
     "hi/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "ca5a06bc5a296434"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "a4c2abc9eaa5f652"
     },
     "hi/servidor": {
       "claves": 748,
@@ -162,9 +162,9 @@
       "huellaDeTextos": "ef370e01b0b7352c"
     },
     "de-CH/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "2a8697f89d5265a5"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "68d104938ec4ce81"
     },
     "de-CH/servidor": {
       "claves": 748,
@@ -172,9 +172,9 @@
       "huellaDeTextos": "0085eaedf72d7f1b"
     },
     "ar/app": {
-      "claves": 5414,
-      "huellaDeClaves": "62799e40705f3b21",
-      "huellaDeTextos": "61343d6f2b086217"
+      "claves": 5415,
+      "huellaDeClaves": "102060554134bd76",
+      "huellaDeTextos": "9a64f0acb1c94d1c"
     },
     "ar/servidor": {
       "claves": 780,
@@ -182,9 +182,9 @@
       "huellaDeTextos": "f99a70a5d64188cc"
     },
     "he/app": {
-      "claves": 5268,
-      "huellaDeClaves": "b16b748f863a59cf",
-      "huellaDeTextos": "7a7b32a0f69948b4"
+      "claves": 5269,
+      "huellaDeClaves": "2a441046abc1283c",
+      "huellaDeTextos": "4e1fc8e0af706d01"
     },
     "he/servidor": {
       "claves": 756,
@@ -192,9 +192,9 @@
       "huellaDeTextos": "d01d434a58dd80ee"
     },
     "fa/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "ce38870a5b692501"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "231eb47e68f040b3"
     },
     "fa/servidor": {
       "claves": 748,
@@ -202,9 +202,9 @@
       "huellaDeTextos": "41f593d015550718"
     },
     "id/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "32c5aa7b0bbf3733"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "2057d74cc19bff6c"
     },
     "id/servidor": {
       "claves": 748,
@@ -212,9 +212,9 @@
       "huellaDeTextos": "c4860bc612605763"
     },
     "ms/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "67a670ba7a98b4e8"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "0bb83e8e4cceb539"
     },
     "ms/servidor": {
       "claves": 748,
@@ -222,9 +222,9 @@
       "huellaDeTextos": "5571d94a81637d8e"
     },
     "hr/app": {
-      "claves": 5268,
-      "huellaDeClaves": "bfa570636b5b7e6c",
-      "huellaDeTextos": "440682b9e0abd013"
+      "claves": 5269,
+      "huellaDeClaves": "3bf2a8dcdc994072",
+      "huellaDeTextos": "4b4001a642836144"
     },
     "hr/servidor": {
       "claves": 756,
@@ -232,9 +232,9 @@
       "huellaDeTextos": "2783b91fa98457b6"
     },
     "bs/app": {
-      "claves": 5268,
-      "huellaDeClaves": "bfa570636b5b7e6c",
-      "huellaDeTextos": "8f6ef70658e4e243"
+      "claves": 5269,
+      "huellaDeClaves": "3bf2a8dcdc994072",
+      "huellaDeTextos": "156975d25ba8f113"
     },
     "bs/servidor": {
       "claves": 756,
@@ -242,9 +242,9 @@
       "huellaDeTextos": "d5c5c18d4f512e79"
     },
     "sr/app": {
-      "claves": 5268,
-      "huellaDeClaves": "bfa570636b5b7e6c",
-      "huellaDeTextos": "07320198c58ff75d"
+      "claves": 5269,
+      "huellaDeClaves": "3bf2a8dcdc994072",
+      "huellaDeTextos": "69fc317451f058e9"
     },
     "sr/servidor": {
       "claves": 756,
@@ -252,9 +252,9 @@
       "huellaDeTextos": "7a04852452d9d904"
     },
     "sr-Latn/app": {
-      "claves": 5268,
-      "huellaDeClaves": "bfa570636b5b7e6c",
-      "huellaDeTextos": "9d1cbf2f4b150b5e"
+      "claves": 5269,
+      "huellaDeClaves": "3bf2a8dcdc994072",
+      "huellaDeTextos": "99bfb61735fcac4c"
     },
     "sr-Latn/servidor": {
       "claves": 756,
@@ -262,9 +262,9 @@
       "huellaDeTextos": "5a18c61c31d5a83e"
     },
     "cnr/app": {
-      "claves": 5268,
-      "huellaDeClaves": "bfa570636b5b7e6c",
-      "huellaDeTextos": "e9fb492d823ce816"
+      "claves": 5269,
+      "huellaDeClaves": "3bf2a8dcdc994072",
+      "huellaDeTextos": "7db7f8e8d34c0e96"
     },
     "cnr/servidor": {
       "claves": 756,
@@ -272,9 +272,9 @@
       "huellaDeTextos": "b6cfe1a8c9327a0a"
     },
     "pl/app": {
-      "claves": 5328,
-      "huellaDeClaves": "f413926ab8b1d53a",
-      "huellaDeTextos": "9d9656cf20645abf"
+      "claves": 5329,
+      "huellaDeClaves": "82317ec84ec130f1",
+      "huellaDeTextos": "ebc6fe79b12b8f4c"
     },
     "pl/servidor": {
       "claves": 764,
@@ -282,9 +282,9 @@
       "huellaDeTextos": "0af1e8de3d2dd965"
     },
     "ca/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "72110e8b3712a51f"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "42eff485690a8fe1"
     },
     "ca/servidor": {
       "claves": 748,
@@ -292,9 +292,9 @@
       "huellaDeTextos": "7662efcf84dec274"
     },
     "el/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "66841e020288bc5c"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "811a06d9c94bcfd4"
     },
     "el/servidor": {
       "claves": 748,
@@ -302,9 +302,9 @@
       "huellaDeTextos": "766e7b5409618612"
     },
     "nl/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "13912f76cd4b895e"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "2ef41c3d6005a940"
     },
     "nl/servidor": {
       "claves": 748,
@@ -312,9 +312,9 @@
       "huellaDeTextos": "47f8ec696e2b7366"
     },
     "vi/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "e7f4ec63a36d0d53"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "afe323e1daa5365a"
     },
     "vi/servidor": {
       "claves": 748,
@@ -322,9 +322,9 @@
       "huellaDeTextos": "0264293083aba578"
     },
     "hu/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "9b68b291c60890f2"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "aa9a56abe582d1ff"
     },
     "hu/servidor": {
       "claves": 748,
@@ -332,9 +332,9 @@
       "huellaDeTextos": "c67e4a1508c7ea64"
     },
     "fi/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "1eaca23b53d03f6e"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "676e840bf2fc3ced"
     },
     "fi/servidor": {
       "claves": 748,
@@ -342,9 +342,9 @@
       "huellaDeTextos": "f138eae3aba760ce"
     },
     "mn/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "cf54dc4b2b9bd1bd"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "a860d989e3adfe82"
     },
     "mn/servidor": {
       "claves": 748,
@@ -352,9 +352,9 @@
       "huellaDeTextos": "180dfa7f43d14343"
     },
     "nb/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "1676d05de9d871f7"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "bea0c040a3638228"
     },
     "nb/servidor": {
       "claves": 748,
@@ -362,9 +362,9 @@
       "huellaDeTextos": "e6be101a4409cb6d"
     },
     "is/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "d2ce48403fece454"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "bcb0ef325033163e"
     },
     "is/servidor": {
       "claves": 748,
@@ -372,9 +372,9 @@
       "huellaDeTextos": "174941984f4128cd"
     },
     "kl/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "612004518407cd32"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "37796e6830e995b5"
     },
     "kl/servidor": {
       "claves": 748,
@@ -382,9 +382,9 @@
       "huellaDeTextos": "5c927d49cf3ce30a"
     },
     "fil/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "80f419742838544d"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "ac80cceda00f3595"
     },
     "fil/servidor": {
       "claves": 748,
@@ -392,9 +392,9 @@
       "huellaDeTextos": "30b245196b99c98a"
     },
     "ga/app": {
-      "claves": 5388,
-      "huellaDeClaves": "aae2931bec2f4d58",
-      "huellaDeTextos": "d7e96bafbdd04aa6"
+      "claves": 5389,
+      "huellaDeClaves": "8cdda1da8b47105d",
+      "huellaDeTextos": "0a47946ca4d0faec"
     },
     "ga/servidor": {
       "claves": 772,
@@ -402,9 +402,9 @@
       "huellaDeTextos": "e6b5df63ac69439d"
     },
     "km/app": {
-      "claves": 5208,
-      "huellaDeClaves": "5e2f99d84a8d8dc8",
-      "huellaDeTextos": "de0c66ad5a8dee32"
+      "claves": 5209,
+      "huellaDeClaves": "5dc2320463a623ad",
+      "huellaDeTextos": "d331efd954acd299"
     },
     "km/servidor": {
       "claves": 748,
@@ -412,9 +412,9 @@
       "huellaDeTextos": "db6f9a31d3541c3f"
     },
     "ro/app": {
-      "claves": 5268,
-      "huellaDeClaves": "bfa570636b5b7e6c",
-      "huellaDeTextos": "d1d6b438f37af74c"
+      "claves": 5269,
+      "huellaDeClaves": "3bf2a8dcdc994072",
+      "huellaDeTextos": "236825ca053f5d8a"
     },
     "ro/servidor": {
       "claves": 756,
