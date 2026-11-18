@@ -8,7 +8,7 @@ import { useT } from '../../contexts/IdiomaContext';
 import { useDireccion } from '../../hooks/useDireccion';
 import { PORTADA_WEEAI as P, textoPortada } from '../../constants/estiloWeeAi';
 import { IMAGEN_DE_TIPO, ICONO_DE_TIPO, TEXTURA_DE_TIPO, TipoDeProyecto } from '../../constants/filmmakerCrear';
-import { uriDeTextura } from '../weeai/arteDePortada';
+import { uriDeTextura, TexturaDeModulo } from '../weeai/arteDePortada';
 import { emDeTexto } from '../weeai/medidaDeTexto';
 
 /** Una imagen cuenta como la de verdad solo si es más ancha que el marcador de 1 px que viene en el repositorio. */
@@ -21,7 +21,10 @@ const ANCHO_MINIMO_DE_LA_REAL = 300;
  * marcador (o falte), se ve un fondo propio —degradado oscuro con la textura vectorial del tipo—: añadir el archivo es lo único que hace falta.
  * Cerrada: imagen atenuada y «Próximamente» en la esquina, sin mover el texto. En RTL todo se espeja (el texto a la derecha).
  */
-export const TarjetaDeTipo: React.FC<{ tipo: TipoDeProyecto; ancho: number | string; alto: number; elegido: boolean; onPress: () => void; orden?: number }> = ({ tipo, ancho, alto, elegido, onPress, orden = 0 }) => {
+/** Lo mínimo que la tarjeta lee de lo que pinta: sirve igual para un tipo de proyecto que para un estilo (capa de estilos), que aporta su propia imagen, textura y tonos. */
+export type ContenidoDeTarjeta = Pick<TipoDeProyecto, 'clave' | 'claveSub' | 'estado' | 'claveMotivo'> & { id: string };
+
+export const TarjetaDeTipo: React.FC<{ tipo: ContenidoDeTarjeta; ancho: number | string; alto: number; elegido: boolean; onPress: () => void; orden?: number; imagen?: number; textura?: TexturaDeModulo; tonos?: readonly [string, string] }> = ({ tipo, ancho, alto, elegido, onPress, orden = 0, imagen, textura, tonos }) => {
   const t = useT();
   const dir = useDireccion();
   const [real, setReal] = useState(false);
@@ -33,7 +36,7 @@ export const TarjetaDeTipo: React.FC<{ tipo: TipoDeProyecto; ancho: number | str
   const abierta = tipo.estado !== 'cerrada';
   const nombre = t(tipo.clave);
   const sub = t(tipo.claveSub);
-  const conSub = alto >= 62;
+  const conSub = alto >= 62 && sub !== '';
   const rtl = dir.esRTL;
   /* La frase se lee ENTERA: con altura (>= 96) puede ir en dos líneas; si no, en una con la letra bajando de 12 a 10,5 como mucho. El nombre baja de 19 a 16 si no cabe holgado. */
   const anchoNumero = typeof ancho === 'number' ? ancho : 360;
@@ -41,7 +44,7 @@ export const TarjetaDeTipo: React.FC<{ tipo: TipoDeProyecto; ancho: number | str
   const lineasSub = alto >= 76 ? 2 : 1;
   const tamSub = Math.max(10.5, Math.min(12, Math.floor((disponible * lineasSub * 0.9 / emDeTexto(sub, 0.52)) * 2) / 2));
   /* El icono solo si cabe sobre el nombre y la frase ENTERA: si la frase pide dos líneas, la tarjeta necesita 18 dp más. */
-  const conIcono = alto >= 84 + (emDeTexto(sub, 0.52) * 11 > disponible ? 20 : 0);
+  const conIcono = !!ICONO_DE_TIPO[tipo.id as TipoDeProyecto['id']] && alto >= 84 + (emDeTexto(sub, 0.52) * 11 > disponible ? 20 : 0);
   const tamNombre = Math.max(16, Math.min(alto >= 84 ? 19 : 16, Math.floor(disponible * 0.92 / emDeTexto(nombre, 0.62))));
   const colores: [string, string, string] = ['rgba(5,6,8,0.82)', 'rgba(5,6,8,0.42)', 'rgba(5,6,8,0)'];
   return (
@@ -63,10 +66,10 @@ export const TarjetaDeTipo: React.FC<{ tipo: TipoDeProyecto; ancho: number | str
       <View pointerEvents="none" style={[styles.halo, { borderColor: elegido ? 'rgba(245,246,248,0.55)' : 'rgba(245,246,248,0.24)', opacity: abierta ? 1 : 0.5 }]} />
       <View style={[styles.tarjeta, { borderColor: elegido ? 'rgba(255,255,255,1)' : abierta ? 'rgba(250,251,255,0.95)' : 'rgba(245,246,248,0.40)', borderWidth: elegido ? 2.5 : 2 }]}>
         {/* El fondo propio, siempre debajo: lo que se ve mientras no hay imagen. */}
-        <LinearGradient colors={['#0A0D13', '#171B22']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-        <Image source={{ uri: uriDeTextura(TEXTURA_DE_TIPO[tipo.id], P.iconoModulo) }} style={[StyleSheet.absoluteFill, { opacity: real ? 0 : 0.9 }]} contentFit="cover" transition={0} accessible={false} pointerEvents="none" />
+        <LinearGradient colors={tonos ? [tonos[0], tonos[1]] : ['#0A0D13', '#171B22']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+        <Image source={{ uri: uriDeTextura(textura ?? TEXTURA_DE_TIPO[tipo.id as TipoDeProyecto['id']], P.iconoModulo) }} style={[StyleSheet.absoluteFill, { opacity: real ? 0 : 0.9 }]} contentFit="cover" transition={0} accessible={false} pointerEvents="none" />
         <Image
-          source={IMAGEN_DE_TIPO[tipo.id]}
+          source={imagen ?? IMAGEN_DE_TIPO[tipo.id as TipoDeProyecto['id']]}
           style={[StyleSheet.absoluteFill, { opacity: real ? (abierta ? 1 : 0.4) : 0 }, rtl && styles.espejo]}
           contentFit="cover"
           contentPosition="right"
@@ -78,7 +81,7 @@ export const TarjetaDeTipo: React.FC<{ tipo: TipoDeProyecto; ancho: number | str
         {/* El degradado oscuro del lado del texto (≈55 %): el texto se lee aunque la imagen sea clara. */}
         <LinearGradient colors={colores} locations={[0, 0.55, 1]} start={{ x: rtl ? 1 : 0, y: 0 }} end={{ x: rtl ? 0 : 1, y: 0 }} style={StyleSheet.absoluteFill} pointerEvents="none" />
         <View style={[styles.texto, { alignItems: rtl ? 'flex-end' : 'flex-start' }]}>
-          {conIcono ? <IconoWee name={ICONO_DE_TIPO[tipo.id]} size={22} color={abierta ? P.tinta : P.tintaSecundaria} /> : null}
+          {conIcono ? <IconoWee name={ICONO_DE_TIPO[tipo.id as TipoDeProyecto['id']]} size={22} color={abierta ? P.tinta : P.tintaSecundaria} /> : null}
           <Text style={[textoPortada(tamNombre, '600'), dir.texto, { color: abierta ? P.tinta : P.tintaSecundaria }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{nombre}</Text>
           {conSub ? <Text style={[textoPortada(tamSub, '400'), dir.texto, { color: abierta ? '#C9CED8' : P.tintaDeshabilitada }]} numberOfLines={lineasSub} adjustsFontSizeToFit minimumFontScale={0.85}>{sub}</Text> : null}
         </View>

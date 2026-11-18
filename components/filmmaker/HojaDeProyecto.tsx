@@ -1,22 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useT, useIdioma } from '../../contexts/IdiomaContext';
 import { useDireccion } from '../../hooks/useDireccion';
 import { PORTADA_WEEAI as P, textoPortada } from '../../constants/estiloWeeAi';
-import { FORMATOS_DE_ANUNCIO } from '../../constants/filmmakerIdea';
+import { FORMATOS, RESOLUCIONES_ELEGIBLES } from '../../constants/filmmakerIdea';
+import { useCerrarConEscape } from '../../hooks/useCerrarConEscape';
 import { IdeaDelTaller, duracionDe, duracionesDelTipo, etiquetaAccesible, poner } from '../../utils/ideaDeFilmmaker';
 
 /**
  * LA HOJA «PROYECTO» (hoja única, a un toque desde la barra de etapas): los ajustes de toda la obra en un solo sitio —duración y, en un anuncio, formato—.
- * Lo que aún no se puede cambiar (el estilo visual depende de generar imágenes) sale CERRADO con su motivo. Cambia la idea, no crea nada nuevo.
+ * El estilo ya no se cambia aquí: se elige en su capa y se cambia desde la píldora. Weë propone lo técnico; el nivel AVANZADO es opcional, va plegado a un toque y
+ * ofrece lo que el contrato admite al crear (formato y resolución); modelo y consistencia salen CERRADOS con su motivo. Cambia la idea, no crea nada nuevo.
  */
 export const HojaDeProyecto: React.FC<{ visible: boolean; onClose: () => void; idea: IdeaDelTaller; onIdea: (i: IdeaDelTaller) => void }> = ({ visible, onClose, idea, onIdea }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
   const insets = useSafeAreaInsets();
+  const [avanzado, setAvanzado] = useState(false);
+  useCerrarConEscape(visible, onClose);
   const actual = duracionDe(idea);
   const duraciones = duracionesDelTipo(idea.tipo);
   const chip = (clave: string, etiqueta: string, sel: boolean, onPress: () => void) => (
@@ -34,21 +38,25 @@ export const HojaDeProyecto: React.FC<{ visible: boolean; onClose: () => void; i
         <View style={[styles.fila, dir.contenedor]}>
           {duraciones.map((s) => chip(`d${s}`, t('filmmaker.hubSeconds', { n: formato.numero(s) }), s === actual, () => onIdea(poner(idea, 'duration', String(s)))))}
         </View>
-        {idea.tipo === 'ad' ? (
-          <>
+        <TouchableOpacity onPress={() => setAvanzado((v) => !v)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmaker.projAdvanced')} accessibilityState={{ expanded: avanzado }} style={[styles.avanzado, dir.contenedor]}>
+          <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tintaSecundaria, flex: 1 }]}>{t('filmmaker.projAdvanced')}</Text>
+          <Ionicons name={avanzado ? 'chevron-up' : 'chevron-down'} size={16} color={P.tintaSecundaria} />
+        </TouchableOpacity>
+        {avanzado ? (
+          <View style={styles.bloque}>
             <Text style={[textoPortada(13, '500'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.projFormat')}</Text>
             <View style={[styles.fila, dir.contenedor]}>
-              {FORMATOS_DE_ANUNCIO.map((f) => chip(`f${f}`, `⁦${f}⁩`, (idea.valores.format ?? '4:5') === f, () => onIdea(poner(idea, 'format', f))))}
+              {chip('fauto', t('filmmaker.hubAuto'), !idea.valores.format, () => onIdea(poner(idea, 'format', '')))}
+              {FORMATOS.map((f) => chip(`f${f}`, `⁦${f}⁩`, idea.valores.format === f, () => onIdea(poner(idea, 'format', f))))}
             </View>
-          </>
-        ) : null}
-        <View accessible accessibilityLabel={etiquetaAccesible(t('filmmaker.projStyle'), t('filmmaker.hubNotYet'), t('filmmaker.projStyleClosed'))} accessibilityState={{ disabled: true }} style={[styles.cerrada, dir.contenedor]}>
-          <View style={{ flex: 1 }}>
-            <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.projStyle')}</Text>
-            <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.projStyleClosed')}</Text>
+            <Text style={[textoPortada(13, '500'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.projResolution')}</Text>
+            <View style={[styles.fila, dir.contenedor]}>
+              {chip('rauto', t('filmmaker.hubAuto'), !idea.valores.resolution, () => onIdea(poner(idea, 'resolution', '')))}
+              {RESOLUCIONES_ELEGIBLES.map((r) => chip(`r${r}`, r, idea.valores.resolution === r, () => onIdea(poner(idea, 'resolution', r))))}
+            </View>
+            <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{t('filmmaker.projAdvancedClosed')}</Text>
           </View>
-          <Ionicons name="lock-closed-outline" size={14} color={P.tintaDeshabilitada} />
-        </View>
+        ) : null}
         <TouchableOpacity onPress={onClose} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={t('filmmaker.ideaFieldDone')} style={styles.listo}>
           <Text style={[textoPortada(15, '600'), { color: P.sobreAccion }]}>{t('filmmaker.ideaFieldDone')}</Text>
         </TouchableOpacity>
@@ -64,6 +72,7 @@ const styles = StyleSheet.create({
   fila: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   chip: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.fondo, alignItems: 'center', justifyContent: 'center' },
   chipSel: { borderColor: '#FFFFFF', borderWidth: 2, backgroundColor: P.superficieAlta },
-  cerrada: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, borderWidth: 1, borderStyle: 'dashed', borderColor: P.bordeCapsula },
+  bloque: { gap: 10 },
+  avanzado: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
   listo: { minHeight: 48, borderRadius: 24, backgroundColor: P.accion, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
 });

@@ -43,14 +43,6 @@ export const TIPOS_DE_PROYECTO: readonly TipoDeProyecto[] = [
 /** Lo que vale sin elegir tipo. */
 export const FORMATO_POR_DEFECTO = { formato: '9:16', segundos: 30 } as const;
 
-/** «Empezar con»: solo Idea y Guion se pueden marcar hoy; Referencias (contrato) y Plantilla (derechos, D6) están cerradas con su motivo. */
-export const PUNTOS_DE_PARTIDA = [
-  { id: 'idea', clave: 'filmmaker.hubStartIdea', cerrada: false },
-  { id: 'script', clave: 'filmmaker.hubStartScript', cerrada: false },
-  { id: 'refs', clave: 'filmmaker.hubStartRefs', cerrada: true, claveMotivo: 'filmmaker.hubRefsClosed' },
-  { id: 'template', clave: 'filmmaker.hubStartTemplate', cerrada: true, claveMotivo: 'filmmaker.hubTemplateClosed' },
-] as const;
-
 /** Alturas útiles (dp) a partir de las que aparece cada bloque. */
 /**
  * La píldora «formato · duración · Auto» sobre la caja: oculta desde 2026-11-17 (decisión del dueño); formato y duración volverán en la siguiente capa del tipo.

@@ -109,7 +109,7 @@ const CODIGO = [
   /* La primera capa de Filmmaker («Crear», 2026-11-17): su pantalla y sus constantes piden claves filmmaker.hub*. */
   'screens/FilmmakerCrearScreen.tsx', 'constants/filmmakerCrear.ts', 'components/filmmaker/TarjetaDeTipo.tsx',
   /* El taller de Idea (2026-11-17): hilo, tarjeta viva, hoja de adjuntos y sus constantes. */
-  'components/filmmaker/TallerDeIdea.tsx', 'components/filmmaker/TarjetaTuIdea.tsx', 'components/filmmaker/HojaDeAdjuntos.tsx', 'constants/filmmakerIdea.ts',
+  'components/filmmaker/TallerDeIdea.tsx', 'components/filmmaker/ElegirEstilo.tsx', 'components/filmmaker/HojaDeAdjuntos.tsx', 'constants/filmmakerIdea.ts', 'constants/filmmakerEstilos.ts',
   /* El Universo y la barra de etapas (ola 2). */
   'components/filmmaker/BarraDeEtapas.tsx', 'components/filmmaker/UniversoDeFilmmaker.tsx', 'components/filmmaker/FichaDeElemento.tsx', 'components/filmmaker/HojaDeProyecto.tsx', 'constants/filmmakerUniverso.ts',
 ];

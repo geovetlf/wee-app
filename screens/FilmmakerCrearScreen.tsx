@@ -1,11 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, LayoutChangeEvent, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, LayoutChangeEvent } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { enTemaOscuro } from '../contexts/ThemeContext';
 import { useT, useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useDireccion } from '../hooks/useDireccion';
-import { useWallet } from '../hooks/useWallet';
 import CreatorShell from '../components/creator/CreatorShell';
 import CajaDePrompt, { AccionDeLaCaja } from '../components/creator/CajaDePrompt';
 import { CajaAnclada } from '../components/creator/CajaQueCrece';
@@ -25,22 +25,26 @@ import { SECCIONES_DEL_UNIVERSO, EJEMPLO_DEL_UNIVERSO, EtapaId } from '../consta
 import { UniversoDelTaller, TipoDeElemento, anadir, anadirEjemplos, aprobar, editar, quitar, quitarEjemplos, universoVacio } from '../utils/universoDeFilmmaker';
 import { TandasYStoryboard } from '../components/filmmaker/tandas/TandasYStoryboard';
 import { TandasDelTaller, tandasVacias } from '../utils/tandasDeFilmmaker';
-import { TallerDeIdea, ModoDelTaller, MensajeDelTaller } from '../components/filmmaker/TallerDeIdea';
+import { TallerDeIdea, EstadoDelTaller } from '../components/filmmaker/TallerDeIdea';
+import { ElegirEstilo } from '../components/filmmaker/ElegirEstilo';
+import { ESTILOS } from '../constants/filmmakerEstilos';
 import { crearProduccion, nuevoIdDeProduccion, useProducciones } from '../hooks/useProducciones';
+import { fraseDelFallo } from '../utils/mensajesDeFilmmaker';
 import { tituloDesdeLaIdea } from '../utils/presentacionDeProduccion';
-import { IdeaDelTaller, duracionDe, etiquetaAccesible, cambiarDeTipo, contestarPaso, esTipoConTaller, estaLista, ideaVacia, pasoActual, poner, sumarALaFrase, tituloDeLaIdea } from '../utils/ideaDeFilmmaker';
+import { IdeaDelTaller, alRecibir, estaLista, fraseDe, duracionDe, etiquetaAccesible, cambiarDeTipo, esTipoConTaller, ideaVacia, poner, sumarALaFrase, tituloDeLaIdea } from '../utils/ideaDeFilmmaker';
 import { LIMITES } from '../services/filmmaker/dominio';
+import type { AspectRatio, ResolutionTarget } from '../services/filmmaker/dominio';
 import { PORTADA_WEEAI as P, textoPortada, ESPACIO_WEEAI as SPACING } from '../constants/estiloWeeAi';
 import { CHIP_DE_MARCA_EN_COMPOSER, PILDORA_DE_FORMATO_VISIBLE, FORMATO_POR_DEFECTO, TIPOS_DE_PROYECTO, TipoDeProyecto } from '../constants/filmmakerCrear';
-import { EmpezarCon, TIPO_POR_DEFECTO_AL_ENVIAR, TipoDeTaller } from '../constants/filmmakerIdea';
+import { TipoDeTaller } from '../constants/filmmakerIdea';
 import { scale } from '../utils/scale';
 
 const ALTO_DE_CABECERA = 56;
+/** Serie y Videoclip no existen todavía: no se ofrecen en la rejilla (la regla del dueño es no mostrar tarjetas que no hacen nada). Siguen en el catálogo de tipos. */
+const TIPOS_VISIBLES = TIPOS_DE_PROYECTO.filter((x) => x.estado !== 'cerrada');
 const HOLGURA = 16;
-/** Lo mínimo de mundo (tarjetas o hilo) que se deja ver encima de la caja cuando esta crece: el resto del alto es de la caja. */
+/** Lo mínimo de mundo (tarjetas o saludo) que se deja ver encima de la caja cuando esta crece: el resto del alto es de la caja. */
 const MUNDO_MINIMO = 220;
-/** A partir de este ancho el taller se parte en dos zonas (hilo | tarjeta): tableta y escritorio. */
-const ANCHO_DE_DOS_ZONAS = 840;
 
 /**
  * FILMMAKER — LA PRIMERA CAPA Y EL TALLER DE IDEA (2026-11-17). Una sola pantalla con DOS capas y UNA caja:
@@ -59,14 +63,12 @@ const FilmmakerCrearScreen: React.FC = () => {
   const dir = useDireccion();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
-  const { balance } = useWallet();
-  const { width: anchoDePantalla } = useWindowDimensions();
   const [medida, setMedida] = useState({ ancho: 0, alto: 0 });
   const [altoMundo, setAltoMundo] = useState(0);
   const [hoja, setHoja] = useState(false);
   const [adjuntos, setAdjuntos] = useState(false);
   const [texto, setTexto] = useState('');
-  const [capa, setCapa] = useState<'entrada' | 'taller' | 'universo' | 'tandas'>('entrada');
+  const [capa, setCapa] = useState<'entrada' | 'estilo' | 'taller' | 'universo' | 'tandas'>('entrada');
   const [universo, setUniverso] = useState<UniversoDelTaller>(() => universoVacio());
   const [seccion, setSeccion] = useState<TipoDeElemento>('character');
   const [tandas, setTandas] = useState<TandasDelTaller>(() => tandasVacias());
@@ -75,13 +77,13 @@ const FilmmakerCrearScreen: React.FC = () => {
   const [produccionId, setProduccionId] = useState<string | null>(null);
   const [tipoId, setTipoId] = useState<TipoDeTaller | null>(null);
   const [idea, setIdea] = useState<IdeaDelTaller>(() => ideaVacia('short'));
-  const [modo, setModo] = useState<ModoDelTaller>('guiado');
-  const [empezarCon, setEmpezarCon] = useState<EmpezarCon>('idea');
-  const [mensajes, setMensajes] = useState<MensajeDelTaller[]>([]);
+  /* El estilo se ELIGE (sin estilo no se pasa a la siguiente capa) y la idea mínima es obligatoria: Weë decide lo técnico, no lo creativo. */
+  const [estilo, setEstilo] = useState<string | null>(null);
+  const [preguntado, setPreguntado] = useState(false);
   const [creando, setCreando] = useState(false);
-  const [fallo, setFallo] = useState(false);
+  /* La causa del fallo al crear, ya en palabras de persona (sin conexión, sin sesión…): sale en línea bajo la caja. */
+  const [fallo, setFallo] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
-  const siguienteMensaje = useRef(1);
   /* Un solo id por intento: repetir con el mismo no crea dos producciones. */
   const idDeProduccion = useRef(nuevoIdDeProduccion());
 
@@ -96,89 +98,94 @@ const FilmmakerCrearScreen: React.FC = () => {
   const pildora = tipo ? { formato: tipo.formato, segundos: tipo.segundos } : FORMATO_POR_DEFECTO;
   /* Por debajo de 760 dp útiles todo se compacta. */
   const compacto = alto < 760;
-  const enTaller = capa !== 'entrada';
+  const enEstilo = capa === 'estilo';
+  const enIdea = capa === 'taller';
   const enUniverso = capa === 'universo';
   const enTandas = capa === 'tandas';
-  const dosZonas = enTaller && anchoDePantalla >= ANCHO_DE_DOS_ZONAS;
-  const pasoDeTexto = enTaller && modo === 'guiado' ? pasoActual(idea) : null;
 
-  const volverALasTarjetas = () => { setCapa('entrada'); setAviso(null); };
   const atras = () => {
-    if (enTandas) { setCapa('universo'); setAviso(null); return; }
-    if (enUniverso) { setCapa('taller'); setAviso(null); return; }
-    if (enTaller) { volverALasTarjetas(); return; }
-    navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main');
+    setAviso(null);
+    if (enTandas) setCapa('universo');
+    else if (enUniverso) setCapa('taller');
+    else if (enIdea) setCapa('estilo');
+    else if (enEstilo) { setCapa('entrada'); setPreguntado(false); }
+    else navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main');
   };
   const cerrado = (clave: string) => () => setAviso(t(clave));
-  const mensaje = (m: Omit<MensajeDelTaller, 'id'>) => ({ ...m, id: siguienteMensaje.current++ });
 
-  /** Entra al taller con un tipo: conserva lo ya escrito y, si no hay idea, arranca el modo Guiado por la sensación. */
-  const entrarAlTaller = (id: TipoDeProyecto['id'], base: IdeaDelTaller = idea) => {
+  /** Tocar una tarjeta de tipo: conserva lo ya escrito y abre la segunda capa, la del estilo. */
+  const elegirTipo = (id: TipoDeProyecto['id']) => {
     if (!esTipoConTaller(id)) return;
     setTipoId(id);
-    setIdea(cambiarDeTipo(base, id));
-    setCapa('taller');
+    setIdea((i) => cambiarDeTipo(i, id));
+    setCapa('estilo');
     setAviso(null);
   };
+  const elegirEstilo = (id: string) => { setEstilo(id); setAviso(null); if (!produccionId && estaLista(idea)) void continuar(idea); else setCapa('taller'); };
 
-  /** Lo que se escribe en la caja: en la entrada abre el taller con esa frase; dentro, contesta la pregunta de texto o suma a la frase. */
+  /** Crea la producción (la operación de siempre, id idempotente) y abre el Universo: la persona sigue sin botón aparte. */
+  const continuar = async (base: IdeaDelTaller) => {
+    if (creando) return;
+    if (!user) { navigation.navigate('Login'); return; }
+    setCapa('taller'); setCreando(true); setFallo(null); setAviso(null);
+    /* Formato y resolución del nivel Avanzado mandan; sin ellos, el anuncio nace con su preset y el resto con lo de siempre. */
+    const aspectRatio = base.valores.format as AspectRatio | undefined;
+    const resolution = base.valores.resolution as ResolutionTarget | undefined;
+    const propios = aspectRatio || resolution ? { ...(aspectRatio ? { aspectRatio } : {}), ...(resolution ? { resolution } : {}) } : base.tipo === 'ad' ? { preset: 'ads' as const } : {};
+    const r = await crearProduccion({ productionId: idDeProduccion.current, title: tituloDeLaIdea(base, (f, max) => tituloDesdeLaIdea(f, Math.min(max, LIMITES.nombre))), ...propios });
+    setCreando(false);
+    if (!r.ok) { setFallo(fraseDelFallo(r.fallo, t)); setTexto(fraseDe(base)); return; }
+    idDeProduccion.current = nuevoIdDeProduccion();
+    setProduccionId(r.valor.produccion.productionId);
+    setPreguntado(false);
+    setCapa('universo');
+  };
+
+  /** Lo que llega a Weë (texto de la caja o texto pegado): si la idea alcanza, sigue sola; si no, lo dice y la caja sigue abierta (idea mínima obligatoria). */
+  const recibir = (base: IdeaDelTaller) => {
+    setIdea(base);
+    if (alRecibir(base) === 'seguir') { void continuar(base); return; }
+    setPreguntado(true);
+    setCapa('taller');
+  };
+
+  /** Antes de avanzar hacen falta el tipo y el estilo, y los pone la persona: sin tipo no se envía; sin estilo se abre la capa de estilo con la idea ya guardada. */
+  const aceptar = (base: IdeaDelTaller): boolean => {
+    if (!tipoId) { setAviso(t('filmmaker.pickTypeFirst')); return false; }
+    setIdea(base);
+    if (!estilo) { setCapa('estilo'); return false; }
+    return true;
+  };
+
+  /** Lo que se escribe en la caja: en el Universo añade un elemento; en la Idea (o la entrada) se lo cuenta a Weë. */
   const enviar = () => {
     const dicho = texto.trim();
     if (!dicho) return;
     if (enUniverso) { setUniverso((u) => anadir(u, seccion, dicho)); setTexto(''); return; }
-    if (!enTaller) {
-      const id = tipoId ?? TIPO_POR_DEFECTO_AL_ENVIAR;
-      const deducido = !tipoId;
-      setModo('directo');
-      setMensajes([
-        mensaje({ rol: 'tu', texto: dicho }),
-        mensaje({ rol: 'wee', clave: 'filmmaker.ideaNoted' }),
-        ...(deducido ? [mensaje({ rol: 'wee', clave: 'filmmaker.ideaTypeDeduced' })] : []),
-      ]);
-      entrarAlTaller(id, sumarALaFrase(cambiarDeTipo(idea, id), dicho));
-    } else {
-      const primera = !idea.valores.idea && !idea.valores.script;
-      setMensajes((m) => [...m, mensaje({ rol: 'tu', texto: dicho }), ...(primera && !pasoDeTexto ? [mensaje({ rol: 'wee', clave: 'filmmaker.ideaNoted' })] : [])]);
-      setIdea(pasoDeTexto?.clase === 'text' ? contestarPaso(idea, { valor: dicho }) : sumarALaFrase(idea, dicho));
-    }
+    const base = sumarALaFrase(idea, dicho);
+    if (!aceptar(base)) { if (tipoId) setTexto(''); return; }
     setTexto('');
+    recibir(base);
   };
 
-  /** «Pegar texto»: el guion pegado se guarda en su campo (hasta 12 000 caracteres) y el taller se abre con «Guion» marcado. */
+  /** «Pegar texto»: el guion pegado se guarda en su campo (hasta 12 000 caracteres) y Weë sigue con él. */
   const usarTextoPegado = (pegado: string) => {
-    const id = tipoId ?? TIPO_POR_DEFECTO_AL_ENVIAR;
-    const base = poner(cambiarDeTipo(idea, id), 'script', pegado);
-    setEmpezarCon('script');
-    setMensajes((m) => [...m, mensaje({ rol: 'wee', clave: 'filmmaker.ideaScriptLoaded' }), ...(tipoId ? [] : [mensaje({ rol: 'wee', clave: 'filmmaker.ideaTypeDeduced' })])]);
-    if (!enTaller) setModo('directo');
-    setIdea(base);
-    if (!enTaller) entrarAlTaller(id, base);
-  };
-
-  const continuar = async () => {
-    if (!estaLista(idea) || creando) return;
-    if (!user) { navigation.navigate('Login'); return; }
-    setCreando(true); setFallo(false); setAviso(null);
-    const r = await crearProduccion({ productionId: idDeProduccion.current, title: tituloDeLaIdea(idea, (f, max) => tituloDesdeLaIdea(f, Math.min(max, LIMITES.nombre))), ...(idea.tipo === 'ad' ? { preset: 'ads' as const } : {}) });
-    setCreando(false);
-    if (!r.ok) { setFallo(true); return; }
-    idDeProduccion.current = nuevoIdDeProduccion();
-    setProduccionId(r.valor.produccion.productionId);
-    setCapa('universo');
+    const base = poner(idea, 'script', pegado);
+    if (aceptar(base)) recibir(base);
   };
 
   const irA = (id: EtapaId) => {
     setAviso(null);
     if (id === 'idea') setCapa('taller');
-    else if (id === 'batches') { if (produccionId) setCapa('tandas'); else setAviso(t('filmmaker.stageNeedIdea')); }
-    else if (id === 'universe') { if (produccionId) setCapa('universo'); else setAviso(t('filmmaker.stageNeedIdea')); }
+    else if (id === 'batches' && produccionId) setCapa('tandas');
+    else if (id === 'universe' && produccionId) setCapa('universo');
   };
 
   /* El «+» abre la hoja de adjuntos; el resto de lo que antes eran iconos cerrados vive ahora dentro de ella, con su motivo. */
   const acciones: AccionDeLaCaja[] = [{ icono: 'add', iconoWee: 'mas', etiqueta: t('filmmaker.attachTitle'), alPulsar: () => setAdjuntos(true) }];
 
   /*
-   * EL REPARTO DE LA ALTURA EN LA ENTRADA. La sección de tipos es SIEMPRE la rejilla 2+2+1 de la referencia (nunca un carrusel). Del alto del
+   * EL REPARTO DE LA ALTURA EN LA ENTRADA. La sección de tipos es SIEMPRE una rejilla (2+1 con los tres tipos que existen) (nunca un carrusel). Del alto del
    * mundo (lo de encima de la caja) se resta lo fijo —título de la sección, huecos— y el resto son las tres filas: apaisadas 2:1 (la ancha, 4:1)
    * y, si no cabe, más bajas hasta 64 dp. Si ni con 64 dp caben, el mundo se desplaza en vertical: es el ÚLTIMO recurso. Con altura de sobra, el
    * hero (el arco y «Crea tu producción») ocupa lo que queda.
@@ -187,16 +194,17 @@ const FilmmakerCrearScreen: React.FC = () => {
   const anchoMedia = Math.floor((anchoDeFila - 10) / 2);
   const tituloDeSeccion = compacto ? 44 : 62;
   const heroMinimo = 150;
-  const cabeHero = altoMundo - (tituloDeSeccion + 3 * 76 + 20 + HOLGURA) >= heroMinimo;
-  const conScroll = altoMundo > 0 && altoMundo < tituloDeSeccion + 3 * 64 + 20 + HOLGURA;
-  const presupuesto = altoMundo - tituloDeSeccion - 20 - HOLGURA - (cabeHero ? heroMinimo : 0);
-  const altoDeFila = conScroll ? 76 : Math.max(64, Math.min(Math.floor(anchoMedia / 1.5), Math.floor(presupuesto / 3)));
+  const FILAS = Math.ceil(TIPOS_VISIBLES.length / 2);
+  const cabeHero = altoMundo - (tituloDeSeccion + FILAS * 76 + 10 * (FILAS - 1) + HOLGURA) >= heroMinimo;
+  const conScroll = altoMundo > 0 && altoMundo < tituloDeSeccion + FILAS * 64 + 10 * (FILAS - 1) + HOLGURA;
+  const presupuesto = altoMundo - tituloDeSeccion - 10 * (FILAS - 1) - HOLGURA - (cabeHero ? heroMinimo : 0);
+  const altoDeFila = conScroll ? 76 : Math.max(64, Math.min(Math.floor(anchoMedia / 1.5), Math.floor(presupuesto / FILAS)));
   const topeDeLaCaja = Math.max(120, alto - ALTO_DE_CABECERA - MUNDO_MINIMO);
   const verHero = cabeHero && !conScroll;
-  const TARJETAS = TIPOS_DE_PROYECTO.map((x) => {
+  const TARJETAS = TIPOS_VISIBLES.map((x) => {
     const elegido = tipoId === x.id;
     const abierta = x.estado !== 'cerrada';
-    return { x, elegido, onPress: abierta ? () => entrarAlTaller(x.id) : cerrado(x.claveMotivo as string) };
+    return { x, elegido, onPress: abierta ? () => elegirTipo(x.id) : cerrado(x.claveMotivo as string) };
   });
 
   const verContinuar = !!reciente && altoMundo >= 520;
@@ -217,7 +225,7 @@ const FilmmakerCrearScreen: React.FC = () => {
         <Text style={[textoPortada(compacto ? 17 : 21, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header" numberOfLines={1}>{t('filmmaker.hubTypeSection')}</Text>
         <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria, marginTop: 2, marginBottom: 10 }]} numberOfLines={1}>{t('filmmaker.hubTypeSectionHint')}</Text>
         <View style={styles.rejilla}>
-          {TARJETAS.map(({ x, elegido, onPress }, i) => <TarjetaDeTipo key={x.id} tipo={x} ancho={i === 4 ? anchoDeFila : anchoMedia} alto={altoDeFila} elegido={elegido} onPress={onPress} orden={i} />)}
+          {TARJETAS.map(({ x, elegido, onPress }, i) => <TarjetaDeTipo key={x.id} tipo={x} ancho={i === TARJETAS.length - 1 && TARJETAS.length % 2 === 1 ? anchoDeFila : anchoMedia} alto={altoDeFila} elegido={elegido} onPress={onPress} orden={i} />)}
         </View>
       </View>
     </View>
@@ -225,14 +233,16 @@ const FilmmakerCrearScreen: React.FC = () => {
 
   const etiquetaDelTipo = tipo ? t(tipo.clave) : '';
   const definicionDeSeccion = SECCIONES_DEL_UNIVERSO.find((s) => s.id === seccion) ?? SECCIONES_DEL_UNIVERSO[0];
-  const placeholder = enUniverso ? t(definicionDeSeccion.clavePlaceholder) : pasoDeTexto?.clase === 'text' ? t(pasoDeTexto.clavePlaceholder) : enTaller ? t('filmmaker.ideaPlaceholder') : t('filmmaker.hubPlaceholder');
-  const sinSaldo = !!user && balance === 0;
+  const placeholder = enUniverso ? t(definicionDeSeccion.clavePlaceholder) : enIdea ? t('filmmaker.ideaPlaceholder') : t('filmmaker.hubPlaceholder');
+  const etiquetaDelEstilo = estilo ? t((ESTILOS.find((e) => e.id === estilo) ?? ESTILOS[0]).clave) : null;
+  const textoDePildora = etiquetaDelEstilo ? `${etiquetaDelTipo} · ${etiquetaDelEstilo}` : etiquetaDelTipo;
+  const estadoDelTaller: EstadoDelTaller = creando ? 'creando' : preguntado ? 'pregunta' : 'saludo';
 
   return (
     <CreatorShell activeId="creator" title={t('weeai.portadaFilmmaker')} breadcrumb={t('nav.weeAi')} fondo={P.fondo} sinFranjaSuperior fija contentStyle={styles.contenido}>
-      <View style={[styles.raiz, dosZonas && { maxWidth: 1040 }]} onLayout={(e: LayoutChangeEvent) => { const { width, height } = e.nativeEvent.layout; setMedida((a) => (Math.abs(a.ancho - width) > 1 || Math.abs(a.alto - height) > 1 ? { ancho: Math.round(width), alto: Math.round(height) } : a)); }}>
+      <View style={styles.raiz} onLayout={(e: LayoutChangeEvent) => { const { width, height } = e.nativeEvent.layout; setMedida((a) => (Math.abs(a.ancho - width) > 1 || Math.abs(a.alto - height) > 1 ? { ancho: Math.round(width), alto: Math.round(height) } : a)); }}>
         <View style={[styles.cabecera, dir.contenedor]}>
-          <TouchableOpacity onPress={atras} style={styles.boton} accessibilityRole="button" accessibilityLabel={enTaller ? t('filmmaker.ideaBackToTypes') : t('common.back')}>
+          <TouchableOpacity onPress={atras} style={styles.boton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
             <IconoDireccional name="arrow-back" size={scale(24)} color={P.tinta} />
           </TouchableOpacity>
           <View style={[styles.marcaDeCabecera, dir.contenedor]}>
@@ -245,20 +255,19 @@ const FilmmakerCrearScreen: React.FC = () => {
           <CreditsPill compact sobria />
         </View>
 
-        {enTaller ? <BarraDeEtapas activa={enTandas ? 'batches' : enUniverso ? 'universe' : 'idea'} onIr={irA} onAviso={(clave) => setAviso(t(clave))} onProyecto={() => setProyecto(true)} /> : null}
+        {/* Las etapas solo aparecen cuando sirven (después de la Idea) y solo las que existen: nunca bloqueadas. */}
+        {enUniverso || enTandas ? <BarraDeEtapas activa={enTandas ? 'batches' : 'universe'} onIr={irA} onProyecto={() => setProyecto(true)} /> : null}
 
         {/* EL MUNDO de encima de la caja: las tarjetas de tipo, o el hilo del taller de Idea. */}
         <View style={styles.mundo} onLayout={(e: LayoutChangeEvent) => { const h = Math.round(e.nativeEvent.layout.height); setAltoMundo((a) => (Math.abs(a - h) > 1 ? h : a)); }}>
-          {enTandas ? (
+          {enEstilo ? (
+            <ElegirEstilo ancho={ancho} elegido={estilo} onElegir={elegirEstilo} />
+          ) : enTandas ? (
             <TandasYStoryboard ancho={Math.min(ancho, 1040)} compacto={compacto} personajes={universo.elementos.filter((e) => e.tipo === 'character').map((e) => ({ id: e.id, nombre: e.nombre, voz: e.voz }))} duracionTotalSeg={duracionDe(idea)} valor={tandas} onCambio={setTandas} onAviso={setAviso} />
           ) : enUniverso ? (
             <UniversoDeFilmmaker universo={universo} ancho={Math.min(ancho, 1040)} compacto={compacto} seccion={seccion} onSeccion={setSeccion} onAbrir={(e) => setFichaId(e.id)} onAprobar={() => setUniverso(aprobar)} onEjemplo={() => setUniverso((u) => anadirEjemplos(u, EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))))} onQuitarEjemplo={() => setUniverso(quitarEjemplos)} onContinuar={() => { setAviso(null); setCapa('tandas'); }} onAviso={(clave) => setAviso(t(clave))} />
-          ) : enTaller ? (
-            <TallerDeIdea
-              idea={idea} onIdea={setIdea} modo={modo} onModo={setModo} empezarCon={empezarCon} onEmpezarCon={setEmpezarCon}
-              mensajes={mensajes} dosZonas={dosZonas} compacto={compacto} plegado={alto < 600} onAviso={(clave) => setAviso(t(clave))}
-              creando={creando} fallo={fallo} sinSaldo={sinSaldo} onContinuar={continuar}
-            />
+          ) : enIdea ? (
+            <TallerDeIdea tipo={idea.tipo} estado={estadoDelTaller} compacto={alto < 600} />
           ) : conScroll ? <ScrollView style={styles.lista} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">{entrada}</ScrollView> : entrada}
         </View>
 
@@ -267,7 +276,7 @@ const FilmmakerCrearScreen: React.FC = () => {
           <View style={[styles.estado, compacto && { minHeight: 0, paddingTop: 2 }]} accessibilityRole="alert" accessibilityLiveRegion="polite">
             {aviso ? (
               <Text style={[textoPortada(12), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={3}>{aviso}</Text>
-            ) : !user && !enTaller ? (
+            ) : !user && !enIdea && !enUniverso ? (
               <Text style={[textoPortada(12), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={2}>{t('filmmaker.hubNeedSession')}</Text>
             ) : null}
           </View>
@@ -278,16 +287,25 @@ const FilmmakerCrearScreen: React.FC = () => {
             </View>
             {CHIP_DE_MARCA_EN_COMPOSER ? <View style={styles.pildora}><Text style={[textoPortada(12, '500'), { color: P.tintaSecundaria }]}>{t('filmmaker.hubBrain')}</Text></View> : null}
           </View> : null}
-          {enTaller && tipo && alto >= 540 ? (
-            <TouchableOpacity onPress={volverALasTarjetas} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(etiquetaDelTipo, t('filmmaker.ideaChangeType'))} hitSlop={{ top: 4, bottom: 4 }} style={[styles.etiqueta, compacto && { minHeight: 36 }, dir.contenedor]}>
+          {enIdea && tipo && alto >= 480 ? (
+            <TouchableOpacity onPress={() => setCapa('estilo')} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(textoDePildora, t('filmmaker.pillChange'))} hitSlop={{ top: 4, bottom: 4 }} style={[styles.etiqueta, compacto && { minHeight: 36 }, dir.contenedor]}>
               <IconoWee name="claqueta" size={14} color={P.tinta} />
-              <Text style={[textoPortada(13, '600'), { color: P.tinta }]} numberOfLines={1}>{etiquetaDelTipo}</Text>
-              <IconoWee name="cerrar" size={12} color={P.tintaSecundaria} />
+              <Text style={[textoPortada(13, '600'), { color: P.tinta, flexShrink: 1 }]} numberOfLines={1}>{textoDePildora}</Text>
+              <Ionicons name="chevron-down" size={12} color={P.tintaSecundaria} />
             </TouchableOpacity>
           ) : null}
-          {!enTandas ? <CajaAnclada alto={topeDeLaCaja}>
-            <CajaDePrompt portada enviarDiscreto={enTaller} valor={texto} onCambiar={setTexto} onEnviar={enviar} etiquetaEnviar={t('studio.sendLabel')} placeholder={placeholder} acciones={acciones} />
+          {!enTandas && !enEstilo ? <CajaAnclada alto={topeDeLaCaja}>
+            <CajaDePrompt portada enviarDiscreto={enUniverso} valor={texto} onCambiar={setTexto} onEnviar={enviar} etiquetaEnviar={t('studio.sendLabel')} placeholder={placeholder} acciones={acciones} />
           </CajaAnclada> : null}
+          {/* El fallo al crear sale EN LÍNEA, bajo la caja, con la idea conservada en ella: enviar de nuevo reintenta (mismo id, no duplica). */}
+          {fallo && enIdea ? (
+            <View style={[styles.falloEnLinea, dir.contenedor]} accessibilityRole="alert" accessibilityLiveRegion="polite">
+              <Text style={[textoPortada(13), dir.texto, { color: P.tinta, flex: 1 }]}>{t('filmmaker.hubCreateError')} {fallo} {t('filmmaker.ideaKept')}</Text>
+              <TouchableOpacity onPress={() => { void continuar(idea); }} disabled={creando} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmaker.hubRetry')} style={styles.reintentar}>
+                <Text style={[textoPortada(14, '600'), { color: P.tinta }]}>{t('filmmaker.hubRetry')}</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
         </View>
 
         <HojaDeTrabajo visible={hoja} onClose={() => setHoja(false)} onAbrirProduccion={(id) => navigation.navigate('Production', { productionId: id })} onAbrirCreaciones={() => navigation.navigate('MisCreaciones')} />
@@ -316,6 +334,8 @@ const styles = StyleSheet.create({
   fila: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pildora: { minHeight: 28, paddingHorizontal: 12, borderRadius: 999, backgroundColor: P.superficie, borderColor: P.bordeCapsula, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
   estado: { minHeight: 10, justifyContent: 'center', paddingTop: 4, paddingBottom: 4 },
+  falloEnLinea: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 8 },
+  reintentar: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.bordeCapsula, alignItems: 'center', justifyContent: 'center' },
   rejilla: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
 });
 
