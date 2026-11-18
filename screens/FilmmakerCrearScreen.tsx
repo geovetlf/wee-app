@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Platform } from 'react-native';
 import { enTemaOscuro } from '../contexts/ThemeContext';
 import { useT, useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,6 +29,8 @@ import { BarraDeEtapas } from '../components/filmmaker/BarraDeEtapas';
 import { UniversoDeFilmmaker } from '../components/filmmaker/UniversoDeFilmmaker';
 import { FichaDeElemento } from '../components/filmmaker/FichaDeElemento';
 import { SECCIONES_DEL_UNIVERSO, EJEMPLO_DEL_UNIVERSO, EtapaId } from '../constants/filmmakerUniverso';
+import { ejemploTraducido } from '../constants/filmmakerTandas';
+import { anadirEjemplos as anadirTandasDeEjemplo } from '../utils/tandasDeFilmmaker';
 import { UniversoDelTaller, TipoDeElemento, anadir, anadirEjemplos, aprobar, editar, quitar, quitarEjemplos, universoVacio } from '../utils/universoDeFilmmaker';
 import { TandasYStoryboard } from '../components/filmmaker/tandas/TandasYStoryboard';
 import { ProduccionDeFilmmaker } from '../components/filmmaker/produccion/ProduccionDeFilmmaker';
@@ -75,6 +78,8 @@ const FilmmakerCrearScreen: React.FC = () => {
   const dir = useDireccion();
   const navigation = useNavigation<any>();
   const abrirId: string | undefined = (useRoute<any>().params as { productionId?: string } | undefined)?.productionId;
+  /* MODO DE EJEMPLO (solo desarrollo): `?demo=universo|capitulos|produccion|juntar` en la web pinta esa etapa con datos de muestra y SIN servidor, para poder mirarla. `__DEV__` es falso en una compilación de producción, así que ahí no existe. */
+  const demo = __DEV__ && Platform.OS === 'web' && typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('demo') : null;
   const { user } = useAuth();
   const [medida, setMedida] = useState({ ancho: 0, alto: 0 });
   const [altoMundo, setAltoMundo] = useState(0);
@@ -165,6 +170,18 @@ const FilmmakerCrearScreen: React.FC = () => {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abrirId, user]);
+
+  useEffect(() => {
+    if (!demo) return;
+    setTipoId('short'); setEstilo('anime'); setProduccionId('demo');
+    setIdea((i) => poner(cambiarDeTipo(i, 'short'), 'idea', 'Una historia de ejemplo para ver la pantalla'));
+    setUniverso(anadirEjemplos(universoVacio(), EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))));
+    const base = anadirTandasDeEjemplo(tandasVacias(), ejemploTraducido(t));
+    /* Para Producción y Juntar los capítulos de muestra cuentan como aprobados y reales (siguen rotulados «Demo»). */
+    setTandas(demo === 'produccion' || demo === 'juntar' ? { ...base, tandas: base.tandas.map((x) => ({ ...x, titulo: x.titulo || 'Demo', ejemplo: false, aprobada: true, almacen: true, cuadros: x.cuadros.map((c) => ({ ...c, ejemplo: false })) })) } : base);
+    setCapa(demo === 'juntar' ? 'juntar' : demo === 'produccion' ? 'produccion' : demo === 'capitulos' ? 'tandas' : 'universo');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [demo]);
 
   const atras = () => {
     setAviso(null);
@@ -324,8 +341,9 @@ const FilmmakerCrearScreen: React.FC = () => {
             <IconoDireccional name="arrow-back" size={scale(24)} color={P.tinta} />
           </TouchableOpacity>
           <View style={[styles.marcaDeCabecera, dir.contenedor]}>
-            <IsotipoWee alto={28} />
-            <Text style={[textoPortada(scale(22), '600'), { color: P.tinta }]} numberOfLines={1} accessibilityRole="header">{t('weeai.portadaFilmmaker')}</Text>
+            {/* Dentro de Capítulos el título lo pone la propia pantalla («Capítulos», «Capítulo 1»): una sola cabecera. */}
+            {enTandas ? null : <IsotipoWee alto={28} />}
+            {enTandas ? null : <Text style={[textoPortada(scale(22), '600'), { color: P.tinta }]} numberOfLines={1} accessibilityRole="header">{t('weeai.portadaFilmmaker')}</Text>}
           </View>
           <TouchableOpacity onPress={() => setHoja(true)} style={styles.boton} accessibilityRole="button" accessibilityLabel={etiquetaCarpeta}>
             <IconoWee name="carpeta" size={scale(22)} color={P.tinta} />
