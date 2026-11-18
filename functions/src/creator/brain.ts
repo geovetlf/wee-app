@@ -21,6 +21,8 @@ import { firestoreLedger } from '../engine/ledger';
 import { ensureAccount } from './credits';
 import { assertAttachmentUrl, assertInputImageUrl } from './inputs';
 import { BRAIN_CHAT_SYSTEM, entradaDeEntender, instruccionDeIdioma, localeDeBrain } from './prompts';
+import { ContextoDelDirector, instruccionDelDirector, leerContextoDelDirector, leerPuertaDelDirector } from './directorDeFilmmaker';
+import { LecturaDeLaPropuesta, ProduccionParaBrain, leerProduccionParaBrain, leerPropuesta, separarPropuesta } from './produccionEnBrain';
 import { EXPERIENCIAS_PARA_DERIVAR } from './experiencias';
 import { MODEL_SECRETS } from '../secrets';
 import { BRAIN_CONTRACT_VERSION, BrainAttachment, LIMITES_DE_CONTEXTO, Thinker, ThoughtRequest, contextoDeIdioma, interpretarMarca } from '../core';
@@ -168,6 +170,18 @@ export interface BrainChatInput {
    * contesta en español, que es lo que hacía antes de esto.
    */
   locale?: string;
+  /**
+   * EL CONTEXTO DE FILMMAKER, cuando se habla desde su composer (regla 10: lo único que cambia entre cajas es el contexto).
+   * Ver `directorDeFilmmaker.ts`. Detrás de `aiSettings/filmmakerBrain`, cerrada por defecto. Del cliente llega SOLO el
+   * contexto y el id de la producción: la producción se lee del servidor, de la cuenta de la sesión.
+   */
+  filmmaker?: unknown;
+}
+
+/** El contexto de Filmmaker ya comprobado, y la producción abierta si existe. */
+interface DirectorDelMensaje {
+  readonly contexto: ContextoDelDirector;
+  readonly produccion?: ProduccionParaBrain;
 }
 
 /**
@@ -218,10 +232,15 @@ async function readHistory(messages: FirebaseFirestore.CollectionReference): Pro
  * (brainQuote) y el cobro real (brainChat): así el precio que ve la persona
  * y el que se le cobra salen del mismo sitio.
  */
-function brainInput(message: string, history: { role: string; text: string }[], files: { imageUrl?: string; documentUrl?: string; audioUrl?: string }, locale?: string): Record<string, unknown> {
+function brainInput(message: string, history: { role: string; text: string }[], files: { imageUrl?: string; documentUrl?: string; audioUrl?: string }, locale?: string, director?: DirectorDelMensaje): Record<string, unknown> {
   return {
-    /* El prompt de siempre, más en qué idioma toca contestar hoy. */
-    system: `${BRAIN_CHAT_SYSTEM} ${instruccionDeIdioma(locale)}`,
+    /*
+     * El prompt de siempre, más en qué idioma toca contestar hoy. Con el contexto de Filmmaker, además, el director: va en la
+     * misma entrada que se cotiza, así que lo que cuesta contarlo está dentro del precio.
+     */
+    system: director
+      ? `${BRAIN_CHAT_SYSTEM} ${instruccionDeIdioma(locale)}\n\n${instruccionDelDirector(director.contexto, director.produccion?.resumen)}`
+      : `${BRAIN_CHAT_SYSTEM} ${instruccionDeIdioma(locale)}`,
     prompt: message,
     history,
     imageUrl: files.imageUrl,
@@ -262,6 +281,22 @@ async function priceBrainMessage(input: Record<string, unknown>, webSearch: bool
 }
 
 /**
+ * EL DIRECTOR DEL MENSAJE, si trae contexto de Filmmaker. ANTES de reservar cupo o Credits: con la puerta cerrada
+ * (`aiSettings/filmmakerBrain`) contesta «no disponible» y no gasta nada; un contexto que no se entiende o una producción que
+ * no es de esta cuenta, la misma frase para las dos cosas.
+ */
+const directorPedido = async (db: FirebaseFirestore.Firestore, uid: string, dato: unknown): Promise<DirectorDelMensaje | undefined> => {
+  if (dato === undefined || dato === null) return undefined;
+  if (!(await leerPuertaDelDirector(db))) throw new EngineError('NOT_AVAILABLE', 'El director de Weë Filmmaker todavía no está disponible.', { reason: 'director_closed' });
+  const contexto = leerContextoDelDirector(dato);
+  if (!contexto) throw new EngineError('INVALID_REQUEST', 'Falta el tipo o el estilo de tu obra.', { reason: 'director_context_invalid' });
+  if (!contexto.productionId) return { contexto };
+  const produccion = await leerProduccionParaBrain(db, uid, contexto.productionId);
+  if (!produccion) throw new EngineError('INVALID_REQUEST', 'No encontramos esta producción.');
+  return { contexto, produccion };
+};
+
+/**
  * Cuánto costaría el siguiente mensaje, antes de enviarlo. La app lo llama para
  * enseñar el precio junto al botón de enviar; no cobra ni escribe nada.
  */
@@ -289,7 +324,8 @@ export const brainQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, me
     }
 
     /* El idioma entra ya en la cotización: la instrucción va en el prompt y cuenta tokens. */
-    const { price, settings, service } = await priceBrainMessage(brainInput(message, history, files, data.locale), webSearch);
+    const director = await directorPedido(getFirestore(), uid, data.filmmaker);
+    const { price, settings, service } = await priceBrainMessage(brainInput(message, history, files, data.locale, director), webSearch);
     /*
      * Lo que va a costar ESTE mensaje, que en la conversación ya no es siempre lo
      * mismo: once de cada doce respuestas no cobran nada, y la duodécima cobra el
@@ -346,10 +382,17 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
       const existing = await messages.doc(`${messageId}_wee`).get();
       if (!existing.exists) return null;
       const prev = existing.data() || {};
-      return { chatId: chatRef.id, messageId: existing.id, text: prev.text, sources: prev.sources || [], suggestedExperience: prev.suggestedExperience ?? null, credits: prev.credits || 0, demo: !!prev.demo, duplicate: true, bloque: await bloqueDe(uid) };
+      return {
+        chatId: chatRef.id, messageId: existing.id, text: prev.text, sources: prev.sources || [], suggestedExperience: prev.suggestedExperience ?? null, credits: prev.credits || 0, demo: !!prev.demo, duplicate: true, bloque: await bloqueDe(uid),
+        /* La propuesta que ya se dio, si la hubo: repetir el mensaje no la pierde ni la vuelve a pedir. */
+        ...(prev.proposal || prev.proposalIssue ? { proposal: prev.proposal ?? null, proposalIssue: prev.proposalIssue ?? null } : {}),
+      };
     };
     const yaDada = await respuestaYaDada();
     if (yaDada) return yaDada;
+
+    /* El director de Filmmaker, si lo hay. ANTES del cupo y de los Credits: cerrado o ajeno, no gasta nada. */
+    const director = await directorPedido(db, uid, data.filmmaker);
 
     /* La ruta antes del dinero (creator/rutaPrevia.ts): la misma capacidad y el mismo ruteo con que se generará. */
     await exigirRutaElegible([{
@@ -375,7 +418,7 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
     // El historial se lee ANTES de cobrar: encarece la petición y tiene que
     // estar dentro del precio, igual que las fotos y los documentos adjuntos.
     const history = await readHistory(messages);
-    const engineInput = brainInput(message, history, { imageUrl, documentUrl, audioUrl }, data.locale);
+    const engineInput = brainInput(message, history, { imageUrl, documentUrl, audioUrl }, data.locale, director);
     const { price } = await priceBrainMessage(engineInput, webSearch);
 
     /*
@@ -470,7 +513,11 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
       }
 
       if (isNew) await chatRef.set({ userId: uid, title: message.slice(0, 60), messageCount: 0, createdAt: now(), updatedAt: now() });
-      await messages.doc(messageId).set(stripUndefined({ role: 'user', text: message, imageUrl, documentUrl, audioUrl, webSearch, createdAt: now() }));
+      await messages.doc(messageId).set(stripUndefined({
+        role: 'user', text: message, imageUrl, documentUrl, audioUrl, webSearch, createdAt: now(),
+        /* Desde dónde se habló: el tipo, el estilo, la etapa y la producción (id y revisión). Nunca la producción entera. */
+        filmmaker: director ? { tipo: director.contexto.tipo, estilo: director.contexto.estilo, etapa: director.contexto.etapa, productionId: director.produccion?.productionId, revision: director.produccion?.revision } : undefined,
+      }));
 
       /*
        * ── ¿POR EL CORE, O POR DONDE SIEMPRE? ───────────────────────────────────
@@ -489,7 +536,11 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        */
       const capacidad: CapabilityId = webSearch ? 'text.search' : 'text.generate';
       const puerta = decidirRuntime(await configuracionDeLaPuerta(db), { capability: capacidad, userId: uid, experienceId: EXPERIENCIA_DE_BRAIN });
-      const porElCore = puerta.runtime === 'core' && capacidad === CAPACIDAD_DEL_CANARY;
+      /*
+       * Un mensaje con el contexto de Filmmaker va SIEMPRE por el camino de siempre (regla 10): el canary del conductor atiende la
+       * conversación de Weë Brain y nada más, y darle contexto no lo amplía ni abre ninguna capacidad nueva por el Core.
+       */
+      const porElCore = puerta.runtime === 'core' && capacidad === CAPACIDAD_DEL_CANARY && !director;
 
       /*
        * ── QUIÉN PIENSA, Y POR QUÉ VIVE AQUÍ ────────────────────────────────────
@@ -737,7 +788,18 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
         throw new EngineError(pensado.error?.code === 'INVALID_REQUEST' ? 'INVALID_REQUEST' : 'GENERATION_FAILED');
       }
       const parsed = { text: pensado.reply.text, suggestedExperience: pensado.reply.suggestedExperience };
-      const suggestedExperience = parsed.suggestedExperience || guessExperience(message);
+      /*
+       * ── LA PROPUESTA, FUERA DEL TEXTO ──────────────────────────────────────
+       * Con el contexto de Filmmaker, lo que la persona lee es el texto SIN el bloque, esté bien o mal. Si la producción existe, el
+       * bloque se comprueba con F1-A en memoria y viaja aparte; si no, no hay nada que comprobar y se descarta. Nada se aplica aquí.
+       * Y no se deriva a ningún especialista: ya está en su producción.
+       */
+      const separada = director ? separarPropuesta(parsed.text) : undefined;
+      const propuesta: LecturaDeLaPropuesta | undefined = !director?.produccion || !separada ? undefined
+        : separada.bloque !== undefined ? leerPropuesta(separada.bloque, director.produccion, messageId)
+          : separada.cortado ? { ok: false, motivo: 'unreadable' } : undefined;
+      if (separada) parsed.text = separada.texto;
+      const suggestedExperience = director ? undefined : parsed.suggestedExperience || guessExperience(message);
       const sources: SourceRef[] = salida.sources;
 
       /*
@@ -748,7 +810,9 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
        * se decidió entonces y no mueve el bloque. Y `spendCredits` lo es por
        * `requestId`, que es el mismo mensaje. Las dos puertas cierran el doble cobro.
        */
-      if (!webSearch) {
+      /* Una respuesta que intentó proponer cambios y no dejó nada aplicable NO cuenta en el bloque ni se cobra: no hay nada que pagar. */
+      const sinPropuestaAplicable = !!director?.produccion && !!propuesta && !propuesta.ok;
+      if (!webSearch && !sinPropuestaAplicable) {
         const consumo = await contarRespuesta(uid, operacion.clave, vigia);
         contadaAqui = consumo.nueva;
         /*
@@ -807,7 +871,12 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
       /* La valla antes de entregar: un intento que ya no es dueño no escribe la respuesta. */
       if (!(await renovarReclamo(db, reclamoRef, intento))) throw new ReclamoPerdido();
       await messages.doc(`${messageId}_wee`).set(
-        stripUndefined({ role: 'wee', text: parsed.text, sources, suggestedExperience, credits, generationId: salida.generationId, demo: salida.demo, webSearch, createdAt: now() })
+        stripUndefined({
+          role: 'wee', text: parsed.text, sources, suggestedExperience, credits, generationId: salida.generationId, demo: salida.demo, webSearch, createdAt: now(),
+          /* La propuesta comprobada, o por qué no la hubo: así la vuelve a ver quien repite el mensaje o reabre la conversación. */
+          proposal: propuesta?.ok ? propuesta.propuesta : undefined,
+          proposalIssue: propuesta && !propuesta.ok ? propuesta.motivo : undefined,
+        })
       );
       entregada = true;
       await soltarMensaje(db, reclamoRef, intento, 'respondido').catch((e) => console.error('Weë Brain: no se pudo cerrar el reclamo', messageId, e));
@@ -825,7 +894,15 @@ export const brainChat = onCall({ region: 'us-central1', timeoutSeconds: 120, me
       }
       /* Por dónde pasó, para quien lea los registros. NO va en la respuesta: a la persona el camino no le cambia nada. */
       console.log(`WEË BRAIN · ruta=${porElCore ? 'CORE' : 'LEGACY'} motivo=${puerta.motivo} capacidad=${capacidad} requestId=${requestId} chat=${chatRef.id} generacion=${salida.generationId ?? '-'} credits=${credits}`);
-      return { chatId: chatRef.id, messageId: `${messageId}_wee`, text: parsed.text, sources, suggestedExperience: suggestedExperience ?? null, credits, demo: salida.demo, duplicate: false, bloque: await bloqueDe(uid) };
+      return {
+        chatId: chatRef.id, messageId: `${messageId}_wee`, text: parsed.text, sources, suggestedExperience: suggestedExperience ?? null, credits, demo: salida.demo, duplicate: false, bloque: await bloqueDe(uid),
+        /* Solo con el contexto de Filmmaker y una producción guardada: la propuesta comprobada, o por qué no la hubo. */
+        ...(director?.produccion ? {
+          proposal: propuesta?.ok ? propuesta.propuesta : null,
+          proposalIssue: propuesta && !propuesta.ok ? propuesta.motivo : null,
+          ...(propuesta && !propuesta.ok && propuesta.problemas?.length ? { proposalProblems: propuesta.problemas } : {}),
+        } : {}),
+      };
     } catch (error) {
       /*
        * Solo se reembolsa lo que se llegó a cobrar. En la conversación por bloques
