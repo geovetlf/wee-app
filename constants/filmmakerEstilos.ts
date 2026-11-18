@@ -11,20 +11,20 @@ import type { TexturaDeModulo } from '../components/weeai/arteDePortada';
 export interface EstiloDeFilmmaker { readonly id: string; readonly clave: string; readonly textura: TexturaDeModulo; readonly tonos: readonly [string, string] }
 
 export const ESTILOS: readonly EstiloDeFilmmaker[] = [
-  { id: 'realistic', clave: 'filmmaker.styleRealistic', textura: 'video', tonos: ['#1B2430', '#0A0D13'] },
-  { id: 'anime', clave: 'filmmaker.styleAnime', textura: 'imagen', tonos: ['#3A1D3F', '#0F0A16'] },
-  { id: 'cartoon', clave: 'filmmaker.styleCartoon', textura: 'imagen', tonos: ['#3D2A12', '#140E06'] },
-  { id: 'animation3d', clave: 'filmmaker.styleAnimation3d', textura: 'tresD', tonos: ['#123A40', '#071518'] },
-  { id: 'gothic', clave: 'filmmaker.styleGothic', textura: 'texto', tonos: ['#3A1218', '#0C0508'] },
-  { id: 'scifi', clave: 'filmmaker.styleScifi', textura: 'tresD', tonos: ['#14284F', '#080C18'] },
-  { id: 'noir', clave: 'filmmaker.styleNoir', textura: 'video', tonos: ['#2A2A2A', '#050505'] },
-  { id: 'watercolor', clave: 'filmmaker.styleWatercolor', textura: 'imagen', tonos: ['#1F3A44', '#0A1417'] },
-  { id: 'pixel', clave: 'filmmaker.stylePixel', textura: 'tresD', tonos: ['#1C3D2A', '#08140D'] },
-  { id: 'comic', clave: 'filmmaker.styleComic', textura: 'texto', tonos: ['#4A1D1D', '#140808'] },
-  { id: 'fantasy', clave: 'filmmaker.styleFantasy', textura: 'imagen', tonos: ['#2E1C52', '#0E0817'] },
-  { id: 'claymation', clave: 'filmmaker.styleClaymation', textura: 'imagen', tonos: ['#4A2E1E', '#150D08'] },
-  { id: 'vintage', clave: 'filmmaker.styleVintage', textura: 'video', tonos: ['#4A3A1C', '#130E05'] },
-  { id: 'documentary', clave: 'filmmaker.styleDocumentary', textura: 'audio', tonos: ['#2A3A2A', '#0A100A'] },
+  { id: 'realistic', clave: 'filmmaker.styleRealistic', textura: 'video', tonos: ['#33465E', '#0B0F16'] },
+  { id: 'anime', clave: 'filmmaker.styleAnime', textura: 'imagen', tonos: ['#7A3E8C', '#1A0E24'] },
+  { id: 'cartoon', clave: 'filmmaker.styleCartoon', textura: 'imagen', tonos: ['#B8742A', '#2A1808'] },
+  { id: 'animation3d', clave: 'filmmaker.styleAnimation3d', textura: 'tresD', tonos: ['#1F8A96', '#08202A'] },
+  { id: 'gothic', clave: 'filmmaker.styleGothic', textura: 'texto', tonos: ['#8A2535', '#1A080C'] },
+  { id: 'scifi', clave: 'filmmaker.styleScifi', textura: 'tresD', tonos: ['#2B4FA8', '#0A1030'] },
+  { id: 'noir', clave: 'filmmaker.styleNoir', textura: 'video', tonos: ['#585858', '#0A0A0A'] },
+  { id: 'watercolor', clave: 'filmmaker.styleWatercolor', textura: 'imagen', tonos: ['#3C8AA0', '#0E2630'] },
+  { id: 'pixel', clave: 'filmmaker.stylePixel', textura: 'tresD', tonos: ['#2F9A5C', '#0A2014'] },
+  { id: 'comic', clave: 'filmmaker.styleComic', textura: 'texto', tonos: ['#B03A3A', '#240C0C'] },
+  { id: 'fantasy', clave: 'filmmaker.styleFantasy', textura: 'imagen', tonos: ['#6C45B8', '#190F30'] },
+  { id: 'claymation', clave: 'filmmaker.styleClaymation', textura: 'imagen', tonos: ['#A5603A', '#2A1409'] },
+  { id: 'vintage', clave: 'filmmaker.styleVintage', textura: 'video', tonos: ['#A88A3A', '#2A200A'] },
+  { id: 'documentary', clave: 'filmmaker.styleDocumentary', textura: 'audio', tonos: ['#5C8A5C', '#142014'] },
 ];
 
 /** Cuántos estilos se ven de entrada; el resto, a un toque en «Más estilos». */

@@ -67,7 +67,7 @@ export const TarjetaDeTipo: React.FC<{ tipo: ContenidoDeTarjeta; ancho: number |
       <View style={[styles.tarjeta, { borderColor: elegido ? 'rgba(255,255,255,1)' : abierta ? 'rgba(250,251,255,0.95)' : 'rgba(245,246,248,0.40)', borderWidth: elegido ? 2.5 : 2 }]}>
         {/* El fondo propio, siempre debajo: lo que se ve mientras no hay imagen. */}
         <LinearGradient colors={tonos ? [tonos[0], tonos[1]] : ['#0A0D13', '#171B22']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-        <Image source={{ uri: uriDeTextura(textura ?? TEXTURA_DE_TIPO[tipo.id as TipoDeProyecto['id']], P.iconoModulo) }} style={[StyleSheet.absoluteFill, { opacity: real ? 0 : 0.9 }]} contentFit="cover" transition={0} accessible={false} pointerEvents="none" />
+        <Image source={{ uri: uriDeTextura(textura ?? TEXTURA_DE_TIPO[tipo.id as TipoDeProyecto['id']], P.iconoModulo) }} style={[StyleSheet.absoluteFill, { opacity: real ? 0 : tonos ? 0.28 : 0.9 }]} contentFit="cover" transition={0} accessible={false} pointerEvents="none" />
         <Image
           source={imagen ?? IMAGEN_DE_TIPO[tipo.id as TipoDeProyecto['id']]}
           style={[StyleSheet.absoluteFill, { opacity: real ? (abierta ? 1 : 0.4) : 0 }, rtl && styles.espejo]}
