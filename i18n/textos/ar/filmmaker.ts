@@ -383,7 +383,6 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   attachPasteUse: 'استخدم النص',
   askDoneNeedIdea: 'أخبرني بالمزيد عن فكرتك في الصندوق أدناه لنتابع.',
   ideaFieldDone: 'تم',
-  ideaPlaceholder: 'أخبرني بفكرتك…',
   /* Universo de Filmmaker (ola 2). BORRADOR en árabe, SIN revisión nativa. */
   stagesLabel: 'مراحل الإنتاج',
   stageIdea: 'الفكرة',
@@ -497,7 +496,6 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   refWorldName: 'World',
   refPickerEmpty: 'You have no images created in Weë yet.',
   refPickerError: 'We could not load your images.',
-  refPlaceholder: 'Tell me something about your image…',
   refWaitUpload: 'Wait for the image to finish uploading.',
   hubSoon: 'Soon',
   /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */

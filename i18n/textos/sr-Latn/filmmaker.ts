@@ -372,7 +372,6 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   attachPasteUse: 'Use text',
   askDoneNeedIdea: 'Tell me a little more about your idea in the box below to continue.',
   ideaFieldDone: 'Done',
-  ideaPlaceholder: 'Tell me your idea…',
   /* Universo de Filmmaker (ola 2). PROVISIONAL en inglés, SIN traducir. */
   stagesLabel: 'Production stages',
   stageIdea: 'Idea',
@@ -487,7 +486,6 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   refWorldName: 'World',
   refPickerEmpty: 'You have no images created in Weë yet.',
   refPickerError: 'We could not load your images.',
-  refPlaceholder: 'Tell me something about your image…',
   refWaitUpload: 'Wait for the image to finish uploading.',
   hubSoon: 'Soon',
   /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */

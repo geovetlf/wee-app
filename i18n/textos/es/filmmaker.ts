@@ -364,7 +364,6 @@ export const filmmaker = {
   attachPasteUse: 'Usar texto',
   askDoneNeedIdea: 'Cuéntame un poco más para poder seguir.',
   ideaFieldDone: 'Listo',
-  ideaPlaceholder: 'Cuéntame tu idea…',
   /* Universo de Filmmaker (ola 2, 2026-11-17). */
   stagesLabel: 'Etapas de la producción',
   stageIdea: 'Idea',
@@ -464,7 +463,6 @@ export const filmmaker = {
   refWorldName: 'Mundo',
   refPickerEmpty: 'Aún no tienes imágenes creadas en Weë.',
   refPickerError: 'No pudimos cargar tus imágenes.',
-  refPlaceholder: 'Cuéntame algo sobre tu imagen…',
   refWaitUpload: 'Espera a que termine de subirse la imagen.',
   hubSoon: 'Pronto',
   projResolution: 'Resolución',
