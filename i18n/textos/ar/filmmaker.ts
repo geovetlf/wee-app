@@ -431,7 +431,6 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   uniEx6: 'بوصلة عتيقة لا تشير إلى الشمال.',
   /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
   projOpen: 'إعدادات المشروع',
-  projTitle: 'المشروع',
   projDuration: 'المدة',
   projFormat: 'الصيغة',
   /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
@@ -458,8 +457,6 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
   pickTypeFirst: 'First choose the project type.',
   /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
-  projAdvanced: 'Advanced',
-  projAdvancedClosed: 'Model, resolution and seed: closed until the contract supports them. Meanwhile, Weë chooses them.',
   /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
   /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
   ideaKept: 'Your idea is still here: tap send to try again.',

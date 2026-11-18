@@ -428,7 +428,6 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   uniEx5: 'An old lighthouse on a cliff, always in the fog.',
   uniEx6: 'An antique compass that does not point north.',
   projOpen: 'Project settings',
-  projTitle: 'Project',
   projDuration: 'Duration',
   projFormat: 'Format',
   /* Composer de Idea y estilos (2026-11-18). */
@@ -452,8 +451,6 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   stylePixel: 'Pixel art',
   styleComic: 'Comic',
   pickTypeFirst: 'First choose the project type.',
-  projAdvanced: 'Advanced',
-  projAdvancedClosed: 'Model and consistency are coming soon. Meanwhile, Weë chooses them.',
   refFromProjects: 'From My projects',
   refRoleReference: 'Reference',
   refRoleCharacter: 'Character',

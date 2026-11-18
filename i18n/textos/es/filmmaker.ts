@@ -429,7 +429,6 @@ export const filmmaker = {
   uniEx5: 'Un faro viejo sobre un acantilado, siempre entre la niebla.',
   uniEx6: 'Una brújula antigua que no apunta al norte.',
   projOpen: 'Ajustes del proyecto',
-  projTitle: 'Proyecto',
   projDuration: 'Duración',
   projFormat: 'Formato',
   /* Composer de Idea y estilos (2026-11-18). */
@@ -453,8 +452,6 @@ export const filmmaker = {
   stylePixel: 'Pixel art',
   styleComic: 'Cómic',
   pickTypeFirst: 'Elige primero el tipo de proyecto.',
-  projAdvanced: 'Avanzado',
-  projAdvancedClosed: 'El modelo y la consistencia llegarán pronto. Mientras, Weë los elige.',
   refFromProjects: 'Desde Mis proyectos',
   refRoleReference: 'Referencia',
   refRoleCharacter: 'Personaje',
