@@ -1,13 +1,14 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { IconoWee } from '../icons/IconoWee';
 import { useT, useIdioma } from '../../contexts/IdiomaContext';
 import { useDireccion } from '../../hooks/useDireccion';
 import { PORTADA_WEEAI as P, textoPortada } from '../../constants/estiloWeeAi';
-import { CLAVE_DE_GRUPO, GENERAR_IMAGENES_DEL_UNIVERSO, LEER_PERSONAJES_ABIERTO, SECCIONES_DEL_UNIVERSO } from '../../constants/filmmakerUniverso';
-import { ElementoDeUniverso, TipoDeElemento, UniversoDelTaller, contar, hayEjemplos, puedeAprobar, secciones } from '../../utils/universoDeFilmmaker';
+import { CLAVE_DE_GRUPO, GENERAR_IMAGENES_DEL_UNIVERSO, SECCIONES_DEL_UNIVERSO } from '../../constants/filmmakerUniverso';
+import { ElementoDeUniverso, ModoDeFicha, OrigenDeUniverso, TOPES_UNIVERSO, TipoDeElemento, UniversoDelTaller, contar, elegirFichaGlobal, hayEjemplos, pendientesDeFicha, ponerMundo, puedeAprobar, secciones } from '../../utils/universoDeFilmmaker';
+import { abrirPortadaDeWeeAi } from '../../navigation/refNavegacion';
 import { etiquetaAccesible } from '../../utils/ideaDeFilmmaker';
 
 interface Props {
@@ -26,7 +27,15 @@ interface Props {
   /** El tipo de pestaña visible lo manda quien pinta la caja (su texto de ejemplo cambia con él). */
   seccion: TipoDeElemento;
   onSeccion: (s: TipoDeElemento) => void;
+  /** La persona ya trajo una imagen de referencia (la caja de la Idea): cumple el papel de personaje aportado. */
+  imagenDeReferencia?: boolean;
+  /** Cambia el universo (mundo, respuesta sobre las fichas). Sin él esas dos piezas no se pintan. */
+  onCambio?: (f: (u: UniversoDelTaller) => UniversoDelTaller) => void;
+  /** Abre el selector de imagen para la ficha de un personaje. Sin él, «Subir una imagen» no sale. */
+  onSubirImagen?: () => void;
 }
+
+const CLAVE_DE_ORIGEN: Record<OrigenDeUniverso, string> = { usuario: 'filmmaker.uniOriginMine', propuesta: 'filmmaker.uniOriginWee', documento: 'filmmaker.uniOriginDoc' };
 
 /**
  * EL UNIVERSO (etapa 2): la lámina del reparto como pieza central. Rejilla de retratos con nombre y línea, secciones «Principales / Importantes /
@@ -35,7 +44,7 @@ interface Props {
  * (regla 10) y la lámina se rotula «referencia de estilo, no vista previa exacta». «Weë lee los personajes» y regenerar salen cerrados con motivo.
  * El único botón blanco aprueba el universo; aprobado, pasa a «Continuar a Tandas» (cerrado hasta la ola 3).
  */
-export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto, onAbrir, onAprobar, onEjemplo, onQuitarEjemplo, onContinuar, onAviso, seccion, onSeccion }) => {
+export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto, onAbrir, onAprobar, onEjemplo, onQuitarEjemplo, onContinuar, onAviso, seccion, onSeccion, imagenDeReferencia, onCambio, onSubirImagen }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
@@ -46,19 +55,16 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
   const hueco = 10;
   const util = Math.min(ancho, 1040) - 32;
   const lado = Math.floor((util - hueco * (columnas - 1)) / columnas);
-  const puede = puedeAprobar(universo);
+  const puede = puedeAprobar(universo, !!imagenDeReferencia);
+  const pendientes = pendientesDeFicha(universo);
+  const [subiendo, setSubiendo] = useState(false);
+  const [mundoAbierto, setMundoAbierto] = useState(false);
+  const [mundoBorrador, setMundoBorrador] = useState(universo.mundo ?? '');
+  useEffect(() => { setMundoBorrador(universo.mundo ?? ''); }, [universo.mundo]);
+  const guardarMundo = () => { if (mundoBorrador.trim() !== (universo.mundo ?? '').trim()) onCambio?.((u) => ponerMundo(u, mundoBorrador)); };
+  const responder = (modo: ModoDeFicha) => { onCambio?.((u) => elegirFichaGlobal(u, modo)); setSubiendo(modo === 'subir'); };
+  const origenDelMundo: OrigenDeUniverso = universo.mundo ? 'usuario' : 'propuesta';
   const ejemplos = hayEjemplos(universo);
-
-  const cerradoFila = (claveTitulo: string, claveMotivo: string, icono: 'cerebro' | 'galeria') => (
-    <TouchableOpacity onPress={() => onAviso(claveMotivo)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t(claveTitulo), t(claveMotivo))} accessibilityState={{ disabled: true }} style={[styles.cerrado, dir.contenedor]}>
-      <IconoWee name={icono} size={16} color={P.tintaDeshabilitada} />
-      <View style={{ flex: 1 }}>
-        <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={1}>{t(claveTitulo)}</Text>
-        <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={3}>{t(claveMotivo)}</Text>
-      </View>
-      <Ionicons name="lock-closed-outline" size={14} color={P.tintaDeshabilitada} />
-    </TouchableOpacity>
-  );
 
   const retrato = (e: ElementoDeUniverso) => (
     <TouchableOpacity key={e.id} onPress={() => onAbrir(e)} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(e.nombre, e.linea || null, t('filmmaker.uniOpenSheet'))} style={{ width: lado }}>
@@ -69,7 +75,7 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
       </View>
       <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tinta, marginTop: 6 }]} numberOfLines={1}>{e.nombre}</Text>
       {e.linea ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={4}>{e.linea}</Text> : null}
-      {e.ejemplo ? <Text style={[textoPortada(11, '600'), dir.texto, { color: P.luzSecundaria, marginTop: 2 }]}>{t('filmmaker.uniExampleBadge')}</Text> : null}
+      <Text style={[textoPortada(11, '600'), dir.texto, { color: P.luzSecundaria, marginTop: 2 }]} numberOfLines={1}>{e.ejemplo ? t('filmmaker.uniExampleBadge') : t(CLAVE_DE_ORIGEN[e.origen ?? 'usuario'])}</Text>
     </TouchableOpacity>
   );
 
@@ -78,9 +84,48 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
         <View style={[styles.cabeza, dir.contenedor]}>
           <Text style={[textoPortada(compacto ? 18 : 22, '600'), dir.texto, { color: P.tinta, flex: 1 }]} accessibilityRole="header" numberOfLines={1}>{t('filmmaker.uniTitle')}</Text>
-          {universo.aprobado ? <View style={[styles.aprobado, dir.contenedor]}><Ionicons name="checkmark" size={14} color={P.tinta} /><Text style={[textoPortada(12, '600'), { color: P.tinta }]}>{t('filmmaker.uniApproved')}</Text></View> : null}
         </View>
         <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniCounts', { personajes: formato.numero(n.character), lugares: formato.numero(n.place), objetos: formato.numero(n.object) })}</Text>
+
+        {onCambio && pendientes.length > 0 ? (
+          <View style={styles.tarjeta} testID="universo-detectados">
+            <Text style={[textoPortada(15, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header">{t('filmmaker.uniFoundTitle', { contador: formato.numero(pendientes.length) })}</Text>
+            <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniFoundAsk')}</Text>
+            <View style={[styles.fila, dir.contenedor]}>
+              <TouchableOpacity onPress={() => responder('subir')} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmaker.uniFoundUpload')} style={styles.opcion}><Text style={[textoPortada(14, '600'), { color: P.tinta }]} numberOfLines={2}>{t('filmmaker.uniFoundUpload')}</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => responder('weeHace')} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmaker.uniFoundWee')} style={styles.opcion}><Text style={[textoPortada(14, '600'), { color: P.tinta }]} numberOfLines={2}>{t('filmmaker.uniFoundWee')}</Text></TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+        {subiendo ? (
+          <View style={styles.tarjeta} testID="universo-subir-ficha">
+            <View style={[styles.fila, dir.contenedor]}>
+              {onSubirImagen ? <TouchableOpacity onPress={onSubirImagen} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmaker.uniUploadImage')} style={styles.opcion}><Text style={[textoPortada(14, '600'), { color: P.tinta }]} numberOfLines={2}>{t('filmmaker.uniUploadImage')}</Text></TouchableOpacity> : null}
+              <TouchableOpacity onPress={() => abrirPortadaDeWeeAi()} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmaker.uniUploadCreate')} style={styles.opcion}><Text style={[textoPortada(14, '600'), { color: P.tinta }]} numberOfLines={2}>{t('filmmaker.uniUploadCreate')}</Text></TouchableOpacity>
+            </View>
+            <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniUploadHint')}</Text>
+          </View>
+        ) : null}
+
+        {onCambio ? (
+          <View style={styles.tarjeta} testID="universo-mundo">
+            <TouchableOpacity onPress={() => { if (mundoAbierto) guardarMundo(); setMundoAbierto((a) => !a); }} activeOpacity={0.8} accessibilityRole="button" accessibilityState={{ expanded: mundoAbierto }} accessibilityLabel={etiquetaAccesible(t('filmmaker.uniWorldTitle'), universo.mundo || t('filmmaker.uniWorldWee'), t(CLAVE_DE_ORIGEN[origenDelMundo]))} style={[styles.mundoFila, dir.contenedor]}>
+              <IconoWee name="lugar" size={18} color={P.tinta} />
+              <View style={{ flex: 1 }}>
+                <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tinta }]} numberOfLines={1}>{t('filmmaker.uniWorldTitle')}</Text>
+                <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={mundoAbierto ? 1 : 2}>{universo.mundo || t('filmmaker.uniWorldWee')}</Text>
+                <Text style={[textoPortada(11, '600'), dir.texto, { color: P.luzSecundaria }]} numberOfLines={1}>{t(CLAVE_DE_ORIGEN[origenDelMundo])}</Text>
+              </View>
+              <Ionicons name={mundoAbierto ? 'chevron-up' : 'chevron-down'} size={18} color={P.tintaSecundaria} />
+            </TouchableOpacity>
+            {mundoAbierto ? (
+              <View style={{ gap: 6 }}>
+                <TextInput value={mundoBorrador} onChangeText={setMundoBorrador} onBlur={guardarMundo} maxLength={TOPES_UNIVERSO.mundo} multiline placeholder={t('filmmaker.uniWorldPlaceholder')} placeholderTextColor={P.tintaSecundaria} selectionColor={P.luz} accessibilityLabel={t('filmmaker.uniWorldPlaceholder')} textAlignVertical="top" style={[styles.campo, textoPortada(15, '400'), dir.texto, { color: P.tinta }, Platform.OS === 'web' && ({ outlineStyle: 'none' } as any)]} />
+                <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniWorldHint')}</Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         <View style={[styles.pestanas, dir.contenedor]} accessibilityRole="tablist">
           {SECCIONES_DEL_UNIVERSO.map((s) => {
@@ -109,22 +154,14 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
         <TouchableOpacity onPress={ejemplos ? onQuitarEjemplo : onEjemplo} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t(ejemplos ? 'filmmaker.uniClearExample' : 'filmmaker.uniLoadExample')} style={styles.ejemplo}>
           <Text style={[textoPortada(14, '600'), { color: P.tinta }]} numberOfLines={2}>{t(ejemplos ? 'filmmaker.uniClearExample' : 'filmmaker.uniLoadExample')}</Text>
         </TouchableOpacity>
-        <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniStyleNote')}</Text>
-        {!LEER_PERSONAJES_ABIERTO ? cerradoFila('filmmaker.uniReadCharacters', 'filmmaker.uniReadClosed', 'cerebro') : null}
-        {!GENERAR_IMAGENES_DEL_UNIVERSO ? cerradoFila('filmmaker.uniRegenerate', 'filmmaker.uniRegenerateClosed', 'galeria') : null}
+        {!GENERAR_IMAGENES_DEL_UNIVERSO ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniRegenerateClosed')}</Text> : null}
       </ScrollView>
 
       <View style={styles.pie}>
-        {universo.aprobado ? (
-          <TouchableOpacity onPress={onContinuar} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={t('filmmaker.uniContinue')} style={styles.principal}>
-            <Text style={[textoPortada(16, '600'), { color: P.sobreAccion }]} numberOfLines={1}>{t('filmmaker.uniContinue')}</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity onPress={onAprobar} disabled={!puede} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmaker.uniApprove'), puede ? null : t('filmmaker.uniApproveWhy'))} accessibilityState={{ disabled: !puede }} style={[styles.principal, !puede && styles.principalApagado]}>
-            <Text style={[textoPortada(16, '600'), { color: puede ? P.sobreAccion : P.tintaDeshabilitada }]} numberOfLines={1}>{t('filmmaker.uniApprove')}</Text>
-          </TouchableOpacity>
-        )}
-        {universo.aprobado ? null : !puede ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{t('filmmaker.uniApproveWhy')}</Text> : null}
+        <TouchableOpacity testID="universo-continuar" onPress={() => { if (!puede) return; onAprobar(); onContinuar(); }} disabled={!puede} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmaker.uniContinue'), puede ? null : t('filmmaker.uniApproveWhy'))} accessibilityState={{ disabled: !puede }} style={[styles.principal, !puede && styles.principalApagado]}>
+          <Text style={[textoPortada(16, '600'), { color: puede ? P.sobreAccion : P.tintaDeshabilitada }]} numberOfLines={1}>{t('filmmaker.uniContinue')}</Text>
+        </TouchableOpacity>
+        {!puede ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{t('filmmaker.uniApproveWhy')}</Text> : null}
       </View>
     </View>
   );
@@ -134,7 +171,11 @@ const styles = StyleSheet.create({
   raiz: { flex: 1 },
   contenido: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, gap: 12 },
   cabeza: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  aprobado: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 28, paddingHorizontal: 10, borderRadius: 14, borderWidth: 1, borderColor: P.bordeLuz, backgroundColor: P.superficie },
+  tarjeta: { gap: 10, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.superficie },
+  fila: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  opcion: { flexGrow: 1, flexBasis: 140, minHeight: 48, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 24, borderWidth: 1, borderColor: P.bordeLuz, alignItems: 'center', justifyContent: 'center' },
+  mundoFila: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
+  campo: { minHeight: 76, borderRadius: 14, borderWidth: 1, borderColor: P.bordeLuz, backgroundColor: P.fondo, paddingHorizontal: 12, paddingVertical: 10 },
   pestanas: { flexDirection: 'row', borderRadius: 22, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.fondo, padding: 3, gap: 3 },
   pestana: { flex: 1, minHeight: 44, borderRadius: 19, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6 },
   pestanaSel: { backgroundColor: P.superficieAlta, borderWidth: 1, borderColor: P.bordeLuz },
@@ -143,7 +184,6 @@ const styles = StyleSheet.create({
   tipo: { position: 'absolute', top: 8 },
   vacio: { minHeight: 120, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 24, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', borderColor: P.bordeCapsula },
   ejemplo: { minHeight: 44, alignSelf: 'flex-start', paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.bordeLuz, alignItems: 'center', justifyContent: 'center' },
-  cerrado: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, borderWidth: 1, borderStyle: 'dashed', borderColor: P.bordeCapsula },
   pie: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, gap: 6 },
   principal: { minHeight: 52, borderRadius: 26, backgroundColor: P.accion, alignItems: 'center', justifyContent: 'center' },
   principalApagado: { backgroundColor: 'transparent', borderWidth: 1, borderColor: P.bordeCapsula },
