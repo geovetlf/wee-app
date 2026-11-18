@@ -103,6 +103,11 @@ interface Props {
    * y sus botones no se van; solo cambia el dibujo.
    */
   portada?: boolean;
+  /**
+   * Solo con `portada`: la flecha de enviar se dibuja de contorno (tinta sobre fondo transparente) en vez de blanca. Para la pantalla que ya
+   * tiene SU botón principal blanco —el taller de Idea de Filmmaker, 2026-11-17—: un único botón blanco por pantalla.
+   */
+  enviarDiscreto?: boolean;
 }
 
 /**
@@ -131,7 +136,7 @@ interface Props {
  * largo que sea el prompt. Eso lo resuelve `useCajaQueCrece`.
  */
 const CajaDePrompt: React.FC<Props> = ({
-  valor, onCambiar, onEnviar, etiquetaEnviar, placeholder, etiqueta, acciones, accionesDerecha, ocupado, enviarConIntro, editable, sinMarco, textoEnviar, monocromo, vitrina, textoDeVitrina, portada,
+  valor, onCambiar, onEnviar, etiquetaEnviar, placeholder, etiqueta, acciones, accionesDerecha, ocupado, enviarConIntro, editable, sinMarco, textoEnviar, monocromo, vitrina, textoDeVitrina, portada, enviarDiscreto,
 }) => {
   const { theme } = useTheme();
   const c = useEstiloWeeAi();
@@ -228,7 +233,7 @@ const CajaDePrompt: React.FC<Props> = ({
             <View style={styles.empuje} />
             {(accionesDerecha ?? []).map((accion) => <AccionDePortada key={accion.icono + '·' + accion.etiqueta} accion={accion} />)}
             <TouchableOpacity
-              style={[styles.enviarPortada, !puedeEnviar && styles.enviarPortadaApagado, isWeb && ({ cursor: puedeEnviar ? 'pointer' : 'default' } as any)]}
+              style={[styles.enviarPortada, (!puedeEnviar || enviarDiscreto) && styles.enviarPortadaApagado, isWeb && ({ cursor: puedeEnviar ? 'pointer' : 'default' } as any)]}
               onPress={enviar}
               disabled={!puedeEnviar}
               hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
@@ -237,7 +242,7 @@ const CajaDePrompt: React.FC<Props> = ({
               accessibilityLabel={etiquetaEnviar}
               accessibilityState={{ disabled: !puedeEnviar }}
             >
-              <IconoDireccional name="arrow-forward" size={scale(22)} color={puedeEnviar ? P.sobreAccion : P.tintaDeshabilitada} />
+              <IconoDireccional name="arrow-forward" size={scale(22)} color={!puedeEnviar ? P.tintaDeshabilitada : enviarDiscreto ? P.tinta : P.sobreAccion} />
             </TouchableOpacity>
           </View>
           {/* El reflejo frío del borde de abajo. */}
@@ -454,10 +459,10 @@ const styles = StyleSheet.create({
   },
   campoPortada: { paddingHorizontal: SPACING.xs, paddingTop: SPACING.sm },
   accionesPortada: { gap: SPACING.xs },
-  accionPortada: { width: scale(44), height: scale(44), borderRadius: scale(14), alignItems: 'center', justifyContent: 'center' },
+  accionPortada: { width: Math.max(44, scale(44)), height: Math.max(44, scale(44)), borderRadius: scale(14), alignItems: 'center', justifyContent: 'center' },
   accionPortadaConMarco: { borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.superficieAlta },
   accionPortadaActiva: { backgroundColor: P.superficieAlta, borderWidth: 1, borderColor: P.bordeLuz },
-  enviarPortada: { width: scale(46), height: scale(46), borderRadius: scale(23), backgroundColor: P.accion, alignItems: 'center', justifyContent: 'center', shadowColor: P.luz, shadowOpacity: 0.25, shadowRadius: scale(10), shadowOffset: { width: 0, height: 0 }, elevation: 3 },
+  enviarPortada: { width: Math.max(46, scale(46)), height: Math.max(46, scale(46)), borderRadius: scale(23), backgroundColor: P.accion, alignItems: 'center', justifyContent: 'center', shadowColor: P.luz, shadowOpacity: 0.25, shadowRadius: scale(10), shadowOffset: { width: 0, height: 0 }, elevation: 3 },
   enviarPortadaApagado: { backgroundColor: 'transparent', borderWidth: 1, borderColor: P.bordeCapsula, shadowOpacity: 0, elevation: 0 },
   reflejoPortada: { position: 'absolute', start: scale(28), end: scale(28), bottom: 0, height: 1.5 },
   cajaPro: {

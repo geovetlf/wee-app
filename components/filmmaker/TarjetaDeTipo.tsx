@@ -47,6 +47,7 @@ export const TarjetaDeTipo: React.FC<{ tipo: TipoDeProyecto; ancho: number | str
   return (
     <Animated.View style={{ width: ancho as number, opacity: entrada, transform: [{ translateY: entrada.interpolate({ inputRange: [0, 1], outputRange: [10, 0] }) }, { scale: pulso }] }}>
     <TouchableOpacity
+      testID={`filmmaker-tipo-${tipo.id}`}
       onPress={onPress}
       onPressIn={() => apretar(0.975)}
       onPressOut={() => apretar(1)}
