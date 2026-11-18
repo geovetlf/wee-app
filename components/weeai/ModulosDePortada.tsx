@@ -21,64 +21,88 @@ export interface ModuloDePortada {
 
 export const HUECO_DE_MODULOS = 10;
 export const PADDING_DE_TARJETA = 3;
-
-/** Si todos los nombres caben en una línea en una tarjeta de ese ancho sin bajar del 0,7 del tamaño base (15). */
-export const cabenEnUnaLinea = (nombres: string[], lado: number): boolean => nombres.every((n) => emDeTexto(n) * Math.ceil(15 * 0.7) <= lado - 2 * PADDING_DE_TARJETA);
-
+/** Cuántas tarjetas lleva cada fila: 3 · 3 · 2 (la última, centrada). */
+export const FILAS_DE_MODULOS = [3, 3, 2] as const;
 
 /**
- * El tamaño con el que una palabra cabe en una línea: el base, o el que haga falta sin bajar de `base * minimo` (0,7).
- * En web `adjustsFontSizeToFit` no existe, así que el ajuste se calcula aquí y vale igual en todas las plataformas.
+ * UN SOLO tamaño de letra para todos los nombres (el base, o el que haga falta para el más largo sin bajar del 0,7 del base, 15). En web
+ * `adjustsFontSizeToFit` no existe, así que se calcula aquí y vale igual en todas las plataformas. Todos los nombres comparten escala: nada
+ * de una tarjeta con otra letra que sus vecinas.
  */
-export const tamanoQueCabe = (texto: string, base: number, ancho: number, minimo = 0.7): number => {
+export const tamanoUniforme = (nombres: string[], lado: number, base = 15, minimo = lado < 76 ? 0.6 : 0.7): number => {
+  const util = lado - 2 * PADDING_DE_TARJETA;
   const hace = Math.ceil(base * minimo);
-  const cabe = Math.floor(ancho / emDeTexto(texto));
+  const cabe = Math.min(...nombres.map((n) => Math.floor(util / emDeTexto(n, 0.58))));
   return Math.max(hace, Math.min(base, cabe));
 };
 
 /**
- * La rejilla de módulos: tarjetas compactas con una textura monocroma muy discreta. Las columnas y el alto de la tarjeta los
- * decide la portada según lo que mide la pantalla (la portada es fija: no se desplaza).
+ * Una palabra latina (marca, «Filmmaker», «3D») entre nombres árabes u hebreos: la fuente de reserva de esa escritura tiene el ojo (altura de x) más
+ * pequeño que Manrope, y al mismo cuerpo el nombre latino parece más grande y se acerca a los bordes. Se compensa con 0,86 del tamaño común.
  */
-export const ModulosDePortada: React.FC<{ modulos: ModuloDePortada[]; ancho: number; columnas: number; alto: number }> = ({ modulos, ancho, columnas, alto }) => {
+const CORRECCION_LATINO_EN_RTL = 0.86;
+const esRtlScript = (n: string) => /[\u0590-\u06FF]/.test(n);
+const esSoloLatino = (n: string) => !/[^\u0000-\u024F]/.test(n);
+export const tamanoDeNombre = (nombre: string, tam: number, nombres: string[]): number =>
+  esSoloLatino(nombre) && nombres.filter(esRtlScript).length > nombres.length / 2 ? Math.max(10, Math.floor(tam * CORRECCION_LATINO_EN_RTL)) : tam;
+
+/**
+ * La rejilla de módulos: tarjetas CUADRADAS e iguales (lado `lado`), tres por fila y la última de dos centrada. El contenido de cada tarjeta
+ * va sobre el mismo eje: el icono a una altura fija, el nombre en su línea y, debajo, un hueco reservado de la misma altura para la etiqueta
+ * «Próximamente» (las tarjetas habilitadas lo dejan vacío): el nombre no se mueve de una tarjeta a otra.
+ */
+export const ModulosDePortada: React.FC<{ modulos: ModuloDePortada[]; lado: number; hueco: number }> = ({ modulos, lado, hueco }) => {
   const t = useT();
   const dir = useDireccion();
-  const lado = Math.floor((ancho - HUECO_DE_MODULOS * (columnas - 1)) / columnas);
-  const icono = alto >= 84 ? 28 : 24;
-  const util = lado - 2 * PADDING_DE_TARJETA;
+  const icono = lado >= 96 ? 30 : lado >= 80 ? 26 : 22;
+  const nombres = modulos.map((m) => t(m.clave));
+  const tam = tamanoUniforme(nombres, lado);
+  const pronto = t('common.comingSoon');
+  const tamPronto = Math.max(9, Math.min(11, Math.floor((lado - 2 * PADDING_DE_TARJETA) / emDeTexto(pronto, 0.58))));
+  const filas: ModuloDePortada[][] = [];
+  let i = 0;
+  for (const n of FILAS_DE_MODULOS) { filas.push(modulos.slice(i, i + n)); i += n; }
   return (
-    <View style={[styles.rejilla, dir.contenedor]}>
-      {modulos.map((m) => {
-        const activo = !!m.alPulsar;
-        const color = activo ? P.iconoModulo : P.tintaDeshabilitada;
-        const nombre = t(m.clave);
-        const pronto = t('common.comingSoon');
-        return (
-          <TouchableOpacity
-            key={m.id}
-            onPress={m.alPulsar}
-            disabled={!activo}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={activo ? nombre : `${nombre}. ${pronto}`}
-            accessibilityState={{ disabled: !activo }}
-            style={[styles.tarjeta, P.sombraModulo, { width: lado, height: alto }]}
-          >
-            {m.textura !== 'mas' ? <Image source={{ uri: uriDeTextura(m.textura, P.iconoModulo) }} style={[StyleSheet.absoluteFill, { opacity: activo ? 1 : 0.45 }]} contentFit="cover" transition={0} accessible={false} pointerEvents="none" /> : null}
-            <IconoWee name={m.icono} size={icono} color={color} />
-            {/* Una palabra, una línea: el tamaño se calcula para que quepa (mínimo 0,7 del base) y, si aun así no cabe, se ajusta o se corta. */}
-            <Text style={[textoPortada(tamanoQueCabe(nombre, 15, util), '500'), styles.nombre, { color: activo ? P.tinta : P.tintaDeshabilitada }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{nombre}</Text>
-            {!activo ? <Text style={[textoPortada(Math.max(10, tamanoQueCabe(pronto, 11, util * 2, 0.9)), '500'), styles.pronto, { color: P.tintaDeshabilitada }]} numberOfLines={2}>{pronto}</Text> : null}
-          </TouchableOpacity>
-        );
-      })}
+    <View style={{ gap: hueco }}>
+      {filas.map((fila, f) => (
+        <View key={f} style={[styles.fila, dir.contenedor, { gap: hueco }]}>
+          {fila.map((m) => {
+            const activo = !!m.alPulsar;
+            const color = activo ? P.iconoModulo : P.tintaDeshabilitada;
+            const nombre = t(m.clave);
+            return (
+              <TouchableOpacity
+                key={m.id}
+                onPress={m.alPulsar}
+                disabled={!activo}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={activo ? nombre : `${nombre}. ${pronto}`}
+                accessibilityState={{ disabled: !activo }}
+                style={[styles.tarjeta, P.sombraModulo, { width: lado, height: lado }]}
+              >
+                {m.textura !== 'mas' ? <Image source={{ uri: uriDeTextura(m.textura, P.iconoModulo) }} style={[StyleSheet.absoluteFill, { opacity: activo ? 1 : 0.45 }]} contentFit="cover" transition={0} accessible={false} pointerEvents="none" /> : null}
+                <View style={styles.contenido}>
+                  <IconoWee name={m.icono} size={icono} color={color} />
+                  <Text style={[textoPortada(tamanoDeNombre(nombre, tam, nombres), '500'), styles.nombre, { color: activo ? P.tinta : P.tintaDeshabilitada }]} numberOfLines={1}>{nombre}</Text>
+                  <View style={styles.hueco}>
+                    {!activo ? <Text style={[textoPortada(tamPronto, '500'), styles.pronto, { color: P.tintaDeshabilitada }]} numberOfLines={1}>{pronto}</Text> : null}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ))}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  rejilla: { flexDirection: 'row', flexWrap: 'wrap', gap: HUECO_DE_MODULOS },
-  tarjeta: { backgroundColor: P.modulo, borderColor: P.borde, borderWidth: 1, borderRadius: 18, alignItems: 'center', justifyContent: 'center', gap: 4, paddingHorizontal: PADDING_DE_TARJETA, overflow: 'hidden' },
+  fila: { flexDirection: 'row', justifyContent: 'center' },
+  tarjeta: { backgroundColor: P.modulo, borderColor: P.borde, borderWidth: 1, borderRadius: 18, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  contenido: { alignItems: 'center', gap: 4, paddingHorizontal: PADDING_DE_TARJETA, maxWidth: '100%' },
   nombre: { textAlign: 'center', maxWidth: '100%' },
-  pronto: { textAlign: 'center', maxWidth: '100%', marginTop: -2 },
+  hueco: { height: 14, alignItems: 'center', justifyContent: 'center', maxWidth: '100%' },
+  pronto: { textAlign: 'center', maxWidth: '100%' },
 });

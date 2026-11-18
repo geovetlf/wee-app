@@ -28,16 +28,12 @@ export const svgDeLaEsfera = (p: PaletaDeLaEsfera): string => {
   const ry = 214;
   let malla = '';
   /* La malla: arcos paralelos al borde, cada vez mas hondos y mas tenues; se recorta con la propia esfera. */
-  for (let i = 1; i <= 26; i++) {
+  for (let i = 1; i <= 14; i++) {
     const d = i * 4.2;
-    malla += '<ellipse cx="' + cx + '" cy="' + (cy + d * 0.9) + '" rx="' + (rx - d * 0.55) + '" ry="' + (ry - d * 0.96) + '" fill="none" stroke="' + p.luzSecundaria + '" stroke-width="0.45" stroke-opacity="' + (0.34 - i * 0.011).toFixed(3) + '"/>';
+    malla += '<ellipse cx="' + cx + '" cy="' + (cy + d * 0.9) + '" rx="' + (rx - d * 0.55) + '" ry="' + (ry - d * 0.96) + '" fill="none" stroke="' + p.luzSecundaria + '" stroke-width="0.45" stroke-opacity="' + (0.30 - i * 0.02).toFixed(3) + '"/>';
   }
-  /* Los meridianos: radios muy finos que se abren desde abajo y dan sensacion de malla 3D. */
-  let meridianos = '';
-  for (let i = -9; i <= 9; i++) {
-    const x = cx + i * 24;
-    meridianos += '<path d="M' + (cx + i * 6) + ' ' + (cy + 40) + ' Q ' + (cx + i * 16) + ' ' + (cy - ry * 0.55) + ' ' + x + ' ' + (cy - ry * Math.sqrt(Math.max(0, 1 - Math.pow((x - cx) / rx, 2)))) + '" fill="none" stroke="' + p.luzSecundaria + '" stroke-width="0.4" stroke-opacity="0.10"/>';
-  }
+  /* Sin meridianos: bajaban hasta el texto. La malla se queda pegada al borde y se apaga a los pocos puntos. */
+  const meridianos = '';
   return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" preserveAspectRatio="xMidYMin slice">'
     + '<defs>'
     + '<clipPath id="e"><ellipse cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '"/></clipPath>'
@@ -51,10 +47,6 @@ export const svgDeLaEsfera = (p: PaletaDeLaEsfera): string => {
     + '<stop offset="0" stop-color="' + p.luzSecundaria + '" stop-opacity="0.10"/>'
     + '<stop offset="0.55" stop-color="' + p.superficie + '" stop-opacity="0"/>'
     + '</linearGradient>'
-    + '<linearGradient id="g3" gradientTransform="rotate(90)">'
-    + '<stop offset="0" stop-color="' + p.fondo + '" stop-opacity="0"/>'
-    + '<stop offset="1" stop-color="' + p.fondo + '" stop-opacity="1"/>'
-    + '</linearGradient>'
     + '</defs>'
     /* La superficie de la esfera y su velo de luz en el borde. */
     + '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '" fill="' + p.superficie + '"/>'
@@ -66,8 +58,6 @@ export const svgDeLaEsfera = (p: PaletaDeLaEsfera): string => {
     + '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '" fill="none" stroke="' + p.halo + '" stroke-width="6"/>'
     /* El contorno de luz fria. */
     + '<ellipse cx="' + cx + '" cy="' + cy + '" rx="' + rx + '" ry="' + ry + '" fill="none" stroke="url(#g1)" stroke-width="1.6"/>'
-    /* Se funde con el fondo hacia abajo: el titular y la caja se apoyan en negro. */
-    + '<rect x="0" y="190" width="400" height="110" fill="url(#g3)"/>'
     + '</svg>';
 };
 

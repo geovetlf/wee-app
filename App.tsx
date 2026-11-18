@@ -315,6 +315,7 @@ const linking: any = {
       CrearVideo: { path: 'weeai/video', alias: ['CrearVideo'] },
       Plantillas: { path: 'weeai/plantillas', alias: ['Plantillas'] },
       Herramientas: { path: 'weeai/herramientas', alias: ['Herramientas'] },
+      Filmmaker: { path: 'weeai/filmmaker', alias: ['Filmmaker'] },
       Help: { path: 'help', alias: ['Help'] },
       Login: { path: 'login', alias: ['Login'] },
       Register: { path: 'register', alias: ['Register'] },

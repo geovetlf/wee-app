@@ -122,7 +122,8 @@ export type NombreDeIcono =
   | 'rejilla'
   | 'texto'
   | 'camaraCine'
-  | 'plantillas';
+  | 'plantillas'
+  | 'megafono';
 
 /*
  * El color se escribe como `%C%` y se sustituye al generar. Un icono que quiera
@@ -448,6 +449,9 @@ export const TRAZOS: Record<NombreDeIcono, string> = {
     + '<path d="M16 13.6l5-2.4v7.6l-5-2.4z"/>'
     + '<circle cx="9.5" cy="15" r="1.7"/>',
   /* Un collage de fotogramas: una pieza grande y dos pequeñas. Plantillas. */
+  /* Un megáfono: el anuncio. */
+  megafono:
+    '<path d="M3.5 10v4h3.2l7.8 4.2V5.8L6.7 10z"/><path d="M17.4 9.4a3.8 3.8 0 0 1 0 5.2"/><path d="M6.4 14l1.1 5h2.4l-1-4.3"/>',
   plantillas:
     '<rect x="3.5" y="3.5" width="10" height="17" rx="2.2"/><rect x="16" y="3.5" width="4.5" height="7.5" rx="1.6"/><rect x="16" y="13.5" width="4.5" height="7" rx="1.6"/><path d="M3.8 16.5l3.4-3.2 2.6 2.4 3.4-3.4"/>',
 };

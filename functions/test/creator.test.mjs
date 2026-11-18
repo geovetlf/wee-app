@@ -2043,7 +2043,7 @@ console.log('\n── Credits: del encabezado del Home al menú ☰ ──');
   const comunidades = codigoMenu.indexOf("fila('communities'");
   /* Rediseño del 2026-11-15: el orden ya no se escribe en el cajón; lo da el catálogo, y Credits va con lo tuyo. */
   const ordenDelMenu = leer('constants/weeMenu.ts').slice(leer('constants/weeMenu.ts').indexOf('export const WEE_MENU'));
-  check('C3) va con lo tuyo: tras Guardados e Historial y antes de Configuración', /\['saved', 'history', 'credits', 'settings'\]/.test(ordenDelMenu), `real ${real} · weë ${wee} · credits ${credits}`);
+  check('C3) va con lo tuyo: tras Guardados e Historial y antes de Configuración', /\['saved', 'history', 'credits', 'settings', 'language'\]/.test(ordenDelMenu), `real ${real} · weë ${wee} · credits ${credits}`);
   check('C4) y después de los destinos y de MyWeës', ordenDelMenu.indexOf("'communities'") < ordenDelMenu.indexOf("'credits'") && ordenDelMenu.indexOf("'mywees'") < ordenDelMenu.indexOf("'credits'") && explora === -1 && comunidades === -1);
 
   // 5) El saldo sale de donde salía; no hay una segunda fuente.
@@ -2114,11 +2114,21 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
 
   // 3) Mismo orden conceptual: PERFIL (con Credits) y luego EXPLORA.
   const orden = menu.MENU_ORDER.join(',');
-  check('M3) el orden es el del rediseño: doce entradas', orden === 'home,weels,explore,communities,projects,pages,mywees,saved,history,credits,settings,help', orden);
-  check('M3) y Credits va con lo tuyo, después de Comunidades', menu.MENU_ORDER.indexOf('credits') > menu.MENU_ORDER.indexOf('communities') && orden.includes('saved,history,credits,settings'));
+  check('M3) el orden es el del rediseño: trece entradas (Idioma, junto a Configuración)', orden === 'home,weels,explore,communities,projects,pages,mywees,saved,history,credits,settings,language,help', orden);
+  check('M3) y Credits va con lo tuyo, después de Comunidades', menu.MENU_ORDER.indexOf('credits') > menu.MENU_ORDER.indexOf('communities') && orden.includes('saved,history,credits,settings,language'));
   const grupos = menu.WEE_MENU.map((g) => g.items.join('+')).join(',');
   check('M3) los grupos son cuatro y sin rótulo: destinos, MyWeës destacada, lo tuyo y la ayuda',
     menu.WEE_MENU.length === 4 && menu.WEE_MENU.every((g) => !g.label) && menu.WEE_MENU[1].destacado === true && menu.WEE_MENU[1].items.join() === 'mywees' && menu.WEE_MENU[3].items.join() === 'help', grupos);
+
+  /* 3a) IDIOMA en el menú (2026-11-17): una fila con el globo del sistema de iconos, junto a Configuración, que abre la pantalla de siempre y enseña el idioma puesto en su lengua. */
+  const idiomaHook = leer3('hooks/useNombreDelIdioma.ts');
+  check('M3a) «Idioma» está en el catálogo con el globo y la clave de la pantalla de Idioma, justo después de Configuración',
+    menu.MENU_ITEM.language && menu.MENU_ITEM.language.icono === 'globo' && menu.MENU_ITEM.language.clave === 'language.title' && menu.MENU_ORDER.indexOf('language') === menu.MENU_ORDER.indexOf('settings') + 1, orden);
+  check('M3a) el cajón y la barra abren la pantalla Idioma existente (sin selector nuevo) y dicen el idioma puesto en su lengua, con nombre accesible «Idioma. <nombre>»',
+    /navigateRoot\('Idioma'\)/.test(cajon) && /navigation\.navigate\('Idioma'\)/.test(barra) && cajon.includes('useNombreDelIdioma') && barra.includes('useNombreDelIdioma')
+    && cajon.includes('t(MENU_ITEM.language.clave)}. ${nombreDelIdioma}') && barra.includes('t(MENU_ITEM.language.clave)}. ${nombreDelIdioma}'));
+  check('M3a) el nombre sale de IdiomaContext (único almacén; nada de AsyncStorage/localStorage ni deducción por lugar) y reutiliza varianteDelLocale como Configuración',
+    idiomaHook.includes('useIdioma()') && idiomaHook.includes('varianteDelLocale') && !/AsyncStorage|localStorage|geolocation|navigator\./.test(idiomaHook));
 
   /*
    * 3b) NOTIFICACIONES NO ESTÁ EN EL MENÚ, y no por descuido: es el quinto

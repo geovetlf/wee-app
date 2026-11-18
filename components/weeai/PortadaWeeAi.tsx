@@ -3,8 +3,8 @@ import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NombreDeIcono } from '../icons/trazosDeWee';
 import { CabeceraDePortada } from './CabeceraDePortada';
-import { FondoDeEsfera, HeroDePortada } from './HeroDePortada';
-import { ModulosDePortada, ModuloDePortada, HUECO_DE_MODULOS, cabenEnUnaLinea } from './ModulosDePortada';
+import { HeroDePortada } from './HeroDePortada';
+import { ModulosDePortada, ModuloDePortada, HUECO_DE_MODULOS } from './ModulosDePortada';
 import CajaDePrompt, { AccionDeLaCaja } from '../creator/CajaDePrompt';
 import { CajaAnclada } from '../creator/CajaQueCrece';
 import { useT } from '../../contexts/IdiomaContext';
@@ -20,9 +20,13 @@ const HAY_IMAGEN = (PORTADA_DE_WEEAI.puertas as readonly string[]).includes('des
 const ANCHO_MAXIMO = 760;
 /** Lo que mide la cabecera y lo mínimo que se reserva al hero cuando la caja crece. */
 const ALTO_DE_CABECERA = 56;
-const ALTO_MINIMO_DEL_HERO = 96;
-/** Aire entre bloques (hero, caja y rejilla) y bajo la rejilla. */
+const ALTO_MINIMO_DEL_HERO = 70;
+/** Aire entre la caja y la rejilla. */
 const AIRE = 12;
+/** Holgura constante entre la última fila y la barra inferior (>= 16 dp en cualquier altura). */
+const HOLGURA_SOBRE_LA_BARRA = 20;
+/** Lo que mide la caja vacía con sus botones (campo de una línea + fila de botones + aire); la rejilla se calcula con lo que queda. */
+const ALTO_DE_LA_CAJA_VACIA = 112;
 
 /**
  * LA PORTADA DE WEËAI v2 — PANTALLA FIJA (2026-11-17): cabecera, hero, la caja común y la rejilla de módulos caben SIEMPRE en una
@@ -68,7 +72,7 @@ export const PortadaWeeAi: React.FC = () => {
     video: { id: 'video', icono: 'claqueta', clave: 'composer.kindVideo', textura: 'video', alPulsar: () => navigation.navigate('CrearVideo') } as ModuloDePortada,
     audio: { id: 'audio', icono: 'ondas', clave: 'creaciones.kindAudio', textura: 'audio', alPulsar: MUSICA_EN_LA_UI ? () => irA('music') : undefined } as ModuloDePortada,
     /* Filmmaker: la producción existe (`Production`) pero su puerta está cerrada (`FILMMAKER_EN_LA_APP`): abierta desde 2026-11-17, navega a Production; cerrada, «Próximamente» y sin navegar. */
-    filmmaker: { id: 'filmmaker', icono: 'camaraCine', clave: 'weeai.portadaFilmmaker', textura: 'video', alPulsar: FILMMAKER_EN_LA_APP ? () => navigation.navigate('Production') : undefined } as ModuloDePortada,
+    filmmaker: { id: 'filmmaker', icono: 'camaraCine', clave: 'weeai.portadaFilmmaker', textura: 'video', alPulsar: FILMMAKER_EN_LA_APP ? () => navigation.navigate('Filmmaker') : undefined } as ModuloDePortada,
     texto: { id: 'texto', icono: 'texto', clave: 'composer.kindText', textura: 'texto' } as ModuloDePortada,
     tresD: { id: 'tresD', icono: 'cubo', clave: 'creaciones.kindModel3d', textura: 'tresD', alPulsar: MUNDO_3D_EN_LA_APP ? () => navigation.navigate('Mundo3D') : undefined } as ModuloDePortada,
     plantillas: { id: 'plantillas', icono: 'plantillas', clave: 'weeai.portadaPlantillas', textura: 'imagen', alPulsar: () => navigation.navigate('Plantillas') } as ModuloDePortada,
@@ -76,28 +80,26 @@ export const PortadaWeeAi: React.FC = () => {
   };
 
   /*
-   * LA MEDIDA: 4 columnas (Imagen · Video · Audio · Filmmaker / Texto · 3D · Plantillas · Herramientas) si el ancho da para
-   * rótulos legibles; si no, 3 (Imagen · Video · Filmmaker / Audio · Texto · Plantillas / 3D · Herramientas).
+   * LA MEDIDA (v2, ronda 4): tarjetas SIEMPRE cuadradas e iguales, tres por fila y la última de dos centrada (Imagen · Video · Filmmaker /
+   * Audio · Texto · Plantillas / 3D · Herramientas). El lado es el que da el ancho, o el que deja la altura si es menor: con pantallas bajas
+   * las tarjetas se achican y con las altas sobra sitio para el hero, que ocupa lo que quede arriba (con el arco anclado arriba).
    */
   const ancho = medida.ancho || ANCHO_MAXIMO;
   const alto = isDesktop ? Math.max(medida.alto, 720) : medida.alto || 700;
   const anchoUtil = ancho - SPACING.md * 2;
-  /* Cuatro columnas si el ancho da y si el nombre más largo del idioma cabe en una línea sin bajar del 0,7; si no, tres. */
-  const lado4 = Math.floor((anchoUtil - HUECO_DE_MODULOS * 3) / 4);
-  const columnas = ancho >= 380 && cabenEnUnaLinea(Object.values(m).map((x) => t(x.clave)), lado4) ? 4 : 3;
-  const modulos = columnas === 4
-    ? [m.imagen, m.video, m.audio, m.filmmaker, m.texto, m.tresD, m.plantillas, m.herramientas]
-    : [m.imagen, m.video, m.filmmaker, m.audio, m.texto, m.plantillas, m.tresD, m.herramientas];
-  const filas = Math.ceil(modulos.length / columnas);
-  const lado = Math.floor((anchoUtil - HUECO_DE_MODULOS * (columnas - 1)) / columnas);
-  const altoDeTarjeta = columnas === 4 ? Math.max(76, Math.min(alto >= 780 ? 104 : 92, Math.round(lado * (alto >= 780 ? 1.2 : 0.95)))) : (alto < 700 ? 70 : 82);
-  const altoDeRejilla = filas * altoDeTarjeta + (filas - 1) * HUECO_DE_MODULOS;
+  const modulos = [m.imagen, m.video, m.filmmaker, m.audio, m.texto, m.plantillas, m.tresD, m.herramientas];
+  const ladoPorAncho = Math.floor((anchoUtil - HUECO_DE_MODULOS * 2) / 3);
+  const presupuestoDeRejilla = alto - (isDesktop ? 0 : ALTO_DE_CABECERA) - HOLGURA_SOBRE_LA_BARRA - ALTO_DE_LA_CAJA_VACIA - AIRE * 2 - ALTO_MINIMO_DEL_HERO;
+  const ladoPorAlto = Math.floor((presupuestoDeRejilla - HUECO_DE_MODULOS * 2) / 3);
+  const lado = Math.max(56, Math.min(ladoPorAncho, ladoPorAlto, 132));
+  /* Si las tarjetas son más estrechas que el ancho, el hueco entre ellas se reparte (entre 10 y 24). */
+  const hueco = Math.max(HUECO_DE_MODULOS, Math.min(24, Math.floor((anchoUtil - 3 * lado) / 2)));
+  const altoDeRejilla = 3 * lado + 2 * hueco;
   /* Hasta dónde crece la caja: lo que queda tras la cabecera, la rejilla, el aire y un hero mínimo. */
-  const topeDeLaCaja = Math.max(130, alto - (isDesktop ? 0 : ALTO_DE_CABECERA) - altoDeRejilla - AIRE * 3 - ALTO_MINIMO_DEL_HERO);
+  const topeDeLaCaja = Math.max(130, alto - (isDesktop ? 0 : ALTO_DE_CABECERA) - altoDeRejilla - HOLGURA_SOBRE_LA_BARRA - AIRE * 2 - ALTO_MINIMO_DEL_HERO);
 
   return (
     <View style={styles.raiz} onLayout={(e: LayoutChangeEvent) => { const { width, height } = e.nativeEvent.layout; setMedida((antes) => (Math.abs(antes.ancho - width) > 1 || Math.abs(antes.alto - height) > 1 ? { ancho: Math.round(width), alto: Math.round(height) } : antes)); }}>
-      <FondoDeEsfera ancho={ancho} />
       {!isDesktop ? <CabeceraDePortada /> : null}
       <HeroDePortada ancho={ancho} />
       <View style={[styles.bloque, { marginBottom: AIRE }]}>
@@ -114,8 +116,8 @@ export const PortadaWeeAi: React.FC = () => {
           />
         </CajaAnclada>
       </View>
-      <View style={[styles.bloque, { paddingBottom: AIRE }]}>
-        <ModulosDePortada modulos={modulos} ancho={anchoUtil} columnas={columnas} alto={altoDeTarjeta} />
+      <View style={[styles.bloque, { paddingBottom: HOLGURA_SOBRE_LA_BARRA }]}>
+        <ModulosDePortada modulos={modulos} lado={lado} hueco={hueco} />
       </View>
     </View>
   );

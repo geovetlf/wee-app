@@ -7,6 +7,7 @@ import { useDireccion } from '../hooks/useDireccion';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma, useT } from '../contexts/IdiomaContext';
+import { useNombreDelIdioma } from '../hooks/useNombreDelIdioma';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import AvatarDisplay from './avatars/AvatarDisplay';
@@ -32,6 +33,8 @@ interface SidebarItemProps {
   active?: boolean;
   onPress: () => void;
   right?: React.ReactNode;
+  /** El nombre accesible si dice más que lo que se ve («Idioma. Español»). */
+  etiqueta?: string;
 }
 
 /**
@@ -51,12 +54,13 @@ const Opcion: React.FC<{
   active?: boolean;
   right?: React.ReactNode;
   label?: string;
+  etiqueta?: string;
 }> = ({ id, label, ...resto }) => {
   const t = useT();
   return <SidebarItem icono={MENU_ITEM[id].icono} label={label ?? t(MENU_ITEM[id].clave)} {...resto} />;
 };
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ icono, label, active, onPress, right }) => {
+const SidebarItem: React.FC<SidebarItemProps> = ({ icono, label, active, onPress, right, etiqueta }) => {
   const { theme } = useTheme();
   /* En RTL, un nombre latino (Credits, WeeTalk, Weëls…) se alineaba a la izquierda y los árabes a la derecha: todos al inicio. */
   const dir = useDireccion();
@@ -82,7 +86,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, label, active, onPress
       onPress={onPress}
       activeOpacity={0.7}
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={etiqueta ?? label}
     >
       {/* Los Credits llevan su marca, "ẄC", sin dibujo; el resto, su icono. El hueco es el mismo: la lista no se mueve. */}
       {icono === 'credits' ? (
@@ -112,6 +116,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, label, active, onPress
  */
 const Sidebar: React.FC = () => {
   const { formato } = useIdioma();
+  const nombreDelIdioma = useNombreDelIdioma();
   const t = useT();
   const { theme, setThemeMode } = useTheme();
   const navigation = useNavigation<any>();
@@ -174,6 +179,7 @@ const Sidebar: React.FC = () => {
     history: { onPress: conCuenta('Historial'), active: isActive('Historial') },
     credits: { onPress: conCuenta('CreditStore'), active: isActive('CreditStore') },
     settings: { onPress: () => navigation.navigate('Settings'), active: isActive('Settings') },
+    language: { onPress: () => navigation.navigate('Idioma'), active: isActive('Idioma') },
     help: { onPress: () => navigation.navigate('Help'), active: isActive('Help') },
   };
 
@@ -266,8 +272,12 @@ const Sidebar: React.FC = () => {
                           <RellenoDeMarca radio={BORDER_RADIUS.full} />
                           <Text style={styles.saldoTexto}>{balance === null ? '…' : `${formato.numero(balance)} Credits`}</Text>
                         </View>
+                      ) : id === 'language' && nombreDelIdioma ? (
+                        /* El idioma puesto, en su propia lengua, al final de la fila (en RTL, al otro extremo). */
+                        <Text style={[styles.idiomaNombre, { color: theme.colors.textSecondary }]} numberOfLines={1}>{nombreDelIdioma}</Text>
                       ) : undefined
                     }
+                    etiqueta={id === 'language' && nombreDelIdioma ? `${t(MENU_ITEM.language.clave)}. ${nombreDelIdioma}` : undefined}
                   />
                 );
                 if (id !== 'mywees') return opcion;
@@ -410,6 +420,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   /** El saldo, como en el cajón: una pastilla dorada al final de la fila. */
+  idiomaNombre: { fontSize: FONT_SIZE.xs, maxWidth: '50%', flexShrink: 1 },
   saldo: {
     paddingHorizontal: SPACING.sm,
     paddingVertical: 3,

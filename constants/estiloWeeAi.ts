@@ -81,7 +81,7 @@ export const PORTADA_WEEAI = {
   superficie: '#11141A',
   superficieAlta: '#171B22',
   borde: '#292E38',
-  bordeLuz: '#596170',
+  bordeLuz: '#5F6878',
   bordeCapsula: '#353A44',
   tinta: '#F5F6F8',
   tintaSecundaria: '#A1A7B2',

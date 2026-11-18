@@ -228,15 +228,16 @@ const CajaDePrompt: React.FC<Props> = ({
             <View style={styles.empuje} />
             {(accionesDerecha ?? []).map((accion) => <AccionDePortada key={accion.icono + '·' + accion.etiqueta} accion={accion} />)}
             <TouchableOpacity
-              style={[styles.enviarPortada, { opacity: puedeEnviar ? 1 : 0.5 }, isWeb && ({ cursor: puedeEnviar ? 'pointer' : 'default' } as any)]}
+              style={[styles.enviarPortada, !puedeEnviar && styles.enviarPortadaApagado, isWeb && ({ cursor: puedeEnviar ? 'pointer' : 'default' } as any)]}
               onPress={enviar}
               disabled={!puedeEnviar}
+              hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel={etiquetaEnviar}
               accessibilityState={{ disabled: !puedeEnviar }}
             >
-              <IconoDireccional name="arrow-forward" size={scale(24)} color={P.sobreAccion} />
+              <IconoDireccional name="arrow-forward" size={scale(22)} color={puedeEnviar ? P.sobreAccion : P.tintaDeshabilitada} />
             </TouchableOpacity>
           </View>
           {/* El reflejo frío del borde de abajo. */}
@@ -414,6 +415,7 @@ const AccionDePortada: React.FC<{ accion: AccionDeLaCaja; conMarco?: boolean }> 
     ]}
     onPress={accion.deshabilitada ? undefined : accion.alPulsar}
     disabled={accion.deshabilitada}
+    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
     activeOpacity={0.7}
     accessibilityRole="button"
     accessibilityLabel={accion.etiqueta}
@@ -455,7 +457,8 @@ const styles = StyleSheet.create({
   accionPortada: { width: scale(44), height: scale(44), borderRadius: scale(14), alignItems: 'center', justifyContent: 'center' },
   accionPortadaConMarco: { borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.superficieAlta },
   accionPortadaActiva: { backgroundColor: P.superficieAlta, borderWidth: 1, borderColor: P.bordeLuz },
-  enviarPortada: { width: scale(52), height: scale(52), borderRadius: scale(26), backgroundColor: P.accion, alignItems: 'center', justifyContent: 'center', shadowColor: P.luz, shadowOpacity: 0.25, shadowRadius: scale(10), shadowOffset: { width: 0, height: 0 }, elevation: 3 },
+  enviarPortada: { width: scale(46), height: scale(46), borderRadius: scale(23), backgroundColor: P.accion, alignItems: 'center', justifyContent: 'center', shadowColor: P.luz, shadowOpacity: 0.25, shadowRadius: scale(10), shadowOffset: { width: 0, height: 0 }, elevation: 3 },
+  enviarPortadaApagado: { backgroundColor: 'transparent', borderWidth: 1, borderColor: P.bordeCapsula, shadowOpacity: 0, elevation: 0 },
   reflejoPortada: { position: 'absolute', start: scale(28), end: scale(28), bottom: 0, height: 1.5 },
   cajaPro: {
     borderRadius: 14, borderWidth: 0, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10,

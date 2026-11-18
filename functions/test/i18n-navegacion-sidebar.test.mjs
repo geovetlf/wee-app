@@ -194,7 +194,7 @@ console.log('\n── D · Ni claves duplicadas, ni catálogo tocado ──');
   /* Mismo orden de siempre; «Mis creaciones» (Fase 11) entra justo detrás de «Mis proyectos», dentro de Weë Creator. */
   check('19) y el orden de las opciones es el mismo',
     /* WeëPages (2026-11-02) va junto a la agenda: las Páginas son de la cuenta, no un sitio que explorar. */
-    IDS.join(' ') === 'home weels explore communities projects pages mywees saved history credits settings help',
+    IDS.join(' ') === 'home weels explore communities projects pages mywees saved history credits settings language help',
     IDS.join(' '));
 
   /*

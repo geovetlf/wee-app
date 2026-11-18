@@ -106,6 +106,8 @@ const CODIGO = [
   ...fs.readdirSync(path.resolve(RAIZ, 'components/studio/produccion')).map((f) => `components/studio/produccion/${f}`),
   'screens/ProductionScreen.tsx', 'components/creator/CampoQueCrece.tsx', 'constants/filmmaker.ts',
   'utils/mensajesDeFilmmaker.ts', 'utils/presentacionDeProduccion.ts', 'utils/borradorDeProduccion.ts',
+  /* La primera capa de Filmmaker («Crear», 2026-11-17): su pantalla y sus constantes piden claves filmmaker.hub*. */
+  'screens/FilmmakerCrearScreen.tsx', 'constants/filmmakerCrear.ts', 'components/filmmaker/TarjetaDeTipo.tsx',
 ];
 const pedidas = [...new Set(CODIGO.flatMap((f) => [...leer(f).matchAll(/'filmmaker\.([A-Za-z][A-Za-z0-9_]*)'/g)].map((m) => m[1])))];
 const sinTexto = pedidas.filter((k) => !ES.has(k) && !ES.has(`${k}_one`));

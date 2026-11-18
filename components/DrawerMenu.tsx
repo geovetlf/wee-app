@@ -45,6 +45,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { useNombreDelIdioma } from '../hooks/useNombreDelIdioma';
 import { useDireccion } from '../hooks/useDireccion';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
@@ -103,6 +104,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const t = useT();
   const { theme, setThemeMode } = useTheme();
   const { formato } = useIdioma();
+  const nombreDelIdioma = useNombreDelIdioma();
   const dir = useDireccion();
   const { user, logout } = useAuth();
   const { userProfile, activeProfileType, hasWeeProfile, switchIdentity } = useUserProfile();
@@ -304,6 +306,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const goHistory = conCuenta('Historial');
   const goCredits = conCuenta('CreditStore');
   const goSettings = () => after(() => navigateRoot('Settings'));
+  const goLanguage = () => after(() => navigateRoot('Idioma'));
   const goHelp = () => after(() => navigateRoot('Help'));
 
   /* Qué hace cada fila del catálogo. El orden no vive aquí: lo da `WEE_MENU`. */
@@ -319,6 +322,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
     history: goHistory,
     credits: goCredits,
     settings: goSettings,
+    language: goLanguage,
     help: goHelp,
   };
 
@@ -372,7 +376,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
     icono: NombreDeIcono,
     label: string,
     onPress: () => void,
-    opts: { right?: React.ReactNode; active?: boolean; small?: boolean; danger?: boolean } = {},
+    opts: { right?: React.ReactNode; active?: boolean; small?: boolean; danger?: boolean; etiqueta?: string } = {},
   ) => (
     <View
       key={label}
@@ -425,7 +429,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           activeOpacity={0.7}
           hitSlop={MARGEN_DE_TOQUE}
           accessibilityRole="button"
-          accessibilityLabel={label}
+          accessibilityLabel={opts.etiqueta ?? label}
         >
           <Text
             style={[
@@ -458,7 +462,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const fila = (
     id: MenuItemId,
     onPress: () => void,
-    opts: { right?: React.ReactNode; active?: boolean; small?: boolean; danger?: boolean; label?: string } = {}
+    opts: { right?: React.ReactNode; active?: boolean; small?: boolean; danger?: boolean; label?: string; etiqueta?: string } = {}
   ) => renderRow(MENU_ITEM[id].icono, opts.label ?? t(MENU_ITEM[id].clave), onPress, opts);
 
   /*
@@ -641,7 +645,14 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
                             {balance === null ? '…' : `${formato.numero(balance)} Credits`}
                           </Text>
                         </View>
+                      ) : id === 'language' && nombreDelIdioma ? (
+                        /* El idioma puesto, en su propia lengua, antes del cheurón; el nombre accesible lo dice entero («Idioma. Español»). */
+                        <TouchableOpacity onPress={ACCION.language} activeOpacity={0.7} hitSlop={MARGEN_DE_TOQUE} accessible={false} importantForAccessibility="no" style={styles.idiomaPuesto}>
+                          <Text style={[styles.idiomaNombre, { color: theme.colors.textSecondary }]} numberOfLines={1}>{nombreDelIdioma}</Text>
+                          <IconoDireccional name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
+                        </TouchableOpacity>
                       ) : undefined,
+                      etiqueta: id === 'language' && nombreDelIdioma ? `${t(MENU_ITEM.language.clave)}. ${nombreDelIdioma}` : undefined,
                     }),
                   )}
                 </View>
@@ -933,6 +944,8 @@ const styles = StyleSheet.create({
     fontSize: scale(11),
     fontWeight: FONT_WEIGHT.medium,
   },
+  idiomaPuesto: { flexDirection: 'row', alignItems: 'center', gap: 4, maxWidth: '46%', minHeight: 44, justifyContent: 'flex-end' },
+  idiomaNombre: { fontSize: FONT_SIZE.sm, flexShrink: 1 },
   creditsBadge: {
     paddingHorizontal: SPACING.sm,
     paddingVertical: scale(3),

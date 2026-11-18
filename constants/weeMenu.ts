@@ -64,6 +64,7 @@ export type MenuItemId =
   | 'creations'
   | 'saved'
   | 'settings'
+  | 'language'
   | 'help';
 
 export interface MenuItem {
@@ -146,6 +147,8 @@ export const MENU_ITEM: Record<MenuItemId, MenuItem> = {
    */
   saved: { id: 'saved', icono: 'marcador', clave: 'menu.saved', emoji: '🔖', label: 'Guardados' },
   settings: { id: 'settings', icono: 'engranaje', clave: 'menu.settings', emoji: '⚙️', label: 'Configuración' },
+  /* Idioma: abre Configuración → Idioma (la misma pantalla y la misma preferencia). El nombre es el de esa pantalla; el idioma puesto se ve a la derecha, en su lengua. */
+  language: { id: 'language', icono: 'globo', clave: 'language.title', emoji: '🌐', label: 'Idioma' },
   help: { id: 'help', icono: 'ayuda', clave: 'menu.helpSupport', emoji: '❓', label: 'Ayuda y soporte' },
 };
 
@@ -175,7 +178,7 @@ export interface MenuSection {
 export const WEE_MENU: MenuSection[] = [
   { items: ['home', 'weels', 'explore', 'communities', 'projects', 'pages'] },
   { items: ['mywees'], destacado: true },
-  { items: ['saved', 'history', 'credits', 'settings'], divisor: true },
+  { items: ['saved', 'history', 'credits', 'settings', 'language'], divisor: true },
   { items: ['help'], divisor: true },
 ];
 

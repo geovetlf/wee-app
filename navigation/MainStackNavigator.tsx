@@ -35,6 +35,7 @@ import WeeCreatorScreen from '../screens/WeeCreatorScreen';
 import CrearVideoScreen from '../screens/CrearVideoScreen';
 import PlantillasWeeAiScreen from '../screens/PlantillasWeeAiScreen';
 import HerramientasWeeAiScreen from '../screens/HerramientasWeeAiScreen';
+import FilmmakerCrearScreen from '../screens/FilmmakerCrearScreen';
 import SavedPostsScreen from '../screens/SavedPostsScreen';
 import WeePagesScreen from '../screens/WeePagesScreen';
 import WeePageScreen from '../screens/WeePageScreen';
@@ -96,6 +97,8 @@ export type MainStackParamList = {
   Plantillas: undefined;
   /* Las herramientas de WeëAI: Weë Brain, Moda y el avatar (portada v2). */
   Herramientas: undefined;
+  /* La primera capa de Weë Filmmaker: «Crear» (portada de WeëAI v2). */
+  Filmmaker: undefined;
   SavedPosts: undefined;
   /* WeëPages: crear y gestionar las Páginas de la cuenta; editPageId abre una para editar. */
   WeePages: { editPageId?: string } | undefined;
@@ -393,6 +396,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="CrearVideo" component={CrearVideoScreen} />
       <Stack.Screen name="Plantillas" component={PlantillasWeeAiScreen} />
       <Stack.Screen name="Herramientas" component={HerramientasWeeAiScreen} />
+      <Stack.Screen name="Filmmaker" component={FilmmakerCrearScreen} />
       <Stack.Screen name="AgregarUbicacion" component={AgregarUbicacionScreen} />
       <Stack.Screen name="SavedPosts" component={SavedPostsScreen} />
       <Stack.Screen name="WeePages" component={WeePagesScreen} />

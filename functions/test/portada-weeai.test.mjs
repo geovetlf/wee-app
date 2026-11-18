@@ -182,14 +182,13 @@ check('38) la portada es FIJA: el marco la monta sin desplazamiento (prop fija),
   && portada.includes('topeDeLaCaja') && portada.includes('<CajaAnclada alto={topeDeLaCaja}>'));
 check('39) ocho módulos: Imagen, Video, Audio, Filmmaker, Texto, 3D, Plantillas y Herramientas; Plantillas navega a la pantalla propia y «Herramientas» reutiliza weeai.tools (sin la clave de «Más»)',
   ['imagen:', 'video:', 'audio:', 'filmmaker:', 'texto:', 'tresD:', 'plantillas:', 'herramientas:'].every((k) => portada.includes(k)) && portada.includes("navigation.navigate('Plantillas')") && portada.includes("clave: 'weeai.tools'") && portada.includes("navigation.navigate('Herramientas')") && !/portadaMas/.test(portada + leer('i18n/textos/es/weeai.ts')));
-check('40) Filmmaker: icono de cámara de cine propio, navega a la producción existente (Production) y la puerta está ABIERTA desde 2026-11-17; con la puerta cerrada volvería a «Próximamente» sin navegar',
-  portada.includes("icono: 'camaraCine'") && portada.includes("alPulsar: FILMMAKER_EN_LA_APP ? () => navigation.navigate('Production') : undefined") && /camaraCine:/.test(leer('components/icons/trazosDeWee.ts')) && /export const FILMMAKER_EN_LA_APP = true/.test(leer('constants/studioExperiences.ts')));
+check('40) Filmmaker: icono de cámara de cine propio, navega a su primera capa (la pantalla Filmmaker, que a su vez abre Production) y la puerta está ABIERTA desde 2026-11-17; con la puerta cerrada volvería a «Próximamente» sin navegar',
+  portada.includes("icono: 'camaraCine'") && portada.includes("alPulsar: FILMMAKER_EN_LA_APP ? () => navigation.navigate('Filmmaker') : undefined") && /camaraCine:/.test(leer('components/icons/trazosDeWee.ts')) && /export const FILMMAKER_EN_LA_APP = true/.test(leer('constants/studioExperiences.ts')));
 check('41) la ruta Plantillas está en la pila principal (con su enlace web y su pestaña WeëAI) y la barra inferior no se toca; la pestaña sigue abriendo la portada con popTo',
   leer('navigation/MainStackNavigator.tsx').includes('<Stack.Screen name="Plantillas" component={PlantillasWeeAiScreen} />') && leer('App.tsx').includes("Plantillas: { path: 'weeai/plantillas'") && leer('navigation/NavegacionGlobal.tsx').includes("Plantillas: 'WeeAI'")
   && /StackActions\.popTo\('WeeCreator'\)/.test(leer('navigation/refNavegacion.ts')));
-check('42) una palabra, una línea en los módulos: el tamaño se calcula (mínimo 0,7 del base) y se pasa a tres columnas si el nombre más largo del idioma no cabe en cuatro',
-  leer('components/weeai/ModulosDePortada.tsx').includes('tamanoQueCabe') && leer('components/weeai/ModulosDePortada.tsx').includes('cabenEnUnaLinea') && portada.includes('cabenEnUnaLinea(') && leer('components/weeai/ModulosDePortada.tsx').includes('numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}'));
-
+check('42) una palabra, una línea en los módulos: UN solo tamaño para todos los nombres (el que cabe al más largo del idioma, mínimo 0,6-0,7 del base), nombre con numberOfLines={1}, y su hueco reservado para «Próximamente» para que el nombre no se mueva',
+  leer('components/weeai/ModulosDePortada.tsx').includes('tamanoUniforme(nombres, lado)') && leer('components/weeai/ModulosDePortada.tsx').includes('numberOfLines={1}>{nombre}') && leer('components/weeai/ModulosDePortada.tsx').includes('styles.hueco'));
 /* HERRAMIENTAS EN SU PANTALLA (2026-11-17): ya no es una hoja inferior. */
 const lista = sinComentarios(leer('components/weeai/ListaDeHerramientas.tsx'));
 check('43) Herramientas es una pantalla propia (ruta registrada, con enlace web y pestaña WeëAI) y la portada ya no lleva hoja inferior ni la lista; la lista conserva Weë Brain, Moda con todos sus modos, WeëMusic tras bandera y el avatar, con la navegación de siempre',
@@ -198,8 +197,25 @@ check('43) Herramientas es una pantalla propia (ruta registrada, con enlace web 
   && lista.includes("hasWeeProfile ? 'AiAvatar' : 'WeeProfileCreation'") && leer('screens/HerramientasWeeAiScreen.tsx').includes('<ListaDeHerramientas />') && leer('screens/HerramientasWeeAiScreen.tsx').includes('enTemaOscuro('));
 
 check('44) todos los idiomas: la medida de texto de la portada distingue escrituras (CJK/hangul 1 em, jemer, devanagari, árabe/hebreo), el titular se acota a sus dos líneas, la caja vacía reserva dos líneas si el ejemplo no cabe, y el nombre de módulo se calcula por em (no por letras)',
-  /0x3000/.test(leer('components/weeai/medidaDeTexto.ts')) && /0x1780/.test(leer('components/weeai/medidaDeTexto.ts')) && leer('components/weeai/ModulosDePortada.tsx').includes('emDeTexto(texto)') && !/ANCHO_DE_LETRA/.test(leer('components/weeai/ModulosDePortada.tsx'))
-  && leer('components/weeai/HeroDePortada.tsx').includes('emDeTexto(t(') && leer('components/creator/CajaDePrompt.tsx').includes('ejemploLargo'));
+  /0x3000/.test(leer('components/weeai/medidaDeTexto.ts')) && /0x1780/.test(leer('components/weeai/medidaDeTexto.ts')) && leer('components/weeai/ModulosDePortada.tsx').includes('emDeTexto(n, 0.58)') && !/ANCHO_DE_LETRA/.test(leer('components/weeai/ModulosDePortada.tsx'))
+  && leer('components/weeai/HeroDePortada.tsx').includes('emDeTexto(tTitulo') && leer('components/creator/CajaDePrompt.tsx').includes('ejemploLargo'));
 
+/* RONDA 4 (2026-11-17): corrección en teléfono real (pantalla alta). */
+const modulosTsx = sinComentarios(leer('components/weeai/ModulosDePortada.tsx'));
+const heroTsx = sinComentarios(leer('components/weeai/HeroDePortada.tsx'));
+check('45) rejilla: tarjetas SIEMPRE cuadradas e iguales (width = height = lado), tres por fila y la última de dos centrada; el lado sale del ancho o de la altura, nunca de un alto suelto',
+  modulosTsx.includes('width: lado, height: lado') && modulosTsx.includes('FILAS_DE_MODULOS = [3, 3, 2]') && modulosTsx.includes("justifyContent: 'center'") && portada.includes('Math.min(ladoPorAncho, ladoPorAlto, 132)') && !/altoDeTarjeta|columnas=/.test(portada));
+check('46) el arco es un recurso AMBIENTAL: vive dentro del hero, por detrás del texto, anclado arriba y desvanecido con un degradado NATIVO (el del SVG no lo respeta Android y dejaba una banda con borde duro); sin meridianos que bajen al texto',
+  heroTsx.includes('<LinearGradient') && heroTsx.includes("colors={['rgba(5,6,8,0)', P.fondo]}") && heroTsx.includes('BORDE_ARRIBA') && !/FondoDeEsfera/.test(portada) && !/meridianos = [^']/.test(sinComentarios(leer('components/weeai/arteDePortada.ts'))) && !/id="g3"/.test(leer('components/weeai/arteDePortada.ts')));
+check('47) reparto vertical adaptativo: el hero ocupa lo que sobra (flex), la rejilla se ancla abajo con una holgura constante de 20 dp sobre la barra, y la caja y las tarjetas se calculan con la altura medida',
+  heroTsx.includes('flex: 1') && portada.includes('HOLGURA_SOBRE_LA_BARRA = 20') && portada.includes('paddingBottom: HOLGURA_SOBRE_LA_BARRA') && portada.includes('presupuestoDeRejilla') && portada.includes('topeDeLaCaja'));
+check('48) subtítulo y titular sin palabra huérfana también en Android: salto equilibrado por código (no solo textWrap: balance de la web) y una sola línea si el titular cabe con una letra >= 78 %',
+  heroTsx.includes('export const equilibrar') && heroTsx.includes("equilibrar(tSub") && heroTsx.includes('enUnaLinea'));
+
+check('49) RTL en teléfono real: el arco NUNCA baja del borde superior del texto — el arte y su desvanecido viven dentro de una franja clipada (overflow hidden) cuya altura sale del y MEDIDO del bloque de texto (menos 6 dp), y el titular reserva más altura de línea en escritura árabe/hebrea',
+  heroTsx.includes('yDelTexto') && heroTsx.includes('setYDelTexto') && /styles.franja/.test(heroTsx) && /franja: {[^}]*overflow: 'hidden'/.test(heroTsx) && /yDelTexto - 6/.test(heroTsx) && heroTsx.includes('interlineado') && /1.42/.test(heroTsx) && heroTsx.includes('onLayout'));
+const modulosTsx50 = sinComentarios(leer('components/weeai/ModulosDePortada.tsx'));
+check('50) una palabra latina entre nombres árabes/hebreos (Filmmaker, 3D) baja a 0,86 del tamaño común para no destacar ni rozar el borde; con nombres latinos o CJK el tamaño es el mismo para todos',
+  modulosTsx50.includes('CORRECCION_LATINO_EN_RTL = 0.86') && modulosTsx50.includes('tamanoDeNombre(nombre, tam, nombres)') && modulosTsx50.includes('06FF'));
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');
 process.exit(failures ? 1 : 0);
