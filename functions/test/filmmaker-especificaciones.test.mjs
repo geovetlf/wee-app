@@ -40,7 +40,7 @@ check('A7) el vídeo solo se elige entre los integrados de vídeo (ni imagen ni 
 
 console.log('── B · Las opciones dependen del modelo ──');
 let idea = I.ideaVacia('film');
-check('B1) con Auto se ofrece lo que admite el contrato de crear', U.opcionesDe(null).resoluciones.join() === '720p,1080p' && U.opcionesDe(null).porCuadro === null);
+check('B1) por defecto el modelo es Seedance 2.0 (Equilibrada), 16:9 y 720p: valores reales, no «Auto»', (() => { const e = U.efectivas(I.ideaVacia('film')); return e.modelo.id === 'seedance-2-0' && e.formato === '16:9' && e.resolucion === '720p' && e.calidad === 'high' && e.modeloPorDefecto && e.formatoPorDefecto && e.resolucionPorDefecto; })());
 const ofast = U.opcionesDe(M.modeloPorId('seedance-2-0-fast'));
 check('B2) 2.0 Fast: 480p y 720p, de 4 a 15 s por cuadro', ofast.resoluciones.join() === '480p,720p' && ofast.porCuadro.max === 15);
 check('B3) 2.5: hasta 30 s por cuadro y 1080p', U.opcionesDe(M.modeloPorId('seedance-2-5')).porCuadro.max === 30 && U.opcionesDe(M.modeloPorId('seedance-2-5')).resoluciones.includes('1080p'));
@@ -48,7 +48,7 @@ idea = I.poner(I.poner(idea, 'resolution', '1080p'), 'format', '4:5');
 const cambiada = U.elegirModelo(idea, 'seedance-2-0-fast');
 check('B4) cambiar a un modelo que no admite lo elegido lo devuelve a Auto (1080p y 4:5)', cambiada.valores.model === 'seedance-2-0-fast' && !cambiada.valores.resolution && !cambiada.valores.format);
 check('B5) elegir un modelo cerrado no cambia nada', U.elegirModelo(idea, 'kling') === idea && U.elegirModelo(idea, 'seedance-2-5-flash') === idea);
-check('B6) volver a Auto limpia el modelo; un id viejo se lee como Auto', U.elegirModelo(cambiada, 'auto').valores.model === undefined && U.modeloDeLaIdea(I.poner(idea, 'model', 'ya-no-existe')) === null);
+check('B6) volver al recomendado limpia el modelo; un id viejo se lee como el recomendado', U.elegirModelo(cambiada, 'auto').valores.model === undefined && U.modeloDeLaIdea(I.poner(idea, 'model', 'ya-no-existe')) === null);
 check('B7) solo viajan al servidor formato, resolución y duración', JSON.stringify(U.CAMPOS_QUE_VIAJAN) === JSON.stringify(['format', 'resolution', 'duration']));
 
 console.log('── C · Texto y forma ──');
@@ -68,7 +68,7 @@ check('C7) no hay buscador y no se muestra ningún coste inventado', !/TextInput
 
 console.log('── D · Preferencias hacia el servidor ──');
 let d = I.ideaVacia('film');
-check('D1) sin elegir nada no se manda ninguna preferencia', Object.keys(U.preferenciasDeLaIdea(d)).length === 0);
+check('D1) sin elegir nada se manda la calidad de por defecto explícita (high) y ningún modelo: el servidor elige el mismo que la pantalla enseña', (() => { const pf0 = U.preferenciasDeLaIdea(d); return pf0.quality === 'high' && pf0.preferredModel === undefined; })());
 d = U.elegirModelo(I.poner(I.poner(d, 'variants', '3'), 'seed', '4294967295'), 'seedance-2-5');
 const pf = U.preferenciasDeLaIdea(d);
 check('D2) el modelo va con su id oficial, las variantes tal cual y la semilla como consistencySeed', pf.preferredModel === 'dreamina-seedance-2-5-260628' && pf.variants === 3 && pf.consistencySeed === 4294967295 && !('seed' in pf));
@@ -90,6 +90,17 @@ check('D9) cada celda de la tarjeta abre la hoja en su control (foco) y la rejil
 check('E1) la línea compacta nombra QUÉ configura («Configurar vídeo») y el resumen va aparte, más pequeño', /filmmakerSpecs\.configure/.test(fuentes[0]) && /textoPortada\(11, '400'\)/.test(fuentes[0].split('filmmakerSpecs.configure')[1] || ''));
 const pant = leer('screens/FilmmakerCrearScreen.tsx');
 check('E2) una sola frase de placeholder en la Idea y la ayuda para continuar (con la flecha del sentido de lectura)', /storyPlaceholder/.test(pant) && !/refPlaceholder|ideaPlaceholder/.test(pant) && /continueHint', \{ flecha: dir\.flecha\.adelante/.test(pant));
+
+console.log('── F · Valores reales por defecto = lo que haría el servidor ──');
+const vid = fs.readFileSync(path.join(RAIZ, 'functions/src/engine/video.ts'), 'utf8');
+check('F1) la calidad decide el modelo como en chooseSeedanceModel (max→2.5, high→2.0, standard→2.0 Fast)', /quality === 'max'\) return SEEDANCE_MODEL_IDS\.SEEDANCE_2_5/.test(vid) && /quality === 'high'\) return SEEDANCE_MODEL_IDS\.SEEDANCE_2_0;/.test(vid) && /quality === 'standard'\) return SEEDANCE_MODEL_IDS\.SEEDANCE_2_0_FAST/.test(vid)
+  && U.MODELO_DE_CALIDAD.max === 'seedance-2-5' && U.MODELO_DE_CALIDAD.high === 'seedance-2-0' && U.MODELO_DE_CALIDAD.standard === 'seedance-2-0-fast');
+const crearTs = leer('constants/filmmakerCrear.ts');
+check('F2) el formato por defecto de cada tipo es el de su tarjeta', ['film', 'short', 'ad'].every((tp) => new RegExp(`id: '${tp}'[^\\n]*formato: '${U.FORMATO_DEL_TIPO[tp].replace(':', ':')}'`).test(crearTs)));
+check('F3) un anuncio nace 9:16; película y cortometraje 16:9; todos 720p', U.efectivas(I.ideaVacia('ad')).formato === '9:16' && U.efectivas(I.ideaVacia('short')).formato === '16:9' && ['ad', 'short', 'film'].every((tp) => U.efectivas(I.ideaVacia(tp)).resolucion === '720p'));
+check('F4) cada modelo por defecto admite su resolución y formato (lo mostrado cabe en lo enviado)', ['standard', 'high', 'max'].every((q) => ['film', 'short', 'ad'].every((tp) => { const e = U.efectivas(U.elegirCalidad(I.ideaVacia(tp), q)); const o = U.opcionesDe(e.modelo); return o.resoluciones.includes(e.resolucion) && o.formatos.includes(e.formato); })));
+check('F5) Rápida con 1080p no existe: al elegir Rápida la resolución vuelve a 720p; y se manda siempre formato y resolución explícitos', (() => { const x = U.elegirCalidad(I.poner(I.ideaVacia('film'), 'resolution', '1080p'), 'standard'); const s0 = U.formatoYResolucionParaElServidor(I.ideaVacia('ad')); return !x.valores.resolution && U.efectivas(x).modelo.id === 'seedance-2-0-fast' && s0.aspectRatio === '9:16' && s0.resolution === '720p'; })());
+check('F6) la pantalla manda el formato y la resolución resueltos (nunca «el servidor decide») y la hoja no tiene chips «Auto»', /formatoYResolucionParaElServidor\(base\)/.test(leer('screens/FilmmakerCrearScreen.tsx')) && !/filmmakerSpecs\.auto\b/.test(fuentes[0] + fuentes[1]) && /byDefault/.test(fuentes[0]));
 
 console.log(failures ? `\n${failures} FALLOS de ${n}` : `\n${n}/${n} OK`);
 process.exit(failures ? 1 : 0);

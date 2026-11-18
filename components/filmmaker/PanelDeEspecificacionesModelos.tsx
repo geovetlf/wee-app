@@ -11,6 +11,8 @@ interface Props {
   /** Id del modelo elegido (`'auto'` o vacío = Auto). */
   valor: string;
   onElegir: (id: string) => void;
+  /** El modelo que Weë aplica si no eliges ninguno: se enseña con su nombre real. */
+  recomendado: ModeloDeFilmmaker;
   onVolver?: () => void;
 }
 
@@ -24,7 +26,7 @@ export const motivoDeModelo = (m: ModeloDeFilmmaker): string =>
  * (candado y «Pronto» / «Sin configurar») y, al tocarlo, dice su motivo. Las píldoras saltan de línea: nunca hay una fila que se desplace de lado.
  * Con el filtro de tipo (Vídeo · Imagen · Voz) la lista no se satura aunque el catálogo crezca.
  */
-export const RejillaDeModelos: React.FC<Props> = ({ valor, onElegir }) => {
+export const RejillaDeModelos: React.FC<Props> = ({ valor, onElegir, recomendado }) => {
   const t = useT();
   const dir = useDireccion();
   const [tipo, setTipo] = useState<TipoDeModelo>('video');
@@ -66,13 +68,12 @@ export const RejillaDeModelos: React.FC<Props> = ({ valor, onElegir }) => {
         {tipo === 'video' ? (
           <View style={styles.grupo}>
             <View style={[styles.fila, dir.contenedor]}>
-              <TouchableOpacity onPress={() => { setMotivo(null); onElegir(MODELO_AUTO); }} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmakerSpecs.auto'), t('filmmakerSpecs.autoSub'))}
+              <TouchableOpacity onPress={() => { setMotivo(null); onElegir(MODELO_AUTO); }} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(recomendado.nombre, t('filmmakerSpecs.recommended'))}
                 accessibilityState={{ selected: elegido === MODELO_AUTO }} style={[styles.pildora, elegido === MODELO_AUTO && styles.pildoraSel]}>
-                <Text style={[textoPortada(14, elegido === MODELO_AUTO ? '600' : '500'), { color: P.tinta }]}>{t('filmmakerSpecs.auto')}</Text>
-                <Text style={[textoPortada(11, '400'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={1}>Weë</Text>
+                <Text style={[textoPortada(14, elegido === MODELO_AUTO ? '600' : '500'), { color: P.tinta }]}>{recomendado.nombre}</Text>
+                <Text style={[textoPortada(11, '400'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={1}>{t('filmmakerSpecs.recommended')}</Text>
               </TouchableOpacity>
             </View>
-            <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerSpecs.autoSub')}</Text>
           </View>
         ) : null}
         {grupos.map((g) => (

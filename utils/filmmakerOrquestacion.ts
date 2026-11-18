@@ -139,7 +139,11 @@ export const produccionDesdeLaExperiencia = (e: ExperienciaDeFilmmaker): Resulta
   const vozSinDestino: { ownerId: string; voz: string }[] = [];
   const idea = recorta(e.idea, LIMITES.textoLibre);
   let prod: FilmmakerProduction = produccionVacia({ title: recorta(idea.split(/[\n.!?]/)[0] || idea, LIMITES.nombre) || 'Filmmaker', aspectRatio: e.aspectRatio, ...(e.resolution ? { resolution: e.resolution } : {}), id: e.productionId });
-  if (e.preset) prod = { ...prod, ...configuracionDePreset(e.preset) };
+  if (e.preset) {
+    prod = { ...prod, ...configuracionDePreset(e.preset) };
+    /* El formato y la resolución que la persona ve (y los de por defecto resueltos) ganan al preset: lo mostrado y lo guardado coinciden siempre. */
+    prod = { ...prod, format: { ...prod.format, aspectRatio: e.aspectRatio, ...(e.resolution ? { resolution: e.resolution } : {}) } };
+  }
   if (e.preferencias && Object.keys(e.preferencias).length) prod = { ...prod, generation: { ...prod.generation, ...e.preferencias } };
   const tipo = TIPO_DE_PRODUCCION[e.tipo];
   if (!tipo) omisiones.push({ motivo: 'tipo_sin_equivalente', id: e.tipo });
