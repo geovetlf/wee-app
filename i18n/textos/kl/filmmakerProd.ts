@@ -29,4 +29,5 @@ export const filmmakerProd = {
   batchStopped: 'It stopped at the first failure; what already started keeps going.',
   cancelTake: 'Cancel',
   joinDaily: 'You can join up to {{n}} films per day.',
+  uniBuildClosed: 'Coming soon: Weë will build your universe from your idea and document. For now, add your characters.',
 };

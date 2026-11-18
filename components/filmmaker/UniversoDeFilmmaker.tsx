@@ -92,6 +92,7 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
         </View>
         <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniCounts', { personajes: formato.numero(n.character), lugares: formato.numero(n.place), objetos: formato.numero(n.object) })}</Text>
 
+        {!universo.elementos.some((e) => !e.ejemplo) ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} testID="universo-construir-cerrado">{t('filmmakerProd.uniBuildClosed')}</Text> : null}
         {onCambio && pendientes.length > 0 ? (
           <View style={styles.tarjeta} testID="universo-detectados">
             <Text style={[textoPortada(15, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header">{t('filmmaker.uniFoundTitle', { contador: formato.numero(pendientes.length) })}</Text>

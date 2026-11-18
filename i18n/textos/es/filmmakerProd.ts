@@ -28,4 +28,5 @@ export const filmmakerProd = {
   batchStopped: 'Se detuvo en el primer fallo; lo que ya empezó sigue en marcha.',
   cancelTake: 'Cancelar',
   joinDaily: 'Puedes juntar hasta {{n}} películas al día.',
+  uniBuildClosed: 'Pronto: Weë construirá tu universo a partir de tu idea y tu documento. Por ahora, añade tus personajes.',
 };
