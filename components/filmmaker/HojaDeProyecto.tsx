@@ -21,10 +21,13 @@ export const HojaDeProyecto: React.FC<{ visible: boolean; onClose: () => void; i
   useCerrarConEscape(visible, onClose);
   const lista = useRef<ScrollView>(null);
   const posiciones = useRef<Record<string, number>>({});
-  /* Abierta desde una celda de la tarjeta: la hoja baja hasta SU control (cuando ya están medidos). */
+  /* Abierta desde una celda de la tarjeta: la hoja baja hasta SU control en cuanto está medido (en la web el Modal monta tarde: se espera a su medida, no a un reloj). */
+  const pendiente = useRef<string | null>(null);
+  const bajar = (id: string) => { const y = posiciones.current[id]; if (y !== undefined && lista.current) { lista.current.scrollTo({ y: Math.max(0, y - 8), animated: false }); pendiente.current = null; } };
   useEffect(() => {
-    if (!visible || !foco) return;
-    const espera = setTimeout(() => { const y = posiciones.current[foco]; if (y !== undefined) lista.current?.scrollTo({ y: Math.max(0, y - 8), animated: false }); }, 150);
+    pendiente.current = visible && foco ? foco : null;
+    if (!pendiente.current) return;
+    const espera = setTimeout(() => { if (pendiente.current) bajar(pendiente.current); }, 150);
     return () => clearTimeout(espera);
   }, [visible, foco]);
   return (
@@ -33,7 +36,7 @@ export const HojaDeProyecto: React.FC<{ visible: boolean; onClose: () => void; i
       <View style={[styles.hoja, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal>
         <View style={styles.asa} />
         <ScrollView ref={lista} style={{ maxHeight: Math.max(240, height * 0.62) }} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <ContenidoDeEspecificaciones idea={idea} onIdea={onIdea} onPosicion={(id, y) => { posiciones.current[id] = y; }} />
+          <ContenidoDeEspecificaciones idea={idea} onIdea={onIdea} onPosicion={(id, y) => { posiciones.current[id] = y; if (pendiente.current === id) bajar(id); }} />
         </ScrollView>
         <TouchableOpacity onPress={onClose} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={t('filmmaker.ideaFieldDone')} style={styles.listo}>
           <Text style={[textoPortada(15, '600'), { color: P.sobreAccion }]}>{t('filmmaker.ideaFieldDone')}</Text>
