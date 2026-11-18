@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useT, useIdioma } from '../../../contexts/IdiomaContext';
 import { useDireccion } from '../../../hooks/useDireccion';
@@ -15,6 +15,8 @@ interface Props {
   tandas: TandasDelTaller;
   /** Une los cuadros en un solo vídeo. Sin él (o con `JUNTAR_ABIERTO = false`) el botón sale cerrado con su motivo. */
   onJuntar?: () => void;
+  /** Vista previa local (solo desarrollo): «Juntar» enseña una pantalla de resultado de ejemplo; no monta nada ni cobra. */
+  demo?: boolean;
 }
 
 /**
@@ -22,7 +24,8 @@ interface Props {
  * cuánto dura contra el límite del montaje (60 cuadros y 10:00) y, si te pasas, cuánto. El coste, si lo hay, va junto al botón; mientras el montaje
  * esté cerrado el botón dice por qué en una línea y no se simula nada.
  */
-export const JuntarDeFilmmaker: React.FC<Props> = ({ tandas, onJuntar }) => {
+export const JuntarDeFilmmaker: React.FC<Props> = ({ tandas, onJuntar, demo = false }) => {
+  const [vista, setVista] = useState(false);
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
@@ -31,8 +34,8 @@ export const JuntarDeFilmmaker: React.FC<Props> = ({ tandas, onJuntar }) => {
   const suma = totales(reales);
   const exceso = excesoDelMontaje(reales);
   const pasado = exceso.planos || exceso.segundos;
-  const abierto = JUNTAR_ABIERTO && !!onJuntar && suma.cuadros > 0 && !pasado;
-  const motivo = suma.cuadros === 0 ? t('filmmakerProd.joinEmpty') : pasado ? null : !JUNTAR_ABIERTO ? t('filmmakerProd.joinClosed') : null;
+  const abierto = demo ? suma.cuadros > 0 && !pasado : JUNTAR_ABIERTO && !!onJuntar && suma.cuadros > 0 && !pasado;
+  const motivo = suma.cuadros === 0 ? t('filmmakerProd.joinEmpty') : pasado ? null : !JUNTAR_ABIERTO && !demo ? t('filmmakerProd.joinClosed') : null;
 
   return (
     <View style={styles.raiz}>
@@ -43,10 +46,11 @@ export const JuntarDeFilmmaker: React.FC<Props> = ({ tandas, onJuntar }) => {
         <Text style={[textoPortada(12, '400'), dir.texto, { color: pasado ? P.tinta : P.tintaSecundaria }]} accessibilityLiveRegion="polite">
           {t(pasado ? 'filmmakerTandas.limitOver' : 'filmmakerTandas.limitNote', { planos: formato.numero(LIMITE_DEL_MONTAJE.planos), duracion: tiempo.solo(LIMITE_DEL_MONTAJE.segundos) })}
         </Text>
+        {demo && vista ? <View style={{ padding: 14, borderRadius: 16, borderWidth: 1, borderColor: P.bordeLuz, backgroundColor: P.superficie, gap: 6 }} testID="demo-resultado"><Text style={[textoPortada(15, '600'), dir.texto, { color: P.tinta }]}>{t('filmmakerProd.demoResultTitle')}</Text><Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerProd.demoResultBody', { duracion: tiempo.solo(suma.segundos) })}</Text></View> : null}
         <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerProd.joinDaily', { n: formato.numero(MONTAJES_POR_DIA) })}</Text>
       </ScrollView>
       <View style={styles.pie}>
-        <BotonBlanco texto={t('filmmakerProd.joinAction')} onPress={() => { if (abierto && onJuntar) onJuntar(); }} apagado={!abierto} motivo={motivo} testID="juntar-accion" />
+        <BotonBlanco texto={t('filmmakerProd.joinAction')} onPress={() => { if (!abierto) return; if (demo) setVista(true); else if (onJuntar) onJuntar(); }} apagado={!abierto} motivo={motivo} testID="juntar-accion" />
         {motivo ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{motivo}</Text> : null}
       </View>
     </View>

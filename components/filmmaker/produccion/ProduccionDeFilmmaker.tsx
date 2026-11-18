@@ -23,6 +23,8 @@ interface Props {
   /** Hay cambios en camino al servidor: mientras tanto no se genera (se generaría una cosa y se vería otra). */
   guardando: boolean;
   onJuntar: () => void;
+  /** Vista previa local (solo desarrollo): «Producir» marca el capítulo como producido en pantalla; no genera ni cobra nada. */
+  demo?: boolean;
   onIrACapitulos: () => void;
 }
 
@@ -158,7 +160,8 @@ const BloqueDeLote: React.FC<{ tanda: Tanda; cuadros: readonly CuadroDeStoryboar
  * botón que lo causa y la confirmación de cada uno (es la toma que ya existe en el servidor: cotizar → reservar → generar → enlazar). Mientras la
  * capacidad esté cerrada (`PRODUCCION_ABIERTA`) la pantalla es solo la lista de lo aprobado y UNA línea con el motivo: nada se simula.
  */
-export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guardando, onJuntar, onIrACapitulos }) => {
+export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guardando, onJuntar, onIrACapitulos, demo = false }) => {
+  const [hechos, setHechos] = useState<readonly string[]>([]);
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
@@ -170,7 +173,7 @@ export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guard
     <View style={styles.raiz}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
         <Text style={[textoPortada(22, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header">{t('filmmakerProd.prodTitle')}</Text>
-        {!PRODUCCION_ABIERTA ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.produceClosed')}</Text> : null}
+        {demo ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerProd.demoProduceNote')}</Text> : !PRODUCCION_ABIERTA ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.produceClosed')}</Text> : null}
         {aprobadas.length === 0 ? (
           <View style={styles.vacio}>
             <Text style={[textoPortada(15, '500'), { color: P.tintaSecundaria, textAlign: 'center' }]}>{t('filmmakerProd.prodEmpty')}</Text>
@@ -181,15 +184,16 @@ export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guard
           const indice = tandas.tandas.findIndex((x) => x.id === tanda.id) + 1;
           return (
             <View key={tanda.id} style={{ gap: 8 }}>
-              <FilaDeCapitulo tanda={tanda} posicion={indice} cuadros={cuadros.length} />
-              {PRODUCCION_ABIERTA ? <BloqueDeLote key={'l' + tanda.id + version} tanda={tanda} cuadros={cuadros} guardada={guardada} guardando={guardando} onCambio={refrescar} /> : null}
-              {PRODUCCION_ABIERTA ? cuadros.map((c, i) => <FilaDeToma key={c.id + version} cuadro={c} numero={i + 1} escenaId={idDeEscena(tanda.id)} guardada={guardada} guardando={guardando} onCambio={refrescar} />) : null}
+              <FilaDeCapitulo tanda={tanda} posicion={indice} cuadros={cuadros.length} estado={demo && hechos.includes(tanda.id) ? 'listo' : 'pendiente'} />
+              {demo && !hechos.includes(tanda.id) ? <BotonContorno texto={t('filmmakerProd.demoProduce')} icono="play-outline" onPress={() => setHechos((h) => [...h, tanda.id])} testID={'demo-producir-' + tanda.id} /> : null}
+              {PRODUCCION_ABIERTA && !demo ? <BloqueDeLote key={'l' + tanda.id + version} tanda={tanda} cuadros={cuadros} guardada={guardada} guardando={guardando} onCambio={refrescar} /> : null}
+              {PRODUCCION_ABIERTA && !demo ? cuadros.map((c, i) => <FilaDeToma key={c.id + version} cuadro={c} numero={i + 1} escenaId={idDeEscena(tanda.id)} guardada={guardada} guardando={guardando} onCambio={refrescar} />) : null}
             </View>
           );
         })}
       </ScrollView>
       <View style={styles.pie}>
-        <BotonBlanco texto={t('filmmakerProd.goJoin')} onPress={onJuntar} apagado={aprobadas.length === 0 || !PRODUCCION_ABIERTA} motivo={aprobadas.length === 0 ? t('filmmakerProd.prodEmpty') : t('filmmakerTandas.produceClosed')} testID="produccion-juntar" />
+        <BotonBlanco texto={t('filmmakerProd.goJoin')} onPress={onJuntar} apagado={aprobadas.length === 0 || (!PRODUCCION_ABIERTA && !demo)} motivo={aprobadas.length === 0 ? t('filmmakerProd.prodEmpty') : t('filmmakerTandas.produceClosed')} testID="produccion-juntar" />
       </View>
     </View>
   );

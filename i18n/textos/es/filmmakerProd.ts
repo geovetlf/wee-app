@@ -36,4 +36,12 @@ export const filmmakerProd = {
   cntObjects_one: '{{contador}} objeto',
   cntObjects_other: '{{contador}} objetos',
   pending: 'Pendiente',
+  demoBadge: 'Demo · vista previa de ejemplo. No es real: no genera nada ni cobra Credits.',
+  demoExit: 'Salir del demo',
+  demoTry: 'Probar con demo',
+  demoCharacter: 'Mara — protagonista de la demo',
+  demoProduceNote: 'Demo: «Producir» solo marca el capítulo en pantalla.',
+  demoProduce: 'Producir capítulo (demo)',
+  demoResultTitle: 'Tu película, juntada (ejemplo)',
+  demoResultBody: 'Así se vería el resultado: una sola película de {{duracion}}. En la demo no se crea ningún video.',
 };

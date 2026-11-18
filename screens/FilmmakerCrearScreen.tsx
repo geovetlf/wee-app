@@ -79,7 +79,11 @@ const FilmmakerCrearScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const abrirId: string | undefined = (useRoute<any>().params as { productionId?: string } | undefined)?.productionId;
   /* MODO DE EJEMPLO (solo desarrollo): `?demo=universo|capitulos|produccion|juntar` en la web pinta esa etapa con datos de muestra y SIN servidor, para poder mirarla. `__DEV__` es falso en una compilación de producción, así que ahí no existe. */
-  const demo = __DEV__ && Platform.OS === 'web' && typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('demo') : null;
+  const demoUrl = __DEV__ && Platform.OS === 'web' && typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('demo') : null;
+  /* En el teléfono (y en la web) el demo también se activa desde «Probar con demo» bajo la caja. Solo con `__DEV__`: en producción ni el botón ni el modo existen. */
+  const [demoLocal, setDemoLocal] = useState<string | null>(null);
+  const demo = __DEV__ ? (demoLocal ?? demoUrl) : null;
+  const enDemo = !!demo;
   const { user } = useAuth();
   const [medida, setMedida] = useState({ ancho: 0, alto: 0 });
   const [altoMundo, setAltoMundo] = useState(0);
@@ -172,17 +176,24 @@ const FilmmakerCrearScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [abrirId, user]);
 
-  useEffect(() => {
-    if (!demo) return;
+  const cargarDemo = (etapa: string) => {
+    if (!__DEV__) return;
+    setDemoLocal(etapa); setFallo(null); setAviso(null); setCreando(false);
     setTipoId('short'); setEstilo('anime'); setProduccionId('demo');
     setIdea((i) => poner(cambiarDeTipo(i, 'short'), 'idea', 'Una historia de ejemplo para ver la pantalla'));
-    setUniverso(anadirEjemplos(universoVacio(), EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))));
+    /* Un personaje «tuyo» de muestra para que «Continuar» quede habilitado y se pueda recorrer el flujo; el resto son los ejemplos rotulados. */
+    setUniverso(anadir(anadirEjemplos(universoVacio(), EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))), 'character', t('filmmakerProd.demoCharacter')));
     const base = anadirTandasDeEjemplo(tandasVacias(), ejemploTraducido(t));
     /* Para Producción y Juntar los capítulos de muestra cuentan como aprobados y reales (siguen rotulados «Demo»). */
-    setTandas(demo === 'produccion' || demo === 'juntar' ? { ...base, tandas: base.tandas.map((x) => ({ ...x, titulo: x.titulo, ejemplo: false, aprobada: true, almacen: true, cuadros: x.cuadros.map((c) => ({ ...c, ejemplo: false })) })) } : base);
-    setCapa(demo === 'juntar' ? 'juntar' : demo === 'produccion' ? 'produccion' : demo === 'capitulos' ? 'tandas' : 'universo');
+    const avanzada = etapa === 'produccion' || etapa === 'juntar';
+    setTandas({ ...base, tandas: base.tandas.map((x) => ({ ...x, titulo: x.titulo, ejemplo: false, aprobada: avanzada, almacen: avanzada, cuadros: x.cuadros.map((c) => ({ ...c, ejemplo: false })) })) });
+    setCapa(etapa === 'juntar' ? 'juntar' : etapa === 'produccion' ? 'produccion' : etapa === 'capitulos' ? 'tandas' : 'universo');
+  };
+  const salirDelDemo = () => { setDemoLocal(null); setProduccionId(null); setUniverso(universoVacio()); setTandas(tandasVacias()); setCapa('entrada'); setPreguntado(false); setAviso(null); if (Platform.OS === 'web' && typeof window !== 'undefined' && demoUrl) window.history.replaceState(null, '', window.location.pathname); };
+  useEffect(() => {
+    if (demoUrl && !demoLocal) cargarDemo(demoUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [demo]);
+  }, [demoUrl]);
 
   const atras = () => {
     setAviso(null);
@@ -210,6 +221,8 @@ const FilmmakerCrearScreen: React.FC = () => {
   /** Crea la producción (la operación de siempre, id idempotente) y abre el Universo: la persona sigue sin botón aparte. */
   const continuar = async (base: IdeaDelTaller) => {
     if (creando) return;
+    /* En el demo no se crea nada en el servidor: se carga la producción de muestra, local. */
+    if (enDemo) { cargarDemo('universo'); return; }
     if (!user) { navigation.navigate('Login'); return; }
     setCapa('taller'); setCreando(true); setFallo(null); setAviso(null);
     /* Lo que la persona aportó llega al Universo: cada personaje (imagen) cuenta como un personaje suyo —el requisito de al menos uno— y cada mundo, como un lugar. */
@@ -329,7 +342,7 @@ const FilmmakerCrearScreen: React.FC = () => {
 
   const etiquetaDelTipo = tipo ? t(tipo.clave) : '';
   const definicionDeSeccion = SECCIONES_DEL_UNIVERSO.find((s) => s.id === seccion) ?? SECCIONES_DEL_UNIVERSO[0];
-  const placeholder = enUniverso ? t(definicionDeSeccion.clavePlaceholder) : refs.referencias.length > 0 ? t('filmmaker.refPlaceholder') : enIdea ? t('filmmaker.ideaPlaceholder') : t('filmmaker.hubPlaceholder');
+  const placeholder = enUniverso ? t(definicionDeSeccion.clavePlaceholder) : refs.referencias.length > 0 || enIdea ? t('filmmakerSpecs.storyPlaceholder') : t('filmmaker.hubPlaceholder');
   const etiquetaDelEstilo = estilo ? t((ESTILOS.find((e) => e.id === estilo) ?? ESTILOS[0]).clave) : null;
   const textoDePildora = etiquetaDelEstilo ? `${etiquetaDelTipo} · ${etiquetaDelEstilo}` : etiquetaDelTipo;
   const estadoDelTaller: EstadoDelTaller = creando ? 'creando' : preguntado ? 'pregunta' : 'saludo';
@@ -352,6 +365,13 @@ const FilmmakerCrearScreen: React.FC = () => {
           <CreditsPill compact sobria />
         </View>
 
+        {enDemo ? (
+          <View style={[styles.demoBanda, dir.contenedor]} accessibilityRole="alert" testID="banda-demo">
+            <Text style={[textoPortada(12, '600'), dir.texto, { color: P.tinta, flex: 1 }]}>{t('filmmakerProd.demoBadge')}</Text>
+            <TouchableOpacity onPress={salirDelDemo} accessibilityRole="button" accessibilityLabel={t('filmmakerProd.demoExit')} style={styles.demoSalir}><Text style={[textoPortada(13, '600'), { color: P.tinta }]}>{t('filmmakerProd.demoExit')}</Text></TouchableOpacity>
+          </View>
+        ) : null}
+
         {/* Las etapas solo aparecen cuando sirven (después de la Idea) y solo las que existen: nunca bloqueadas. */}
         {enEtapas ? <BarraDeEtapas activa={enJuntar ? 'join' : enProduccion ? 'production' : enTandas ? 'batches' : 'universe'} onIr={irA} onProyecto={() => { setFoco(null); setProyecto(true); }} /> : null}
 
@@ -360,9 +380,9 @@ const FilmmakerCrearScreen: React.FC = () => {
           {enEstilo ? (
             <ElegirEstilo ancho={ancho} elegido={estilo} onElegir={elegirEstilo} />
           ) : enJuntar ? (
-            <JuntarDeFilmmaker tandas={tandas} />
+            <JuntarDeFilmmaker tandas={tandas} demo={enDemo} />
           ) : enProduccion ? (
-            <ProduccionDeFilmmaker tandas={tandas} guardada={pf.guardada} guardando={pf.carga !== 'libre'} onJuntar={() => { setAviso(null); setCapa('juntar'); }} onIrACapitulos={() => setCapa('tandas')} />
+            <ProduccionDeFilmmaker tandas={tandas} guardada={pf.guardada} guardando={pf.carga !== 'libre'} demo={enDemo} onJuntar={() => { setAviso(null); setCapa('juntar'); }} onIrACapitulos={() => setCapa('tandas')} />
           ) : enTandas ? (
             <TandasYStoryboard ancho={Math.min(ancho, 1040)} compacto={compacto} personajes={universo.elementos.filter((e) => e.tipo === 'character').map((e) => ({ id: e.id, nombre: e.nombre, voz: e.voz }))} duracionTotalSeg={duracionDe(idea)} valor={tandas} onCambio={setTandas} onAviso={setAviso} onProducir={() => { setAviso(null); setCapa('produccion'); }} />
           ) : enUniverso ? (
@@ -379,6 +399,8 @@ const FilmmakerCrearScreen: React.FC = () => {
               <Text style={[textoPortada(12), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={3}>{aviso ?? t(refs.aviso as string)}</Text>
             ) : !user && !enIdea && !enUniverso ? (
               <Text style={[textoPortada(12), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={2}>{t('filmmaker.hubNeedSession')}</Text>
+            ) : enIdea && !creando && !preguntado && !fallo ? (
+              <Text style={[textoPortada(12), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={2}>{t('filmmakerSpecs.continueHint', { flecha: dir.flecha.adelante })}</Text>
             ) : null}
           </View>
           {/* La píldora de formato · duración · modelo (informativa; apagada por `PILDORA_DE_FORMATO_VISIBLE`) y, solo en la variante A, el chip de marca. */}
@@ -396,6 +418,9 @@ const FilmmakerCrearScreen: React.FC = () => {
             </TouchableOpacity>
           ) : null}
           {!enEtapas && !enEstilo ? <ReferenciasAdjuntas referencias={refs.referencias} onQuitar={refs.quitar} onReintentar={refs.reintentar} onCambiarRol={refs.cambiarRol} /> : null}
+          {__DEV__ && !enDemo && capa === 'entrada' ? (
+            <TouchableOpacity onPress={() => cargarDemo('universo')} accessibilityRole="button" accessibilityLabel={t('filmmakerProd.demoTry')} testID="probar-demo" style={styles.demoEntrada}><Text style={[textoPortada(13, '600'), { color: P.tintaSecundaria }]}>{t('filmmakerProd.demoTry')}</Text></TouchableOpacity>
+          ) : null}
           {!enEstilo && !enProduccion && !enJuntar && !enTandas ? <CajaAnclada alto={topeDeLaCaja}>
             <CajaDePrompt portada enviarDiscreto={enUniverso} valor={texto} onCambiar={setTexto} onEnviar={enviar} etiquetaEnviar={t('studio.sendLabel')} placeholder={placeholder} acciones={acciones} />
           </CajaAnclada> : null}
@@ -440,6 +465,9 @@ const styles = StyleSheet.create({
   falloEnLinea: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 8 },
   reintentar: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.bordeCapsula, alignItems: 'center', justifyContent: 'center' },
   rejilla: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  demoBanda: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, paddingStart: 12, paddingEnd: 4, minHeight: 40, borderRadius: 20, borderWidth: 1, borderColor: P.bordeLuz, backgroundColor: P.superficie },
+  demoSalir: { minHeight: 36, paddingHorizontal: 12, justifyContent: 'center' },
+  demoEntrada: { alignSelf: 'center', minHeight: 44, paddingHorizontal: 16, justifyContent: 'center' },
 });
 
 /* Filmmaker vive en el marco oscuro de WeëAI, con las dos caras. */
