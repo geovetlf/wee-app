@@ -61,7 +61,7 @@ check('C2) toda clave usada existe', [...usadas].every((k) => claves2(es).includ
 const etiquetas = new Set(M.MODELOS_DE_FILMMAKER.flatMap((m) => m.etiquetas));
 check('C3) toda microetiqueta tiene su texto', [...etiquetas].every((e) => claves2(es).includes(e)));
 const todo = fuentes.slice(0, 2).join('\n');
-check('C4) ninguna fila con scroll horizontal ni id técnico a la vista', !/horizontal/.test(todo) && !/idServidor|dreamina/.test(todo));
+check('C4) ninguna fila con scroll horizontal ni id técnico a la vista', !/horizontal/.test(todo) && !/dreamina/.test(todo) && !/>{[^}]*idServidor/.test(todo));
 check('C5) las píldoras saltan de línea (flexWrap) y miden al menos 44 dp', /flexWrap: 'wrap'/.test(todo) && /minHeight: 52/.test(todo) && /minHeight: 44/.test(todo));
 check('C6) la pantalla monta el resumen y la hoja Proyecto lo contiene', /ResumenDeEspecificaciones/.test(leer('screens/FilmmakerCrearScreen.tsx')) && /ContenidoDeEspecificaciones/.test(leer('components/filmmaker/HojaDeProyecto.tsx')));
 check('C7) no hay buscador y no se muestra ningún coste inventado', !/TextInput/.test(todo) && /costTbc/.test(todo) && !/USD/.test(todo));

@@ -110,6 +110,11 @@ const llamarPorLaToma = async <T,>(datos: Record<string, unknown>, timeout: numb
   }
 };
 
+export interface CapacidadesParaLaApp {
+  readonly status: 'CAPABILITIES';
+  readonly models: readonly { readonly modeloId: string; readonly available: { readonly referencias: boolean; readonly fotogramas: boolean; readonly extender: boolean; readonly editar: boolean } }[];
+}
+
 export const videoService = {
   generateVideo: async (input: GenerateVideoInput): Promise<GenerateVideoResult> => {
     const requestId = input.requestId || newRequestId('video');
@@ -118,6 +123,9 @@ export const videoService = {
     /* El id es el que se mandó, no uno que se invente aquí: es con el que se reintenta sin volver a cobrar. */
     return result.data.status === 'ACCEPTED' ? { ...result.data, requestId } : result.data;
   },
+
+  /** Solo leer: qué entradas (referencias, fotogramas, extender, editar) puede usar hoy cada modelo. Datos del código del servidor: ni cupo, ni reserva, ni proveedor. */
+  capacidades: () => llamarPorLaToma<CapacidadesParaLaApp>({ capacidades: true }, 20_000),
 
   /** Solo mirar: si esa toma se puede, cuánto costaría y qué tomas tiene ya el plano. Ni reserva ni cupo. */
   quoteTake: (plano: PlanoDeToma): Promise<ResultadoDeToma<CotizacionDeToma>> =>

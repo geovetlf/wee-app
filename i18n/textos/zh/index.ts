@@ -76,6 +76,7 @@ import { onboarding } from './onboarding';
 import { aiAvatar } from './aiAvatar';
 import { moderation } from './moderation';
 import { filmmaker } from './filmmaker';
+import { filmmakerSpecs } from './filmmakerSpecs';
 import { filmmakerProd } from './filmmakerProd';
 import { filmmakerImagenes } from './filmmakerImagenes';
 import { filmmakerDocumentos } from './filmmakerDocumentos';
@@ -127,6 +128,7 @@ export const zh: FormaDelDiccionario = {
   brain,
   moderation,
   filmmaker,
+  filmmakerSpecs,
   filmmakerProd,
   filmmakerImagenes,
   filmmakerDocumentos,

@@ -6,6 +6,7 @@ import { useDireccion } from '../../hooks/useDireccion';
 import { PORTADA_WEEAI as P, textoPortada } from '../../constants/estiloWeeAi';
 import { IdeaDelTaller, duracionDe, duracionesDelTipo, etiquetaAccesible, poner } from '../../utils/ideaDeFilmmaker';
 import { elegirModelo, modeloDeLaIdea, opcionesDe } from '../../utils/especificacionesDeFilmmaker';
+import { useCapacidadesDeVideo } from '../../hooks/useCapacidadesDeVideo';
 import { RejillaDeModelos } from './PanelDeEspecificacionesModelos';
 
 type Props = { idea: IdeaDelTaller; onIdea: (i: IdeaDelTaller) => void };
@@ -25,6 +26,7 @@ export const CuerpoDeEspecificaciones: React.FC<Props & { onModelos: () => void 
   const modelo = modeloDeLaIdea(idea);
   const o = opcionesDe(modelo);
   const total = duracionDe(idea);
+  const entradas = useCapacidadesDeVideo().entradasDe(modelo?.idServidor);
   const chip = (clave: string, etiqueta: string, sel: boolean, onPress: () => void) => (
     <TouchableOpacity key={clave} onPress={onPress} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiqueta} accessibilityState={{ selected: sel }} style={[styles.chip, sel && styles.chipSel]}>
       <Text style={[textoPortada(14, sel ? '600' : '500'), { color: P.tinta }]}>{etiqueta}</Text>
@@ -62,7 +64,7 @@ export const CuerpoDeEspecificaciones: React.FC<Props & { onModelos: () => void 
       <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerSpecs.soundHint')}</Text>
 
       <TouchableOpacity onPress={() => setMas((v) => !v)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmaker.projAdvanced')} accessibilityState={{ expanded: mas }} style={[styles.mas, dir.contenedor]}>
-        <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tintaSecundaria, flex: 1 }]}>{t('filmmaker.projAdvanced')}</Text>
+        <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tintaSecundaria, flex: 1 }]}>{t('filmmaker.projAdvanced')} · {t('filmmakerSpecs.seedFold')}</Text>
         <Ionicons name={mas ? 'chevron-up' : 'chevron-down'} size={16} color={P.tintaSecundaria} />
       </TouchableOpacity>
       {mas ? (
@@ -75,6 +77,21 @@ export const CuerpoDeEspecificaciones: React.FC<Props & { onModelos: () => void 
             ))}
           </View>
           <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{t('filmmakerSpecs.moreClosed')}</Text>
+          {modelo ? (
+            <>
+              <Text style={[textoPortada(13, '500'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerSpecs.inputsTitle')}</Text>
+              <View style={[styles.fila, dir.contenedor]}>
+                {([['referencias', 'filmmakerSpecs.inRefs'], ['fotogramas', 'filmmakerSpecs.inFrames'], ['extender', 'filmmakerSpecs.inExtend'], ['editar', 'filmmakerSpecs.inEdit']] as const).map(([k, clave]) => {
+                  const si = entradas[k];
+                  return (
+                    <View key={k} style={[styles.chip, !si && styles.cerrado]} accessible accessibilityLabel={etiquetaAccesible(t(clave), t(si ? 'filmmakerSpecs.available' : 'filmmakerSpecs.soon'))} accessibilityState={{ disabled: !si }}>
+                      <Text style={[textoPortada(14, '500'), { color: si ? P.tinta : P.tintaSecundaria }]}>{t(clave)}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </>
+          ) : null}
         </View>
       ) : null}
       <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerSpecs.costTbc')}</Text>
@@ -105,7 +122,8 @@ export const ResumenDeEspecificaciones: React.FC<{ idea: IdeaDelTaller; compacto
   const r = idea.valores.resolution || auto;
   const d = t('filmmaker.hubSeconds', { n: formato.numero(duracionDe(idea)) });
   const s = t(claveDeSonido(o.audio));
-  const etiquetaCompleta = etiquetaAccesible(t('filmmakerSpecs.summaryLabel'), nombre, f, r, d, s, t('filmmakerSpecs.openLabel'));
+  const q = modelo?.perfil ? t(modelo.perfil === 'rapido' ? 'filmmakerSpecs.qualityFast' : modelo.perfil === 'calidad' ? 'filmmakerSpecs.qualityBest' : 'filmmakerSpecs.qualityBalanced') : auto;
+  const etiquetaCompleta = etiquetaAccesible(t('filmmakerSpecs.summaryLabel'), nombre, f, r, d, q, s, t('filmmakerSpecs.openLabel'));
   if (compacto) {
     return (
       <TouchableOpacity onPress={onAbrir} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaCompleta} style={[styles.linea, dir.contenedor]}>
@@ -133,11 +151,14 @@ export const ResumenDeEspecificaciones: React.FC<{ idea: IdeaDelTaller; compacto
         {dato('filmmaker.projFormat', f)}
         {dato('filmmaker.projResolution', r)}
         {dato('filmmaker.projDuration', d)}
+        {dato('filmmakerSpecs.quality', q)}
         {dato('filmmakerSpecs.sound', s)}
         {dato('filmmakerSpecs.variants', t('filmmakerSpecs.soon'), true)}
-        {dato('filmmakerSpecs.seed', t('filmmakerSpecs.soon'), true)}
       </View>
-      <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerSpecs.costTbc')}</Text>
+      <View style={[styles.pie, dir.contenedor]}>
+        <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tintaSecundaria, flex: 1 }]} numberOfLines={1}>{t('filmmakerSpecs.seedFold')} · {t('filmmakerSpecs.soon')}</Text>
+        <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tintaSecundaria, flexShrink: 1 }]} numberOfLines={1}>{t('filmmakerSpecs.costTbc')}</Text>
+      </View>
     </TouchableOpacity>
   );
 };
@@ -153,6 +174,7 @@ const styles = StyleSheet.create({
   linea: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 44, paddingHorizontal: 16 },
   tarjeta: { alignSelf: 'stretch', marginHorizontal: 20, padding: 16, gap: 14, borderRadius: 24, borderWidth: 1, borderColor: P.bordeLuz, backgroundColor: P.superficie },
   cabeza: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  pie: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   rejilla: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 },
   dato: { width: '33.33%', minHeight: 44, gap: 2, paddingRight: 8 },
 });
