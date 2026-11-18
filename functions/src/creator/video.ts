@@ -17,7 +17,8 @@ import { ensureAccount } from './credits';
 import { assertInputImageUrl } from './inputs';
 import { AI_SECRETS } from '../secrets';
 import { CapabilityId, POLITICA_DE_TRABAJO, operacionAbandonada } from '../core';
-import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio, politicaDe, segundosParaElProveedor, trabajoDelMedioDeWee } from '../runtime';
+import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, atencionDeWee, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio, politicaDe, reconciliarUno, segundosParaElProveedor, trabajoDelMedioDeWee } from '../runtime';
+import { almacenDeTrabajos } from '../runtime/almacen';
 import { crearMaterialDesdeUrl, leerMaterial } from '../content';
 import { loadCostOverrides } from '../credits/creditCosts';
 import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
@@ -26,7 +27,7 @@ import { mismoRequisito, requisitoDelServidor } from './requisitoDelServidor';
 import { generarLote, presupuestarLote } from './lotes';
 import { cancelarToma } from './cancelacionDeToma';
 import { CAPACIDADES_DE_VIDEO, capacidadesConEstado } from '../engine/capacidadesDeVideo';
-import { SEEDANCE_MODEL_IDS } from '../engine/providers/seedance';
+import { SEEDANCE_MODEL_IDS, pararTareaDeSeedance, resolutorDeSeedance } from '../engine/providers/seedance';
 import { MODEL_CAPABILITIES_VERSION } from '../core/model-capability';
 import { MODELOS_VALIDADOS_POR_ENTRADA } from './entradasDePlano';
 import { LIMITES_DE_PLANO, PLANTILLA_DE_PLANO, PlanoRepresentable, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano } from './plano';
@@ -411,6 +412,8 @@ const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown>
     await exigirCuentaWeeValida(request.auth);
     const uid = request.auth.uid;
     const data = (request.data || {}) as GenerateVideoInput;
+    /* Ola 3b: leer las capacidades de los modelos. No genera, no reserva, no cobra: contesta datos del código. */
+    if (data.capacidades === true) return capacidadesParaLaApp();
     /*
      * ── VARIOS PLANOS: EL LOTE PASA POR ESTA MISMA PUERTA ───────────────────
      *
@@ -428,22 +431,27 @@ const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown>
     /*
      * ── CANCELAR UNA TOMA ───────────────────────────────────────────────────
      *
-     * Se para lo que todavía se puede parar y el dinero se mueve por el puerto de siempre. SIN `parar`: en esta rama el
-     * adaptador de Seedance no sabe pedirle al proveedor que pare una tarea ya aceptada, así que una toma aceptada
-     * contesta `take_accepted` (no se puede cancelar) en vez de simular que se paró.
+     * Por esta misma puerta porque es la de la toma y la que tiene la clave del proveedor, la única forma de parar algo
+     * que ModelArk ya aceptó —y eso solo con su puerta abierta (`aiSettings/cancelacion`, cerrada por defecto)—. Nada de
+     * aquí genera, reserva ni cobra: se para lo que todavía se puede y el dinero se mueve por el puerto de siempre.
      */
     if (data.cancelar === true) {
       const identidad = leerIdentidadDeToma(data.plano);
       if (!identidad) throw new EngineError('INVALID_REQUEST', 'Faltan datos de la toma o no tienen forma válida.');
       const cuenta = await cuentaDelPrincipalEnWee(getFirestore(), uid);
       if (!cuenta) throw new EngineError('UNAUTHORIZED');
-      const r = await cancelarToma(getFirestore(), { accountId: cuenta.accountId }, identidad, { at: Date.now(), vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS });
+      const r = await cancelarToma(getFirestore(), { accountId: cuenta.accountId }, identidad, {
+        at: Date.now(),
+        vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS,
+        parar: (operacion) => pararTareaDeSeedance(operacion),
+        reconciliar: (job) => reconciliarUno({
+          ...atencionDeWee({ db: getFirestore() }), trabajos: almacenDeTrabajos(getFirestore()), resolutores: { seedance: resolutorDeSeedance }, plazos: PLAZOS_DE_VIDEO,
+        }, job),
+      });
       return r.ok
         ? { status: 'CANCELLED', state: r.estado, ...(r.reembolso ? { refund: r.reembolso } : {}) }
         : { status: 'NOT_CANCELLED', reason: r.motivo };
     }
-    /* Ola 3b: leer las capacidades de los modelos. No genera, no reserva, no cobra: contesta datos del código. */
-    if (data.capacidades === true) return capacidadesParaLaApp();
     /*
      * ── F1-D · UNA TOMA DE UN PLANO ─────────────────────────────────────────
      *
