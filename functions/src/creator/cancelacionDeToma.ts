@@ -4,8 +4,6 @@ import { usageTransactionId } from '../credits/creditTransactions';
 import { crearMotorDeTrabajosDeWee } from '../job';
 import { PuertoDeLiquidacion, decidirLiquidacion, liquidacionDeWee, reservaDe, trabajoDelMedioDeWee } from '../runtime';
 import { almacenDeTrabajos } from '../runtime/almacen';
-/* El runtime de esta rama no lleva el libro de generaciones (`costeDeLaOperacion`): sin él no hay coste que anotar al reembolsar. */
-const costeDeLaOperacion = (_job: Job): Record<string, never> => ({});
 import { IdentidadDeToma, requestIdDeToma } from './toma';
 
 /**
@@ -247,7 +245,7 @@ export const cancelarToma = async (
     const liquidacion = decidirLiquidacion(job, deps.at);
     const reserva = reservaDe(job);
     if (liquidacion.tipo !== 'reembolsar' || !reserva) return undefined;
-    const hecho = await puerto.reembolsar({ userId: accountId, reserva, motivo: liquidacion.motivo, jobId: job.jobId, ...costeDeLaOperacion(job) });
+    const hecho = await puerto.reembolsar({ userId: accountId, reserva, motivo: liquidacion.motivo, jobId: job.jobId, job });
     if (hecho.desenlace === 'reembolsada' || hecho.desenlace === 'ya_estaba') return hecho.desenlace;
     /* El puerto no pudo: el barrido lo vuelve a intentar con lo mismo, y la toma sigue apareciendo como «devolviendo». */
     return undefined;
@@ -274,6 +272,8 @@ export const cancelarToma = async (
           reserva: { requestId, transactionId: usageTransactionId(requestId), importe: (reserva as ReservaDeLaToma).importe },
           motivo: 'no_salio',
           jobId: '',
+          /* Sin trabajo no hay con qué cerrar el libro: `liquidacionDeWee` lo admite (`cerrarLoAceptado` mira `job` antes de usarlo). */
+          job: undefined as unknown as Job,
         });
         if (hecho.desenlace === 'reembolsada' || hecho.desenlace === 'ya_estaba') return { ok: true, estado: 'devuelta', reembolso: hecho.desenlace };
         return { ok: false, motivo: 'take_cancel_pending' };
@@ -373,7 +373,7 @@ export const terminarCancelacionesPendientes = async (
         const liquidacion = decidirLiquidacion(r.job, deps.at);
         const reserva = reservaDe(r.job);
         if (liquidacion.tipo !== 'reembolsar' || !reserva) continue;
-        const hecho = await puerto.reembolsar({ userId: r.job.owner.userId, reserva, motivo: liquidacion.motivo, jobId: r.job.jobId, ...costeDeLaOperacion(r.job) });
+        const hecho = await puerto.reembolsar({ userId: r.job.owner.userId, reserva, motivo: liquidacion.motivo, jobId: r.job.jobId, job: r.job });
         if (hecho.desenlace === 'reembolsada' || hecho.desenlace === 'ya_estaba') devueltas++;
         else errores++;
       } catch {
