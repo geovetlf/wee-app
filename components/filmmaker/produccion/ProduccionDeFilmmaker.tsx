@@ -190,7 +190,7 @@ export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guard
         })}
       </ScrollView>
       <View style={styles.pie}>
-        <BotonBlanco texto={t('filmmakerProd.goJoin')} onPress={onJuntar} apagado={aprobadas.length === 0} motivo={t('filmmakerProd.prodEmpty')} testID="produccion-juntar" />
+        <BotonBlanco texto={t('filmmakerProd.goJoin')} onPress={onJuntar} apagado={aprobadas.length === 0 || !PRODUCCION_ABIERTA} motivo={aprobadas.length === 0 ? t('filmmakerProd.prodEmpty') : t('filmmakerTandas.produceClosed')} testID="produccion-juntar" />
       </View>
     </View>
   );
