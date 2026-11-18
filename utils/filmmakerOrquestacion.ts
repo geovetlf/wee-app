@@ -31,9 +31,10 @@ import type { ElementoDeUniverso, UniversoDelTaller } from './universoDeFilmmake
 
 /* ── Tipo de proyecto → tipo de producción del contrato ───────────────────── */
 
-/** Los tipos de la experiencia que el contrato tiene. «Serie» no existe como tipo (una tanda no es una temporada): no hay entrada y se cierra. */
+/** Los tipos de la experiencia que el contrato tiene. «Serie» no existe como tipo (una tanda no es una temporada): no hay entrada y se cierra.
+ *  «Videoclip» NO es de Filmmaker (decisión del dueño, 2026-11-18: vive en la sección Vídeos): ni existe aquí ni se mapea a `music_video`. */
 export const TIPO_DE_PRODUCCION: Readonly<Record<string, ProductionType>> = Object.freeze({
-  short: 'short_film', film: 'cinematic', ad: 'ad', clip: 'music_video',
+  short: 'short_film', film: 'cinematic', ad: 'ad',
 });
 
 /* ── Identificadores: el contrato pide 4–160 de [A-Za-z0-9_.:-] ───────────── */
@@ -54,7 +55,7 @@ export const idDePlano = (cuadroId: string): string => conPrefijo('sh_', cuadroI
 export interface ExperienciaDeFilmmaker {
   readonly productionId: string;
   readonly idea: string;
-  /** Id del tipo de la experiencia (`short`, `film`, `ad`, `clip`…). */
+  /** Id del tipo de la experiencia (`short`, `film`, `ad`; `series` se cierra). */
   readonly tipo: string;
   /** Id del estilo elegido (obligatorio en la experiencia: sin estilo no se avanza). */
   readonly estilo: string;

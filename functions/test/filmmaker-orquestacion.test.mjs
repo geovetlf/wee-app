@@ -37,6 +37,9 @@ check('A9) personaje que habla = `dialogue` por defecto (a cámara: contrato 6 l
   && O.produccionDesdeLaExperiencia({ ...exp, hablaComo: 'voiceover', tandas: T.editarCuadro(tandas, tid, c1, { hablante: 'e1' }) }).production.scenes[0].shots[0].dialogue?.[0].kind === 'voiceover');
 check('A10) tipo sin equivalente (serie) se dice, no se inventa', O.produccionDesdeLaExperiencia({ ...exp, tipo: 'series' }).omisiones.some((o) => o.motivo === 'tipo_sin_equivalente'));
 
+check('A11) Videoclip ya no es de Filmmaker: `clip` no se mapea a `music_video`', O.TIPO_DE_PRODUCCION.clip === undefined && !Object.values(O.TIPO_DE_PRODUCCION).includes('music_video')
+  && O.produccionDesdeLaExperiencia({ ...exp, tipo: 'clip' }).omisiones.some((o) => o.motivo === 'tipo_sin_equivalente'));
+
 console.log('── B · Estados ──');
 check('B1) toma en marcha → en_proceso → tanda «producing»', O.estadoDeCuadro({ fase: 'en_proceso' }) === 'en_proceso' && O.produccionDeTanda(['lista', 'en_proceso']) === 'producing');
 check('B2) todos listos → «done»; alguno fallido sin nada en marcha → «error»; nada → sin estado', O.produccionDeTanda(['lista', 'lista']) === 'done' && O.produccionDeTanda(['lista', 'fallida']) === 'error' && O.produccionDeTanda(['sin_toma']) === undefined);
