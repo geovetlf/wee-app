@@ -197,6 +197,14 @@ export { barridoDeLiquidacion } from './settlement/programado';
  */
 export { mediaCanary } from './media/canary';
 
+/*
+ * WEË STUDIO · EL RENDER FINAL DE UNA PRODUCCIÓN (Filmmaker: «Juntar»). `renders` pide y mira el render —qué se monta lo calcula
+ * el servidor desde la producción guardada— y `renderWorker` lo monta con FFmpeg (`ffmpeg-static`) como tarea general del
+ * Job Engine (`media.render`). Ni Credits, ni proveedores de IA, ni el conductor. NACE CERRADO: sin `aiSettings/render`
+ * nadie puede pedir un render. Desplegarlas es decisión del dueño (workflow).
+ */
+export { renders, renderWorker } from './creator/renders';
+
 // Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits
 export {
   getCreditsBalance,
