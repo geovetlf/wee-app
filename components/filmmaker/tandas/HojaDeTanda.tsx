@@ -10,6 +10,7 @@ import { Tanda, TOPES_TANDAS } from '../../../utils/tandasDeFilmmaker';
 import { EFECTOS_DE_SONIDO_ABIERTOS, MUSICA_DE_ESCENA_ABIERTA, VOCES_PREDETERMINADAS } from '../../../constants/filmmakerSonido';
 import { VOZ_AUTO, herenciaDe, vozPorId } from '../../../utils/sonidoDeFilmmaker';
 import { SelectorDeVoz } from '../sonido/SelectorDeVoz';
+import { CajaDePrompt } from '../../creator/CajaDePrompt';
 import { BotonBlanco, BotonContorno, FilaCerrada, estilosComunes as E, useTiempo } from './comunes';
 
 interface Props {
@@ -25,6 +26,8 @@ interface Props {
   onPartir: (id: string) => void;
   onUnir: (id: string) => void;
   onQuitar: (id: string) => void;
+  /** «Pídele un cambio a Weë» sobre ESTE capítulo: `enviar` recibe lo escrito, `contenido` es la respuesta de Weë (la pone la pantalla) y `version` sube al aplicarse un cambio. */
+  pedirCambio?: { enviar: (texto: string) => void; contenido: React.ReactNode; version: number };
 }
 
 /** Los pasos del objetivo: 30 s arriba o abajo (un capítulo de 3:00 son seis pasos). */
@@ -34,7 +37,7 @@ const PASO = 30;
  * LAS OPCIONES DE UNA TANDA (hoja inferior desde «⋯»): nombre, duración objetivo, mover, partir por la mitad, unir con la siguiente y quitar. Cada acción
  * que no se puede hacer sale apagada con su motivo. Quitar pide un segundo toque (no hay deshacer). Nombre y objetivo se guardan al pulsar «Listo».
  */
-export const HojaDeTanda: React.FC<Props> = ({ tanda, posicion, total, puedePartir, puedeUnir, onClose, onGuardar, onVoz, onMover, onPartir, onUnir, onQuitar }) => {
+export const HojaDeTanda: React.FC<Props> = ({ tanda, posicion, total, puedePartir, puedeUnir, onClose, onGuardar, onVoz, onMover, onPartir, onUnir, onQuitar, pedirCambio }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
@@ -45,7 +48,10 @@ export const HojaDeTanda: React.FC<Props> = ({ tanda, posicion, total, puedePart
   const [seguro, setSeguro] = useState(false);
   const [selector, setSelector] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
-  useEffect(() => { if (tanda) { setTitulo(tanda.titulo); setObjetivo(tanda.objetivo); setSeguro(false); } }, [tanda?.id]);
+  const [pide, setPide] = useState(false);
+  const [cambio, setCambio] = useState('');
+  useEffect(() => { if (tanda) { setTitulo(tanda.titulo); setObjetivo(tanda.objetivo); setSeguro(false); } }, [tanda?.id, pedirCambio?.version]);
+  useEffect(() => { setPide(false); setCambio(''); }, [tanda?.id]);
   if (!tanda) return null;
   const accion = (f: () => void) => () => { f(); onClose(); };
   const campo = [E.campo, textoPortada(16, '400'), dir.texto, { color: P.tinta }, Platform.OS === 'web' && ({ outlineStyle: 'none' } as any)];
@@ -81,6 +87,23 @@ export const HojaDeTanda: React.FC<Props> = ({ tanda, posicion, total, puedePart
             {!MUSICA_DE_ESCENA_ABIERTA ? <FilaCerrada compacta titulo={t('filmmakerSonido.layerMusic')} motivo={t('filmmakerSonido.musicClosed')} icono="musical-notes-outline" onAviso={setAviso} /> : null}
             {!EFECTOS_DE_SONIDO_ABIERTOS ? <FilaCerrada compacta titulo={t('filmmakerSonido.layerEffects')} motivo={t('filmmakerSonido.effectsClosed')} icono="volume-high-outline" onAviso={setAviso} /> : null}
             {aviso ? <Text style={[textoPortada(13, '500'), dir.texto, { color: P.tinta, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: P.bordeLuz }]} accessibilityLiveRegion="polite">{aviso}</Text> : null}
+
+            {/* «Pídele un cambio a Weë»: una fila plegada, la misma de la ficha del cuadro; abre la caja común de Weë Brain. */}
+            {pedirCambio ? (
+              <>
+                <TouchableOpacity onPress={() => setPide((p) => !p)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmakerDirector.askChange')} accessibilityState={{ expanded: pide }} style={[styles.voz, dir.contenedor]}>
+                  <Ionicons name="sparkles-outline" size={18} color={P.tinta} />
+                  <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tinta, flex: 1 }]}>{t('filmmakerDirector.askChange')}</Text>
+                  <Ionicons name={pide ? 'chevron-up' : 'chevron-down'} size={18} color={P.tintaSecundaria} />
+                </TouchableOpacity>
+                {pide ? (
+                  <View style={{ gap: 8 }}>
+                    {pedirCambio.contenido}
+                    <CajaDePrompt portada enviarDiscreto valor={cambio} onCambiar={setCambio} onEnviar={() => { const dicho = cambio.trim(); if (dicho) { pedirCambio.enviar(dicho); setCambio(''); } }} etiquetaEnviar={t('studio.sendLabel')} placeholder={t('filmmakerDirector.askChangePlaceholder')} />
+                  </View>
+                ) : null}
+              </>
+            ) : null}
 
             <View style={[E.fila, dir.contenedor, { marginTop: 4 }]}>
               <BotonContorno texto={t('filmmakerTandas.moveUp')} icono="arrow-up" apagado={posicion <= 1} onPress={accion(() => onMover(tanda.id, -1))} />

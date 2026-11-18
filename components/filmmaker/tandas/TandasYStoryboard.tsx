@@ -33,7 +33,7 @@ export interface TandasYStoryboardProps {
   /** Pasa a la etapa de Producción (el botón «Producir» del storyboard con el capítulo ya guardado en el almacén). */
   onProducir?: () => void;
   /** «Pídele un cambio a Weë» en la ficha del cuadro: la pantalla anfitriona pone a Weë Brain; aquí solo se le da la selección (escena y plano del servidor). */
-  pedirCambio?: { enviar: (texto: string, seleccion: { sceneId: string; shotId: string }) => void; contenido: React.ReactNode; version: number };
+  pedirCambio?: { enviar: (texto: string, seleccion: { sceneId: string; shotId?: string }) => void; contenido: React.ReactNode; version: number };
 }
 
 /**
@@ -133,6 +133,7 @@ export const TandasYStoryboard: React.FC<TandasYStoryboardProps> = ({ ancho, com
         onPartir={(id) => poner((s) => partirTanda(s, id))}
         onUnir={(id) => poner((s) => unirConSiguiente(s, id))}
         onQuitar={(id) => { poner((s) => quitarTanda(s, id)); if (abierta === id) setAbierta(null); }}
+        pedirCambio={pedirCambio && enOpciones ? { version: pedirCambio.version, contenido: pedirCambio.contenido, enviar: (texto) => pedirCambio.enviar(texto, { sceneId: idDeEscena(enOpciones.id) }) } : undefined}
       />
     </View>
   );
