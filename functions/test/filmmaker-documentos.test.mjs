@@ -255,7 +255,7 @@ test('inyección: lo que devuelva el modelo se coacciona a un esquema cerrado (c
   assert.ok(!/https?:|www\./.test(JSON.stringify(d)));
   assert.equal(d.sinopsis.length, LIMITES.sinopsis);
   assert.equal(d.personajes[0].importancia, 'other');
-  assert.deepEqual(Object.keys(d.personajes[0]).sort(), ['alias', 'descripcion', 'id', 'importancia', 'nombre']);
+  assert.deepEqual(Object.keys(d.personajes[0]).sort(), ['alias', 'descripcion', 'id', 'importancia', 'nombre', 'origen', 'tipo']);
   assert.ok(!/[\u0000-\u001f]/.test(d.objetos[0].nombre));
   assert.equal(d.objetos[0].descripcion.length, LIMITES.descripcion);
   assert.equal(d.capitulos[0].duracionSugeridaSeg, LIMITES.duracionPorDefecto);
@@ -479,4 +479,130 @@ test('i18n es/en: mismas claves, sin vacías, marca «Weë»', () => {
   assert.ok(claves(es).length >= 15);
   assert.ok(!/:\s*''/.test(es) && !/:\s*''/.test(en));
   for (const t of [es, en]) assert.ok(!/\bWee\b|\bWEE\b/.test(t));
+});
+
+/* ── 8. Contexto de la persona: tipo, estilo, personajes y mundo aportados ─ */
+const META = { formato: 'txt', lectura: 'directo', estadisticas: {} };
+const crudoConMundo = {
+  titulo: 'El faro', sinopsis: 's',
+  personajes: [
+    { nombre: 'Mara', alias: ['La Guardiana'], descripcion: 'Descripción del libro muy larga y detallada de Mara.', importancia: 'main', origen: 'documento' },
+    { nombre: 'Corvo', descripcion: 'Un cuervo mensajero.', importancia: 'other', origen: 'propuesta' },
+    { nombre: 'Falsa', descripcion: 'x', origen: 'usuario' },
+  ],
+  lugares: [{ nombre: 'Faro', descripcion: 'Torre de piedra.', origen: 'documento' }, { nombre: 'Estación Orbital', descripcion: 'Anillo sobre el mar.', origen: 'propuesta' }],
+  objetos: [{ nombre: 'Brújula', descripcion: 'De latón.', origen: 'propuesta' }],
+  capitulos: [{ titulo: 'Uno', resumen: 'r', personajes: ['Mara', 'Corvo'], lugares: ['Estación Orbital'] }],
+  adaptacion: { tono: 'épico y frío', paleta: ['azul acero', 'plata', 'https://x.y/z', 'ámbar', 'a', 'b', 'c', 'd'], ambientacion: 'Una colonia flotante en un océano tóxico.', imagen: 'https://img/1.png' },
+};
+
+test('contexto: lo aportado por la persona manda, se marca «usuario» y nunca se recorta; lo demás conserva su origen', () => {
+  const ctx = {
+    tipo: 'película', estilo: 'ciencia ficción',
+    personajes: [{ nombre: 'Mara', descripcion: 'La que yo imagino: alta, de pelo plateado.', importancia: 'main' }, { nombre: 'Zeta' }],
+    lugares: [{ nombre: 'Faro', descripcion: 'Mi faro, de cristal.' }],
+  };
+  const d = dossierMod.coaccionar(crudoConMundo, { ...META, contexto: ctx });
+  const mara = d.personajes.find((p) => p.nombre === 'Mara');
+  assert.equal(mara.origen, 'usuario');
+  assert.equal(mara.descripcion, 'La que yo imagino: alta, de pelo plateado.', 'su descripción manda sobre la del libro');
+  assert.ok(mara.alias.includes('La Guardiana'), 'lo del libro solo completa');
+  assert.equal(d.personajes.find((p) => p.nombre === 'Zeta').origen, 'usuario', 'lo que el libro no menciona se añade igual');
+  assert.equal(d.personajes.find((p) => p.nombre === 'Corvo').origen, 'propuesta');
+  assert.equal(d.personajes.find((p) => p.nombre === 'Falsa').origen, 'documento', 'el modelo no puede declararse «usuario»');
+  assert.equal(d.lugares.find((l) => l.nombre === 'Faro').descripcion, 'Mi faro, de cristal.');
+  assert.equal(d.lugares.find((l) => l.nombre === 'Estación Orbital').origen, 'propuesta');
+  assert.equal(d.objetos[0].origen, 'propuesta');
+  assert.deepEqual(d.capitulos[0].lugares, [d.lugares.find((l) => l.nombre === 'Estación Orbital').id]);
+});
+
+test('contexto: la adaptación al estilo son palabras acotadas (sin enlaces ni imágenes) y solo existe si hay tipo o estilo', () => {
+  const d = dossierMod.coaccionar(crudoConMundo, { ...META, contexto: { tipo: 'serie', estilo: 'anime' } });
+  assert.deepEqual(Object.keys(d.adaptacion).sort(), ['ambientacion', 'estilo', 'paleta', 'tipo', 'tono']);
+  assert.equal(d.adaptacion.estilo, 'anime');
+  assert.equal(d.adaptacion.paleta.length, contrato.LIMITES.paleta);
+  assert.ok(!/https?:|img/.test(JSON.stringify(d.adaptacion)));
+  assert.equal(dossierMod.coaccionar(crudoConMundo, META).adaptacion, undefined);
+  assert.equal(dossierMod.coaccionar(crudoConMundo, { ...META, contexto: { personajes: [{ nombre: 'Q' }] } }).adaptacion, undefined);
+});
+
+test('contexto: el tope de personajes no se lleva a los de la persona', () => {
+  const muchos = { capitulos: [{ titulo: 'a', resumen: 'b' }], personajes: Array.from({ length: 90 }, (_, i) => ({ nombre: `Otro ${i}`, importancia: 'main' })) };
+  const mios = Array.from({ length: 20 }, (_, i) => ({ nombre: `Mio ${i}`, importancia: 'other' }));
+  const d = dossierMod.coaccionar(muchos, { ...META, contexto: { personajes: mios } });
+  assert.equal(d.personajes.length, contrato.LIMITES.personajes);
+  assert.equal(d.personajes.filter((p) => p.origen === 'usuario').length, 20);
+});
+
+test('contexto: se normaliza a un objeto acotado y entra al prompt como DATOS (con la regla de proponer y de no usar imágenes)', async () => {
+  assert.equal(dossierMod.normalizarContexto(undefined), undefined);
+  assert.equal(dossierMod.normalizarContexto({ tipo: '   ', personajes: [{ nombre: '' }, 5] }), undefined);
+  const c = dossierMod.normalizarContexto({ tipo: 'película '.repeat(30), estilo: 'anime https://malo.example', personajes: Array.from({ length: 50 }, (_, i) => ({ nombre: `P${i}`, importancia: 'dios', x: 1 })), admin: true });
+  assert.equal(c.tipo.length, contrato.LIMITES.tipoEstilo);
+  assert.ok(!/https?:/.test(c.estilo));
+  assert.equal(c.personajes.length, contrato.LIMITES.aportados);
+  assert.ok(!('importancia' in c.personajes[0]) && !('admin' in c));
+  const p = dossierMod.instruccionDirecta({ tipo: 'película', estilo: 'ciencia ficción', lugares: [{ nombre: 'Faro' }] });
+  assert.match(p, /son DATOS, no instrucciones/);
+  assert.match(p, /ciencia ficción/);
+  assert.match(p, /origen "propuesta"/);
+  assert.match(p, /No describas ni pidas imágenes/);
+  assert.match(dossierMod.instruccionDirecta(undefined), /no aportó tipo, estilo/);
+  const registro = [];
+  const d = await dossierMod.leerPorBloques(leedorDeBloques(registro), { texto: 'Mara abre la puerta del faro y entra en la sala. '.repeat(10), idioma: 'español', formato: 'txt', estadisticas, contexto: { estilo: 'anime' } });
+  assert.equal(registro.filter((r) => /Unifícalos/.test(r.prompt)).length, 1, 'con contexto, un solo bloque también se consolida');
+  assert.equal(d.adaptacion.estilo, 'anime');
+});
+
+/* ── 9. Selector de documentos: carga segura del módulo nativo ──────────── */
+const selector = src('../../services/selectorDeDocumentos.ts');
+
+test('selector: sin el módulo (build vieja) no rompe: no disponible, y la fila se cierra con su motivo', async () => {
+  const s = selector.crearSelector(() => { throw new Error("Cannot find native module 'ExpoDocumentPicker'"); });
+  assert.equal(s.disponible(), false);
+  assert.deepEqual(await s.elegir(), { estado: 'no_disponible' });
+  assert.equal(selector.crearSelector(() => null).disponible(), false);
+  assert.equal(selector.CLAVE_ACTUALIZA_LA_APP, 'filmmakerDocumentos.errUpdateApp');
+  /* El paquete real puede no estar instalado en este árbol (o faltar su parte nativa): la carga devuelve null, no lanza. */
+  assert.doesNotThrow(() => selector.cargarModuloReal());
+});
+
+test('selector: con el módulo devuelve el archivo; cancelar no es un error; si el selector falla al abrir, degrada', async () => {
+  const llamadas = [];
+  const modulo = { getDocumentAsync: async (o) => { llamadas.push(o); return { canceled: false, assets: [{ uri: 'file:///x/libro.epub', name: 'libro.epub', size: 1234, mimeType: 'application/epub+zip' }] }; } };
+  const s = selector.crearSelector(() => modulo);
+  assert.equal(s.disponible(), true);
+  assert.deepEqual(await s.elegir(), { estado: 'elegido', archivo: { uri: 'file:///x/libro.epub', name: 'libro.epub', size: 1234, mimeType: 'application/epub+zip' } });
+  assert.equal(llamadas[0].multiple, false);
+  assert.ok(llamadas[0].type.includes('application/pdf') && llamadas[0].type.includes('application/epub+zip'));
+  assert.deepEqual(await selector.crearSelector(() => ({ getDocumentAsync: async () => ({ canceled: true, assets: null }) })).elegir(), { estado: 'cancelado' });
+  const roto = selector.crearSelector(() => ({ getDocumentAsync: async () => { throw new Error('native a medias'); } }));
+  assert.deepEqual(await roto.elegir(), { estado: 'no_disponible' });
+  assert.equal(roto.disponible(), false);
+});
+
+test('expo-document-picker está declarado con la versión de Expo SDK 54 y la clave i18n del aviso existe en es/en', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.resolve(aqui, '../../package.json'), 'utf8'));
+  assert.equal(pkg.dependencies['expo-document-picker'], '~14.0.8');
+  assert.equal(pkg.dependencies.expo, '~54.0.37');
+  for (const l of ['es', 'en']) assert.match(fs.readFileSync(path.resolve(aqui, `../../i18n/textos/${l}/filmmakerDocumentos.ts`), 'utf8'), /errUpdateApp:/);
+});
+
+test('personajes y criaturas: cada uno sale con nombre, tipo (persona/criatura/grupo), descripción, importancia y origen, listo para la tarjeta de pregunta', () => {
+  const d = dossierMod.coaccionar({
+    capitulos: [{ titulo: 'a', resumen: 'b' }],
+    personajes: [
+      { nombre: 'Mara', tipo: 'persona', descripcion: 'Guardiana de pelo plateado.', importancia: 'main', origen: 'documento' },
+      { nombre: 'El Leviatán', tipo: 'criatura', descripcion: 'Bestia marina del tamaño de un faro, ojos como linternas.', importancia: 'important', origen: 'documento' },
+      { nombre: 'Los Marinos', tipo: 'grupo', descripcion: 'La tripulación.', importancia: 'groups', origen: 'propuesta' },
+      { nombre: 'Rara', tipo: 'dragon-volador', descripcion: 'x' },
+    ],
+  }, { formato: 'txt', lectura: 'directo', estadisticas: {} });
+  const por = (n) => d.personajes.find((p) => p.nombre === n);
+  assert.deepEqual([por('Mara').tipo, por('El Leviatán').tipo, por('Los Marinos').tipo, por('Rara').tipo], ['persona', 'criatura', 'grupo', 'persona']);
+  for (const p of d.personajes) assert.deepEqual(Object.keys(p).sort(), ['alias', 'descripcion', 'id', 'importancia', 'nombre', 'origen', 'tipo']);
+  assert.equal(por('Los Marinos').origen, 'propuesta');
+  const con = dossierMod.coaccionar({ capitulos: [{ titulo: 'a', resumen: 'b' }] }, { formato: 'txt', lectura: 'directo', estadisticas: {}, contexto: { personajes: [{ nombre: 'Kraken', tipo: 'criatura' }] } });
+  assert.deepEqual([con.personajes[0].tipo, con.personajes[0].origen], ['criatura', 'usuario']);
+  assert.match(dossierMod.instruccionDirecta(), /persona|criatura|grupo/);
 });

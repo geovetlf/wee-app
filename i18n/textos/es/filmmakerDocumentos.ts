@@ -34,5 +34,6 @@ export const filmmakerDocumentos = {
   errClosed: 'Leer documentos no está disponible por ahora.',
   errPriceChanged: 'El precio cambió. Revísalo y confirma de nuevo.',
   errCredits: 'No tienes suficientes Credits.',
+  errUpdateApp: 'Actualiza la app para subir documentos.',
   errGeneric: 'Algo salió mal. No se cobró nada.',
 };

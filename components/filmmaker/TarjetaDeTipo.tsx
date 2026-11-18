@@ -19,7 +19,7 @@ const ANCHO_MINIMO_DE_LA_REAL = 300;
  * un halo (un anillo translúcido por fuera: en Android no hay sombra de color), imagen a sangre con un degradado oscuro del lado del texto, y
  * abajo a ese lado el icono, el nombre y la frase. La imagen sale de `assets/images/filmmaker/tipos/<tipo>.webp`; mientras ese archivo sea el
  * marcador (o falte), se ve un fondo propio —degradado oscuro con la textura vectorial del tipo—: añadir el archivo es lo único que hace falta.
- * Cerrada: imagen atenuada y «Próximamente» en la esquina, sin mover el texto. En RTL todo se espeja (el texto a la derecha).
+ * Cerrada: imagen atenuada y la etiqueta «Pronto» en la esquina, sin mover el texto; tocarla dice el motivo. En RTL todo se espeja (el texto a la derecha).
  */
 /** Lo mínimo que la tarjeta lee de lo que pinta: sirve igual para un tipo de proyecto que para un estilo (capa de estilos), que aporta su propia imagen, textura y tonos. */
 export type ContenidoDeTarjeta = Pick<TipoDeProyecto, 'clave' | 'claveSub' | 'estado' | 'claveMotivo'> & { id: string };
@@ -85,6 +85,7 @@ export const TarjetaDeTipo: React.FC<{ tipo: ContenidoDeTarjeta; ancho: number |
           <Text style={[textoPortada(tamNombre, '600'), dir.texto, { color: abierta ? P.tinta : P.tintaSecundaria }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>{nombre}</Text>
           {conSub ? <Text style={[textoPortada(tamSub, '400'), dir.texto, { color: abierta ? '#C9CED8' : P.tintaDeshabilitada }]} numberOfLines={lineasSub} adjustsFontSizeToFit minimumFontScale={0.85}>{sub}</Text> : null}
         </View>
+        {!abierta ? <View style={[styles.pronto, rtl ? { start: 10 } : { end: 10 }]}><Text style={[textoPortada(11, '600'), { color: P.tinta }]}>{t('filmmaker.hubSoon')}</Text></View> : null}
         {elegido ? <View style={[styles.marca, rtl ? { start: 10 } : { end: 10 }]}><Ionicons name="checkmark" size={14} color={P.sobreAccion} /></View> : null}
       </View>
     </TouchableOpacity>
@@ -100,5 +101,6 @@ const styles = StyleSheet.create({
   haloExterior: { position: 'absolute', top: -7, bottom: -7, start: -7, end: -7, borderRadius: 31, borderWidth: 5 },
   tarjeta: { flex: 1, borderRadius: 24, overflow: 'hidden', backgroundColor: '#0A0D13', justifyContent: 'flex-end' },
   texto: { paddingHorizontal: 14, paddingBottom: 12, paddingTop: 8, gap: 3 },
+  pronto: { position: 'absolute', top: 10, paddingHorizontal: 10, minHeight: 22, borderRadius: 11, backgroundColor: 'rgba(5,6,8,0.72)', borderWidth: 1, borderColor: 'rgba(245,246,248,0.4)', alignItems: 'center', justifyContent: 'center' },
   marca: { position: 'absolute', top: 10, width: 20, height: 20, borderRadius: 10, backgroundColor: P.accion, alignItems: 'center', justifyContent: 'center' },
 });

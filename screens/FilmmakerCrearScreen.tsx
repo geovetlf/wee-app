@@ -17,6 +17,10 @@ import { TarjetaDeTipo } from '../components/filmmaker/TarjetaDeTipo';
 import { HeroDePortada } from '../components/weeai/HeroDePortada';
 import { HojaDeTrabajo } from '../components/filmmaker/HojaDeTrabajo';
 import { HojaDeAdjuntos } from '../components/filmmaker/HojaDeAdjuntos';
+import { HojaDeCreaciones } from '../components/filmmaker/HojaDeCreaciones';
+import { ReferenciasAdjuntas } from '../components/filmmaker/ReferenciasAdjuntas';
+import { useReferenciasDeFilmmaker } from '../hooks/useReferenciasDeFilmmaker';
+import { personajes, listas, subiendo } from '../utils/referenciasDeFilmmaker';
 import { HojaDeProyecto } from '../components/filmmaker/HojaDeProyecto';
 import { BarraDeEtapas } from '../components/filmmaker/BarraDeEtapas';
 import { UniversoDeFilmmaker } from '../components/filmmaker/UniversoDeFilmmaker';
@@ -40,8 +44,8 @@ import { TipoDeTaller } from '../constants/filmmakerIdea';
 import { scale } from '../utils/scale';
 
 const ALTO_DE_CABECERA = 56;
-/** Serie y Videoclip no existen todavía: no se ofrecen en la rejilla (la regla del dueño es no mostrar tarjetas que no hacen nada). Siguen en el catálogo de tipos. */
-const TIPOS_VISIBLES = TIPOS_DE_PROYECTO.filter((x) => x.estado !== 'cerrada');
+/** Los cinco tipos del diseño aprobado se ven; Serie lleva «Pronto» (y su motivo al tocarlos) hasta que existan. */
+const TIPOS_VISIBLES = TIPOS_DE_PROYECTO;
 const HOLGURA = 16;
 /** Lo mínimo de mundo (tarjetas o saludo) que se deja ver encima de la caja cuando esta crece: el resto del alto es de la caja. */
 const MUNDO_MINIMO = 220;
@@ -67,6 +71,8 @@ const FilmmakerCrearScreen: React.FC = () => {
   const [altoMundo, setAltoMundo] = useState(0);
   const [hoja, setHoja] = useState(false);
   const [adjuntos, setAdjuntos] = useState(false);
+  const [creaciones, setCreaciones] = useState(false);
+  const refs = useReferenciasDeFilmmaker();
   const [texto, setTexto] = useState('');
   const [capa, setCapa] = useState<'entrada' | 'estilo' | 'taller' | 'universo' | 'tandas'>('entrada');
   const [universo, setUniverso] = useState<UniversoDelTaller>(() => universoVacio());
@@ -137,6 +143,11 @@ const FilmmakerCrearScreen: React.FC = () => {
     if (!r.ok) { setFallo(fraseDelFallo(r.fallo, t)); setTexto(fraseDe(base)); return; }
     idDeProduccion.current = nuevoIdDeProduccion();
     setProduccionId(r.valor.produccion.productionId);
+    /* Lo que la persona aportó llega al Universo: cada personaje (imagen) cuenta como un personaje suyo —el requisito de al menos uno— y cada mundo, como un lugar. */
+    setUniverso((u) => {
+      const conPersonajes = personajes(refs.referencias).reduce((acc, _p, i) => anadir(acc, 'character', t('filmmaker.refCharacterName', { n: formato.numero(i + 1) })), u);
+      return listas(refs.referencias).filter((x) => x.rol === 'world').reduce((acc) => anadir(acc, 'place', t('filmmaker.refWorldName')), conPersonajes);
+    });
     setPreguntado(false);
     setCapa('universo');
   };
@@ -152,6 +163,7 @@ const FilmmakerCrearScreen: React.FC = () => {
   /** Antes de avanzar hacen falta el tipo y el estilo, y los pone la persona: sin tipo no se envía; sin estilo se abre la capa de estilo con la idea ya guardada. */
   const aceptar = (base: IdeaDelTaller): boolean => {
     if (!tipoId) { setAviso(t('filmmaker.pickTypeFirst')); return false; }
+    if (subiendo(refs.referencias)) { setAviso(t('filmmaker.refWaitUpload')); return false; }
     setIdea(base);
     if (!estilo) { setCapa('estilo'); return false; }
     return true;
@@ -233,7 +245,7 @@ const FilmmakerCrearScreen: React.FC = () => {
 
   const etiquetaDelTipo = tipo ? t(tipo.clave) : '';
   const definicionDeSeccion = SECCIONES_DEL_UNIVERSO.find((s) => s.id === seccion) ?? SECCIONES_DEL_UNIVERSO[0];
-  const placeholder = enUniverso ? t(definicionDeSeccion.clavePlaceholder) : enIdea ? t('filmmaker.ideaPlaceholder') : t('filmmaker.hubPlaceholder');
+  const placeholder = enUniverso ? t(definicionDeSeccion.clavePlaceholder) : refs.referencias.length > 0 ? t('filmmaker.refPlaceholder') : enIdea ? t('filmmaker.ideaPlaceholder') : t('filmmaker.hubPlaceholder');
   const etiquetaDelEstilo = estilo ? t((ESTILOS.find((e) => e.id === estilo) ?? ESTILOS[0]).clave) : null;
   const textoDePildora = etiquetaDelEstilo ? `${etiquetaDelTipo} · ${etiquetaDelEstilo}` : etiquetaDelTipo;
   const estadoDelTaller: EstadoDelTaller = creando ? 'creando' : preguntado ? 'pregunta' : 'saludo';
@@ -274,8 +286,8 @@ const FilmmakerCrearScreen: React.FC = () => {
         {/* LA CAJA, ANCLADA ABAJO: no cambia de sitio entre capas. Encima, una línea de estado y la etiqueta del tipo. */}
         <View style={[styles.abajo, { maxWidth: 760 }]}>
           <View style={[styles.estado, compacto && { minHeight: 0, paddingTop: 2 }]} accessibilityRole="alert" accessibilityLiveRegion="polite">
-            {aviso ? (
-              <Text style={[textoPortada(12), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={3}>{aviso}</Text>
+            {aviso || refs.aviso ? (
+              <Text style={[textoPortada(12), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={3}>{aviso ?? t(refs.aviso as string)}</Text>
             ) : !user && !enIdea && !enUniverso ? (
               <Text style={[textoPortada(12), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={2}>{t('filmmaker.hubNeedSession')}</Text>
             ) : null}
@@ -294,6 +306,7 @@ const FilmmakerCrearScreen: React.FC = () => {
               <Ionicons name="chevron-down" size={12} color={P.tintaSecundaria} />
             </TouchableOpacity>
           ) : null}
+          {!enTandas && !enEstilo && !enUniverso ? <ReferenciasAdjuntas referencias={refs.referencias} onQuitar={refs.quitar} onReintentar={refs.reintentar} /> : null}
           {!enTandas && !enEstilo ? <CajaAnclada alto={topeDeLaCaja}>
             <CajaDePrompt portada enviarDiscreto={enUniverso} valor={texto} onCambiar={setTexto} onEnviar={enviar} etiquetaEnviar={t('studio.sendLabel')} placeholder={placeholder} acciones={acciones} />
           </CajaAnclada> : null}
@@ -311,7 +324,8 @@ const FilmmakerCrearScreen: React.FC = () => {
         <HojaDeTrabajo visible={hoja} onClose={() => setHoja(false)} onAbrirProduccion={(id) => navigation.navigate('Production', { productionId: id })} onAbrirCreaciones={() => navigation.navigate('MisCreaciones')} />
         <HojaDeProyecto visible={proyecto} onClose={() => setProyecto(false)} idea={idea} onIdea={setIdea} />
         <FichaDeElemento elemento={universo.elementos.find((e) => e.id === fichaId) ?? null} onClose={() => setFichaId(null)} onGuardar={(id, c) => setUniverso((u) => editar(u, id, c))} onQuitar={(id) => setUniverso((u) => quitar(u, id))} />
-        <HojaDeAdjuntos visible={adjuntos} onClose={() => setAdjuntos(false)} onUsarTexto={usarTextoPegado} />
+        <HojaDeAdjuntos visible={adjuntos} onClose={() => setAdjuntos(false)} onUsarTexto={usarTextoPegado} onImagen={(rol) => { void refs.elegirDelDispositivo(rol); }} onDesdeCreaciones={() => setCreaciones(true)} />
+        <HojaDeCreaciones visible={creaciones} onClose={() => setCreaciones(false)} onElegir={refs.usarCreacion} />
       </View>
     </CreatorShell>
   );

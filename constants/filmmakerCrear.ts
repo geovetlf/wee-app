@@ -17,7 +17,7 @@ import type { TexturaDeModulo } from '../components/weeai/arteDePortada';
 export type EstadoDeTipo = 'habilitada' | 'plantilla' | 'cerrada';
 
 export interface TipoDeProyecto {
-  id: 'film' | 'short' | 'series' | 'clip' | 'ad';
+  id: 'film' | 'short' | 'series' | 'ad';
   /** Claves de `filmmaker.*`. */
   clave: string;
   claveSub: string;
@@ -31,12 +31,11 @@ export interface TipoDeProyecto {
   preset?: 'ads';
 }
 
-/** Cinco tipos: Cortometraje y Anuncio habilitados, Película como plantilla, Serie y Videoclip cerrados (sin simular). */
+/** Cuatro tipos: Cortometraje y Anuncio habilitados, Película como plantilla, Serie cerrada (sin simular; Videoclip no es de Filmmaker: vive en la sección Vídeos). */
 export const TIPOS_DE_PROYECTO: readonly TipoDeProyecto[] = [
   { id: 'film', clave: 'filmmaker.hubTypeFilm', claveSub: 'filmmaker.hubTypeFilmSub', estado: 'plantilla', formato: '16:9', segundos: 120 },
   { id: 'short', clave: 'filmmaker.hubTypeShort', claveSub: 'filmmaker.hubTypeShortSub', estado: 'habilitada', formato: '16:9', segundos: 60 },
   { id: 'series', clave: 'filmmaker.hubTypeSeries', claveSub: 'filmmaker.hubTypeSeriesSub', estado: 'cerrada', claveMotivo: 'filmmaker.hubTypeSeriesWhy', formato: '16:9', segundos: 60 },
-  { id: 'clip', clave: 'filmmaker.hubTypeClip', claveSub: 'filmmaker.hubTypeClipSub', estado: 'cerrada', claveMotivo: 'filmmaker.hubTypeClipWhy', formato: '9:16', segundos: 30 },
   { id: 'ad', clave: 'filmmaker.hubTypeAd', claveSub: 'filmmaker.hubTypeAdSub', estado: 'habilitada', formato: '4:5', segundos: 15, preset: 'ads' },
 ];
 
@@ -52,11 +51,11 @@ export const PILDORA_DE_FORMATO_VISIBLE = false;
 
 export const ALTURAS = { hero: 700 } as const;
 
-/** El icono lineal de cada tipo: película y cortometraje, claqueta; serie, capas; videoclip, nota musical; anuncio, megáfono. */
-export const ICONO_DE_TIPO: Record<TipoDeProyecto['id'], NombreDeIcono> = { film: 'claqueta', short: 'claqueta', series: 'capas', clip: 'notas', ad: 'megafono' };
+/** El icono lineal de cada tipo: película y cortometraje, claqueta; serie, capas; anuncio, megáfono. */
+export const ICONO_DE_TIPO: Record<TipoDeProyecto['id'], NombreDeIcono> = { film: 'claqueta', short: 'claqueta', series: 'capas', ad: 'megafono' };
 
 /** La textura vectorial del fondo propio de cada tarjeta (lo que se ve mientras la imagen no está). */
-export const TEXTURA_DE_TIPO: Record<TipoDeProyecto['id'], TexturaDeModulo> = { film: 'video', short: 'imagen', series: 'texto', clip: 'audio', ad: 'tresD' };
+export const TEXTURA_DE_TIPO: Record<TipoDeProyecto['id'], TexturaDeModulo> = { film: 'video', short: 'imagen', series: 'texto', ad: 'tresD' };
 
 /**
  * LAS IMAGENES DE FONDO: `assets/images/filmmaker/tipos/<tipo>.webp` (2:1 las de media tarjeta, 4:1 la de Anuncio). En el repositorio hay un
@@ -67,6 +66,5 @@ export const IMAGEN_DE_TIPO: Record<TipoDeProyecto['id'], number> = {
   film: require('../assets/images/filmmaker/tipos/pelicula.webp'),
   short: require('../assets/images/filmmaker/tipos/cortometraje.webp'),
   series: require('../assets/images/filmmaker/tipos/serie.webp'),
-  clip: require('../assets/images/filmmaker/tipos/videoclip.webp'),
   ad: require('../assets/images/filmmaker/tipos/anuncio.webp'),
 };

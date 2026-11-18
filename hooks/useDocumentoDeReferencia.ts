@@ -5,6 +5,7 @@ import { LECTURA_DE_DOCUMENTOS_ABIERTA } from '../constants/filmmakerDocumentos'
 import {
   ArchivoElegido,
   claveDeErrorDeDocumento,
+  ContextoDeLectura,
   CotizacionDeDocumento,
   cotizarDocumento,
   DossierDeDocumento,
@@ -12,6 +13,7 @@ import {
   leerDocumento,
   subirDocumento,
 } from '../services/documentosService';
+import { CLAVE_ACTUALIZA_LA_APP, elegirDocumento, selectorDisponible } from '../services/selectorDeDocumentos';
 
 /**
  * Un documento, guion o libro como REFERENCIA de Weë Brain: elegir → (subir y cotizar) → confirmar → leyendo → listo.
@@ -22,7 +24,10 @@ import {
  *   cotizacion  Credits que cuesta leerlo (solo en 'cotizado'); lo que se enseña es lo que se cobra.
  *   dossier     el resultado (solo en 'listo'): lo que alimenta el Universo y las Tandas.
  *   errorClave  clave de i18n del error (solo en 'error'): `t(errorClave)`.
- *   elegir(archivo) · confirmar() · quitar()   (reintentar = confirmar() de nuevo, o elegir otro archivo).
+ *   disponible  el selector de archivos existe en esta build (módulo nativo); si no, la fila sale cerrada con `filmmakerDocumentos.errUpdateApp`.
+ *   seleccionar()  abre el selector y sigue solo hasta `cotizado`.   elegir(archivo)  igual, con un archivo ya elegido.
+ *   confirmar(contexto?)  lee. `contexto` (opcional): tipo, estilo y personajes/mundo aportados; lo aportado manda, lo que falte lo propone Weë.
+ *   quitar()   (reintentar = confirmar() de nuevo, o elegir otro archivo).
  *
  * Nada de lo técnico sale de aquí: ni bloques, ni modelos, ni proveedores.
  */
@@ -69,14 +74,14 @@ export function useDocumentoDeReferencia() {
     [user?.uid, locale, fallar],
   );
 
-  const confirmar = useCallback(async () => {
+  const confirmar = useCallback(async (contexto?: ContextoDeLectura) => {
     if (!archivo.current || !cotizacion) return;
     const mio = ++gesto.current;
     setErrorClave(null);
     setEstado('leyendo');
     try {
       /* Una operación NUEVA en cada intento: la anterior, si falló, quedó reembolsada y no se reutiliza. */
-      const resultado = await leerDocumento({ url: archivo.current.url, nombre: archivo.current.nombre, requestId: nuevaOperacion(), creditosCotizados: cotizacion.credits, locale });
+      const resultado = await leerDocumento({ url: archivo.current.url, nombre: archivo.current.nombre, requestId: nuevaOperacion(), creditosCotizados: cotizacion.credits, locale, contexto });
       if (mio !== gesto.current) return;
       setDossier(resultado);
       setEstado('listo');
@@ -93,6 +98,18 @@ export function useDocumentoDeReferencia() {
     }
   }, [cotizacion, locale, fallar]);
 
+  /** Abre el selector de archivos y sigue solo (subir y cotizar). Sin selector (build vieja) deja el motivo, sin romper nada. */
+  const seleccionar = useCallback(async () => {
+    if (!LECTURA_DE_DOCUMENTOS_ABIERTA) return;
+    const r = await elegirDocumento();
+    if (r.estado === 'no_disponible') {
+      setErrorClave(CLAVE_ACTUALIZA_LA_APP);
+      setEstado('error');
+    } else if (r.estado === 'elegido') {
+      await elegir(r.archivo);
+    }
+  }, [elegir]);
+
   const quitar = useCallback(() => {
     gesto.current += 1;
     archivo.current = null;
@@ -102,5 +119,6 @@ export function useDocumentoDeReferencia() {
     setEstado('vacio');
   }, []);
 
-  return { abierta: LECTURA_DE_DOCUMENTOS_ABIERTA, estado, cotizacion, dossier, errorClave, elegir, confirmar, quitar };
+  /* `disponible`: el selector existe en esta build; si es false, la fila va cerrada con `filmmakerDocumentos.errUpdateApp`. */
+  return { abierta: LECTURA_DE_DOCUMENTOS_ABIERTA, disponible: selectorDisponible(), estado, cotizacion, dossier, errorClave, seleccionar, elegir, confirmar, quitar };
 }

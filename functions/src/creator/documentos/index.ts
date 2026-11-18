@@ -16,7 +16,7 @@ import { etiquetaDeIdioma } from '../../shared/idiomaDelServidor';
 import { ensureAccount } from '../credits';
 import { assertAttachmentUrl } from '../inputs';
 import { DossierDeDocumento, ErrorDeDocumento, FormatoDeDocumento, MotivoDeDocumento } from './contrato';
-import { Leedor } from './dossier';
+import { Leedor, normalizarContexto } from './dossier';
 import { cotizar, Deps, DocumentosCerrados, leer, LecturaDuplicada, PlanDeLectura, PrecioCambiado } from './ejecutar';
 
 /**
@@ -47,6 +47,8 @@ interface Entrada {
   requestId?: unknown;
   creditosCotizados?: unknown;
   locale?: unknown;
+  /** Opcional: tipo, estilo y lo que la persona ya aportó (personajes, lugares, objetos). */
+  contexto?: unknown;
 }
 
 const MENSAJES: Record<MotivoDeDocumento, string> = {
@@ -127,6 +129,7 @@ const dependencias = async (uid: string, data: Entrada, requestId: string | unde
     abierto,
     nombreDeArchivo: nombre,
     idioma,
+    contexto: normalizarContexto(data.contexto),
     leerArchivo: async () => (await readImage(url, 'deepseek')).buffer,
     precio: (plan) => {
       if (!(Number.isFinite(settings.creditsPerUsd) && settings.creditsPerUsd > 0)) throw new DocumentosCerrados();

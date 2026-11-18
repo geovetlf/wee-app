@@ -9,6 +9,7 @@ import { PORTADA_WEEAI as P, textoPortada } from '../../constants/estiloWeeAi';
 import { ADJUNTOS, TOPES } from '../../constants/filmmakerIdea';
 import { scale } from '../../utils/scale';
 import { etiquetaAccesible } from '../../utils/ideaDeFilmmaker';
+import type { RolDeReferencia } from '../../utils/referenciasDeFilmmaker';
 import { useCerrarConEscape } from '../../hooks/useCerrarConEscape';
 import { LECTURA_DE_DOCUMENTOS_ABIERTA } from '../../constants/filmmakerDocumentos';
 import { selectorDisponible } from '../../services/selectorDeDocumentos';
@@ -51,7 +52,7 @@ const FilaDeDocumento: React.FC = () => {
  * LA HOJA DEL «+» DE FILMMAKER (2026-11-17): qué se puede añadir a lo que se escribe. «Pegar texto» —pega o escribe un guion o unas notas largas (hasta
  * 12 000 caracteres) y lo lleva a la caja— es la única fila viva; lo que aún no existe se dice en una línea al pie (no se simula nada). Escape la cierra en la web.
  */
-export const HojaDeAdjuntos: React.FC<{ visible: boolean; onClose: () => void; onUsarTexto: (texto: string) => void }> = ({ visible, onClose, onUsarTexto }) => {
+export const HojaDeAdjuntos: React.FC<{ visible: boolean; onClose: () => void; onUsarTexto: (texto: string) => void; onImagen: (rol: RolDeReferencia) => void; onDesdeCreaciones: () => void }> = ({ visible, onClose, onUsarTexto, onImagen, onDesdeCreaciones }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
@@ -61,6 +62,12 @@ export const HojaDeAdjuntos: React.FC<{ visible: boolean; onClose: () => void; o
   useEffect(() => { if (!visible) { setVista('menu'); setTexto(''); } }, [visible]);
   useCerrarConEscape(visible, onClose);
   const hay = texto.trim().length > 0;
+  /* Cada fila hace lo suyo: las de imagen abren la galería (y la hoja se cierra mientras se elige), «Pegar texto» cambia de vista y «Mis proyectos» abre su selector. */
+  const alPulsar = (id: string) => {
+    if (id === 'paste') { setVista('pegar'); return; }
+    onClose();
+    if (id === 'projects') onDesdeCreaciones(); else onImagen(id as RolDeReferencia);
+  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
@@ -71,7 +78,7 @@ export const HojaDeAdjuntos: React.FC<{ visible: boolean; onClose: () => void; o
           <ScrollView contentContainerStyle={styles.filas} keyboardShouldPersistTaps="handled">
             <Text style={[textoPortada(18, '600'), dir.texto, { color: P.tinta, paddingBottom: 4 }]} accessibilityRole="header">{t('filmmaker.attachTitle')}</Text>
             {ADJUNTOS.map((a) => (
-              <TouchableOpacity key={a.id} onPress={() => setVista('pegar')} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t(a.clave), t(a.claveSub))} style={[styles.fila, dir.contenedor]}>
+              <TouchableOpacity key={a.id} onPress={() => alPulsar(a.id)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t(a.clave), t(a.claveSub))} style={[styles.fila, dir.contenedor]}>
                 <View style={styles.icono}><IconoWee name={a.icono} size={scale(22)} color={P.tinta} /></View>
                 <View style={styles.textos}>
                   <Text style={[textoPortada(16, '600'), dir.texto, { color: P.tinta }]} numberOfLines={1}>{t(a.clave)}</Text>
@@ -81,7 +88,6 @@ export const HojaDeAdjuntos: React.FC<{ visible: boolean; onClose: () => void; o
               </TouchableOpacity>
             ))}
             <FilaDeDocumento />
-            <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria, paddingTop: 4 }]}>{t('filmmaker.attachSoonMore')}</Text>
           </ScrollView>
         ) : (
           <View style={styles.pegar}>

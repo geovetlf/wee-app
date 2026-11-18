@@ -13,8 +13,18 @@ export const FORMATOS: readonly FormatoDeDocumento[] = ['txt', 'md', 'pdf', 'doc
 export type ImportanciaDePersonaje = 'main' | 'important' | 'groups' | 'other';
 export const IMPORTANCIAS: readonly ImportanciaDePersonaje[] = ['main', 'important', 'groups', 'other'];
 
+/** De dónde sale cada elemento: del texto («documento»), lo completó Weë a falta de él («propuesta») o lo puso la persona («usuario», manda siempre). */
+export type OrigenDeElemento = 'documento' | 'propuesta' | 'usuario';
+export const ORIGENES: readonly OrigenDeElemento[] = ['documento', 'propuesta', 'usuario'];
+
+/** Qué es: una persona, una criatura o monstruo, o un grupo (la tripulación, el ejército). */
+export type TipoDePersonaje = 'persona' | 'criatura' | 'grupo';
+export const TIPOS_DE_PERSONAJE: readonly TipoDePersonaje[] = ['persona', 'criatura', 'grupo'];
+
 export interface PersonajeDelDossier {
   id: string;
+  origen: OrigenDeElemento;
+  tipo: TipoDePersonaje;
   nombre: string;
   descripcion: string;
   importancia: ImportanciaDePersonaje;
@@ -22,6 +32,7 @@ export interface PersonajeDelDossier {
 }
 export interface ElementoDelDossier {
   id: string;
+  origen: OrigenDeElemento;
   nombre: string;
   descripcion: string;
 }
@@ -36,6 +47,20 @@ export interface CapituloDelDossier {
   personajes: string[];
   lugares: string[];
 }
+/** Lo que la persona ya eligió o aportó (todo opcional). Es DATO para Weë Brain: lo aportado manda y no se contradice. */
+export interface AporteDeElemento { nombre: string; descripcion?: string; importancia?: ImportanciaDePersonaje; tipo?: TipoDePersonaje }
+export interface ContextoDeLectura {
+  /** Tipo de proyecto elegido (p. ej. «película», «serie»). Texto libre y corto. */
+  tipo?: string;
+  /** Estilo elegido (p. ej. «ciencia ficción», «anime»). Texto libre y corto. */
+  estilo?: string;
+  personajes?: AporteDeElemento[];
+  lugares?: AporteDeElemento[];
+  objetos?: AporteDeElemento[];
+}
+/** Cómo adaptar la historia al estilo elegido: sugerencias en palabras, nunca imágenes. */
+export interface AdaptacionAlEstilo { tipo: string; estilo: string; tono: string; paleta: string[]; ambientacion: string }
+
 export interface DossierDeDocumento {
   version: typeof DOSSIER_VERSION;
   formato: FormatoDeDocumento;
@@ -47,6 +72,8 @@ export interface DossierDeDocumento {
   lugares: ElementoDelDossier[];
   objetos: ElementoDelDossier[];
   capitulos: CapituloDelDossier[];
+  /** Solo si la persona eligió tipo o estilo. */
+  adaptacion?: AdaptacionAlEstilo;
   /** Cómo se leyó: `directo` (una pasada con el documento entero) o `por-bloques` (map-reduce, respaldo). */
   lectura: 'directo' | 'por-bloques';
   estadisticas: { caracteres?: number; paginas?: number; bloques?: number };
@@ -62,6 +89,9 @@ export const LIMITES = Object.freeze({
   maxBloques: 20,
   lecturasEnParalelo: 3,
   capitulos: 60,
+  aportados: 20,
+  paleta: 6,
+  tipoEstilo: 60,
   personajes: 40,
   lugares: 30,
   objetos: 30,

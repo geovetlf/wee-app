@@ -5,7 +5,7 @@
  */
 import type { NombreDeIcono } from '../components/icons/trazosDeWee';
 
-/** Los tipos que tienen taller hoy. Serie y Videoclip siguen cerrados en la primera capa. */
+/** Los tipos que tienen taller hoy. Serie sigue cerrados en la primera capa. */
 export type TipoDeTaller = 'short' | 'film' | 'ad';
 export const TIPOS_CON_TALLER: readonly TipoDeTaller[] = ['short', 'film', 'ad'];
 
@@ -13,11 +13,15 @@ export const TIPOS_CON_TALLER: readonly TipoDeTaller[] = ['short', 'film', 'ad']
 export const TOPES = { titulo: 80, idea: 600, guion: 12000 } as const;
 
 /**
- * La hoja del «+»: solo lo VIVO se ve como fila —hoy, «Pegar texto»—. Lo que todavía no existe (imagen de referencia, personaje, mundo, documento, lo guardado
- * en Mis proyectos) NO se pinta como filas apagadas: se dice en UNA línea al pie, sin jerga. Cuando una capacidad abra, pasa a ser una fila aquí.
+ * La hoja del «+»: cada fila hace algo real —imagen de referencia, personaje y mundo (suben una imagen al Storage de Weë), pegar texto y traer una creación de Mis proyectos—.
+ * «Documento o libro» es la única cerrada (su motivo sale en la fila, mientras la lectura no esté abierta).
  */
 export const ADJUNTOS = [
+  { id: 'reference', clave: 'filmmaker.refImage', claveSub: 'filmmaker.refImageSub', icono: 'galeria' as NombreDeIcono },
+  { id: 'character', clave: 'filmmaker.refCharacter', claveSub: 'filmmaker.refCharacterSub', icono: 'perfilReal' as NombreDeIcono },
+  { id: 'world', clave: 'filmmaker.refWorld', claveSub: 'filmmaker.refWorldSub', icono: 'lugar' as NombreDeIcono },
   { id: 'paste', clave: 'filmmaker.attachPaste', claveSub: 'filmmaker.attachPasteSub', icono: 'texto' as NombreDeIcono },
+  { id: 'projects', clave: 'filmmaker.refFromProjects', claveSub: 'filmmaker.refFromProjectsSub', icono: 'carpeta' as NombreDeIcono },
 ] as const;
 
 /** Duraciones objetivo sugeridas por tipo (segundos). Son del diseño, no del contrato; el tope por plano lo marca el modelo en Planos (D7). */

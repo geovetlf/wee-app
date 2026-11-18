@@ -1,5 +1,5 @@
 import { DocumentoLeido, leerDocumento } from './formatos';
-import { DossierDeDocumento, FormatoDeDocumento, LIMITES } from './contrato';
+import { ContextoDeLectura, DossierDeDocumento, FormatoDeDocumento, LIMITES } from './contrato';
 import { Leedor, leerDirecto, leerPorBloques, MAX_SALIDA_BLOQUE, MAX_SALIDA_CONSOLIDACION, MAX_SALIDA_DIRECTA, partirEnBloques } from './dossier';
 
 /**
@@ -47,7 +47,8 @@ export const planDe = (doc: DocumentoLeido): PlanDeLectura => {
   }
   const bloques = partirEnBloques(doc.texto);
   const llamadas = bloques.map((b) => ({ tokensEntrada: Math.ceil(b.length / POR_TOKEN) + 1500, tokensSalida: MAX_SALIDA_BLOQUE }));
-  if (bloques.length > 1) llamadas.push({ tokensEntrada: bloques.length * 2500 + 1500, tokensSalida: MAX_SALIDA_CONSOLIDACION });
+  /* La consolidación puede correr aunque haya un solo bloque (si la persona dio contexto): se cuenta siempre, es un techo. */
+  llamadas.push({ tokensEntrada: bloques.length * 2500 + 1500, tokensSalida: MAX_SALIDA_CONSOLIDACION });
   return {
     formato: doc.formato,
     caracteres: doc.caracteres,
@@ -65,6 +66,8 @@ export interface Deps {
   leerArchivo(): Promise<Buffer>;
   nombreDeArchivo: string;
   idioma: string;
+  /** Tipo, estilo y lo que la persona ya aportó (opcional). */
+  contexto?: ContextoDeLectura;
   /** Credits (y USD de techo, para el registro) de un plan. Lanza si falta algo para poner precio. */
   precio(plan: PlanDeLectura): { credits: number; usd: number };
   almacen: {
@@ -125,7 +128,7 @@ export const leer = async (deps: Deps, creditosCotizados: number): Promise<{ dos
     let ficheroId: string | undefined;
     try {
       ficheroId = await deps.directo.subir(bytes, plan.formato);
-      dossier = await leerDirecto(deps.directo.leedor(ficheroId), { idioma: deps.idioma, formato: plan.formato, estadisticas });
+      dossier = await leerDirecto(deps.directo.leedor(ficheroId), { idioma: deps.idioma, formato: plan.formato, estadisticas, contexto: deps.contexto });
     } catch (error) {
       fallo = error;
       dossier = undefined as unknown as DossierDeDocumento;
@@ -138,8 +141,8 @@ export const leer = async (deps: Deps, creditosCotizados: number): Promise<{ dos
       if (!plan.respaldo) throw fallo;
       ruta = 'respaldo';
       dossier = doc.formato === 'pdf'
-        ? await leerDirecto(deps.respaldo(true), { idioma: deps.idioma, formato: 'pdf', estadisticas })
-        : await leerPorBloques(deps.respaldo(false), { texto: doc.texto, idioma: deps.idioma, formato: doc.formato, estadisticas });
+        ? await leerDirecto(deps.respaldo(true), { idioma: deps.idioma, formato: 'pdf', estadisticas, contexto: deps.contexto })
+        : await leerPorBloques(deps.respaldo(false), { texto: doc.texto, idioma: deps.idioma, formato: doc.formato, estadisticas, contexto: deps.contexto });
     }
 
     await deps.almacen.terminar(dossier, { credits, usd, ruta });

@@ -13,9 +13,18 @@ import { motivoDeNoDisponible } from '../utils/noDisponible';
 export type FormatoDeDocumento = 'txt' | 'md' | 'pdf' | 'docx' | 'epub';
 export type ImportanciaDePersonaje = 'main' | 'important' | 'groups' | 'other';
 
-export interface PersonajeDelDossier { id: string; nombre: string; descripcion: string; importancia: ImportanciaDePersonaje; alias: string[] }
-export interface ElementoDelDossier { id: string; nombre: string; descripcion: string }
+/** De dónde sale cada elemento: del texto, lo completó Weë (propuesta) o lo aportó la persona (manda). */
+export type OrigenDeElemento = 'documento' | 'propuesta' | 'usuario';
+/** Qué es un personaje detectado: una persona, una criatura o monstruo, o un grupo. */
+export type TipoDePersonaje = 'persona' | 'criatura' | 'grupo';
+export interface PersonajeDelDossier { id: string; origen: OrigenDeElemento; tipo: TipoDePersonaje; nombre: string; descripcion: string; importancia: ImportanciaDePersonaje; alias: string[] }
+export interface ElementoDelDossier { id: string; origen: OrigenDeElemento; nombre: string; descripcion: string }
 export interface CapituloDelDossier { id: string; orden: number; titulo: string; resumen: string; duracionSugeridaSeg: number; personajes: string[]; lugares: string[] }
+/** Lo que la persona ya eligió o aportó (todo opcional): tipo, estilo, personajes y mundo. */
+export interface AporteDeElemento { nombre: string; descripcion?: string; importancia?: ImportanciaDePersonaje; tipo?: TipoDePersonaje }
+export interface ContextoDeLectura { tipo?: string; estilo?: string; personajes?: AporteDeElemento[]; lugares?: AporteDeElemento[]; objetos?: AporteDeElemento[] }
+/** Sugerencias en palabras para llevar la historia al estilo elegido (nunca imágenes). */
+export interface AdaptacionAlEstilo { tipo: string; estilo: string; tono: string; paleta: string[]; ambientacion: string }
 export interface DossierDeDocumento {
   version: 1;
   formato: FormatoDeDocumento;
@@ -27,6 +36,7 @@ export interface DossierDeDocumento {
   lugares: ElementoDelDossier[];
   objetos: ElementoDelDossier[];
   capitulos: CapituloDelDossier[];
+  adaptacion?: AdaptacionAlEstilo;
   lectura: 'directo' | 'por-bloques';
   estadisticas: { caracteres?: number; paginas?: number; bloques?: number };
 }
@@ -116,6 +126,7 @@ interface Llamada {
   requestId?: string;
   creditosCotizados?: number;
   locale?: string;
+  contexto?: ContextoDeLectura;
 }
 
 const llamar = async <T,>(datos: Llamada): Promise<T> => {
@@ -132,7 +143,7 @@ export const cotizarDocumento = (url: string, nombre: string, locale?: string): 
   llamar<{ status: 'QUOTED' } & CotizacionDeDocumento>({ op: 'cotizar', url, nombre, locale });
 
 /** Lee el documento. `requestId` es la operación: repetirla no cobra dos veces y devuelve el dossier ya hecho. */
-export const leerDocumento = async (v: { url: string; nombre: string; requestId: string; creditosCotizados: number; locale?: string }): Promise<DossierDeDocumento> =>
+export const leerDocumento = async (v: { url: string; nombre: string; requestId: string; creditosCotizados: number; locale?: string; contexto?: ContextoDeLectura }): Promise<DossierDeDocumento> =>
   (await llamar<{ dossier: DossierDeDocumento }>({ op: 'leer', ...v })).dossier;
 
 /** Recupera el dossier de una lectura ya hecha (si la app perdió la respuesta). `null` si todavía se está leyendo. */
