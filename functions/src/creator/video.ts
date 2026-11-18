@@ -2,7 +2,7 @@ import { createHash } from 'crypto';
 import { exigirCuentaWeeValida } from '../identity/sesion';
 import { exigirRuta, precioPorRuta, rutaPrevia } from './rutaPrevia';
 import { getFirestore } from 'firebase-admin/firestore';
-import { onCall } from 'firebase-functions/v2/https';
+import { CallableRequest, onCall } from 'firebase-functions/v2/https';
 import { assertText, EngineError, toEngineHttpsError } from '../engine/errors';
 import { limiter } from '../engine/limits';
 import { loadConfig } from '../engine/config';
@@ -21,13 +21,17 @@ import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, conductorDeWee, configuracionDeLa
 import { crearMaterialDesdeUrl, leerMaterial } from '../content';
 import { loadCostOverrides } from '../credits/creditCosts';
 import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
+/* Porte de filmmaker/core (2026-11-18): el lote y la cancelación pasan por ESTA misma puerta; el requisito vale el del servidor. */
+import { mismoRequisito, requisitoDelServidor } from './requisitoDelServidor';
+import { generarLote, presupuestarLote } from './lotes';
+import { cancelarToma } from './cancelacionDeToma';
 import { CAPACIDADES_DE_VIDEO, capacidadesConEstado } from '../engine/capacidadesDeVideo';
 import { SEEDANCE_MODEL_IDS } from '../engine/providers/seedance';
 import { MODEL_CAPABILITIES_VERSION } from '../core/model-capability';
 import { MODELOS_VALIDADOS_POR_ENTRADA } from './entradasDePlano';
 import { LIMITES_DE_PLANO, PLANTILLA_DE_PLANO, PlanoRepresentable, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano } from './plano';
 import {
-  MAX_TOMAS, TomaExistente, UnidadEnLaProduccion, leerUnidadEnLaProduccion, nodoDeLaUnidad, puedePedirseLaToma, requestIdDeToma, tomaTerminada, tomasDeLaUnidad,
+  MAX_TOMAS, TomaExistente, UnidadEnLaProduccion, leerIdentidadDeToma, leerUnidadEnLaProduccion, nodoDeLaUnidad, puedePedirseLaToma, requestIdDeToma, tomaTerminada, tomasDeLaUnidad,
 } from './toma';
 
 /**
@@ -42,7 +46,8 @@ import {
  * infraestructura—, este número es lo que permite saber después que una
  * autorización de Credits se quedó colgada en vez de estar en marcha.
  */
-const PLAZO_DE_VIDEO_MS = 1_500_000;
+/** Se exporta: el estado de una toma y el render usan ESTE número, y no una copia. */
+export const PLAZO_DE_VIDEO_MS = 1_500_000;
 const RESERVA_PARA_LIQUIDAR_MS = 45_000;
 
 /**
@@ -179,6 +184,14 @@ interface GenerateVideoInput {
   cotizar?: boolean;
   /** Lo que se le enseñó a la persona. Si el precio cambió desde entonces, no se genera. */
   creditosCotizados?: number;
+  /**
+   * FILMMAKER · VARIAS UNIDADES DE UNA PRODUCCIÓN (lote). Lleva `productionId`, `revision`, `quality` y, si se quiere,
+   * `units`. Con `cotizar`, el presupuesto del lote; sin él, el lote por `creditosCotizados` (el total). Cada unidad
+   * vuelve a entrar por esta misma puerta como una toma (`creator/lotes.ts`): no hay cobro del lote.
+   */
+  produccion?: unknown;
+  /** FILMMAKER · CANCELAR la toma que dice `plano` (`productionId`, `sceneId`, `unitId`, `take`). No genera ni cobra (`creator/cancelacionDeToma.ts`). */
+  cancelar?: boolean;
 }
 
 /**
@@ -219,18 +232,24 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
   if (!productionId || !sceneId || !unitId || revision === undefined || (!soloCotizar && (pedida === undefined || pedida < 1 || pedida > MAX_TOMAS))) {
     throw new EngineError('INVALID_REQUEST', 'Esa toma no tiene forma válida.', { reason: 'take_invalid' });
   }
-  const requisito = leerRequisitoDePlano(d.requirement);
-  if (!requisito || requisito.unitId !== unitId || requisito.sceneId !== sceneId) {
+  const requisitoDeLaApp = leerRequisitoDePlano(d.requirement);
+  if (!requisitoDeLaApp || requisitoDeLaApp.unitId !== unitId || requisitoDeLaApp.sceneId !== sceneId) {
     throw new EngineError('INVALID_REQUEST', 'Ese plano no tiene forma válida.', { reason: 'shot_invalid' });
   }
   const db = getFirestore();
   const cuenta = await cuentaDelPrincipalEnWee(db, uid);
   if (!cuenta) throw new EngineError('INVALID_REQUEST', 'No encontramos esa producción.', { reason: 'production_not_found' });
   const accountId = cuenta.accountId;
-  const base = { accountId, productionId, sceneId, unitId, revision };
 
   const leida = await leerUnidadEnLaProduccion(db, accountId, { productionId, sceneId, unitId, revision });
   const tomas = await tomasDeLaUnidad(db, uid, accountId, { productionId, unitId });
+  /*
+   * FASE 5 · EL REQUISITO QUE VALE ES EL DEL SERVIDOR: el de la producción guardada en esa revisión, calculado con F1-A
+   * (`requisitoDelServidor`). De él sale todo —texto, duración, formato—; el de la app solo se compara, más abajo.
+   */
+  const delServidor = leida.ok ? await requisitoDelServidor(db, accountId, { productionId, sceneId, unitId, revision }) : null;
+  const requisito = delServidor?.ok ? delServidor.requisito : requisitoDeLaApp;
+  const base = { accountId, productionId, sceneId, unitId, revision };
   const ultima = tomas[tomas.length - 1];
   /* Cotizar ofrece la siguiente, si la que hay ya terminó; generar pide una concreta. */
   const toma = soloCotizar
@@ -242,6 +261,14 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
   const enOrden = puedePedirseLaToma(tomas, toma);
   if (enOrden) return { ...vacia, toma, requestId: null, motivo: enOrden };
   const requestId = requestIdDeToma(accountId, productionId, unitId, toma);
+
+  /* Si el servidor no pudo calcularlo, o la app dice otra cosa, no se genera: ni reserva ni cupo. La app vuelve a leer y a pedir. */
+  if (delServidor && !delServidor.ok) {
+    return { ...vacia, toma, requestId, motivo: delServidor.motivo, ...(delServidor.causa ? { detalle: { cause: delServidor.causa } } : {}) };
+  }
+  if (delServidor?.ok && !mismoRequisito(delServidor.requisito, requisitoDeLaApp)) {
+    return { ...vacia, toma, requestId, motivo: 'production_changed', detalle: { cause: 'requirement_mismatch' } };
+  }
 
   /*
    * Convergencia (2026-11-18): sobre 15 s solo atiende Seedance 2.5 (`chooseSeedanceModel` lo elige por la duración) y
@@ -371,7 +398,12 @@ export const sinReservaHuerfana = async <T>(uid: string, requestId: string, pedi
 /** Los proveedores que `priceVideoRequest` sabe cotizar con su tarifa oficial (más el demo, que cobra como ellos). */
 const TARIFA_PROPIA_DE_VIDEO: readonly string[] = ['seedance', 'mock'];
 
-export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, async (request) => {
+/**
+ * LA PUERTA DEL VÍDEO, POR DENTRO. Es una función con nombre para que el lote le pida cada unidad a ELLA MISMA —la misma
+ * sesión, los mismos datos que mandaría la app— sin volver a pasar por la red ni por otra Function. Sin ella, el lote
+ * tendría que copiar lo que aquí se decide (porte de filmmaker/core, 2026-11-18).
+ */
+const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown> => {
   const deadlineAt = Date.now() + PLAZO_DE_VIDEO_MS - RESERVA_PARA_LIQUIDAR_MS;
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
@@ -379,6 +411,37 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
     await exigirCuentaWeeValida(request.auth);
     const uid = request.auth.uid;
     const data = (request.data || {}) as GenerateVideoInput;
+    /*
+     * ── VARIOS PLANOS: EL LOTE PASA POR ESTA MISMA PUERTA ───────────────────
+     *
+     * Cada unidad vuelve a entrar aquí como una toma, con el requisito que calcula el servidor: su cotización, su cupo y
+     * su reserva son los de siempre. El lote no cobra, no pone precio y no decide nada de lo que ya decide esta puerta
+     * (`creator/lotes.ts`). Sigue siendo `video.generate` por la puerta de siempre: no abre ninguna capacidad nueva.
+     */
+    if (data.produccion !== undefined) {
+      const porUnidad = (datos: Record<string, unknown>): Promise<unknown> => atenderVideo({ ...request, data: datos });
+      const lote = { db: getFirestore(), at: Date.now(), vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS, porUnidad };
+      return data.cotizar === true
+        ? await presupuestarLote(uid, data.produccion, lote)
+        : await generarLote(uid, data.produccion, data.creditosCotizados, lote);
+    }
+    /*
+     * ── CANCELAR UNA TOMA ───────────────────────────────────────────────────
+     *
+     * Se para lo que todavía se puede parar y el dinero se mueve por el puerto de siempre. SIN `parar`: en esta rama el
+     * adaptador de Seedance no sabe pedirle al proveedor que pare una tarea ya aceptada, así que una toma aceptada
+     * contesta `take_accepted` (no se puede cancelar) en vez de simular que se paró.
+     */
+    if (data.cancelar === true) {
+      const identidad = leerIdentidadDeToma(data.plano);
+      if (!identidad) throw new EngineError('INVALID_REQUEST', 'Faltan datos de la toma o no tienen forma válida.');
+      const cuenta = await cuentaDelPrincipalEnWee(getFirestore(), uid);
+      if (!cuenta) throw new EngineError('UNAUTHORIZED');
+      const r = await cancelarToma(getFirestore(), { accountId: cuenta.accountId }, identidad, { at: Date.now(), vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS });
+      return r.ok
+        ? { status: 'CANCELLED', state: r.estado, ...(r.reembolso ? { refund: r.reembolso } : {}) }
+        : { status: 'NOT_CANCELLED', reason: r.motivo };
+    }
     /* Ola 3b: leer las capacidades de los modelos. No genera, no reserva, no cobra: contesta datos del código. */
     if (data.capacidades === true) return capacidadesParaLaApp();
     /*
@@ -802,4 +865,6 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
   } catch (error) {
     throw toEngineHttpsError(error);
   }
-});
+};
+
+export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, atenderVideo);

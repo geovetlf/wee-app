@@ -22,7 +22,10 @@ import {
   planosDeLaEscena,
 } from './index';
 import { revisarPlanoGuardado } from './validacion';
-import { enlazarToma, esNodoDeFilmmaker, leerIdentidadDeToma } from '../creator/toma';
+import { enlazarToma, esNodoDeFilmmaker, leerIdentidadDeToma, leerUnidadDeToma, videosDeLaProduccion } from '../creator/toma';
+import { estadoDeLaProduccion, trazasDeLaUnidad, vistaDeLaProduccion, vistaDeLaToma } from '../creator/estadoDeToma';
+import { PLAZO_DE_VIDEO_MS } from '../creator/video';
+import { componerMontaje } from '../creator/composicion';
 
 /**
  * WEË SCENES & SHOTS — LA PUERTA. Y solo eso.
@@ -249,6 +252,56 @@ export const shots = onCall({ region: REGION, timeoutSeconds: 30, memory: '256Mi
     const vista = entero(data.expectedVersion);
     const r = await enlazarToma(db, { uid: request.auth.uid, accountId }, toma as NonNullable<typeof toma>, { at, ...(vista !== undefined ? { expectedVersion: vista } : {}) });
     return { result: r };
+  }
+
+  /*
+   * F1-D · LOS VÍDEOS DE UNA PRODUCCIÓN: qué plano tiene puesto qué material, para que cada tarjeta del storyboard
+   * enseñe el suyo. Solo lectura, y de una producción ajena o inexistente la respuesta es la misma: ninguno.
+   * (Porte de filmmaker/core, 2026-11-18.)
+   */
+  if (op === 'shot.videos') {
+    const productionId = texto(data.productionId, 128);
+    if (!productionId) noVale();
+    return { videos: await videosDeLaProduccion(db, accountId, productionId as string) };
+  }
+
+  /*
+   * LAS TOMAS DE UNA UNIDAD, CON SU ESTADO: en qué está cada una —de «queued» a «completed», «refunded» o
+   * «reconciling»—, sus tres números en Credits, su vídeo si es suyo y está listo, y si está en su plano. Solo lectura,
+   * calculada de lo guardado (`creator/estadoDeToma.ts`); de una unidad ajena o inexistente, ninguna. Lo de dentro
+   * —el trabajo, el coste del proveedor, la huella— no sale de aquí.
+   */
+  if (op === 'shot.takes') {
+    const unidad = leerUnidadDeToma({ productionId: data.productionId, sceneId: data.sceneId, unitId: data.unitId });
+    if (!unidad) noVale();
+    const trazas = await trazasDeLaUnidad(db, { uid: request.auth.uid, accountId }, unidad as NonNullable<typeof unidad>, { at, vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS });
+    return { takes: trazas.map(vistaDeLaToma) };
+  }
+
+  /*
+   * LA PRODUCCIÓN, DE UN VISTAZO: sus unidades en el orden de la línea de tiempo, la última toma de cada una, el vídeo
+   * que tiene puesto su plano, los Credits de todas las tomas y si ya se puede montar. Solo lectura; de una producción
+   * ajena o inexistente, una producción vacía.
+   */
+  if (op === 'shot.production') {
+    const productionId = texto(data.productionId, 128);
+    if (!productionId) noVale();
+    const estado = await estadoDeLaProduccion(db, { uid: request.auth.uid, accountId }, productionId as string, { at, vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS });
+    return vistaDeLaProduccion(estado);
+  }
+
+  /*
+   * EL MONTAJE FINAL, COMO MANIFIESTO: qué se montaría —cada plano con su vídeo, en orden, recortado, con su
+   * transición y el formato de salida—, o qué falta para poder montarlo. Solo lectura: no renderiza nada.
+   */
+  if (op === 'shot.montage') {
+    const productionId = texto(data.productionId, 128);
+    const revision = entero(data.revision);
+    if (!productionId || revision === undefined || revision < 0) noVale();
+    const r = await componerMontaje(db, { uid: request.auth.uid, accountId }, { productionId: productionId as string, revision: revision as number }, { at, vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS });
+    return r.ok
+      ? { montage: { ready: true, manifest: r.manifiesto } }
+      : { montage: { ready: false, reason: r.motivo, ...(r.faltan ? { missing: r.faltan } : {}) } };
   }
 
   if (op === 'shot.stale') {
