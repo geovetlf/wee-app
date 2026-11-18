@@ -10,7 +10,7 @@ import { Tanda, TOPES_TANDAS } from '../../../utils/tandasDeFilmmaker';
 import { EFECTOS_DE_SONIDO_ABIERTOS, MUSICA_DE_ESCENA_ABIERTA, VOCES_PREDETERMINADAS } from '../../../constants/filmmakerSonido';
 import { VOZ_AUTO, herenciaDe, vozPorId } from '../../../utils/sonidoDeFilmmaker';
 import { SelectorDeVoz } from '../sonido/SelectorDeVoz';
-import { CajaDePrompt } from '../../creator/CajaDePrompt';
+import CajaDePrompt from '../../creator/CajaDePrompt';
 import { BotonBlanco, BotonContorno, FilaCerrada, estilosComunes as E, useTiempo } from './comunes';
 
 interface Props {
