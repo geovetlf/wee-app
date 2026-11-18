@@ -7,6 +7,13 @@ import { OPERACION_DE_LA_RUTA } from '../constants/filmmaker';
 import type { Tanda, CuadroDeStoryboard, TandasDelTaller } from './tandasDeFilmmaker';
 import { NARRADOR, OBJETIVO_POR_TANDA, SIN_HABLANTE } from './tandasDeFilmmaker';
 import type { ElementoDeUniverso, UniversoDelTaller } from './universoDeFilmmaker';
+import { VOCES_PREDETERMINADAS } from '../constants/filmmakerSonido';
+
+/** La voz propia de un cuadro como el servidor la guarda (`DialogueLine.voice`): solo las voces reales del catálogo; las de ejemplo no viajan. */
+export const vozDeLinea = (voz: string | null | undefined): { referenceId: string; description: string; language: string } | null => {
+  const v = voz && voz !== 'auto' ? VOCES_PREDETERMINADAS.find((x) => x.id === voz && !x.ejemplo) : undefined;
+  return v ? { referenceId: v.id, description: `${v.nombre} · ${v.tono}`, language: v.idioma } : null;
+};
 
 /**
  * WEË FILMMAKER · CAPA DE ORQUESTACIÓN DEL CLIENTE: de la EXPERIENCIA (tipo, estilo, idea, universo, tandas y cuadros) al CONTRATO del engine (la
@@ -101,9 +108,10 @@ export const operacionesDeCamaraDeUnPlano = (shotId: string, creativo: Readonly<
 const lineaDeCuadro = (c: CuadroDeStoryboard, personajes: ReadonlySet<string>, hablaComo: 'dialogue' | 'voiceover'): DialogueLine | null => {
   if (c.hablante === SIN_HABLANTE || !c.texto.trim()) return null;
   const texto = recorta(c.texto, LIMITES.linea);
-  if (c.hablante === NARRADOR) return { id: conPrefijo('dl_', c.id), kind: 'narration', text: texto };
+  const voz = vozDeLinea(c.voz);
+  if (c.hablante === NARRADOR) return { id: conPrefijo('dl_', c.id), kind: 'narration', text: texto, ...(voz ? { voice: voz } : {}) };
   if (!personajes.has(c.hablante)) return null;
-  return { id: conPrefijo('dl_', c.id), kind: hablaComo, characterId: idDePersonaje(c.hablante), text: texto };
+  return { id: conPrefijo('dl_', c.id), kind: hablaComo, characterId: idDePersonaje(c.hablante), text: texto, ...(voz ? { voice: voz } : {}) };
 };
 
 const planoDeCuadro = (c: CuadroDeStoryboard, personajes: ReadonlySet<string>, hablaComo: 'dialogue' | 'voiceover'): Omit<ProductionShot, 'order'> => {
@@ -172,7 +180,7 @@ export const produccionDesdeLaExperiencia = (e: ExperienciaDeFilmmaker): Resulta
       if (c.ejemplo) { omisiones.push({ motivo: 'ejemplo', id: c.id }); continue; }
       if (!c.texto.trim()) { omisiones.push({ motivo: 'cuadro_sin_texto', id: c.id }); continue; }
       if (shots.length >= LIMITES.planosPorEscena || planos >= LIMITES.planos) { omisiones.push({ motivo: 'tope_de_planos', id: c.id }); continue; }
-      if (c.voz && c.voz !== 'auto') vozSinDestino.push({ ownerId: c.id, voz: c.voz });
+      if (c.voz && c.voz !== 'auto' && !(vozDeLinea(c.voz) && c.hablante !== SIN_HABLANTE)) vozSinDestino.push({ ownerId: c.id, voz: c.voz });
       shots.push({ ...planoDeCuadro(c, hablantes, e.hablaComo ?? 'dialogue'), order: shots.length });
       planos++;
       operaciones.push(...operacionesDeCamaraDeUnPlano(idDePlano(c.id), c.creativo));
@@ -267,7 +275,7 @@ export const tandasDesdeLaProduccion = (prod: FilmmakerProduction): TandasDelTal
       const hablante = !linea ? SIN_HABLANTE : linea.kind === 'narration' ? NARRADOR : linea.characterId ? sinPrefijo('ch_', linea.characterId) : SIN_HABLANTE;
       const creativo: Record<string, string> = {};
       for (const ruta of Object.keys(OPERACION_DE_LA_RUTA)) { const v = delCreativo(p.visual?.creative, ruta); if (v) creativo[ruta] = v; }
-      return { id: cid, texto: p.description ?? linea?.text ?? '', hablante, duracion: p.durationSec ?? 6, creativo } as CuadroDeStoryboard;
+      return { id: cid, texto: p.description ?? linea?.text ?? '', hablante, duracion: p.durationSec ?? 6, creativo, ...(linea?.voice?.referenceId ? { voz: linea.voice.referenceId } : {}) } as CuadroDeStoryboard;
     });
     const segundos = cuadros.reduce((n, c) => n + c.duracion, 0);
     return { id, titulo: s.title ?? '', objetivo: Math.max(10, Math.round(segundos) || OBJETIVO_POR_TANDA), cuadros, aprobada: s.batch?.status === 'approved', almacen: !!s.batch?.stored } as Tanda;

@@ -75,5 +75,16 @@ console.log('── D · Reabrir: lo guardado vuelve a la experiencia ──');
   check('D4) el tipo del servidor vuelve a su tipo de la experiencia', O.tipoDeLaExperiencia('short_film') === 'short' && O.tipoDeLaExperiencia('cinematic') === 'film' && O.tipoDeLaExperiencia('music_video') === null);
 }
 
+
+console.log('── E · Voz propia del cuadro ──');
+check('E1) una voz de ejemplo NO viaja (queda sin destino y se dice); "auto" y vacío tampoco', O.vozDeLinea('ej_es_aurora') === null && O.vozDeLinea('auto') === null && O.vozDeLinea(null) === null);
+{
+  const t2 = T.editarCuadro(tandas, tid, c1, { voz: 'ej_es_aurora' });
+  const g = O.produccionDesdeLaExperiencia({ ...exp, tandas: t2 });
+  check('E2) la voz de ejemplo del cuadro figura como voz sin destino', g.vozSinDestino.some((x) => x.ownerId === c1));
+  const prod = JSON.parse(JSON.stringify(g.production)); prod.scenes[0].shots[0].dialogue[0].voice = { referenceId: 'real_1', description: 'x', language: 'es' };
+  check('E3) al reabrir, la voz propia guardada en la línea vuelve al cuadro', O.tandasDesdeLaProduccion(prod).tandas[0].cuadros[0].voz === 'real_1');
+}
+
 console.log(failures ? `\n${failures} FALLO(S)` : `\nTodo en verde (${n}).`);
 process.exit(failures ? 1 : 0);
