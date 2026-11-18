@@ -104,5 +104,14 @@ check('21) una idea de 12 000 caracteres cabe (ampliación documentada: lo que P
 check('22) una de 12 001 se RECHAZA con el máximo, no se recorta en silencio', (() => { const x = conIdea(12001); return !ok(x) ? true : errIdea(x).some((e) => e.parameters.reason === 'too_long' && e.parameters.max === 12000); })());
 check('23) el resto de los textos libres siguen en 4000', modelo.LIMITES.textoLibre === 4000 && modelo.LIMITES.ideaLibre === 12000);
 
+console.log('── La voz del cuadro ──');
+const conAna = aplica(base(), [{ op: 'add_character', character: { id: 'ana1', name: 'Ana', voice: { description: 'grave y calmada' } } }]).production;
+const hablado = aplica(conAna, [{ op: 'add_dialogue', target: { shotId: 'sh01' }, line: { id: 'lin1', kind: 'dialogue', characterId: 'ana1', text: 'Ya voy.' } }]);
+check('24) una línea sin voz propia HEREDA la del personaje', ok(hablado) && modelo.vozDeLinea(hablado.production, hablado.production.scenes[0].shots[0].dialogue[0])?.description === 'grave y calmada', codes(hablado));
+const propia = aplica(hablado.production, [{ op: 'change_dialogue', lineId: 'lin1', changes: { voice: { description: 'susurro nervioso' } } }]);
+check('25) la voz PROPIA del cuadro manda sobre la heredada', ok(propia) && modelo.vozDeLinea(propia.production, propia.production.scenes[0].shots[0].dialogue[0])?.description === 'susurro nervioso' && validacion.validarProduccion(propia.production).problems.every((x) => x.severity !== 'error'), codes(propia));
+const vuelta = aplica(propia.production, [{ op: 'change_dialogue', lineId: 'lin1', changes: { voice: null } }]);
+check('26) y con `null` vuelve a heredar', ok(vuelta) && modelo.vozDeLinea(vuelta.production, vuelta.production.scenes[0].shots[0].dialogue[0])?.description === 'grave y calmada', codes(vuelta));
+
 console.log(fallos ? `\n✘ ${fallos} fallan de ${n}` : `\n✔ ${n} comprobaciones`);
 process.exit(fallos ? 1 : 0);

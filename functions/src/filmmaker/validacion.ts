@@ -368,7 +368,7 @@ const direccionDeAudio = (c: Ctx, v: unknown, ruta: string): void => {
   booleano(c, v.withSound, unir(ruta, 'withSound'));
 };
 
-const LINEA = ['id', 'kind', 'characterId', 'text', 'language', 'emotion', 'estimatedSec'];
+const LINEA = ['id', 'kind', 'characterId', 'text', 'language', 'emotion', 'estimatedSec', 'voice'];
 const lineas = (c: Ctx, v: unknown, ruta: string): readonly { readonly l: Obj; readonly ruta: string }[] => {
   if (!arreglo(c, v, ruta, LIMITES.lineasPorBloque)) return [];
   const buenas: { l: Obj; ruta: string }[] = [];
@@ -388,6 +388,7 @@ const lineas = (c: Ctx, v: unknown, ruta: string): readonly { readonly l: Obj; r
     idioma(c, l.language, unir(r, 'language'));
     texto(c, l.emotion, unir(r, 'emotion'), LIMITES.frase);
     duracion(c, l.estimatedSec, unir(r, 'estimatedSec'), LIMITES.planoMaxSec);
+    if (l.voice !== undefined) voz(c, l.voice, unir(r, 'voice'));
   });
   return buenas;
 };

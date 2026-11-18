@@ -77,6 +77,8 @@ export type DialogueChanges = {
   readonly language?: string | null;
   readonly emotion?: string | null;
   readonly estimatedSec?: number | null;
+  /** Convergencia: la voz propia de la línea (el cuadro); `null` = vuelve a heredar la del personaje o el narrador. */
+  readonly voice?: VoiceReference | null;
 };
 
 export type AudioChange =
@@ -1117,7 +1119,7 @@ const ejecutar = (prod: Prod, op: FilmmakerOperation): Paso => {
         return falla('operation_invalid', 'changes', { reason: 'nothing_to_change' });
       }
       if (cambio) {
-        const permitidos = ['text', 'kind', 'characterId', 'language', 'emotion', 'estimatedSec'];
+        const permitidos = ['text', 'kind', 'characterId', 'language', 'emotion', 'estimatedSec', 'voice'];
         const extra = Object.keys(cambio).find((k) => !permitidos.includes(k));
         if (extra !== undefined) return falla('operation_invalid', `changes.${extra}`, { reason: claveProhibidaDeNodo(extra) ? 'forbidden_field' : 'unknown_field' });
       }

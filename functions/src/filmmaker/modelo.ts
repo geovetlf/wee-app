@@ -521,6 +521,11 @@ export interface DialogueLine {
   readonly emotion?: string;
   /** Si alguien ya sabe cuánto dura, manda sobre la estimación. */
   readonly estimatedSec?: number;
+  /**
+   * Convergencia (2026-11-18) · LA VOZ PROPIA DE ESTA LÍNEA (el cuadro). Ausente = hereda: la del personaje (o la del narrador),
+   * como siempre. Es una descripción o un audio de referencia, igual que la del personaje: nunca un id de proveedor.
+   */
+  readonly voice?: VoiceReference;
 }
 
 /* ── Personajes, apariencia, lugares, objetos y referencias ──────────────── */
@@ -996,11 +1001,11 @@ export const estadoEfectivo = (
 export const repartoDelPlano = (scene: ProductionScene, shot?: ProductionShot): readonly string[] =>
   shot?.characterIds ?? scene.characterIds ?? [];
 
-/** La voz con la que suena una línea: la del narrador o la de su personaje. */
+/** La voz con la que suena una línea: la PROPIA si la tiene (cuadro); si no, la heredada: la del narrador o la de su personaje. */
 export const vozDeLinea = (prod: FilmmakerProduction, line: DialogueLine): VoiceReference | undefined =>
-  line.kind === 'narration'
+  line.voice ?? (line.kind === 'narration'
     ? prod.audio.narrator
-    : prod.characters.find((c) => c.id === line.characterId)?.voice;
+    : prod.characters.find((c) => c.id === line.characterId)?.voice);
 
 export const idiomaDeLinea = (prod: FilmmakerProduction, line: DialogueLine): string | undefined =>
   line.language ?? prod.metadata.locale;
