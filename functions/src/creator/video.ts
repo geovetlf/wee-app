@@ -28,6 +28,7 @@ import { generarLote, presupuestarLote } from './lotes';
 import { canceladaPorLaPersona, cancelarToma } from './cancelacionDeToma';
 import { categoriaDelFallo } from './fallos';
 import { CAPACIDADES_DE_VIDEO, capacidadesConEstado } from '../engine/capacidadesDeVideo';
+import { opcionesDeModelo, validarPreferenciasDeModelo } from '../engine/preferenciasDeModelo';
 import { SEEDANCE_MODEL_IDS, pararTareaDeSeedance, resolutorDeSeedance } from '../engine/providers/seedance';
 import { MODEL_CAPABILITIES_VERSION } from '../core/model-capability';
 import { MODELOS_VALIDADOS_POR_ENTRADA } from './entradasDePlano';
@@ -278,10 +279,22 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
    * Convergencia (2026-11-18): sobre 15 s solo atiende Seedance 2.5 (`chooseSeedanceModel` lo elige por la duración) y
    * su tope de 30 s lo valida el contrato de capacidades, no una constante de esta ruta. Hasta 15 s, lo de siempre.
    */
-  const capacidadesLargas = requisito.duracionSec > LIMITES_DE_PLANO.duracionMaximaSinModeloSec
-    ? capacidadesConEstado(SEEDANCE_MODEL_IDS.SEEDANCE_2_5, new Set([SEEDANCE_MODEL_IDS.SEEDANCE_2_5]))
+  /*
+   * Lo que la persona elige del modelo (panel de especificaciones): modelo preferido, variantes y semilla. Opcionales; sin
+   * nada, lo de siempre. Se valida contra las capacidades del modelo ANTES de evaluar el plano.
+   */
+  const prefs = validarPreferenciasDeModelo({ preferredModel: d.preferredModel, variants: d.variants, seed: d.seed });
+  if (!prefs.ok) return { ...vacia, toma, requestId, motivo: prefs.codigo, detalle: { field: prefs.campo, ...prefs.parametros } };
+  const claveDelModelo = prefs.modelo
+    ? (Object.entries(SEEDANCE_MODEL_IDS).find(([, id]) => id === prefs.modelo?.modeloId)?.[0] as keyof typeof SEEDANCE_MODEL_IDS | undefined)
     : undefined;
-  const evaluacion = evaluarPlano(requisito, d.quality, capacidadesLargas);
+  if (prefs.modelo && !claveDelModelo) return { ...vacia, toma, requestId, motivo: 'model_not_integrated', detalle: { field: 'preferredModel', model: prefs.modelo.modeloId } };
+  const capacidadesElegidas = prefs.modelo
+    ? capacidadesConEstado(prefs.modelo.modeloId, new Set([prefs.modelo.modeloId]))
+    : requisito.duracionSec > LIMITES_DE_PLANO.duracionMaximaSinModeloSec
+      ? capacidadesConEstado(SEEDANCE_MODEL_IDS.SEEDANCE_2_5, new Set([SEEDANCE_MODEL_IDS.SEEDANCE_2_5]))
+      : undefined;
+  const evaluacion = evaluarPlano(requisito, d.quality, capacidadesElegidas);
   if (!evaluacion.ok) return { ...vacia, toma, requestId, motivo: evaluacion.motivo, ...(evaluacion.detalle ? { detalle: evaluacion.detalle } : {}) };
   return {
     ...vacia,
@@ -295,7 +308,8 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
       ...(evaluacion.resolucion ? { resolution: evaluacion.resolucion } : {}),
       quality: evaluacion.calidad,
       generateAudio: evaluacion.conSonido,
-      model: 'auto',
+      model: claveDelModelo ?? 'auto',
+      ...(typeof d.seed === 'number' ? { seed: d.seed } : {}),
     },
   };
 };
@@ -310,6 +324,8 @@ const capacidadesParaLaApp = () => ({
   version: MODEL_CAPABILITIES_VERSION,
   models: CAPACIDADES_DE_VIDEO.map(({ proveedor: _proveedor, fuentes: _fuentes, ...c }) => ({
     ...c,
+    /* Lo que el modelo soporta, listo para pintar: duraciones, formatos, resoluciones, audio, semilla y variantes. */
+    options: opcionesDeModelo(c),
     available: {
       referencias: MODELOS_VALIDADOS_POR_ENTRADA.referencias.includes(c.modeloId),
       fotogramas: MODELOS_VALIDADOS_POR_ENTRADA.fotogramas.includes(c.modeloId),
