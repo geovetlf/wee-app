@@ -8,7 +8,7 @@ import {
   PAPELES_DE_REFERENCIA, PISTAS, POSICIONES_DE_SUBTITULO, PRESETS, PREVISUALIZACIONES, PRIORIDADES,
   PROPOSITOS_DE_EXPORTACION, PROPOSITOS_NARRATIVOS, RASGOS, RELACIONES_ENTRE_PERSONAJES, RESOLUCIONES, RITMOS,
   TIPOS_DE_LINEA, TIPOS_DE_OBJETO, TIPOS_DE_PRODUCCION, TIPOS_DE_RESTRICCION, TIPOS_DE_SONIDO, AMBIENTES,
-  FILMMAKER_MODEL_VERSION, aMs, aSec, canonico, compararTexto, esId,
+  FILMMAKER_MODEL_VERSION, aMs, aSec, canonico, compararTexto, esId, DIRECCIONES_DE_EXTENSION, MODOS_DE_REVISION,
 } from './modelo';
 
 /**
@@ -440,8 +440,28 @@ const pertenece = (id: unknown, visibles: ReadonlySet<string> | undefined): bool
 
 const PLANO = [
   'id', 'order', 'durationSec', 'description', 'visual', 'subject', 'characterIds', 'objectIds', 'characterStates',
-  'actions', 'dialogue', 'audio', 'referenceIds', 'continuity', 'dependsOn', 'generation', 'advanced',
+  'actions', 'dialogue', 'audio', 'referenceIds', 'continuity', 'dependsOn', 'generation', 'advanced', 'revision',
 ];
+
+/**
+ * OLA 3b · LA REVISIÓN DE UNA TOMA. Solo la forma: qué modo, qué se pide y, al extender, cuánto y hacia dónde.
+ * Si el modelo lo admite, si hay toma de partida y si es de la cuenta lo decide F1-D al generar, no el dominio.
+ * `fromTake` es el número de la toma (1…50: el mismo tope de tomas de un plano). `seconds` solo al extender.
+ */
+const MAX_TOMA_DE_PARTIDA = 50;
+const revisionDePlano = (c: Ctx, v: unknown, ruta: string): void => {
+  if (!objeto(c, v, ruta)) return;
+  claves(c, v, ['mode', 'instruction', 'fromTake', 'direction', 'seconds'], ruta, 'instruction');
+  uno(c, v.mode, MODOS_DE_REVISION, unir(ruta, 'mode'), 'value_invalid', true);
+  texto(c, v.instruction, unir(ruta, 'instruction'), LIMITES.textoLibre, true);
+  numero(c, v.fromTake, unir(ruta, 'fromTake'), 1, MAX_TOMA_DE_PARTIDA, true);
+  if (v.mode !== 'extend') {
+    for (const k of ['direction', 'seconds']) if (v[k] !== undefined) mal(c, 'constraints_incompatible', 'error', unir(ruta, k), { reason: 'only_when_extending' });
+    return;
+  }
+  uno(c, v.direction, DIRECCIONES_DE_EXTENSION, unir(ruta, 'direction'));
+  numero(c, v.seconds, unir(ruta, 'seconds'), LIMITES.duracionMinimaSec, LIMITES.planoMaxSec);
+};
 
 const plano = (c: Ctx, p: unknown, j: number, rutaDeEscena: string, reparto: ReadonlySet<string> | undefined): void => {
   const r = unir(unir(rutaDeEscena, 'shots'), tramo(p, j));
@@ -472,6 +492,7 @@ const plano = (c: Ctx, p: unknown, j: number, rutaDeEscena: string, reparto: Rea
     claves(c, p.advanced, ['prompt'], unir(r, 'advanced'), 'prompt');
     texto(c, p.advanced.prompt, unir(r, 'advanced.prompt'), LIMITES.textoLibre, true);
   }
+  revisionDePlano(c, p.revision, unir(r, 'revision'));
 
   /*
    * ── Quién está, de verdad, en el plano ───────────────────────────────────

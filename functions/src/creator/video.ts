@@ -21,6 +21,9 @@ import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, conductorDeWee, configuracionDeLa
 import { crearMaterialDesdeUrl, leerMaterial } from '../content';
 import { loadCostOverrides } from '../credits/creditCosts';
 import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
+import { CAPACIDADES_DE_VIDEO } from '../engine/capacidadesDeVideo';
+import { MODEL_CAPABILITIES_VERSION } from '../core/model-capability';
+import { MODELOS_VALIDADOS_POR_ENTRADA } from './entradasDePlano';
 import { PLANTILLA_DE_PLANO, PlanoRepresentable, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano } from './plano';
 import {
   MAX_TOMAS, TomaExistente, UnidadEnLaProduccion, leerUnidadEnLaProduccion, nodoDeLaUnidad, puedePedirseLaToma, requestIdDeToma, tomaTerminada, tomasDeLaUnidad,
@@ -169,6 +172,8 @@ interface GenerateVideoInput {
    * `requirement`, el `ShotRequirement` que calculó el espejo de F1-A.
    */
   plano?: unknown;
+  /** Ola 3b · LEER las capacidades de los modelos de vídeo (`core/model-capability.ts`). Ni cupo, ni reserva, ni proveedor. */
+  capacidades?: boolean;
   /** Solo cotizar: qué costaría y si se puede. Ni cupo, ni reserva, ni generación. */
   cotizar?: boolean;
   /** Lo que se le enseñó a la persona. Si el precio cambió desde entonces, no se genera. */
@@ -255,6 +260,25 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
     },
   };
 };
+
+/**
+ * OLA 3b · LO QUE LA APP LEE DE LOS MODELOS: sus capacidades declaradas y, por modo, si hoy se pueden usar de verdad
+ * (hoy ninguno: las listas de modelos validados por modo están vacías y las puertas cerradas). SIN el proveedor ni las
+ * fuentes. Es una lectura de datos del código: no toca Firestore, ni Credits, ni el proveedor, ni el Core.
+ */
+const capacidadesParaLaApp = () => ({
+  status: 'CAPABILITIES' as const,
+  version: MODEL_CAPABILITIES_VERSION,
+  models: CAPACIDADES_DE_VIDEO.map(({ proveedor: _proveedor, fuentes: _fuentes, ...c }) => ({
+    ...c,
+    available: {
+      referencias: MODELOS_VALIDADOS_POR_ENTRADA.referencias.includes(c.modeloId),
+      fotogramas: MODELOS_VALIDADOS_POR_ENTRADA.fotogramas.includes(c.modeloId),
+      extender: MODELOS_VALIDADOS_POR_ENTRADA.extender.includes(c.modeloId),
+      editar: MODELOS_VALIDADOS_POR_ENTRADA.editar.includes(c.modeloId),
+    },
+  })),
+});
 
 /** Por qué no, dicho como lo lee la app: el motivo y lo que haga falta para explicarlo. */
 const noSeGenera = (t: TomaPreparada, motivo = t.motivo ?? 'shot_invalid', detalle = t.detalle): EngineError =>
@@ -347,6 +371,8 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
     await exigirCuentaWeeValida(request.auth);
     const uid = request.auth.uid;
     const data = (request.data || {}) as GenerateVideoInput;
+    /* Ola 3b: leer las capacidades de los modelos. No genera, no reserva, no cobra: contesta datos del código. */
+    if (data.capacidades === true) return capacidadesParaLaApp();
     /*
      * ── F1-D · UNA TOMA DE UN PLANO ─────────────────────────────────────────
      *

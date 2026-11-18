@@ -139,10 +139,18 @@ const canonico = (v: unknown): unknown => {
  * lo que el plano pide —la dirección, el formato, los personajes, su escena, él—
  * y no cambia cuando se edita otra escena.
  */
-const firmaDe = (raiz: Record<string, unknown>, escena: Record<string, unknown>): string => {
+/**
+ * Ola 3b · LA REVISIÓN PEDIDA NO ES PARTE DE LO QUE EL PLANO ES. Se pide, se genera la toma y se retira (`update_shot`
+ * con `revision: null`); si la firma la incluyera, retirarla cambiaría la firma de una toma ya hecha y su enlace
+ * saldría `production_changed`. Un plano sin revisión da la MISMA firma que siempre, byte a byte.
+ */
+const sinRevision = (e: Record<string, unknown>): Record<string, unknown> =>
+  (Array.isArray(e.shots) ? { ...e, shots: e.shots.map((p) => (esObj(p) ? Object.fromEntries(Object.entries(p).filter(([k]) => k !== 'revision')) : p)) } : e);
+
+export const firmaDe = (raiz: Record<string, unknown>, escena: Record<string, unknown>): string => {
   const { revision: _r, ...metadatos } = esObj(raiz.metadata) ? raiz.metadata : {};
   const { metadata: _m, updatedAt: _u, createdAt: _c, status: _s, archivedAt: _a, ownerAccountId: _o, ...creativa } = raiz;
-  const { ownerAccountId: _eo, productionId: _ep, ...deLaEscena } = escena;
+  const { ownerAccountId: _eo, productionId: _ep, ...deLaEscena } = sinRevision(escena);
   void _r; void _m; void _u; void _c; void _s; void _a; void _o; void _eo; void _ep;
   return createHash('sha256').update(JSON.stringify(canonico({ produccion: { ...creativa, metadata: metadatos }, escena: deLaEscena }))).digest('hex');
 };
@@ -279,7 +287,14 @@ const leerReserva = async (db: Firestore, uid: string, requestId: string): Promi
  * (`run_<requestId>`), y la materialización lo copia a la ficha: el cliente no
  * puede escribir ninguna de las dos cosas. Exactamente uno, o ninguno.
  */
-const materialDeLaOperacion = async (db: Firestore, uid: string, requestId: string): Promise<{ assetId: string } | null> => {
+/**
+ * Ola 3b · LAS CAPACIDADES CON LAS QUE PUEDE NACER EL VÍDEO DE UNA TOMA. Antes solo `video.generate`; con
+ * referencias, fotogramas o una revisión, la procedencia del material dice `video.reference` o `video.image_to_video`.
+ * No amplía lo que ninguna puerta manda al Core: solo reconoce el material de lo que la puerta del vídeo ya generó.
+ */
+export const CAPACIDADES_DE_VIDEO_DE_TOMA: readonly string[] = Object.freeze(['video.generate', 'video.image_to_video', 'video.reference']);
+
+export const materialDeLaOperacion = async (db: Firestore, uid: string, requestId: string): Promise<{ assetId: string } | null> => {
   const snap = await db.collection(COLECCION_DE_MATERIALES)
     .where('ownerAccountId', '==', uid)
     .where('provenance.traceId', '==', requestId)
@@ -289,7 +304,7 @@ const materialDeLaOperacion = async (db: Firestore, uid: string, requestId: stri
   const m = snap.docs[0].data();
   const p = esObj(m.provenance) ? m.provenance : {};
   if (m.status !== 'ready' || m.kind !== 'video') return null;
-  if (p.capability !== 'video.generate' || p.runId !== `run_${requestId}`) return null;
+  if (!CAPACIDADES_DE_VIDEO_DE_TOMA.includes(String(p.capability)) || p.runId !== `run_${requestId}`) return null;
   return typeof m.assetId === 'string' ? { assetId: m.assetId } : null;
 };
 

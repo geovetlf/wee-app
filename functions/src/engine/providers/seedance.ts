@@ -411,6 +411,19 @@ const mecanismoDeContinuidad = (capability: CapabilityId, modelId: string): Meca
   };
 };
 
+/**
+ * OLA 3b · LAS ETIQUETAS DE WEË, EN EL IDIOMA DEL PROVEEDOR.
+ *
+ * Weë etiqueta cada referencia por tipo y por orden —`@imagen1`, `@video1`, `@audio1`
+ * (`core/model-capability.ts`, `etiquetasDeReferencias`)— y esa etiqueta puede estar en el texto de la persona.
+ * Cómo las llama ModelArk es asunto de este adaptador: aquí se traducen. NO VERIFICADO contra la documentación
+ * oficial; una sola constante para corregirla tras el primer canary.
+ */
+export const ETIQUETA_DE_PROVEEDOR: Readonly<Record<'imagen' | 'video' | 'audio', string>> = Object.freeze({ imagen: 'Image', video: 'Video', audio: 'Audio' });
+
+export const traducirEtiquetasDeReferencia = (texto: string): string =>
+  texto.replace(/@(imagen|video|audio)(\d{1,2})\b/gi, (_m, tipo: string, n: string) => `@${ETIQUETA_DE_PROVEEDOR[tipo.toLowerCase() as 'imagen' | 'video' | 'audio']}${n}`);
+
 /** Traduce el input abstracto de Weë al cuerpo oficial de ModelArk (función pura salvo la lectura de imágenes). */
 export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ body: SeedanceRequestBody; estimatedTokens: number; rate: number; withVideoInput: boolean; efectiva: PeticionEfectivaDeSeedance; neutralizados: number }> {
   const { capability, input, model, prefs } = request;
@@ -419,7 +432,7 @@ export async function buildSeedanceBody(request: ProviderRunRequest): Promise<{ 
    * sintaxis nueva, y recortar después no puede partir un comando a medias.
    */
   const limpio = neutralizarParametrosEnLinea(String(input.prompt ?? input.purpose ?? ''));
-  const prompt = limpio.texto.slice(0, 3000);
+  const prompt = (capability === 'video.reference' ? traducirEtiquetasDeReferencia(limpio.texto) : limpio.texto).slice(0, 3000);
   if (!prompt.trim()) throw new ProviderError('seedance: falta la descripción del video', 'seedance', undefined, false);
   const spec = specOf(model.id);
   /* Resolución, proporción, duración, audio y marca de agua: SOLO de aquí, la misma verdad que cotizó el precio. */

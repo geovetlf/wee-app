@@ -438,6 +438,11 @@ export interface ProductionShot {
   readonly dependsOn?: readonly string[];
   readonly generation?: ShotGeneration;
   readonly advanced?: AdvancedDirection;
+  /**
+   * OLA 3b · UNA REVISIÓN PEDIDA de la toma del plano: editarla o extenderla. Es una PETICIÓN, no un resultado: no
+   * cambia el vídeo del plano, deja dicho qué se quiere hacer con él. Cómo se hace lo decide F1-D.
+   */
+  readonly revision?: ShotRevision;
 }
 
 /** A quién o a qué mira la cámara, y a qué parte. */
@@ -457,6 +462,24 @@ export interface CharacterState {
 
 export interface ShotGeneration {
   readonly quality?: ProductionQuality;
+}
+
+/** Qué se le puede pedir a una toma que ya existe. */
+export const MODOS_DE_REVISION = Object.freeze(['edit', 'extend'] as const);
+export type TakeRevisionMode = typeof MODOS_DE_REVISION[number];
+export const DIRECCIONES_DE_EXTENSION = Object.freeze(['forward', 'backward'] as const);
+export type ExtensionDirection = typeof DIRECCIONES_DE_EXTENSION[number];
+
+/**
+ * LA REVISIÓN DE UNA TOMA. `instruction` es contenido de la persona (no se traduce). `fromTake` dice de cuál de las
+ * tomas del plano se parte; sin él, de la última que salió bien. `seconds` y `direction` solo al extender.
+ */
+export interface ShotRevision {
+  readonly mode: TakeRevisionMode;
+  readonly instruction: string;
+  readonly fromTake?: number;
+  readonly direction?: ExtensionDirection;
+  readonly seconds?: number;
 }
 
 /** El texto que la persona escribe cuando quiere dirigir con sus palabras. */
