@@ -75,6 +75,8 @@ import { onboarding } from './onboarding';
 import { aiAvatar } from './aiAvatar';
 import { moderation } from './moderation';
 import { filmmaker } from './filmmaker';
+import { filmmakerImagenes } from './filmmakerImagenes';
+import { filmmakerDocumentos } from './filmmakerDocumentos';
 import { filmmakerTandas } from './filmmakerTandas';
 import { filmmakerSonido } from './filmmakerSonido';
 import { travel } from './travel';
@@ -123,6 +125,8 @@ export const da: FormaDelDiccionario = {
   brain,
   moderation,
   filmmaker,
+  filmmakerImagenes,
+  filmmakerDocumentos,
   filmmakerTandas,
   filmmakerSonido,
   travel,
