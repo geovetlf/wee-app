@@ -179,10 +179,19 @@ const FilmmakerCrearScreen: React.FC = () => {
   const cargarDemo = (etapa: string) => {
     if (!__DEV__) return;
     setDemoLocal(etapa); setFallo(null); setAviso(null); setCreando(false);
-    setTipoId('short'); setEstilo('anime'); setProduccionId('demo');
-    setIdea((i) => poner(cambiarDeTipo(i, 'short'), 'idea', 'Una historia de ejemplo para ver la pantalla'));
+    /* El demo CONSERVA lo que la persona ya puso (tipo, estilo, idea e imágenes); solo rellena lo que falta. */
+    const tipoDemo = (tipoId ?? 'short') as TipoDeTaller;
+    setTipoId(tipoDemo); setEstilo(estilo ?? 'anime'); setProduccionId('demo');
+    const ideaPrevia = fraseDe(idea) || texto.trim();
+    setIdea((i) => poner(cambiarDeTipo(i, tipoDemo), 'idea', ideaPrevia || 'Una historia de ejemplo para ver la pantalla'));
+    setTexto('');
     /* Un personaje «tuyo» de muestra para que «Continuar» quede habilitado y se pueda recorrer el flujo; el resto son los ejemplos rotulados. */
-    setUniverso(anadir(anadirEjemplos(universoVacio(), EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))), 'character', t('filmmakerProd.demoCharacter')));
+    const deLaPersona = personajes(refs.referencias).length;
+    const conEjemplos = anadirEjemplos(universoVacio(), EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz })));
+    const conPersonajes = deLaPersona > 0
+      ? personajes(refs.referencias).reduce((acc, _p, i) => anadir(acc, 'character', t('filmmaker.refCharacterName', { n: formato.numero(i + 1) })), conEjemplos)
+      : anadir(conEjemplos, 'character', t('filmmakerProd.demoCharacter'));
+    setUniverso(listas(refs.referencias).filter((x) => x.rol === 'world').reduce((acc) => anadir(acc, 'place', t('filmmaker.refWorldName')), conPersonajes));
     const base = anadirTandasDeEjemplo(tandasVacias(), ejemploTraducido(t));
     /* Para Producción y Juntar los capítulos de muestra cuentan como aprobados y reales (siguen rotulados «Demo»). */
     const avanzada = etapa === 'produccion' || etapa === 'juntar';
@@ -418,7 +427,7 @@ const FilmmakerCrearScreen: React.FC = () => {
             </TouchableOpacity>
           ) : null}
           {!enEtapas && !enEstilo ? <ReferenciasAdjuntas referencias={refs.referencias} onQuitar={refs.quitar} onReintentar={refs.reintentar} onCambiarRol={refs.cambiarRol} /> : null}
-          {__DEV__ && !enDemo && capa === 'entrada' ? (
+          {__DEV__ && !enDemo && (capa === 'entrada' || capa === 'estilo' || capa === 'taller') && !fallo ? (
             <TouchableOpacity onPress={() => cargarDemo('universo')} accessibilityRole="button" accessibilityLabel={t('filmmakerProd.demoTry')} testID="probar-demo" style={styles.demoEntrada}><Text style={[textoPortada(13, '600'), { color: P.tintaSecundaria }]}>{t('filmmakerProd.demoTry')}</Text></TouchableOpacity>
           ) : null}
           {!enEstilo && !enProduccion && !enJuntar && !enTandas ? <CajaAnclada alto={topeDeLaCaja}>
@@ -427,10 +436,15 @@ const FilmmakerCrearScreen: React.FC = () => {
           {/* El fallo al crear sale EN LÍNEA, bajo la caja, con la idea conservada en ella: enviar de nuevo reintenta (mismo id, no duplica). */}
           {fallo && enIdea ? (
             <View style={[styles.falloEnLinea, dir.contenedor]} accessibilityRole="alert" accessibilityLiveRegion="polite">
-              <Text style={[textoPortada(13), dir.texto, { color: P.tinta, flex: 1 }]}>{t('filmmaker.hubCreateError')} {fallo} {t('filmmaker.ideaKept')}</Text>
+              <Text style={[textoPortada(13), dir.texto, { color: P.tinta, flexBasis: '100%' }]}>{t('filmmaker.hubCreateError')} {fallo} {t('filmmaker.ideaKept')}</Text>
               <TouchableOpacity onPress={() => { void continuar(idea); }} disabled={creando} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmaker.hubRetry')} style={styles.reintentar}>
                 <Text style={[textoPortada(14, '600'), { color: P.tinta }]}>{t('filmmaker.hubRetry')}</Text>
               </TouchableOpacity>
+              {__DEV__ ? (
+                <TouchableOpacity onPress={() => cargarDemo('universo')} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmakerProd.demoTry')} testID="probar-demo-error" style={styles.reintentar}>
+                  <Text style={[textoPortada(14, '600'), { color: P.tinta }]}>{t('filmmakerProd.demoTry')}</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           ) : null}
         </View>
@@ -462,7 +476,7 @@ const styles = StyleSheet.create({
   fila: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pildora: { minHeight: 28, paddingHorizontal: 12, borderRadius: 999, backgroundColor: P.superficie, borderColor: P.bordeCapsula, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
   estado: { minHeight: 10, justifyContent: 'center', paddingTop: 4, paddingBottom: 4 },
-  falloEnLinea: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 8 },
+  falloEnLinea: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, paddingTop: 8 },
   reintentar: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.bordeCapsula, alignItems: 'center', justifyContent: 'center' },
   rejilla: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   demoBanda: { flexDirection: 'row', alignItems: 'center', gap: 8, marginHorizontal: 16, paddingStart: 12, paddingEnd: 4, minHeight: 40, borderRadius: 20, borderWidth: 1, borderColor: P.bordeLuz, backgroundColor: P.superficie },
