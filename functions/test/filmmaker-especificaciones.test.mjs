@@ -64,7 +64,19 @@ const todo = fuentes.slice(0, 2).join('\n');
 check('C4) ninguna fila con scroll horizontal ni id técnico a la vista', !/horizontal/.test(todo) && !/dreamina/.test(todo) && !/>{[^}]*idServidor/.test(todo));
 check('C5) las píldoras saltan de línea (flexWrap) y miden al menos 44 dp', /flexWrap: 'wrap'/.test(todo) && /minHeight: 52/.test(todo) && /minHeight: 44/.test(todo));
 check('C6) la pantalla monta el resumen y la hoja Proyecto lo contiene', /ResumenDeEspecificaciones/.test(leer('screens/FilmmakerCrearScreen.tsx')) && /ContenidoDeEspecificaciones/.test(leer('components/filmmaker/HojaDeProyecto.tsx')));
-check('C7) no hay buscador y no se muestra ningún coste inventado', !/TextInput/.test(todo) && /costTbc/.test(todo) && !/USD/.test(todo));
+check('C7) no hay buscador y no se muestra ningún coste inventado', !/TextInput|searchPlaceholder/.test(fuentes[1]) && /costTbc/.test(todo) && !/USD/.test(todo));
+
+console.log('── D · Preferencias hacia el servidor ──');
+let d = I.ideaVacia('film');
+check('D1) sin elegir nada no se manda ninguna preferencia', Object.keys(U.preferenciasDeLaIdea(d)).length === 0);
+d = U.elegirModelo(I.poner(I.poner(d, 'variants', '3'), 'seed', '4294967295'), 'seedance-2-5');
+const pf = U.preferenciasDeLaIdea(d);
+check('D2) el modelo va con su id oficial, las variantes tal cual y la semilla como consistencySeed', pf.preferredModel === 'dreamina-seedance-2-5-260628' && pf.variants === 3 && pf.consistencySeed === 4294967295 && !('seed' in pf));
+check('D3) semilla inválida (letras, fuera de rango) o variantes fuera de 1–4 no se mandan', U.semillaDe(I.poner(d, 'seed', '4294967296')) === null && U.semillaDe(I.poner(d, 'seed', '12a')) === null && U.variantesDe(I.poner(d, 'variants', '9')) === 1);
+const orq = leer('services/filmmakerOrquestacionService.ts');
+check('D4) sincronizar manda change_generation solo de lo que cambió (null quita)', /change_generation/.test(orq) && /preferredModel', 'variants', 'consistencySeed/.test(orq));
+check('D5) la pantalla y la experiencia llevan las preferencias a production.generation', /preferencias: preferenciasDeLaIdea\(base\)/.test(leer('screens/FilmmakerCrearScreen.tsx')) && /generation: \{ \.\.\.prod\.generation, \.\.\.e\.preferencias \}/.test(leer('utils/filmmakerOrquestacion.ts')));
+check('D6) la semilla solo se abre si el servidor dice «si» (cerrada sin respuesta)', /semilla: m\.options\?\.semilla === 'si'/.test(leer('hooks/useCapacidadesDeVideo.ts')) && /editable=\{servidor\.semilla\}/.test(fuentes[0]));
 
 console.log(failures ? `\n${failures} FALLOS de ${n}` : `\n${n}/${n} OK`);
 process.exit(failures ? 1 : 0);

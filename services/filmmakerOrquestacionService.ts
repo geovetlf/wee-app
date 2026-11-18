@@ -62,7 +62,14 @@ export const crearOrquestacion = (servicio: Pick<FilmmakerService, 'createProduc
     const estados: FilmmakerOperation[] = production.scenes
       .filter((s) => !reescritas.has(s.id) && enServidor.has(s.id) && loteEnServidor.get(s.id) !== lote(s))
       .map((s) => ({ op: 'update_scene', sceneId: s.id, changes: { batch: s.batch ?? null } }) as unknown as FilmmakerOperation);
-    const operations = [...quitar, ...poner, ...estados];
+    /* El modelo preferido, las variantes y la semilla viajan con `change_generation` solo si cambiaron (null quita). */
+    const antes = guardada.production.generation as unknown as Record<string, unknown>;
+    const ahora = production.generation as unknown as Record<string, unknown>;
+    const campos = ['preferredModel', 'variants', 'consistencySeed'] as const;
+    const generacion: FilmmakerOperation[] = campos.some((k) => (antes?.[k] ?? null) !== (ahora?.[k] ?? null))
+      ? [{ op: 'change_generation', target: { scope: 'production' }, ...Object.fromEntries(campos.filter((k) => (antes?.[k] ?? null) !== (ahora?.[k] ?? null)).map((k) => [k, ahora?.[k] ?? null])) } as unknown as FilmmakerOperation]
+      : [];
+    const operations = [...generacion, ...quitar, ...poner, ...estados];
     if (!operations.length) return { ok: true, valor: { applied: 0, produccion: guardada, borrador: { omisiones, vozSinDestino } } };
     const r = await servicio.applyProductionOperations({
       productionId: guardada.productionId, expectedRevision: guardada.revision, operations, operationId: nuevoIdDeOperacion(),

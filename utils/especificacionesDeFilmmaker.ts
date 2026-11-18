@@ -51,6 +51,23 @@ export const elegirModelo = (idea: IdeaDelTaller, id: string): IdeaDelTaller => 
   return siguiente;
 };
 
+export interface PreferenciasDeGeneracion { readonly preferredModel?: string; readonly variants?: number; readonly consistencySeed?: number }
+
+/** Variantes guardadas (1–4; 1 = una sola, lo de siempre). */
+export const variantesDe = (idea: IdeaDelTaller): number => { const n = Math.trunc(Number(idea.valores.variants)); return n >= 1 && n <= 4 ? n : 1; };
+/** La semilla escrita, si es un entero válido del servidor (0…4294967295); vacío o inválida = Auto. */
+export const semillaDe = (idea: IdeaDelTaller): number | null => {
+  const t = (idea.valores.seed ?? '').trim();
+  if (!/^\d{1,10}$/.test(t)) return null;
+  const n = Number(t);
+  return n <= 4294967295 ? n : null;
+};
+/** Lo que se guarda en la generación del proyecto: el modelo por su id oficial, `variants` y la semilla como `consistencySeed` (en el dominio `seed` es clave prohibida). Solo lo elegido. */
+export const preferenciasDeLaIdea = (idea: IdeaDelTaller): PreferenciasDeGeneracion => {
+  const m = modeloDeLaIdea(idea); const v = variantesDe(idea); const s = semillaDe(idea);
+  return { ...(m?.idServidor ? { preferredModel: m.idServidor } : {}), ...(v > 1 ? { variants: v } : {}), ...(s !== null ? { consistencySeed: s } : {}) };
+};
+
 /** Lo elegido, listo para pintar el resumen (vacío = Auto). */
 export const resumenDeLaIdea = (idea: IdeaDelTaller): { modelo: ModeloDeFilmmaker | null; formato: string; resolucion: string } => ({
   modelo: modeloDeLaIdea(idea), formato: idea.valores.format ?? '', resolucion: idea.valores.resolution ?? '',

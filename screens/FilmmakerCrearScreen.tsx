@@ -23,6 +23,7 @@ import { useReferenciasDeFilmmaker } from '../hooks/useReferenciasDeFilmmaker';
 import { personajes, listas, subiendo } from '../utils/referenciasDeFilmmaker';
 import { HojaDeProyecto } from '../components/filmmaker/HojaDeProyecto';
 import { ResumenDeEspecificaciones } from '../components/filmmaker/PanelDeEspecificaciones';
+import { preferenciasDeLaIdea } from '../utils/especificacionesDeFilmmaker';
 import { BarraDeEtapas } from '../components/filmmaker/BarraDeEtapas';
 import { UniversoDeFilmmaker } from '../components/filmmaker/UniversoDeFilmmaker';
 import { FichaDeElemento } from '../components/filmmaker/FichaDeElemento';
@@ -131,11 +132,11 @@ const FilmmakerCrearScreen: React.FC = () => {
   useEffect(() => {
     if (!idProduccionGuardada || !tipoId || !estilo) return;
     const espera = setTimeout(() => {
-      void pf.asegurar({ idea: fraseDe(idea), tipo: tipoId, estilo, aspectRatio: aspectoDeLaIdea(idea), ...((idea.valores.resolution as ResolutionTarget | undefined) ? { resolution: idea.valores.resolution as ResolutionTarget } : {}), duracionSegundos: duracionDe(idea), universo, tandas });
+      void pf.asegurar({ idea: fraseDe(idea), tipo: tipoId, estilo, preferencias: preferenciasDeLaIdea(idea), aspectRatio: aspectoDeLaIdea(idea), ...((idea.valores.resolution as ResolutionTarget | undefined) ? { resolution: idea.valores.resolution as ResolutionTarget } : {}), duracionSegundos: duracionDe(idea), universo, tandas });
     }, 1200);
     return () => clearTimeout(espera);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tandas, universo, idProduccionGuardada]);
+  }, [tandas, universo, idProduccionGuardada, idea.valores.model, idea.valores.variants, idea.valores.seed]);
   /* Lo que no se pudo guardar se dice en una línea; la voz elegida, que hoy solo vive en esta pantalla, también (una vez). */
   useEffect(() => {
     if (!enTandas) return;
@@ -202,7 +203,7 @@ const FilmmakerCrearScreen: React.FC = () => {
     const idUsado = idDeProduccion.current;
     /* La producción nace en el servidor con la idea, el tipo, el estilo, el universo que ya hay y las imágenes de la persona (con su papel). Mismo id en cada intento: no se duplica. */
     const ok = await pf.asegurar({
-      productionId: idUsado, idea: fraseDe(base), tipo: base.tipo, estilo: estilo ?? '', aspectRatio, ...((base.valores.resolution as ResolutionTarget | undefined) ? { resolution: base.valores.resolution as ResolutionTarget } : {}), duracionSegundos: duracionDe(base),
+      productionId: idUsado, idea: fraseDe(base), tipo: base.tipo, estilo: estilo ?? '', preferencias: preferenciasDeLaIdea(base), aspectRatio, ...((base.valores.resolution as ResolutionTarget | undefined) ? { resolution: base.valores.resolution as ResolutionTarget } : {}), duracionSegundos: duracionDe(base),
       ...(tipoDeProyecto?.preset ? { preset: tipoDeProyecto.preset } : {}), universo: universoInicial,
       references: listas(refs.referencias).map((x) => ({ role: x.rol, url: x.url as string })),
     });

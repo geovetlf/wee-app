@@ -71,6 +71,8 @@ export interface ExperienciaDeFilmmaker {
   /** La resolución del nivel Avanzado (vacía = Auto). */
   readonly resolution?: ResolutionTarget;
   readonly preset?: FormatPresetId;
+  /** Modelo preferido, variantes y semilla de consistencia (panel de especificaciones): van a `production.generation`. */
+  readonly preferencias?: { readonly preferredModel?: string; readonly variants?: number; readonly consistencySeed?: number };
   readonly universo?: UniversoDelTaller;
   readonly tandas?: TandasDelTaller;
   /** El personaje que habla en pantalla: `dialogue` (a cámara, hoy NO se puede producir: contrato 6) o `voiceover` (voz en off, sí). Por defecto `dialogue`: es lo que la persona escribió. */
@@ -133,6 +135,7 @@ export const produccionDesdeLaExperiencia = (e: ExperienciaDeFilmmaker): Resulta
   const idea = recorta(e.idea, LIMITES.textoLibre);
   let prod: FilmmakerProduction = produccionVacia({ title: recorta(idea.split(/[\n.!?]/)[0] || idea, LIMITES.nombre) || 'Filmmaker', aspectRatio: e.aspectRatio, ...(e.resolution ? { resolution: e.resolution } : {}), id: e.productionId });
   if (e.preset) prod = { ...prod, ...configuracionDePreset(e.preset) };
+  if (e.preferencias && Object.keys(e.preferencias).length) prod = { ...prod, generation: { ...prod.generation, ...e.preferencias } };
   const tipo = TIPO_DE_PRODUCCION[e.tipo];
   if (!tipo) omisiones.push({ motivo: 'tipo_sin_equivalente', id: e.tipo });
   prod = {
