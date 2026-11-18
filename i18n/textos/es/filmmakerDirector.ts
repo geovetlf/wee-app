@@ -23,5 +23,11 @@ export const filmmakerDirector = {
   error: 'No pude responder ahora. Inténtalo de nuevo en un momento.',
   noCredits: 'Te faltan Credits para seguir hablando con Weë.',
   messageLabel: 'Mensaje de Weë',
+  createNow: 'Crear la producción',
+  askChange: 'Pídele un cambio a Weë',
+  askChangePlaceholder: 'Dile a Weë qué quieres cambiar',
+  redo: 'Rehacer',
+  expand: 'Ver el mensaje',
+  collapse: 'Plegar',
   dismiss: 'Cerrar',
 };

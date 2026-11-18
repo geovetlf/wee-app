@@ -108,6 +108,10 @@ const FilmmakerCrearScreen: React.FC = () => {
   /* El estilo se ELIGE (sin estilo no se pasa a la siguiente capa) y la idea mínima es obligatoria: Weë decide lo técnico, no lo creativo. */
   const [estilo, setEstilo] = useState<string | null>(null);
   const [preguntado, setPreguntado] = useState(false);
+  /* La idea tal como quedó tras hablar con Weë Brain, lista para «Crear la producción» (sin producción guardada aún). */
+  /* Sube cuando Weë aplicó un cambio: la ficha del cuadro abierta se relee de lo guardado. */
+  const [versionDelDirector, setVersionDelDirector] = useState(0);
+  const [borradorListo, setBorradorListo] = useState<IdeaDelTaller | null>(null);
   const [creando, setCreando] = useState(false);
   /* La causa del fallo al crear, ya en palabras de persona (sin conexión, sin sesión…): sale en línea bajo la caja. */
   const [fallo, setFallo] = useState<string | null>(null);
@@ -151,6 +155,7 @@ const FilmmakerCrearScreen: React.FC = () => {
     demo: enDemo,
     alAplicar: (p: ProduccionGuardada) => {
       pf.adoptar(p);
+      setVersionDelDirector((v) => v + 1);
       /* Lo que la persona ya había afinado en pantalla (voz, ficha) se conserva en lo que sigue existiendo; lo quitado se va y lo nuevo entra. */
       setUniverso((u) => {
         const nuevo = universoDesdeLaProduccion(p.production);
@@ -317,6 +322,17 @@ const FilmmakerCrearScreen: React.FC = () => {
     const base = sumarALaFrase(idea, dicho);
     if (!aceptar(base)) { if (tipoId) setTexto(''); return; }
     setTexto('');
+    /*
+     * ANTES DE CREAR, la caja habla con Weë Brain (el corazón del composer): lee el borrador —idea, tipo, estilo y la imagen de referencia que
+     * se adjuntó— y contesta en una burbuja breve, una pregunta a la vez. La persona sigue la conversación o toca «Crear la producción» en la
+     * propia burbuja. Con la puerta cerrada o sin conexión, enviar crea como siempre.
+     */
+    if (enIdea && director.disponible) {
+      setPreguntado(false);
+      const primeraImagen = listas(refs.referencias).find((x) => !!x.url)?.url as string | undefined;
+      void director.enviar(dicho, { etapa: 'idea', borrador: { idea: fraseDe(base) }, ...(primeraImagen ? { imageUrl: primeraImagen } : {}) }).then((r) => { if (r === 'cerrado') recibir(base); else setBorradorListo(base); });
+      return;
+    }
     recibir(base);
   };
 
@@ -429,7 +445,7 @@ const FilmmakerCrearScreen: React.FC = () => {
           ) : enProduccion ? (
             <ProduccionDeFilmmaker tandas={tandas} guardada={pf.guardada} guardando={pf.carga !== 'libre'} demo={enDemo} onJuntar={() => { setAviso(null); setCapa('juntar'); }} onIrACapitulos={() => setCapa('tandas')} />
           ) : enTandas ? (
-            <TandasYStoryboard ancho={Math.min(ancho, 1040)} compacto={compacto} personajes={universo.elementos.filter((e) => e.tipo === 'character').map((e) => ({ id: e.id, nombre: e.nombre, voz: e.voz }))} duracionTotalSeg={duracionDe(idea)} valor={tandas} onCambio={setTandas} onAviso={setAviso} onProducir={() => { setAviso(null); setCapa('produccion'); }} />
+            <TandasYStoryboard ancho={Math.min(ancho, 1040)} compacto={compacto} personajes={universo.elementos.filter((e) => e.tipo === 'character').map((e) => ({ id: e.id, nombre: e.nombre, voz: e.voz }))} duracionTotalSeg={duracionDe(idea)} valor={tandas} onCambio={setTandas} onAviso={setAviso} onProducir={() => { setAviso(null); setCapa('produccion'); }} pedirCambio={director.disponible && (!!idProduccionGuardada || enDemo) ? { version: versionDelDirector, enviar: (texto, seleccion) => { void director.enviar(texto, { etapa: 'cuadro', seleccion, productionId: idProduccionGuardada ?? undefined }); }, contenido: <BurbujaDelDirector burbuja={director.burbuja} propuesta={director.propuesta} aviso={director.aviso} estado={director.estado} aplicada={director.aplicada} onAprobar={() => { void director.aprobar(); }} onDescartar={director.descartar} compacta obsoleta={director.obsoleta} onRehacer={() => { void director.rehacer(); }} /> } : undefined} />
           ) : enUniverso ? (
             <UniversoDeFilmmaker universo={universo} ancho={Math.min(ancho, 1040)} compacto={compacto} seccion={seccion} onSeccion={setSeccion} onAbrir={(e) => setFichaId(e.id)} onAprobar={() => setUniverso(aprobar)} onEjemplo={() => setUniverso((u) => anadirEjemplos(u, EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))))} onQuitarEjemplo={() => setUniverso(quitarEjemplos)} onContinuar={() => { setAviso(null); setCapa('tandas'); }} onAviso={(clave) => setAviso(t(clave))} imagenes={imagenes} peticionDeImagenes={peticionDeUniverso(universo, { estilo, tipo: tipoId ?? undefined, referencia: (personajes(refs.referencias)[0] ?? listas(refs.referencias)[0])?.url ?? null, aspecto: aspectoDeLaIdea(idea) })} />
           ) : enIdea ? (
@@ -466,7 +482,7 @@ const FilmmakerCrearScreen: React.FC = () => {
           {__DEV__ && !enDemo && (capa === 'entrada' || capa === 'estilo' || capa === 'taller') && !fallo ? (
             <TouchableOpacity onPress={() => cargarDemo('universo')} accessibilityRole="button" accessibilityLabel={t('filmmakerProd.demoTry')} testID="probar-demo" style={styles.demoEntrada}><Text style={[textoPortada(13, '600'), { color: P.tintaSecundaria }]}>{t('filmmakerProd.demoTry')}</Text></TouchableOpacity>
           ) : null}
-          {(enIdea || enUniverso) ? <BurbujaDelDirector burbuja={director.burbuja} propuesta={director.propuesta} aviso={director.aviso} estado={director.estado} aplicada={director.aplicada} onAprobar={() => { void director.aprobar(); }} onDescartar={director.descartar} /> : null}
+          {(enIdea || enUniverso) ? <BurbujaDelDirector burbuja={director.burbuja} propuesta={director.propuesta} aviso={director.aviso} estado={director.estado} aplicada={director.aplicada} onAprobar={() => { void director.aprobar(); }} onDescartar={director.descartar} compacta={alto < 600 && !enIdea} onCrear={enIdea && borradorListo ? () => recibir(borradorListo) : undefined} obsoleta={director.obsoleta} onRehacer={() => { void director.rehacer(); }} /> : null}
           {!enEstilo && !enProduccion && !enJuntar && !enTandas ? <CajaAnclada alto={topeDeLaCaja}>
             <CajaDePrompt portada enviarDiscreto={enUniverso} valor={texto} onCambiar={setTexto} onEnviar={enviar} etiquetaEnviar={t('studio.sendLabel')} placeholder={placeholder} acciones={acciones} />
           </CajaAnclada> : null}

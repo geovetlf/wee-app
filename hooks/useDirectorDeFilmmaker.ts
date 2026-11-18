@@ -68,6 +68,8 @@ export const useDirectorDeFilmmaker = (o: OpcionesDelDirector) => {
   const chatId = useRef<string | undefined>(undefined);
   const cerrada = useRef(false);
   const enCurso = useRef(false);
+  /* Lo último que se le pidió, para «Rehacer» cuando la propuesta quedó obsoleta (la producción cambió entre medias). */
+  const ultimo = useRef<{ texto: string; extra: MensajeAlDirector } | null>(null);
   /* Una respuesta que llega tarde (la persona ya descartó o mandó otro mensaje) no pisa lo que ve ahora. */
   const ronda = useRef(0);
   const contexto = o.contexto;
@@ -79,6 +81,7 @@ export const useDirectorDeFilmmaker = (o: OpcionesDelDirector) => {
     if (!mensaje || !contexto || cerrada.current || enCurso.current) return cerrada.current ? 'cerrado' : 'fallo';
     setAviso(null); setPropuesta(null); setAplicada(false); setFalloAlAplicar(null); setFallo(null);
     const mia = ++ronda.current;
+    ultimo.current = { texto: mensaje, extra };
     if (o.demo) {
       /* Demo: ninguna llamada. Una respuesta de ejemplo, marcada. */
       setBurbuja({ texto: t('filmmakerDirector.demoReply'), demo: true });
@@ -129,10 +132,14 @@ export const useDirectorDeFilmmaker = (o: OpcionesDelDirector) => {
     return r.valor.produccion;
   }, [propuesta, estado, aplicador, t, o]);
 
+  /** La propuesta ya no vale (la producción cambió mientras tanto): se vuelve a pedir lo mismo sobre la producción de ahora. */
+  const obsoleta = falloAlAplicar?.tipo === 'conflicto';
+  const rehacer = useCallback(async (): Promise<ResultadoDeEnviar> => (ultimo.current ? enviar(ultimo.current.texto, ultimo.current.extra) : 'fallo'), [enviar]);
+
   return useMemo(() => ({
-    estado, burbuja, propuesta, aviso, fallo, falloAlAplicar, aplicada,
+    estado, burbuja, propuesta, aviso, fallo, falloAlAplicar, aplicada, obsoleta, rehacer,
     /** ¿Tiene sentido hablar con el director aquí? Falta el tipo o el estilo, o la puerta está cerrada: no. */
     disponible: !!contexto && !cerrada.current,
     enviar, aprobar, descartar,
-  }), [estado, burbuja, propuesta, aviso, fallo, falloAlAplicar, aplicada, contexto, enviar, aprobar, descartar]);
+  }), [estado, burbuja, propuesta, aviso, fallo, falloAlAplicar, aplicada, obsoleta, rehacer, contexto, enviar, aprobar, descartar]);
 };

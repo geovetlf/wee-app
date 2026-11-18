@@ -13,6 +13,7 @@ import { SelectorDeVoz } from '../sonido/SelectorDeVoz';
 import { CuadroDeStoryboard, NARRADOR, SIN_HABLANTE, TOPES_TANDAS, TOPE_DE_CUADRO, conCreativo } from '../../../utils/tandasDeFilmmaker';
 import { etiquetaAccesible } from '../../../utils/ideaDeFilmmaker';
 import { BotonBlanco, BotonContorno, estilosComunes as E, useTiempo } from '../tandas/comunes';
+import CajaDePrompt from '../../creator/CajaDePrompt';
 
 /** Un personaje del universo, tal como lo necesita un cuadro: su id, su nombre y su voz por defecto (id del catálogo o 'auto'), que el cuadro hereda. */
 export interface PersonajeDeCuadro { id: string; nombre: string; voz?: string | null }
@@ -37,6 +38,11 @@ export interface Props {
   onPartirAqui: (id: string) => void;
   /** Receptor de D1 (referencias, primer/último fotograma, extender, editar). Solo se usa si `D1_ABIERTO`. */
   onAccionD1?: (accion: AccionD1, cuadroId: string) => void;
+  /**
+   * «Pídele un cambio a Weë»: la caja común de Weë Brain DENTRO de la ficha (el control vive junto al cuadro que modifica). `enviar` recibe lo escrito;
+   * `contenido` es la respuesta de Weë (burbuja y propuesta, la pone la pantalla); `version` sube cuando se aplicó un cambio y la ficha se relee.
+   */
+  pedirCambio?: { enviar: (texto: string) => void; contenido: React.ReactNode; version: number };
 }
 
 /**
@@ -44,7 +50,7 @@ export interface Props {
  * (movimiento · toma · ángulo · óptica · luz, con icono), intensidad y duración. Lo que el contrato no tiene —cámara lenta como efecto, zoom de impacto,
  * plano inclinado— y lo que espera a D1 salen CERRADOS con su motivo. Los cambios se guardan al pulsar «Listo».
  */
-export const FichaDelCuadro: React.FC<Props> = ({ cuadro, numero, inicio, fin, esPrimero, esUltimo, puedePartir, personajes, onClose, onGuardar, onMover, onDuplicar, onQuitar, onPartirAqui, onAccionD1, vozDeTanda }) => {
+export const FichaDelCuadro: React.FC<Props> = ({ cuadro, numero, inicio, fin, esPrimero, esUltimo, puedePartir, personajes, onClose, onGuardar, onMover, onDuplicar, onQuitar, onPartirAqui, onAccionD1, vozDeTanda, pedirCambio }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
@@ -61,12 +67,14 @@ export const FichaDelCuadro: React.FC<Props> = ({ cuadro, numero, inicio, fin, e
   const [seguro, setSeguro] = useState(false);
   const [panel, setPanel] = useState<'shot' | 'camera' | 'duration' | 'voice' | null>(null);
   const [mas, setMas] = useState(false);
+  const [pide, setPide] = useState(false);
+  const [cambio, setCambio] = useState('');
 
   useEffect(() => {
     if (!cuadro) return;
     setTexto(cuadro.texto); setHablante(cuadro.hablante); setVoz(cuadro.voz ?? null); setDuracion(cuadro.duracion); setCreativo(cuadro.creativo);
-    setFamilia(FAMILIAS_DEL_CUADRO[0]?.id ?? 'movement'); setSeguro(false); setPanel(null); setMas(false);
-  }, [cuadro?.id]);
+    setFamilia(FAMILIAS_DEL_CUADRO[0]?.id ?? 'movement'); setSeguro(false); setPanel(null); setMas(false); setPide(false); setCambio('');
+  }, [cuadro?.id, pedirCambio?.version]);
   if (!cuadro) return null;
 
   const fam = FAMILIAS_DEL_CUADRO.find((f) => f.id === familia) ?? FAMILIAS_DEL_CUADRO[0];
@@ -205,6 +213,23 @@ export const FichaDelCuadro: React.FC<Props> = ({ cuadro, numero, inicio, fin, e
               </View>
             ) : null}
 
+            {/* «Pídele un cambio a Weë»: una fila discreta; abre la caja común de Weë Brain aquí mismo. */}
+            {pedirCambio ? (
+              <>
+                <TouchableOpacity onPress={() => setPide((p) => !p)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmakerDirector.askChange')} accessibilityState={{ expanded: pide }} style={[styles.masFila, dir.contenedor]}>
+                  <Ionicons name="sparkles-outline" size={18} color={P.tinta} />
+                  <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tinta, flex: 1 }]}>{t('filmmakerDirector.askChange')}</Text>
+                  <Ionicons name={pide ? 'chevron-up' : 'chevron-down'} size={18} color={P.tintaSecundaria} />
+                </TouchableOpacity>
+                {pide ? (
+                  <View style={{ gap: 8 }}>
+                    {pedirCambio.contenido}
+                    <CajaDePrompt portada enviarDiscreto valor={cambio} onCambiar={setCambio} onEnviar={() => { const dicho = cambio.trim(); if (dicho) { pedirCambio.enviar(dicho); setCambio(''); } }} etiquetaEnviar={t('studio.sendLabel')} placeholder={t('filmmakerDirector.askChangePlaceholder')} />
+                  </View>
+                ) : null}
+              </>
+            ) : null}
+
             {/* Todo lo demás, plegado. */}
             <TouchableOpacity onPress={() => setMas((m) => !m)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmakerTandas.frameMore')} accessibilityState={{ expanded: mas }} style={[styles.masFila, dir.contenedor]}>
               <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tinta, flex: 1 }]}>{t('filmmakerTandas.frameMore')}</Text>
@@ -258,5 +283,5 @@ const styles = StyleSheet.create({
   resumen: { flex: 1, minHeight: 64, borderRadius: 16, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.superficie, alignItems: 'center', justifyContent: 'center', gap: 2, paddingHorizontal: 6, paddingVertical: 8 },
   resumenSel: { borderColor: '#FFFFFF', borderWidth: 2, backgroundColor: P.superficieAlta },
   vozAbierta: { borderColor: P.bordeLuz },
-  masFila: { flexDirection: 'row', alignItems: 'center', minHeight: 44, paddingHorizontal: 4 },
+  masFila: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 4 },
 });

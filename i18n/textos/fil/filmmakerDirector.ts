@@ -24,5 +24,11 @@ export const filmmakerDirector = {
   error: 'I could not reply right now. Try again in a moment.',
   noCredits: 'You are out of Credits to keep talking with Weë.',
   messageLabel: 'Message from Weë',
+  createNow: 'Create the production',
+  askChange: 'Ask Weë for a change',
+  askChangePlaceholder: 'Tell Weë what to change',
+  redo: 'Redo',
+  expand: 'Show message',
+  collapse: 'Collapse',
   dismiss: 'Close',
 };

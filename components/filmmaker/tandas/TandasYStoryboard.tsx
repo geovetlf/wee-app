@@ -13,6 +13,7 @@ import { ListaDeTandas } from './ListaDeTandas';
 import { HojaDeTanda } from './HojaDeTanda';
 import { StoryboardDeTanda } from '../storyboard/StoryboardDeTanda';
 import { FichaDelCuadro, PersonajeDeCuadro } from '../storyboard/FichaDelCuadro';
+import { idDeEscena, idDePlano } from '../../../utils/filmmakerOrquestacion';
 
 export interface TandasYStoryboardProps {
   /** Ancho disponible. Desde 900 dp la lista y el storyboard van lado a lado; por debajo, una sola columna con «volver». */
@@ -31,6 +32,8 @@ export interface TandasYStoryboardProps {
   onAccionD1?: (accion: AccionD1, cuadroId: string) => void;
   /** Pasa a la etapa de Producción (el botón «Producir» del storyboard con el capítulo ya guardado en el almacén). */
   onProducir?: () => void;
+  /** «Pídele un cambio a Weë» en la ficha del cuadro: la pantalla anfitriona pone a Weë Brain; aquí solo se le da la selección (escena y plano del servidor). */
+  pedirCambio?: { enviar: (texto: string, seleccion: { sceneId: string; shotId: string }) => void; contenido: React.ReactNode; version: number };
 }
 
 /**
@@ -42,7 +45,7 @@ export interface TandasYStoryboardProps {
  * interfaz: el contrato no persiste tandas ni storyboards todavía, y la pantalla lo dice. La generación de imágenes del storyboard y la Producción
  * salen cerradas con su motivo.
  */
-export const TandasYStoryboard: React.FC<TandasYStoryboardProps> = ({ ancho, compacto = false, personajes = [], duracionTotalSeg, valor, onCambio, onAviso, onAccionD1, onProducir }) => {
+export const TandasYStoryboard: React.FC<TandasYStoryboardProps> = ({ ancho, compacto = false, personajes = [], duracionTotalSeg, valor, onCambio, onAviso, onAccionD1, onProducir, pedirCambio }) => {
   const t = useT();
   const dir = useDireccion();
   const [propio, setPropio] = useState<TandasDelTaller>(() => tandasVacias());
@@ -117,6 +120,7 @@ export const TandasYStoryboard: React.FC<TandasYStoryboardProps> = ({ ancho, com
         onQuitar={(id) => actual && poner((s) => quitarCuadro(s, actual.id, id))}
         onPartirAqui={(id) => { if (!actual) return; const i = actual.cuadros.findIndex((c) => c.id === id); poner((s) => partirTanda(s, actual.id, i)); }}
         vozDeTanda={actual?.voz ?? null} onAccionD1={onAccionD1}
+        pedirCambio={pedirCambio && actual && enFicha ? { version: pedirCambio.version, contenido: pedirCambio.contenido, enviar: (texto) => pedirCambio.enviar(texto, { sceneId: idDeEscena(actual.id), shotId: idDePlano(enFicha.id) }) } : undefined}
       />
 
       <HojaDeTanda
