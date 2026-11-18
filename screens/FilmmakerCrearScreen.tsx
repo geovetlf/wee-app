@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { enTemaOscuro } from '../contexts/ThemeContext';
 import { useT, useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -40,7 +40,9 @@ import { useProduccionDeFilmmaker } from '../hooks/useProduccionDeFilmmaker';
 import { useImagenesDeFilmmaker } from '../hooks/useImagenesDeFilmmaker';
 import { peticionDeUniverso } from '../utils/imagenesDelUniverso';
 import { fraseDelFallo } from '../utils/mensajesDeFilmmaker';
+import { filmmakerService } from '../services/filmmakerService';
 import type { FalloDeProducciones } from '../services/filmmakerService';
+import { tandasDesdeLaProduccion, tipoDeLaExperiencia, universoDesdeLaProduccion } from '../utils/filmmakerOrquestacion';
 import { IdeaDelTaller, alRecibir, estaLista, fraseDe, duracionDe, etiquetaAccesible, cambiarDeTipo, esTipoConTaller, ideaVacia, poner, sumarALaFrase } from '../utils/ideaDeFilmmaker';
 import type { AspectRatio, ResolutionTarget } from '../services/filmmaker/dominio';
 import { PORTADA_WEEAI as P, textoPortada, ESPACIO_WEEAI as SPACING } from '../constants/estiloWeeAi';
@@ -71,6 +73,7 @@ const FilmmakerCrearScreen: React.FC = () => {
   const { formato } = useIdioma();
   const dir = useDireccion();
   const navigation = useNavigation<any>();
+  const abrirId: string | undefined = (useRoute<any>().params as { productionId?: string } | undefined)?.productionId;
   const { user } = useAuth();
   const [medida, setMedida] = useState({ ancho: 0, alto: 0 });
   const [altoMundo, setAltoMundo] = useState(0);
@@ -140,6 +143,27 @@ const FilmmakerCrearScreen: React.FC = () => {
     else if (vocesLocales && !avisoDeVoces.current) { avisoDeVoces.current = true; setAviso(t('filmmakerProd.voiceLocal')); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enTandas, pf.fallo, vocesLocales]);
+
+  /* Reabrir una producción: lo guardado en el servidor (capítulos, cuadros con cámara, aprobado, almacén, universo, idea y estilo) vuelve a la pantalla. */
+  const reabierta = useRef<string | null>(null);
+  useEffect(() => {
+    if (!abrirId || !user || reabierta.current === abrirId) return;
+    reabierta.current = abrirId;
+    void filmmakerService.getProduction(abrirId).then((r) => {
+      if (!r.ok) { setAviso(fraseDelFallo(r.fallo, t)); return; }
+      const p = r.valor;
+      const tipoLeido = tipoDeLaExperiencia(p.production.intent?.productionType) ?? 'short';
+      pf.adoptar(p);
+      setProduccionId(p.productionId);
+      setTipoId(tipoLeido as TipoDeTaller);
+      setEstilo(p.production.intent?.style ?? p.production.creativeDirection?.visualStyle ?? null);
+      setIdea((i) => poner(cambiarDeTipo(i, tipoLeido as TipoDeTaller), 'idea', p.production.intent?.freeText ?? ''));
+      setUniverso(universoDesdeLaProduccion(p.production));
+      setTandas(tandasDesdeLaProduccion(p.production));
+      setCapa(p.production.scenes.length ? 'tandas' : 'universo');
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [abrirId, user]);
 
   const atras = () => {
     setAviso(null);
@@ -266,7 +290,7 @@ const FilmmakerCrearScreen: React.FC = () => {
       {verHero ? <HeroDePortada ancho={ancho} etiqueta={t('weeai.portadaEtiqueta')} titulo={t('filmmaker.hubTitle')} sub={altoMundo >= 560 ? t('filmmaker.hubSub') : ' '} /> : <View style={styles.separador} />}
       {verContinuar && reciente ? (
         <View style={styles.bloque}>
-          <TouchableOpacity onPress={() => navigation.navigate('Production', { productionId: reciente.productionId })} accessibilityRole="button" accessibilityLabel={etiquetaContinuar} style={[styles.continuar, dir.contenedor]} activeOpacity={0.8}>
+          <TouchableOpacity onPress={() => navigation.navigate('Filmmaker', { productionId: reciente.productionId })} accessibilityRole="button" accessibilityLabel={etiquetaContinuar} style={[styles.continuar, dir.contenedor]} activeOpacity={0.8}>
             <IconoWee name="claqueta" size={16} color={P.tintaSecundaria} />
             <Text style={[textoPortada(13, '500'), dir.texto, { color: P.tinta, flexShrink: 1 }]} numberOfLines={1}>{t('filmmaker.hubContinue')}</Text>
             <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria, flex: 1 }]} numberOfLines={1}>· {reciente.title}</Text>

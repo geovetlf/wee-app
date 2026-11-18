@@ -15,8 +15,8 @@ export const PRODUCCION_ABIERTA = false;
 export const JUNTAR_ABIERTO = false;
 /** D1 (referencias, primer/último fotograma, extender, editar): el contrato está propuesto y sin aplicar. Con `true` las filas llaman a `onAccionD1`. */
 export const D1_ABIERTO = false;
-/** El almacén de la cuenta: sin contrato de datos que lo persista. Hoy «guardar» fija el storyboard en esta sesión y la pantalla lo dice. */
-export const ALMACEN_DE_LA_CUENTA_ABIERTO = false;
+/** El almacén de la cuenta: aprobar y guardar un capítulo se escribe en la escena del servidor (update_scene batch) y se relee al reabrir la producción. */
+export const ALMACEN_DE_LA_CUENTA_ABIERTO = true;
 
 /** Las familias de la galería de un cuadro, en el orden en que se enseñan. `ruta` es la del Core; las demás de la biblioteca (ritmo, composición) no se ofrecen aquí. */
 const IDS_DE_FAMILIAS = ['movement', 'camera', 'perspective', 'lens', 'lighting'] as const;

@@ -128,7 +128,7 @@ export const StoryboardDeTanda: React.FC<Props> = ({ tanda, posicion, ancho, com
           </View>
         )}
 
-        {tanda.almacen ? <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tinta }]} accessibilityLiveRegion="polite">{ALMACEN_DE_LA_CUENTA_ABIERTO ? t('filmmakerTandas.storedAccount') : t('filmmakerTandas.storedSession')}</Text> : null}
+        {tanda.almacen ? <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tinta }]} accessibilityLiveRegion="polite">{ALMACEN_DE_LA_CUENTA_ABIERTO ? t('filmmakerTandas.storedAccount') : null}</Text> : null}
         {!GENERAR_IMAGENES_DEL_STORYBOARD ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.generateImagesClosed')}</Text> : null}
       </ScrollView>
 

@@ -49,7 +49,10 @@ export const useProduccionDeFilmmaker = () => {
   const tandasConEstado = useCallback((t: TandasDelTaller, porCuadro: Readonly<Record<string, EstadoDeCuadroEnServidor>>): TandasDelTaller =>
     ({ ...t, tandas: t.tandas.map((x) => conProduccion(x, porCuadro)) }), []);
 
+  /** Toma como actual una producción ya guardada (al reabrirla): las siguientes escrituras la sincronizan en vez de crear otra. */
+  const adoptar = useCallback((p: ProduccionGuardada) => { ultima.current = p; setGuardada(p); }, []);
+
   const falloReciente = useCallback(() => ultimoFallo.current, []);
 
-  return useMemo(() => ({ guardada, carga, fallo, omitido, asegurar, tandasConEstado, falloReciente }), [guardada, carga, fallo, omitido, asegurar, tandasConEstado, falloReciente]);
+  return useMemo(() => ({ guardada, carga, fallo, omitido, asegurar, tandasConEstado, falloReciente, adoptar }), [guardada, carga, fallo, omitido, asegurar, tandasConEstado, falloReciente, adoptar]);
 };

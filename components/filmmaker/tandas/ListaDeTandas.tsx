@@ -105,7 +105,6 @@ export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, selecc
               : t('filmmakerTandas.limitNote', { planos: formato.numero(LIMITE_DEL_MONTAJE.planos), duracion: tiempo.solo(LIMITE_DEL_MONTAJE.segundos) })}
           </Text>
         ) : null}
-        <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.sessionNote')}</Text>
 
         <View style={[styles.fila2, dir.contenedor]}>
           {estado.tandas.length > 0 ? <BotonContorno texto={t('filmmakerTandas.addChapter')} icono="add" onPress={onAnadir} testID="anadir-tanda" /> : null}
