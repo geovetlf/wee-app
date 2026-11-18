@@ -116,7 +116,7 @@ check('I13 el vocabulario enseñado es el del código (movimientos y planos del 
 {
   const { r } = leerRespuesta(bloque([{ op: 'add_character', character: { name: 'Mina', identityDescription: 'Mecánica', origin: 'user' } }, { op: 'add_location', location: { id: '@faro', name: 'Faro', description: 'Un faro', origin: 'document' } }]));
   check('O6 lo que Brain añade sale con origen «proposal» aunque diga otra cosa', r.ok && r.propuesta.operations[0].character.origin === 'proposal' && r.propuesta.operations[1].location.origin === 'proposal');
-  check('O7 lo nuevo recibe id del servidor (no del modelo)', r.ok && /^ch_/.test(r.propuesta.operations[0].character.id) && /^lc_/.test(r.propuesta.operations[1].location.id));
+  check('O7 lo nuevo recibe id del servidor (no del modelo)', r.ok && /^ch_/.test(r.propuesta.operations[0].character.id) && /^lo_/.test(r.propuesta.operations[1].location.id));
 }
 {
   const { r } = leerRespuesta(bloque([{ op: 'remove_location', locationId: 'no-existe' }]));

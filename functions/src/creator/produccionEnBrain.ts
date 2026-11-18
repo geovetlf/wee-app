@@ -226,7 +226,7 @@ const CAMPOS_VEDADOS: readonly string[] = ['element', 'assetId'];
 const MAX_RAZON = 200;
 /** Cómo empieza el id de cada cosa nueva: los mismos prefijos que usa la app al crearlas. */
 const PREFIJOS = Object.freeze({
-  scene: 'sc', shot: 'sh', line: 'ln', character: 'ch', location: 'lc', object: 'ob', reference: 'rf', cue: 'sd',
+  scene: 'sc', shot: 'sh', line: 'ln', character: 'ch', location: 'lo', object: 'ob', reference: 'rf', cue: 'sd',
 });
 type ClaseNueva = keyof typeof PREFIJOS;
 
