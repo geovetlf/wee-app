@@ -24,7 +24,6 @@ export const HojaDeProyecto: React.FC<{ visible: boolean; onClose: () => void; i
       <Pressable style={styles.velo} onPress={onClose} accessibilityRole="button" accessibilityLabel={t('common.close')} />
       <View style={[styles.hoja, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal>
         <View style={styles.asa} />
-        <Text style={[textoPortada(18, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header">{t('filmmaker.projTitle')}</Text>
         <ScrollView style={{ maxHeight: Math.max(240, height * 0.62) }} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
           <ContenidoDeEspecificaciones idea={idea} onIdea={onIdea} />
         </ScrollView>

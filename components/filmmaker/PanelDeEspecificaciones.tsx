@@ -5,7 +5,7 @@ import { useT, useIdioma } from '../../contexts/IdiomaContext';
 import { useDireccion } from '../../hooks/useDireccion';
 import { PORTADA_WEEAI as P, textoPortada } from '../../constants/estiloWeeAi';
 import { IdeaDelTaller, duracionDe, duracionesDelTipo, etiquetaAccesible, poner } from '../../utils/ideaDeFilmmaker';
-import { elegirModelo, modeloDeLaIdea, opcionesDe, semillaDe, variantesDe } from '../../utils/especificacionesDeFilmmaker';
+import { elegirModelo, modeloDeLaIdea, opcionesDe, semillaDe } from '../../utils/especificacionesDeFilmmaker';
 import { useCapacidadesDeVideo } from '../../hooks/useCapacidadesDeVideo';
 import { RejillaDeModelos } from './PanelDeEspecificacionesModelos';
 
@@ -27,8 +27,6 @@ export const CuerpoDeEspecificaciones: React.FC<Props & { onModelos: () => void 
   const o = opcionesDe(modelo);
   const total = duracionDe(idea);
   const servidor = useCapacidadesDeVideo().opcionesDe(modelo?.idServidor);
-  const entradas = servidor.entradas;
-  const variantes = variantesDe(idea);
   const chip = (clave: string, etiqueta: string, sel: boolean, onPress: () => void) => (
     <TouchableOpacity key={clave} onPress={onPress} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiqueta} accessibilityState={{ selected: sel }} style={[styles.chip, sel && styles.chipSel]}>
       <Text style={[textoPortada(14, sel ? '600' : '500'), { color: P.tinta }]}>{etiqueta}</Text>
@@ -37,6 +35,7 @@ export const CuerpoDeEspecificaciones: React.FC<Props & { onModelos: () => void 
   const etiqueta = (clave: string) => <Text style={[textoPortada(13, '500'), dir.texto, { color: P.tintaSecundaria }]}>{t(clave)}</Text>;
   return (
     <View style={styles.cuerpo}>
+      <Text style={[textoPortada(18, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header">{t('filmmakerSpecs.sheetTitle')}</Text>
       {etiqueta('filmmakerSpecs.model')}
       <TouchableOpacity onPress={onModelos} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmakerSpecs.model'), modelo ? modelo.nombre : t('filmmakerSpecs.auto'))} style={[styles.selector, dir.contenedor]}>
         <Text style={[textoPortada(15, '600'), dir.texto, { color: P.tinta, flex: 1 }]} numberOfLines={1}>{modelo ? modelo.nombre : t('filmmakerSpecs.auto')}</Text>
@@ -55,7 +54,7 @@ export const CuerpoDeEspecificaciones: React.FC<Props & { onModelos: () => void 
         {o.resoluciones.map((r) => chip(`r${r}`, r, idea.valores.resolution === r, () => onIdea(poner(idea, 'resolution', r))))}
       </View>
 
-      {etiqueta('filmmaker.projDuration')}
+      {etiqueta('filmmakerSpecs.durationTotal')}
       <View style={[styles.fila, dir.contenedor]}>
         {duracionesDelTipo(idea.tipo).map((s) => chip(`d${s}`, t('filmmaker.hubSeconds', { n: formato.numero(s) }), s === total, () => onIdea(poner(idea, 'duration', String(s)))))}
       </View>
@@ -65,35 +64,19 @@ export const CuerpoDeEspecificaciones: React.FC<Props & { onModelos: () => void 
       <Text style={[textoPortada(15, '600'), dir.texto, { color: P.tinta }]}>{t(claveDeSonido(o.audio))}</Text>
       <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerSpecs.soundHint')}</Text>
 
-      <TouchableOpacity onPress={() => setMas((v) => !v)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmaker.projAdvanced')} accessibilityState={{ expanded: mas }} style={[styles.mas, dir.contenedor]}>
-        <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tintaSecundaria, flex: 1 }]}>{t('filmmaker.projAdvanced')} · {t('filmmakerSpecs.seedFold')}</Text>
+      {servidor.semilla ? <TouchableOpacity onPress={() => setMas((v) => !v)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmaker.projAdvanced')} accessibilityState={{ expanded: mas }} style={[styles.mas, dir.contenedor]}>
+        <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tintaSecundaria, flex: 1 }]}>{t('filmmakerSpecs.seedFold')}</Text>
         <Ionicons name={mas ? 'chevron-up' : 'chevron-down'} size={16} color={P.tintaSecundaria} />
-      </TouchableOpacity>
-      {mas ? (
+      </TouchableOpacity> : null}
+      {servidor.semilla && mas ? (
         <View style={styles.cuerpo}>
-          <Text style={[textoPortada(13, '500'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerSpecs.variants')}</Text>
-          <View style={[styles.fila, dir.contenedor]}>
-            {[1, 2, 3, 4].map((n) => chip(`v${n}`, formato.numero(n), variantes === n, () => onIdea(poner(idea, 'variants', n === 1 ? '' : String(n)))))}
-          </View>
-          <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerSpecs.variantsNote')}</Text>
+          {servidor.semilla ? (
+            <>
           <Text style={[textoPortada(13, '500'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerSpecs.seedFold')}</Text>
           <TextInput value={idea.valores.seed ?? ''} onChangeText={(v) => onIdea(poner(idea, 'seed', v.replace(/\D/g, '').slice(0, 10)))} editable={servidor.semilla} keyboardType="number-pad" maxLength={10}
             placeholder={t('filmmakerSpecs.auto')} placeholderTextColor={P.tintaSecundaria} accessibilityLabel={t('filmmakerSpecs.seedFold')} accessibilityState={{ disabled: !servidor.semilla }}
             style={[styles.semilla, dir.texto, textoPortada(15, '600'), { color: P.tinta }, !servidor.semilla && styles.cerrado]} />
-          <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{t(servidor.semilla ? 'filmmakerSpecs.seedHint' : 'filmmakerSpecs.seedClosed')}</Text>
-          {modelo ? (
-            <>
-              <Text style={[textoPortada(13, '500'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerSpecs.inputsTitle')}</Text>
-              <View style={[styles.fila, dir.contenedor]}>
-                {([['referencias', 'filmmakerSpecs.inRefs'], ['fotogramas', 'filmmakerSpecs.inFrames'], ['extender', 'filmmakerSpecs.inExtend'], ['editar', 'filmmakerSpecs.inEdit']] as const).map(([k, clave]) => {
-                  const si = entradas[k];
-                  return (
-                    <View key={k} style={[styles.chip, !si && styles.cerrado]} accessible accessibilityLabel={etiquetaAccesible(t(clave), t(si ? 'filmmakerSpecs.available' : 'filmmakerSpecs.soon'))} accessibilityState={{ disabled: !si }}>
-                      <Text style={[textoPortada(14, '500'), { color: si ? P.tinta : P.tintaSecundaria }]}>{t(clave)}</Text>
-                    </View>
-                  );
-                })}
-              </View>
+          <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{t('filmmakerSpecs.seedHint')}</Text>
             </>
           ) : null}
         </View>
@@ -126,8 +109,7 @@ export const ResumenDeEspecificaciones: React.FC<{ idea: IdeaDelTaller; compacto
   const r = idea.valores.resolution || auto;
   const d = t('filmmaker.hubSeconds', { n: formato.numero(duracionDe(idea)) });
   const s = t(claveDeSonido(o.audio));
-  const q = modelo?.perfil ? t(modelo.perfil === 'rapido' ? 'filmmakerSpecs.qualityFast' : modelo.perfil === 'calidad' ? 'filmmakerSpecs.qualityBest' : 'filmmakerSpecs.qualityBalanced') : auto;
-  const etiquetaCompleta = etiquetaAccesible(t('filmmakerSpecs.summaryLabel'), nombre, f, r, d, q, s, t('filmmakerSpecs.openLabel'));
+  const etiquetaCompleta = etiquetaAccesible(t('filmmakerSpecs.summaryLabel'), nombre, f, r, d, s, t('filmmakerSpecs.openLabel'));
   if (compacto) {
     return (
       <TouchableOpacity onPress={onAbrir} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaCompleta} style={[styles.linea, dir.contenedor]}>
@@ -136,10 +118,10 @@ export const ResumenDeEspecificaciones: React.FC<{ idea: IdeaDelTaller; compacto
       </TouchableOpacity>
     );
   }
-  const dato = (clave: string, valor: string, cerrado = false) => (
-    <View key={clave} style={[styles.dato, cerrado && styles.cerrado]}>
+  const dato = (clave: string, valor: string) => (
+    <View key={clave} style={styles.dato}>
       <Text style={[textoPortada(11, '500'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={1}>{t(clave)}</Text>
-      <Text style={[textoPortada(15, '600'), dir.texto, { color: P.tinta }]} numberOfLines={1}>{valor}</Text>
+      <Text style={[textoPortada(15, '600'), dir.texto, { color: valor === auto ? P.tintaSecundaria : P.tinta }]} numberOfLines={1}>{valor}</Text>
     </View>
   );
   return (
@@ -149,18 +131,19 @@ export const ResumenDeEspecificaciones: React.FC<{ idea: IdeaDelTaller; compacto
           <Text style={[textoPortada(11, '500'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerSpecs.model')}</Text>
           <Text style={[textoPortada(17, '600'), dir.texto, { color: P.tinta }]} numberOfLines={1}>{nombre}</Text>
         </View>
-        <Ionicons name="options-outline" size={20} color={P.tintaSecundaria} />
+        <View style={[styles.ajustar, dir.contenedor]}>
+          <Text style={[textoPortada(13, '600'), { color: P.tinta }]}>{t('filmmakerSpecs.adjust')}</Text>
+          <Ionicons name="options-outline" size={18} color={P.tinta} />
+        </View>
       </View>
       <View style={[styles.rejilla, dir.contenedor]}>
         {dato('filmmaker.projFormat', f)}
         {dato('filmmaker.projResolution', r)}
         {dato('filmmaker.projDuration', d)}
-        {dato('filmmakerSpecs.quality', q)}
         {dato('filmmakerSpecs.sound', s)}
-        {dato('filmmakerSpecs.variants', formato.numero(variantesDe(idea)))}
       </View>
       <View style={styles.pie}>
-        <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={1}>{t('filmmakerSpecs.seedFold')} · {semillaDe(idea) !== null ? formato.numero(semillaDe(idea) as number) : auto}</Text>
+        <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={1}>{semillaDe(idea) !== null ? `${t('filmmakerSpecs.seedFold')} · ${formato.numero(semillaDe(idea) as number)}` : ''}</Text>
         <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={1}>{t('filmmakerSpecs.costTbc')}</Text>
       </View>
     </TouchableOpacity>
@@ -168,7 +151,7 @@ export const ResumenDeEspecificaciones: React.FC<{ idea: IdeaDelTaller; compacto
 };
 
 const styles = StyleSheet.create({
-  cuerpo: { gap: 10 },
+  cuerpo: { gap: 10, paddingBottom: 24 },
   fila: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   chip: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.fondo, alignItems: 'center', justifyContent: 'center' },
   chipSel: { borderColor: '#FFFFFF', borderWidth: 2, backgroundColor: P.superficieAlta },
@@ -181,5 +164,6 @@ const styles = StyleSheet.create({
   cabeza: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   pie: { gap: 4 },
   rejilla: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 },
-  dato: { width: '33.33%', minHeight: 44, gap: 2, paddingRight: 8 },
+  dato: { width: '50%', minHeight: 44, gap: 2, paddingRight: 8 },
+  ajustar: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingHorizontal: 4 },
 });
