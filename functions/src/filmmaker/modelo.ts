@@ -546,6 +546,10 @@ export interface DialogueLine {
  * proveedor —tampoco un id de voz—. Si el personaje ya es un Element de la
  * cuenta, `element` lo dice, en su versión.
  */
+/** De dónde viene una ficha del universo. Ausente = `user` (lo puso la persona): lo guardado antes de este campo sigue leyéndose igual. */
+export const ORIGENES_DE_FICHA = Object.freeze(['user', 'proposal', 'document'] as const);
+export type EntityOrigin = typeof ORIGENES_DE_FICHA[number];
+
 export interface ProductionCharacter {
   readonly id: string;
   readonly name: string;
@@ -558,6 +562,8 @@ export interface ProductionCharacter {
   readonly relationships?: readonly CharacterRelationship[];
   readonly continuity?: CharacterContinuity;
   readonly element?: ElementBinding;
+  /** De dónde viene (convergencia 2026-11-18): lo puso la persona, lo propuso Weë o salió de un documento. Ausente = `user`. */
+  readonly origin?: EntityOrigin;
 }
 
 export interface ApparentAge {
@@ -570,6 +576,8 @@ export interface VoiceReference {
   readonly description?: string;
   readonly referenceId?: string;
   readonly language?: string;
+  /** Una voz del catálogo de Weë (id semántico del catálogo, nunca el id de un proveedor). Ausente = la describe `description` o hereda. */
+  readonly catalogId?: string;
 }
 
 export interface CharacterRelationship {
@@ -621,6 +629,8 @@ export interface ProductionLocation {
   readonly appearance?: AppearanceProfile;
   readonly referenceIds?: readonly string[];
   readonly element?: ElementBinding;
+  /** De dónde viene (convergencia 2026-11-18): lo puso la persona, lo propuso Weë o salió de un documento. Ausente = `user`. */
+  readonly origin?: EntityOrigin;
 }
 
 export interface ProductionObject {
@@ -631,6 +641,8 @@ export interface ProductionObject {
   readonly appearance?: AppearanceProfile;
   readonly referenceIds?: readonly string[];
   readonly element?: ElementBinding;
+  /** De dónde viene (convergencia 2026-11-18): lo puso la persona, lo propuso Weë o salió de un documento. Ausente = `user`. */
+  readonly origin?: EntityOrigin;
 }
 
 /**
@@ -645,6 +657,8 @@ export interface ProductionReference {
   readonly assetId?: string;
   readonly element?: ElementBinding;
   readonly description?: string;
+  /** De dónde viene (convergencia 2026-11-18): lo puso la persona, lo propuso Weë o salió de un documento. Ausente = `user`. */
+  readonly origin?: EntityOrigin;
 }
 
 /* ── Audio ────────────────────────────────────────────────────────────────── */

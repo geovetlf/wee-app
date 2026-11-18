@@ -100,10 +100,10 @@ type Cambios<T, K extends keyof T> = { readonly [P in K]?: T[P] | null };
 
 export type CharacterChanges = Cambios<ProductionCharacter,
   'name' | 'identityDescription' | 'apparentAge' | 'physicalCharacteristics' | 'appearance' | 'referenceIds'
-  | 'voice' | 'relationships' | 'continuity' | 'element'>;
-export type LocationChanges = Cambios<ProductionLocation, 'name' | 'description' | 'setting' | 'appearance' | 'referenceIds' | 'element'>;
-export type ObjectChanges = Cambios<ProductionObject, 'name' | 'kind' | 'description' | 'appearance' | 'referenceIds' | 'element'>;
-export type ReferenceChanges = Cambios<ProductionReference, 'kind' | 'role' | 'assetId' | 'element' | 'description'>;
+  | 'voice' | 'relationships' | 'continuity' | 'element' | 'origin'>;
+export type LocationChanges = Cambios<ProductionLocation, 'name' | 'description' | 'setting' | 'appearance' | 'referenceIds' | 'element' | 'origin'>;
+export type ObjectChanges = Cambios<ProductionObject, 'name' | 'kind' | 'description' | 'appearance' | 'referenceIds' | 'element' | 'origin'>;
+export type ReferenceChanges = Cambios<ProductionReference, 'kind' | 'role' | 'assetId' | 'element' | 'description' | 'origin'>;
 export type IntentChanges = Cambios<ProductionIntent, keyof ProductionIntent>;
 /** El estilo y la cinematografía de la producción tienen su operación: `change_style`, cámara, movimiento, luz y transición. */
 export type DirectionChanges = Cambios<CreativeDirection, 'mood' | 'tone' | 'pacing' | 'color' | 'referenceIds'>;
@@ -590,11 +590,11 @@ const aplicarCambios = <T extends object>(
 
 const CAMBIOS_DE_PERSONAJE = [
   'name', 'identityDescription', 'apparentAge', 'physicalCharacteristics', 'appearance', 'referenceIds', 'voice',
-  'relationships', 'continuity', 'element',
+  'relationships', 'continuity', 'element', 'origin',
 ];
-const CAMBIOS_DE_LUGAR = ['name', 'description', 'setting', 'appearance', 'referenceIds', 'element'];
-const CAMBIOS_DE_OBJETO = ['name', 'kind', 'description', 'appearance', 'referenceIds', 'element'];
-const CAMBIOS_DE_REFERENCIA = ['kind', 'role', 'assetId', 'element', 'description'];
+const CAMBIOS_DE_LUGAR = ['name', 'description', 'setting', 'appearance', 'referenceIds', 'element', 'origin'];
+const CAMBIOS_DE_OBJETO = ['name', 'kind', 'description', 'appearance', 'referenceIds', 'element', 'origin'];
+const CAMBIOS_DE_REFERENCIA = ['kind', 'role', 'assetId', 'element', 'description', 'origin'];
 const CAMBIOS_DE_INTENCION = [
   'objective', 'productionType', 'audience', 'requestedDurationSec', 'aspectRatio', 'preset', 'tone', 'style', 'theme',
   'narrative', 'constraints', 'referenceIds', 'priorities', 'freeText',
@@ -1420,10 +1420,11 @@ interface Firmas {
  * plano en el que sale, y de ninguno más.
  */
 const firmas = (prod: Prod): Firmas => {
-  const personajes = new Map(prod.characters.map((c) => [c.id, c] as [string, unknown]));
-  const lugares = new Map(prod.locations.map((l) => [l.id, l] as [string, unknown]));
-  const cosas = new Map(prod.objects.map((o) => [o.id, o] as [string, unknown]));
-  const referencias = new Map(prod.references.map((r) => [r.id, r] as [string, unknown]));
+  /* `origin` (de dónde viene la ficha) no es parte de lo que la ficha ES: cambiarlo no deja nada pendiente. */
+  const personajes = new Map(prod.characters.map((c) => [c.id, sin(c, 'origin')] as [string, unknown]));
+  const lugares = new Map(prod.locations.map((l) => [l.id, sin(l, 'origin')] as [string, unknown]));
+  const cosas = new Map(prod.objects.map((o) => [o.id, sin(o, 'origin')] as [string, unknown]));
+  const referencias = new Map(prod.references.map((r) => [r.id, sin(r, 'origin')] as [string, unknown]));
   const idsDeReferencias = (v: unknown, salida: Set<string>): void => {
     if (Array.isArray(v)) { v.forEach((x) => idsDeReferencias(x, salida)); return; }
     if (!esObj(v)) return;
