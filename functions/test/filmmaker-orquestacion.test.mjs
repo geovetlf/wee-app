@@ -96,5 +96,21 @@ console.log('── F · El universo viaja con sus operaciones ──');
   check('F2) sin cambios no hay operaciones', S.operacionesDelUniverso(antes, antes).length === 0);
 }
 
+
+console.log('── G · Origen y voz del personaje ──');
+{
+  const u2 = { siguiente: 3, aprobado: true, elementos: [
+    { id: 'e1', tipo: 'character', nombre: 'Jay', linea: 'x', grupo: 'main', voz: 'ej_es_aurora', origen: 'documento' },
+    { id: 'e2', tipo: 'place', nombre: 'Faro', linea: '', grupo: 'other', voz: 'auto', origen: 'propuesta' },
+    { id: 'e4', tipo: 'object', nombre: 'Brújula', linea: '', grupo: 'other', voz: 'auto' }] };
+  const g = O.produccionDesdeLaExperiencia({ ...exp, universo: u2 });
+  check('G1) el origen viaja (document / proposal); «Tuyo» no lleva campo', g.production.characters[0].origin === 'document' && g.production.locations[0].origin === 'proposal' && g.production.objects[0].origin === undefined);
+  const v = O.universoDesdeLaProduccion(g.production);
+  check('G2) al reabrir vuelve el origen (Documento / Propuesta / Tuyo)', v.elementos[0].origen === 'documento' && v.elementos[1].origen === 'propuesta' && v.elementos[2].origen === 'usuario');
+  check('G3) una voz de ejemplo no viaja al personaje y se avisa como sin destino', g.production.characters[0].voice === undefined && g.vozSinDestino.some((x) => x.ownerId === 'e1'));
+  const ops = S.operacionesDelUniverso(g.production, { ...g.production, characters: [{ ...g.production.characters[0], origin: 'user', voice: { catalogId: 'real_1', language: 'es' } }] });
+  check('G4) cambiar el origen o la voz real del personaje lo actualiza en el servidor', ops.some((o) => o.op === 'update_character' && o.changes.origin === 'user' && o.changes.voice?.catalogId === 'real_1'), JSON.stringify(ops.map((o) => o.op)));
+}
+
 console.log(failures ? `\n${failures} FALLO(S)` : `\nTodo en verde (${n}).`);
 process.exit(failures ? 1 : 0);

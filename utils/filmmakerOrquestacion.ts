@@ -10,9 +10,9 @@ import type { ElementoDeUniverso, UniversoDelTaller } from './universoDeFilmmake
 import { VOCES_PREDETERMINADAS } from '../constants/filmmakerSonido';
 
 /** La voz propia de un cuadro como el servidor la guarda (`DialogueLine.voice`): solo las voces reales del catálogo; las de ejemplo no viajan. */
-export const vozDeLinea = (voz: string | null | undefined): { referenceId: string; description: string; language: string } | null => {
+export const vozDeLinea = (voz: string | null | undefined): { referenceId: string; catalogId: string; description: string; language: string } | null => {
   const v = voz && voz !== 'auto' ? VOCES_PREDETERMINADAS.find((x) => x.id === voz && !x.ejemplo) : undefined;
-  return v ? { referenceId: v.id, description: `${v.nombre} · ${v.tono}`, language: v.idioma } : null;
+  return v ? { referenceId: v.id, catalogId: v.id, description: `${v.nombre} · ${v.tono}`, language: v.idioma } : null;
 };
 
 /**
@@ -45,6 +45,11 @@ export const TIPO_DE_PRODUCCION: Readonly<Record<string, ProductionType>> = Obje
 });
 
 /* ── Identificadores: el contrato pide 4–160 de [A-Za-z0-9_.:-] ───────────── */
+
+/** Origen del elemento: lo que subió o escribió la persona = 'user' (por defecto), lo que Weë propone = 'proposal', lo que sale del documento = 'document'. */
+const ORIGEN_AL_SERVIDOR = { usuario: 'user', propuesta: 'proposal', documento: 'document' } as const;
+const ORIGEN_DEL_SERVIDOR: Readonly<Record<string, 'usuario' | 'propuesta' | 'documento'>> = { user: 'usuario', proposal: 'propuesta', document: 'documento' };
+const origenAlServidor = (o: ElementoDeUniverso['origen']): { origin: 'user' | 'proposal' | 'document' } | Record<string, never> => (o && o !== 'usuario' ? { origin: ORIGEN_AL_SERVIDOR[o] } : {});
 
 const limpiarId = (s: string): string => s.replace(/[^A-Za-z0-9_.:-]/g, '_');
 const conPrefijo = (prefijo: string, id: string): string => {
@@ -160,12 +165,13 @@ export const produccionDesdeLaExperiencia = (e: ExperienciaDeFilmmaker): Resulta
   for (const x of reales) {
     const base = { name: recorta(x.nombre, LIMITES.nombre), description: x.linea ? recorta(x.linea, LIMITES.texto) : undefined };
     if (x.tipo === 'character') {
-      personajes.push({ id: idDePersonaje(x.id), name: base.name, ...(base.description ? { identityDescription: base.description } : {}) });
-      if (x.voz && x.voz !== 'auto') vozSinDestino.push({ ownerId: x.id, voz: x.voz });
+      const real = vozDeLinea(x.voz);
+      personajes.push({ id: idDePersonaje(x.id), name: base.name, ...(base.description ? { identityDescription: base.description } : {}), ...origenAlServidor(x.origen), ...(real ? { voice: { catalogId: real.catalogId, description: real.description, language: real.language } } : {}) });
+      if (x.voz && x.voz !== 'auto' && !real) vozSinDestino.push({ ownerId: x.id, voz: x.voz });
     } else if (x.tipo === 'place') {
-      lugares.push({ id: idDeLugar(x.id), name: base.name, ...(base.description ? { description: base.description } : {}) });
+      lugares.push({ id: idDeLugar(x.id), name: base.name, ...(base.description ? { description: base.description } : {}), ...origenAlServidor(x.origen) });
     } else {
-      objetos.push({ id: idDeObjeto(x.id), name: base.name, ...(base.description ? { description: base.description } : {}) });
+      objetos.push({ id: idDeObjeto(x.id), name: base.name, ...(base.description ? { description: base.description } : {}), ...origenAlServidor(x.origen) });
     }
   }
   const hablantes = new Set(reales.filter((x) => x.tipo === 'character').map((x) => x.id));
@@ -289,9 +295,9 @@ export const tandasDesdeLaProduccion = (prod: FilmmakerProduction): TandasDelTal
 /** Personajes, lugares y objetos guardados → el universo de la pantalla (origen «Tuyo»). */
 export const universoDesdeLaProduccion = (prod: FilmmakerProduction): UniversoDelTaller => {
   let max = 0;
-  const hacer = (tipo: ElementoDeUniverso['tipo'], prefijo: string, x: { id: string; name: string }, linea: string | undefined): ElementoDeUniverso => {
+  const hacer = (tipo: ElementoDeUniverso['tipo'], prefijo: string, x: { id: string; name: string; origin?: string }, linea: string | undefined): ElementoDeUniverso => {
     const id = sinPrefijo(prefijo, x.id); max = Math.max(max, sufijo(id));
-    return { id, tipo, nombre: x.name, linea: linea ?? '', grupo: 'main', voz: 'auto', origen: 'usuario' };
+    return { id, tipo, nombre: x.name, linea: linea ?? '', grupo: 'main', voz: 'auto', origen: ORIGEN_DEL_SERVIDOR[x.origin ?? 'user'] ?? 'usuario' };
   };
   const elementos = [
     ...prod.characters.map((x) => hacer('character', 'ch_', x, x.identityDescription)),

@@ -30,7 +30,7 @@ export interface SincronizadaConElServidor {
   readonly borrador: Pick<ResultadoDelBorrador, 'omisiones' | 'vozSinDestino'>;
 }
 
-type Ficha = { readonly id: string; readonly name: string; readonly description?: string; readonly identityDescription?: string };
+type Ficha = { readonly id: string; readonly name: string; readonly origin?: string; readonly voice?: unknown; readonly description?: string; readonly identityDescription?: string };
 const GRUPOS_DEL_UNIVERSO = [
   { clave: 'characters', una: 'character', campoTexto: 'identityDescription' },
   { clave: 'locations', una: 'location', campoTexto: 'description' },
@@ -49,6 +49,8 @@ export const operacionesDelUniverso = (antes: unknown, despues: unknown): Filmma
       if (!previo) { poner.push({ op: 'add_' + g.una, [g.una]: x } as unknown as FilmmakerOperation); continue; }
       const changes: Record<string, string> = {};
       if (previo.name !== x.name) changes.name = x.name;
+      if ((previo.origin ?? 'user') !== (x.origin ?? 'user')) changes.origin = x.origin ?? 'user';
+      if (g.una === 'character' && JSON.stringify(previo.voice ?? null) !== JSON.stringify(x.voice ?? null)) (changes as Record<string, unknown>).voice = x.voice ?? null;
       const texto = (previo as Record<string, string | undefined>)[g.campoTexto]; const nuevo = (x as Record<string, string | undefined>)[g.campoTexto];
       if (nuevo !== undefined && texto !== nuevo) changes[g.campoTexto] = nuevo;
       if (Object.keys(changes).length) cambiar.push({ op: 'update_' + g.una, [g.una + 'Id']: id, changes } as unknown as FilmmakerOperation);
