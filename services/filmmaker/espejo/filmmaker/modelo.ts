@@ -300,6 +300,8 @@ export interface DialogueLine {
     readonly estimatedSec?: number;
     readonly voice?: VoiceReference;
 }
+export const ORIGENES_DE_FICHA = Object.freeze(['user', 'proposal', 'document'] as const);
+export type EntityOrigin = typeof ORIGENES_DE_FICHA[number];
 export interface ProductionCharacter {
     readonly id: string;
     readonly name: string;
@@ -312,6 +314,7 @@ export interface ProductionCharacter {
     readonly relationships?: readonly CharacterRelationship[];
     readonly continuity?: CharacterContinuity;
     readonly element?: ElementBinding;
+    readonly origin?: EntityOrigin;
 }
 export interface ApparentAge {
     readonly minYears?: number;
@@ -321,6 +324,7 @@ export interface VoiceReference {
     readonly description?: string;
     readonly referenceId?: string;
     readonly language?: string;
+    readonly catalogId?: string;
 }
 export interface CharacterRelationship {
     readonly characterId: string;
@@ -359,6 +363,7 @@ export interface ProductionLocation {
     readonly appearance?: AppearanceProfile;
     readonly referenceIds?: readonly string[];
     readonly element?: ElementBinding;
+    readonly origin?: EntityOrigin;
 }
 export interface ProductionObject {
     readonly id: string;
@@ -368,6 +373,7 @@ export interface ProductionObject {
     readonly appearance?: AppearanceProfile;
     readonly referenceIds?: readonly string[];
     readonly element?: ElementBinding;
+    readonly origin?: EntityOrigin;
 }
 export interface ProductionReference {
     readonly id: string;
@@ -376,6 +382,7 @@ export interface ProductionReference {
     readonly assetId?: string;
     readonly element?: ElementBinding;
     readonly description?: string;
+    readonly origin?: EntityOrigin;
 }
 export interface AudioPlan {
     readonly narrator?: VoiceReference;

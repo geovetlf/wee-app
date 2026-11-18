@@ -4,7 +4,7 @@ import { FUERZAS_DE_CONTINUIDAD, RELACIONES_ESPACIALES, anclajeValido, validarCo
 import { PROPORCIONES, validarCreativos } from '../core/creative';
 import { normalizarEtiqueta } from '../core/language';
 import { claveProhibidaDeNodo } from '../core/shot';
-import { CALIDADES, CLIMAS, ENFOQUES, ESTILOS_DE_SUBTITULO, LIMITES, MODOS_DE_SUBTITULO, MOMENTOS_DEL_DIA, PAPELES_DE_REFERENCIA, PISTAS, POSICIONES_DE_SUBTITULO, PRESETS, PREVISUALIZACIONES, PRIORIDADES, PROPOSITOS_DE_EXPORTACION, PROPOSITOS_NARRATIVOS, RASGOS, RELACIONES_ENTRE_PERSONAJES, RESOLUCIONES, RITMOS, TIPOS_DE_LINEA, TIPOS_DE_OBJETO, TIPOS_DE_PRODUCCION, TIPOS_DE_RESTRICCION, TIPOS_DE_SONIDO, AMBIENTES, FILMMAKER_MODEL_VERSION, aMs, aSec, canonico, compararTexto, esId, DIRECCIONES_DE_EXTENSION, MODOS_DE_REVISION, ESTADOS_DE_TANDA_GUARDADOS, } from './modelo';
+import { CALIDADES, CLIMAS, ENFOQUES, ESTILOS_DE_SUBTITULO, LIMITES, MODOS_DE_SUBTITULO, MOMENTOS_DEL_DIA, PAPELES_DE_REFERENCIA, PISTAS, POSICIONES_DE_SUBTITULO, PRESETS, PREVISUALIZACIONES, PRIORIDADES, PROPOSITOS_DE_EXPORTACION, PROPOSITOS_NARRATIVOS, RASGOS, RELACIONES_ENTRE_PERSONAJES, RESOLUCIONES, RITMOS, TIPOS_DE_LINEA, TIPOS_DE_OBJETO, TIPOS_DE_PRODUCCION, TIPOS_DE_RESTRICCION, TIPOS_DE_SONIDO, AMBIENTES, FILMMAKER_MODEL_VERSION, aMs, aSec, canonico, compararTexto, esId, DIRECCIONES_DE_EXTENSION, MODOS_DE_REVISION, ORIGENES_DE_FICHA, ESTADOS_DE_TANDA_GUARDADOS, } from './modelo';
 export type Severity = 'error' | 'warning' | 'info';
 export type ParamValue = string | number | boolean | readonly string[];
 export type Params = Readonly<Record<string, ParamValue>>;
@@ -580,12 +580,15 @@ const apariencia = (c: Ctx, v: unknown, ruta: string): void => {
             paleta(c, t.palette, unir(r, 'palette'));
     }
 };
-const VOZ = ['description', 'referenceId', 'language'];
+const VOZ = ['description', 'referenceId', 'language', 'catalogId'];
 const voz = (c: Ctx, v: unknown, ruta: string): void => {
     if (!objeto(c, v, ruta))
         return;
     claves(c, v, VOZ, ruta);
     texto(c, v.description, unir(ruta, 'description'), LIMITES.texto);
+    if (v.catalogId !== undefined && (typeof v.catalogId !== 'string' || !/^[A-Za-z0-9._:-]{1,64}$/.test(v.catalogId))) {
+        mal(c, 'value_invalid', 'error', unir(ruta, 'catalogId'), { reason: 'catalog_id_invalid' });
+    }
     if (v.referenceId !== undefined && ref(c, v.referenceId, unir(ruta, 'referenceId'), ['reference'])) {
         if (c.referencias.get(v.referenceId)?.kind !== 'audio') {
             mal(c, 'constraints_incompatible', 'error', unir(ruta, 'referenceId'), { reason: 'voice_reference_not_audio' });
@@ -595,7 +598,7 @@ const voz = (c: Ctx, v: unknown, ruta: string): void => {
 };
 const PERSONAJE = [
     'id', 'name', 'identityDescription', 'apparentAge', 'physicalCharacteristics', 'appearance', 'referenceIds',
-    'voice', 'relationships', 'continuity', 'element',
+    'voice', 'relationships', 'continuity', 'element', 'origin',
 ];
 const RELACION = ['characterId', 'kind', 'description'];
 const personaje = (c: Ctx, x: unknown, i: number): void => {
@@ -603,6 +606,7 @@ const personaje = (c: Ctx, x: unknown, i: number): void => {
     if (!objeto(c, x, r, true))
         return;
     claves(c, x, PERSONAJE, r);
+    uno(c, x.origin, ORIGENES_DE_FICHA, unir(r, 'origin'));
     texto(c, x.name, unir(r, 'name'), LIMITES.nombre, true);
     texto(c, x.identityDescription, unir(r, 'identityDescription'), LIMITES.texto);
     if (objeto(c, x.apparentAge, unir(r, 'apparentAge'))) {
@@ -655,12 +659,13 @@ const personaje = (c: Ctx, x: unknown, i: number): void => {
     }
     vinculo(c, x.element, unir(r, 'element'));
 };
-const LUGAR = ['id', 'name', 'description', 'setting', 'appearance', 'referenceIds', 'element'];
+const LUGAR = ['id', 'name', 'description', 'setting', 'appearance', 'referenceIds', 'element', 'origin'];
 const lugar = (c: Ctx, x: unknown, i: number): void => {
     const r = unir('locations', tramo(x, i));
     if (!objeto(c, x, r, true))
         return;
     claves(c, x, LUGAR, r);
+    uno(c, x.origin, ORIGENES_DE_FICHA, unir(r, 'origin'));
     texto(c, x.name, unir(r, 'name'), LIMITES.nombre, true);
     texto(c, x.description, unir(r, 'description'), LIMITES.texto);
     uno(c, x.setting, AMBIENTES, unir(r, 'setting'));
@@ -668,12 +673,13 @@ const lugar = (c: Ctx, x: unknown, i: number): void => {
     refs(c, x.referenceIds, unir(r, 'referenceIds'), ['reference'], LIMITES.referenciasPorCosa);
     vinculo(c, x.element, unir(r, 'element'));
 };
-const OBJETO = ['id', 'name', 'kind', 'description', 'appearance', 'referenceIds', 'element'];
+const OBJETO = ['id', 'name', 'kind', 'description', 'appearance', 'referenceIds', 'element', 'origin'];
 const cosa = (c: Ctx, x: unknown, i: number): void => {
     const r = unir('objects', tramo(x, i));
     if (!objeto(c, x, r, true))
         return;
     claves(c, x, OBJETO, r);
+    uno(c, x.origin, ORIGENES_DE_FICHA, unir(r, 'origin'));
     texto(c, x.name, unir(r, 'name'), LIMITES.nombre, true);
     uno(c, x.kind, TIPOS_DE_OBJETO, unir(r, 'kind'));
     texto(c, x.description, unir(r, 'description'), LIMITES.texto);
@@ -684,12 +690,13 @@ const cosa = (c: Ctx, x: unknown, i: number): void => {
 const MATERIAL_DEL_PAPEL: Readonly<Record<string, string>> = {
     first_frame: 'image', last_frame: 'image', audio: 'audio', motion: 'video',
 };
-const REFERENCIA = ['id', 'kind', 'role', 'assetId', 'element', 'description'];
+const REFERENCIA = ['id', 'kind', 'role', 'assetId', 'element', 'description', 'origin'];
 const referencia = (c: Ctx, x: unknown, i: number, porMaterial: Map<string, string>): void => {
     const r = unir('references', tramo(x, i));
     if (!objeto(c, x, r, true))
         return;
     claves(c, x, REFERENCIA, r);
+    uno(c, x.origin, ORIGENES_DE_FICHA, unir(r, 'origin'));
     uno(c, x.kind, TIPOS_DE_MATERIAL, unir(r, 'kind'), 'value_invalid', true);
     uno(c, x.role, PAPELES_DE_REFERENCIA, unir(r, 'role'));
     if (x.assetId !== undefined && !esId(x.assetId))

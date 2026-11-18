@@ -113,5 +113,34 @@ check('25) la voz PROPIA del cuadro manda sobre la heredada', ok(propia) && mode
 const vuelta = aplica(propia.production, [{ op: 'change_dialogue', lineId: 'lin1', changes: { voice: null } }]);
 check('26) y con `null` vuelve a heredar', ok(vuelta) && modelo.vozDeLinea(vuelta.production, vuelta.production.scenes[0].shots[0].dialogue[0])?.description === 'grave y calmada', codes(vuelta));
 
+console.log('── De dónde viene cada ficha (origin) y la voz de catálogo ──');
+const conOrigen = aplica(base(), [
+  { op: 'add_character', character: { id: 'ana1', name: 'Ana', origin: 'proposal' } },
+  { op: 'add_location', location: { id: 'faro', name: 'El faro', origin: 'document' } },
+  { op: 'add_object', object: { id: 'linterna', name: 'Linterna', kind: 'prop', origin: 'user' } },
+  { op: 'add_reference', reference: { id: 'ref1', kind: 'image', role: 'general', assetId: 'asset_o1', origin: 'document' } },
+]);
+check('27) las cuatro fichas admiten `origin` (user | proposal | document) y la validación lo acepta', ok(conOrigen) && validacion.validarProduccion(conOrigen.production).problems.every((x) => x.severity !== 'error') && conOrigen.production.characters[0].origin === 'proposal' && conOrigen.production.locations[0].origin === 'document' && conOrigen.production.references[0].origin === 'document', codes(conOrigen));
+check('28) el origen se guarda en la producción: al reabrirla (volver a leerla) sigue ahí', JSON.parse(JSON.stringify(conOrigen.production)).characters[0].origin === 'proposal');
+let o = aplica(conOrigen.production, [{ op: 'update_character', characterId: 'ana1', changes: { origin: 'user' } }, { op: 'update_location', locationId: 'faro', changes: { origin: 'user' } }]);
+check('29) `update_*` cambia el origen (la persona adopta una propuesta)', ok(o) && o.production.characters[0].origin === 'user' && o.production.locations[0].origin === 'user', codes(o));
+o = aplica(conOrigen.production, [{ op: 'update_character', characterId: 'ana1', changes: { origin: null } }]);
+check('30) con `null` vuelve a ausente, que se lee como `user`', ok(o) && o.production.characters[0].origin === undefined);
+o = aplica(base(), [{ op: 'add_character', character: { id: 'ana1', name: 'Ana', origin: 'weë' } }]);
+check('31) un origen fuera del vocabulario se rechaza', !ok(o) || validacion.validarProduccion(o.production).problems.some((x) => /origin/.test(x.path) && x.severity === 'error'), codes(o));
+check('32) una producción SIN origin sigue siendo válida y no lo inventa (ausente = user)', validacion.validarProduccion(base()).problems.every((x) => x.severity !== 'error') && !('origin' in (aplica(base(), [{ op: 'add_character', character: { id: 'ana1', name: 'Ana' } }]).production.characters[0])));
+const antes = aplica(conOrigen.production, [{ op: 'add_character', character: { id: 'bea1', name: 'Bea' } }]).production;
+const reparto = aplica(antes, [{ op: 'update_shot', shotId: 'sh01', changes: { characterIds: ['ana1'] } }]);
+const pend = (prod, ops2) => { const x = aplica(prod, ops2); return x.ok ? JSON.stringify(x.pending ?? []) : 'ERR'; };
+check('33) cambiar el origen NO deja nada pendiente de regenerar (no es parte de lo que la ficha es)', ok(reparto) && pend(reparto.production, [{ op: 'update_character', characterId: 'ana1', changes: { origin: 'user' } }]) === '{"scenes":[],"shots":[],"audio":[],"removed":[]}', pend(reparto.production, [{ op: 'update_character', characterId: 'ana1', changes: { origin: 'user' } }]));
+const voz = aplica(base(), [{ op: 'add_character', character: { id: 'ana1', name: 'Ana' } }, { op: 'update_character', characterId: 'ana1', changes: { voice: { catalogId: 'voz-calida-1' } } }]);
+check('34) la voz del personaje admite un id de catálogo, validada como la de una línea', ok(voz) && voz.production.characters[0].voice.catalogId === 'voz-calida-1' && validacion.validarProduccion(voz.production).problems.every((x) => x.severity !== 'error'), codes(voz));
+const vozMala = aplica(base(), [{ op: 'add_character', character: { id: 'ana1', name: 'Ana', voice: { catalogId: 'con espacios!' } } }]);
+check('35) un id de catálogo mal formado se rechaza', !ok(vozMala) || validacion.validarProduccion(vozMala.production).problems.some((x) => /catalogId/.test(x.path) && x.severity === 'error'));
+const vozNula = aplica(voz.production, [{ op: 'update_character', characterId: 'ana1', changes: { voice: null } }]);
+check('36) `voice: null` = hereda (sin voz propia)', ok(vozNula) && vozNula.production.characters[0].voice === undefined);
+const lineaVoz = aplica(voz.production, [{ op: 'add_dialogue', target: { shotId: 'sh01' }, line: { id: 'lin1', kind: 'dialogue', characterId: 'ana1', text: 'Hola', voice: { catalogId: 'voz-grave-2' } } }]);
+check('37) y la voz propia de una línea usa el MISMO formato de catálogo, y manda sobre la del personaje', ok(lineaVoz) && modelo.vozDeLinea(lineaVoz.production, lineaVoz.production.scenes[0].shots[0].dialogue[0]).catalogId === 'voz-grave-2', codes(lineaVoz));
+
 console.log(fallos ? `\n✘ ${fallos} fallan de ${n}` : `\n✔ ${n} comprobaciones`);
 process.exit(fallos ? 1 : 0);

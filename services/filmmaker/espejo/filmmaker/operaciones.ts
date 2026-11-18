@@ -51,10 +51,10 @@ export type ExportChange = {
 type Cambios<T, K extends keyof T> = {
     readonly [P in K]?: T[P] | null;
 };
-export type CharacterChanges = Cambios<ProductionCharacter, 'name' | 'identityDescription' | 'apparentAge' | 'physicalCharacteristics' | 'appearance' | 'referenceIds' | 'voice' | 'relationships' | 'continuity' | 'element'>;
-export type LocationChanges = Cambios<ProductionLocation, 'name' | 'description' | 'setting' | 'appearance' | 'referenceIds' | 'element'>;
-export type ObjectChanges = Cambios<ProductionObject, 'name' | 'kind' | 'description' | 'appearance' | 'referenceIds' | 'element'>;
-export type ReferenceChanges = Cambios<ProductionReference, 'kind' | 'role' | 'assetId' | 'element' | 'description'>;
+export type CharacterChanges = Cambios<ProductionCharacter, 'name' | 'identityDescription' | 'apparentAge' | 'physicalCharacteristics' | 'appearance' | 'referenceIds' | 'voice' | 'relationships' | 'continuity' | 'element' | 'origin'>;
+export type LocationChanges = Cambios<ProductionLocation, 'name' | 'description' | 'setting' | 'appearance' | 'referenceIds' | 'element' | 'origin'>;
+export type ObjectChanges = Cambios<ProductionObject, 'name' | 'kind' | 'description' | 'appearance' | 'referenceIds' | 'element' | 'origin'>;
+export type ReferenceChanges = Cambios<ProductionReference, 'kind' | 'role' | 'assetId' | 'element' | 'description' | 'origin'>;
 export type IntentChanges = Cambios<ProductionIntent, keyof ProductionIntent>;
 export type DirectionChanges = Cambios<CreativeDirection, 'mood' | 'tone' | 'pacing' | 'color' | 'referenceIds'>;
 export type SceneChanges = Cambios<ProductionScene, 'narrativePurpose' | 'characterIds' | 'objectIds' | 'actions' | 'dependsOn' | 'audio' | 'batch'>;
@@ -659,11 +659,11 @@ const aplicarCambios = <T extends object>(actual: T, cambios: unknown, permitido
 };
 const CAMBIOS_DE_PERSONAJE = [
     'name', 'identityDescription', 'apparentAge', 'physicalCharacteristics', 'appearance', 'referenceIds', 'voice',
-    'relationships', 'continuity', 'element',
+    'relationships', 'continuity', 'element', 'origin',
 ];
-const CAMBIOS_DE_LUGAR = ['name', 'description', 'setting', 'appearance', 'referenceIds', 'element'];
-const CAMBIOS_DE_OBJETO = ['name', 'kind', 'description', 'appearance', 'referenceIds', 'element'];
-const CAMBIOS_DE_REFERENCIA = ['kind', 'role', 'assetId', 'element', 'description'];
+const CAMBIOS_DE_LUGAR = ['name', 'description', 'setting', 'appearance', 'referenceIds', 'element', 'origin'];
+const CAMBIOS_DE_OBJETO = ['name', 'kind', 'description', 'appearance', 'referenceIds', 'element', 'origin'];
+const CAMBIOS_DE_REFERENCIA = ['kind', 'role', 'assetId', 'element', 'description', 'origin'];
 const CAMBIOS_DE_INTENCION = [
     'objective', 'productionType', 'audience', 'requestedDurationSec', 'aspectRatio', 'preset', 'tone', 'style', 'theme',
     'narrative', 'constraints', 'referenceIds', 'priorities', 'freeText',
@@ -1570,19 +1570,19 @@ interface Firmas {
     readonly linea: string;
 }
 const firmas = (prod: Prod): Firmas => {
-    const personajes = new Map(prod.characters.map((c) => [c.id, c] as [
+    const personajes = new Map(prod.characters.map((c) => [c.id, sin(c, 'origin')] as [
         string,
         unknown
     ]));
-    const lugares = new Map(prod.locations.map((l) => [l.id, l] as [
+    const lugares = new Map(prod.locations.map((l) => [l.id, sin(l, 'origin')] as [
         string,
         unknown
     ]));
-    const cosas = new Map(prod.objects.map((o) => [o.id, o] as [
+    const cosas = new Map(prod.objects.map((o) => [o.id, sin(o, 'origin')] as [
         string,
         unknown
     ]));
-    const referencias = new Map(prod.references.map((r) => [r.id, r] as [
+    const referencias = new Map(prod.references.map((r) => [r.id, sin(r, 'origin')] as [
         string,
         unknown
     ]));
