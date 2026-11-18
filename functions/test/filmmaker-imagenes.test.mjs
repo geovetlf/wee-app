@@ -445,3 +445,39 @@ test('el código de la puerta sanea el registro y el error que sale a la app, y 
     assert.doesNotMatch(c, /gemini|seedream|flux|nano banana|API_KEY/i);
   }
 });
+
+/* ── Cliente: claves de i18n, interruptor y sintaxis ───────────────────── */
+const raiz = path.resolve(aqui, '../..');
+const leer = (p) => fs.readFileSync(path.resolve(raiz, p), 'utf8');
+
+test('cliente: cada clave de i18n que usan el servicio y el hook existe en es y en en, con las mismas claves', () => {
+  const es = requerir(path.resolve(raiz, 'i18n/textos/es/filmmakerImagenes.ts')).filmmakerImagenes;
+  const en = requerir(path.resolve(raiz, 'i18n/textos/en/filmmakerImagenes.ts')).filmmakerImagenes;
+  assert.deepEqual(Object.keys(es).sort(), Object.keys(en).sort());
+  const usadas = new Set();
+  for (const f of ['services/filmmakerImagenesService.ts', 'hooks/useImagenesDeFilmmaker.ts']) {
+    for (const m of leer(f).matchAll(/'filmmakerImagenes\.(\w+)'/g)) usadas.add(m[1]);
+  }
+  assert.ok(usadas.size >= 15);
+  for (const k of usadas) assert.ok(k in es && k in en, `falta la clave filmmakerImagenes.${k}`);
+  /* Los plurales declaran las dos variantes. */
+  for (const base of ['quoteIncludes', 'yoursCount']) assert.ok(`${base}_one` in es && `${base}_other` in es && `${base}_one` in en && `${base}_other` in en);
+  /* La marca no se traduce ni se escribe sin diéresis. */
+  for (const v of [...Object.values(es), ...Object.values(en)]) assert.doesNotMatch(v, /\bWee\b|\bWEE\b/);
+});
+
+test('cliente: el interruptor de la UI está CERRADO y el servicio no nombra proveedores ni modelos', () => {
+  assert.match(leer('constants/filmmakerImagenes.ts'), /IMAGENES_DE_FILMMAKER_ABIERTAS = false;/);
+  assert.match(leer('hooks/useImagenesDeFilmmaker.ts'), /IMAGENES_DE_FILMMAKER_ABIERTAS/);
+  for (const f of ['services/filmmakerImagenesService.ts', 'hooks/useImagenesDeFilmmaker.ts']) {
+    assert.doesNotMatch(sinComentarios(leer(f)), /gemini|seedream|flux|banana|API_KEY|prompt/i);
+  }
+});
+
+test('cliente: el servicio y el hook compilan (sintaxis) y el hook solo sube a creator-inputs', () => {
+  for (const f of ['services/filmmakerImagenesService.ts', 'hooks/useImagenesDeFilmmaker.ts', 'constants/filmmakerImagenes.ts']) {
+    const r = ts.transpileModule(leer(f), { compilerOptions: { module: ts.ModuleKind.ESNext, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 }, reportDiagnostics: true, fileName: f });
+    assert.deepEqual((r.diagnostics ?? []).map((d) => ts.flattenDiagnosticMessageText(d.messageText, ' ')), [], f);
+  }
+  assert.match(leer('hooks/useImagenesDeFilmmaker.ts'), /uploadCreatorImage\(user\.uid, uri, 'creator-inputs'\)/);
+});
