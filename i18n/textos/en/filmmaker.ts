@@ -389,7 +389,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   uniGroupGroups: 'Groups',
   uniGroupOther: 'Others',
   uniRegenerateClosed: 'Soon: Weë will generate the images of your universe.',
-  uniApproveWhy: 'Add at least one character: its sheet or your reference image.',
+  uniApproveWhy: 'Add at least one character: type its name below, upload its image or pick it from My projects. With a document, Weë can interpret it.',
   uniContinue: 'Continue to Chapters',
   uniOpenSheet: 'Open sheet',
   sheetTitle: 'Sheet',

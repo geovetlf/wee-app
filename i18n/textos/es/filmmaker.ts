@@ -390,7 +390,7 @@ export const filmmaker = {
   uniGroupGroups: 'Grupos',
   uniGroupOther: 'Otros',
   uniRegenerateClosed: 'Pronto: Weë generará las imágenes de tu universo.',
-  uniApproveWhy: 'Aporta al menos un personaje: su ficha o tu imagen de referencia.',
+  uniApproveWhy: 'Aporta al menos un personaje: escribe su nombre abajo, sube su imagen o elígelo de Mis proyectos. Con un documento, Weë puede interpretarlo.',
   uniContinue: 'Continuar a Capítulos',
   uniOpenSheet: 'Abrir ficha',
   sheetTitle: 'Ficha',
