@@ -36,7 +36,7 @@ export const TIPOS_DE_PROYECTO: readonly TipoDeProyecto[] = [
   { id: 'film', clave: 'filmmaker.hubTypeFilm', claveSub: 'filmmaker.hubTypeFilmSub', estado: 'plantilla', formato: '16:9', segundos: 120 },
   { id: 'short', clave: 'filmmaker.hubTypeShort', claveSub: 'filmmaker.hubTypeShortSub', estado: 'habilitada', formato: '16:9', segundos: 60 },
   { id: 'series', clave: 'filmmaker.hubTypeSeries', claveSub: 'filmmaker.hubTypeSeriesSub', estado: 'cerrada', claveMotivo: 'filmmaker.hubTypeSeriesWhy', formato: '16:9', segundos: 60 },
-  { id: 'ad', clave: 'filmmaker.hubTypeAd', claveSub: 'filmmaker.hubTypeAdSub', estado: 'habilitada', formato: '4:5', segundos: 15, preset: 'ads' },
+  { id: 'ad', clave: 'filmmaker.hubTypeAd', claveSub: 'filmmaker.hubTypeAdSub', estado: 'habilitada', formato: '9:16', segundos: 15 },
 ];
 
 /** Lo que vale sin elegir tipo. */
