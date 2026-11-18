@@ -30,6 +30,33 @@ export interface SincronizadaConElServidor {
   readonly borrador: Pick<ResultadoDelBorrador, 'omisiones' | 'vozSinDestino'>;
 }
 
+type Ficha = { readonly id: string; readonly name: string; readonly description?: string; readonly identityDescription?: string };
+const GRUPOS_DEL_UNIVERSO = [
+  { clave: 'characters', una: 'character', campoTexto: 'identityDescription' },
+  { clave: 'locations', una: 'location', campoTexto: 'description' },
+  { clave: 'objects', una: 'object', campoTexto: 'description' },
+] as const;
+
+/** Lo que cambió en personajes, lugares y objetos entre lo guardado y lo que dice la pantalla, como operaciones del contrato (quitar, añadir, actualizar). */
+export const operacionesDelUniverso = (antes: unknown, despues: unknown): FilmmakerOperation[] => {
+  const quitar: FilmmakerOperation[] = []; const poner: FilmmakerOperation[] = []; const cambiar: FilmmakerOperation[] = [];
+  for (const g of GRUPOS_DEL_UNIVERSO) {
+    const a = new Map(((antes as Record<string, readonly Ficha[]>)[g.clave] ?? []).map((x) => [x.id, x]));
+    const d = new Map(((despues as Record<string, readonly Ficha[]>)[g.clave] ?? []).map((x) => [x.id, x]));
+    for (const id of a.keys()) if (!d.has(id)) quitar.push({ op: 'remove_' + g.una, [g.una + 'Id']: id, cascade: true } as unknown as FilmmakerOperation);
+    for (const [id, x] of d) {
+      const previo = a.get(id);
+      if (!previo) { poner.push({ op: 'add_' + g.una, [g.una]: x } as unknown as FilmmakerOperation); continue; }
+      const changes: Record<string, string> = {};
+      if (previo.name !== x.name) changes.name = x.name;
+      const texto = (previo as Record<string, string | undefined>)[g.campoTexto]; const nuevo = (x as Record<string, string | undefined>)[g.campoTexto];
+      if (nuevo !== undefined && texto !== nuevo) changes[g.campoTexto] = nuevo;
+      if (Object.keys(changes).length) cambiar.push({ op: 'update_' + g.una, [g.una + 'Id']: id, changes } as unknown as FilmmakerOperation);
+    }
+  }
+  return [...quitar, ...poner, ...cambiar];
+};
+
 export const crearOrquestacion = (servicio: Pick<FilmmakerService, 'createProduction' | 'applyProductionOperations'>) => ({
   crear: async (e: Omit<ExperienciaDeFilmmaker, 'productionId'> & { readonly productionId?: string; readonly references?: NuevaProduccion['references'] }): Promise<Resultado<CreadaDesdeLaExperiencia>> => {
     const productionId = e.productionId ?? nuevoIdDeProduccion();
@@ -69,7 +96,9 @@ export const crearOrquestacion = (servicio: Pick<FilmmakerService, 'createProduc
     const generacion: FilmmakerOperation[] = campos.some((k) => (antes?.[k] ?? null) !== (ahora?.[k] ?? null))
       ? [{ op: 'change_generation', target: { scope: 'production' }, ...Object.fromEntries(campos.filter((k) => (antes?.[k] ?? null) !== (ahora?.[k] ?? null)).map((k) => [k, ahora?.[k] ?? null])) } as unknown as FilmmakerOperation]
       : [];
-    const operations = [...generacion, ...quitar, ...poner, ...estados];
+    /* El universo (personajes, lugares, objetos) cambia con sus propias operaciones: añadir, actualizar y quitar (con sus líneas). Va antes de las escenas nuevas, que pueden usarlo. */
+    const universoOps = operacionesDelUniverso(guardada.production, production);
+    const operations = [...generacion, ...quitar, ...universoOps, ...poner, ...estados];
     if (!operations.length) return { ok: true, valor: { applied: 0, produccion: guardada, borrador: { omisiones, vozSinDestino } } };
     const r = await servicio.applyProductionOperations({
       productionId: guardada.productionId, expectedRevision: guardada.revision, operations, operationId: nuevoIdDeOperacion(),

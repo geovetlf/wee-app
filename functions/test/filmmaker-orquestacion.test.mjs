@@ -86,5 +86,15 @@ check('E1) una voz de ejemplo NO viaja (queda sin destino y se dice); "auto" y v
   check('E3) al reabrir, la voz propia guardada en la línea vuelve al cuadro', O.tandasDesdeLaProduccion(prod).tandas[0].cuadros[0].voz === 'real_1');
 }
 
+
+console.log('── F · El universo viaja con sus operaciones ──');
+{
+  const antes = { characters: [{ id: 'ch_a', name: 'Jay', identityDescription: 'x' }, { id: 'ch_b', name: 'Ona' }], locations: [], objects: [{ id: 'ob_1', name: 'Brújula', description: 'a' }] };
+  const despues = { characters: [{ id: 'ch_a', name: 'Jay', identityDescription: 'y' }, { id: 'ch_c', name: 'Mara' }], locations: [{ id: 'lo_1', name: 'Faro' }], objects: [{ id: 'ob_1', name: 'Brújula', description: 'a' }] };
+  const ops = S.operacionesDelUniverso(antes, despues).map((o) => o.op + ':' + (o.characterId ?? o.locationId ?? o.objectId ?? o.character?.id ?? o.location?.id ?? ''));
+  check('F1) quitar, añadir y actualizar personajes/lugares; lo igual no se toca', JSON.stringify(ops) === JSON.stringify(['remove_character:ch_b', 'add_character:ch_c', 'add_location:lo_1', 'update_character:ch_a']), JSON.stringify(ops));
+  check('F2) sin cambios no hay operaciones', S.operacionesDelUniverso(antes, antes).length === 0);
+}
+
 console.log(failures ? `\n${failures} FALLO(S)` : `\nTodo en verde (${n}).`);
 process.exit(failures ? 1 : 0);
