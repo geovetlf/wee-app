@@ -13,7 +13,8 @@ import type { PresupuestoDeLote } from '../../../services/videoService';
 import { CLAVE_DE_CALIDAD, fraseDelRechazoDeToma } from '../../../utils/mensajesDeFilmmaker';
 import { idDePlano, idDeEscena, duracionFueraDeToma } from '../../../utils/filmmakerOrquestacion';
 import { CuadroDeStoryboard, Tanda, TandasDelTaller, duracionDe, tandaEsDeEjemplo } from '../../../utils/tandasDeFilmmaker';
-import { BotonBlanco, BotonContorno, useTiempo } from '../tandas/comunes';
+import { BotonBlanco, BotonContorno } from '../tandas/comunes';
+import { FilaDeCapitulo } from './FilaDeCapitulo';
 
 interface Props {
   tandas: TandasDelTaller;
@@ -161,7 +162,6 @@ export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guard
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
-  const tiempo = useTiempo();
   const [version, setVersion] = useState(0);
   const refrescar = () => setVersion((v) => v + 1);
   const aprobadas = tandas.tandas.filter((x) => x.aprobada && !tandaEsDeEjemplo(x) && reales(x).length > 0);
@@ -181,8 +181,7 @@ export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guard
           const indice = tandas.tandas.findIndex((x) => x.id === tanda.id) + 1;
           return (
             <View key={tanda.id} style={{ gap: 8 }}>
-              <Text style={[textoPortada(15, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header">{tanda.titulo || t('filmmakerTandas.chapterN', { n: formato.numero(indice) })}</Text>
-              <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.frames', { contador: cuadros.length })} · {tiempo.solo(duracionDe(tanda))}</Text>
+              <FilaDeCapitulo tanda={tanda} posicion={indice} cuadros={cuadros.length} />
               {PRODUCCION_ABIERTA ? <BloqueDeLote key={'l' + tanda.id + version} tanda={tanda} cuadros={cuadros} guardada={guardada} guardando={guardando} onCambio={refrescar} /> : null}
               {PRODUCCION_ABIERTA ? cuadros.map((c, i) => <FilaDeToma key={c.id + version} cuadro={c} numero={i + 1} escenaId={idDeEscena(tanda.id)} guardada={guardada} guardando={guardando} onCambio={refrescar} />) : null}
             </View>

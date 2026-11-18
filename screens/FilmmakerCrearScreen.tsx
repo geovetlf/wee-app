@@ -179,7 +179,7 @@ const FilmmakerCrearScreen: React.FC = () => {
     setUniverso(anadirEjemplos(universoVacio(), EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))));
     const base = anadirTandasDeEjemplo(tandasVacias(), ejemploTraducido(t));
     /* Para Producción y Juntar los capítulos de muestra cuentan como aprobados y reales (siguen rotulados «Demo»). */
-    setTandas(demo === 'produccion' || demo === 'juntar' ? { ...base, tandas: base.tandas.map((x) => ({ ...x, titulo: x.titulo || 'Demo', ejemplo: false, aprobada: true, almacen: true, cuadros: x.cuadros.map((c) => ({ ...c, ejemplo: false })) })) } : base);
+    setTandas(demo === 'produccion' || demo === 'juntar' ? { ...base, tandas: base.tandas.map((x) => ({ ...x, titulo: x.titulo, ejemplo: false, aprobada: true, almacen: true, cuadros: x.cuadros.map((c) => ({ ...c, ejemplo: false })) })) } : base);
     setCapa(demo === 'juntar' ? 'juntar' : demo === 'produccion' ? 'produccion' : demo === 'capitulos' ? 'tandas' : 'universo');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [demo]);

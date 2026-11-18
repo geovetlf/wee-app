@@ -6,6 +6,7 @@ import { PORTADA_WEEAI as P, textoPortada } from '../../../constants/estiloWeeAi
 import { JUNTAR_ABIERTO } from '../../../constants/filmmakerCamara';
 import { LIMITE_DEL_MONTAJE, TandasDelTaller, excesoDelMontaje, tandaEsDeEjemplo, totales } from '../../../utils/tandasDeFilmmaker';
 import { BotonBlanco, useTiempo } from '../tandas/comunes';
+import { FilaDeCapitulo } from './FilaDeCapitulo';
 
 /** El tope diario de montajes del servidor (render): se enseña para que nadie se encuentre el límite al final. */
 const MONTAJES_POR_DIA = 5;
@@ -37,7 +38,8 @@ export const JuntarDeFilmmaker: React.FC<Props> = ({ tandas, onJuntar }) => {
     <View style={styles.raiz}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
         <Text style={[textoPortada(22, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header">{t('filmmakerProd.joinTitle')}</Text>
-        <Text style={[textoPortada(15, '500'), dir.texto, { color: P.tinta }]}>{t('filmmakerTandas.frames', { contador: suma.cuadros })} · {tiempo.solo(suma.segundos)}</Text>
+        {reales.tandas.map((x, i) => <FilaDeCapitulo key={x.id} tanda={x} posicion={i + 1} cuadros={x.cuadros.filter((c) => !c.ejemplo).length} />)}
+        <Text style={[textoPortada(15, '600'), dir.texto, { color: P.tinta }]}>{t('filmmakerTandas.frames', { contador: suma.cuadros })} · {tiempo.solo(suma.segundos)}</Text>
         <Text style={[textoPortada(12, '400'), dir.texto, { color: pasado ? P.tinta : P.tintaSecundaria }]} accessibilityLiveRegion="polite">
           {t(pasado ? 'filmmakerTandas.limitOver' : 'filmmakerTandas.limitNote', { planos: formato.numero(LIMITE_DEL_MONTAJE.planos), duracion: tiempo.solo(LIMITE_DEL_MONTAJE.segundos) })}
         </Text>
