@@ -99,7 +99,7 @@ export const CuerpoDeEspecificaciones: React.FC<Props & { onModelos: () => void;
       </>)}
       {sec('variants', <>
         {etiqueta('filmmakerSpecs.variants')}
-        <View style={[styles.fila, dir.contenedor]}>{[1, 2, 3, 4].map((n) => cerrada(`v${n}`, formato.numero(n), n === 1))}</View>
+        <View style={[styles.fila, dir.contenedor]}>{[1, 2, 3, 4].map((n) => cerrada(`v${n}`, formato.numero(n), n === 1))}<Ionicons name="lock-closed" size={14} color={P.tintaSecundaria} /></View>
         {nota('filmmakerSpecs.variantsClosed')}
       </>)}
       {sec('seed', <>
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   fila: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   chip: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.fondo, alignItems: 'center', justifyContent: 'center' },
   chipSel: { borderColor: '#FFFFFF', borderWidth: 2, backgroundColor: P.superficieAlta },
-  cerrado: { opacity: 0.7 },
+  cerrado: { opacity: 0.5 },
   selector: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 16, borderRadius: 24, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.fondo },
   semilla: { minHeight: 48, borderRadius: 24, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.fondo, paddingHorizontal: 16 },
   mas: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },

@@ -388,8 +388,8 @@ const FilmmakerCrearScreen: React.FC = () => {
             </View>
             {CHIP_DE_MARCA_EN_COMPOSER ? <View style={styles.pildora}><Text style={[textoPortada(12, '500'), { color: P.tintaSecundaria }]}>{t('filmmaker.hubBrain')}</Text></View> : null}
           </View> : null}
-          {enIdea && tipo && alto >= 480 ? (
-            <TouchableOpacity onPress={() => setCapa('estilo')} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(textoDePildora, t('filmmaker.pillChange'))} hitSlop={{ top: 4, bottom: 4 }} style={[styles.etiqueta, compacto && { minHeight: 36 }, dir.contenedor]}>
+          {enIdea && tipo ? (
+            <TouchableOpacity onPress={() => setCapa('estilo')} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(textoDePildora, t('filmmaker.pillChange'))} hitSlop={{ top: 4, bottom: 4 }} style={[styles.etiqueta, dir.contenedor]}>
               <IconoWee name="claqueta" size={14} color={P.tinta} />
               <Text style={[textoPortada(13, '600'), { color: P.tinta, flexShrink: 1 }]} numberOfLines={1}>{textoDePildora}</Text>
               <Ionicons name="chevron-down" size={12} color={P.tintaSecundaria} />
