@@ -5,4 +5,5 @@
 export const filmmakerProd = {
   syncFailed: 'No pudimos guardar tus cambios en tu cuenta. Lo intentaremos de nuevo cuando edites.',
   voiceLocal: 'Las voces que elijas se quedan solo en esta pantalla por ahora.',
+  confirmCreate: 'Confirmar y crear',
 };

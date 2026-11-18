@@ -34,6 +34,8 @@ import { ElegirEstilo } from '../components/filmmaker/ElegirEstilo';
 import { ESTILOS } from '../constants/filmmakerEstilos';
 import { nuevoIdDeProduccion, useProducciones } from '../hooks/useProducciones';
 import { useProduccionDeFilmmaker } from '../hooks/useProduccionDeFilmmaker';
+import { useImagenesDeFilmmaker } from '../hooks/useImagenesDeFilmmaker';
+import { peticionDeUniverso } from '../utils/imagenesDelUniverso';
 import { fraseDelFallo } from '../utils/mensajesDeFilmmaker';
 import type { FalloDeProducciones } from '../services/filmmakerService';
 import { IdeaDelTaller, alRecibir, estaLista, fraseDe, duracionDe, etiquetaAccesible, cambiarDeTipo, esTipoConTaller, ideaVacia, poner, sumarALaFrase } from '../utils/ideaDeFilmmaker';
@@ -94,6 +96,8 @@ const FilmmakerCrearScreen: React.FC = () => {
   const idDeProduccion = useRef(nuevoIdDeProduccion());
   /* La producción del servidor: la crea la idea y la mantienen al día los capítulos (hooks/useProduccionDeFilmmaker). */
   const pf = useProduccionDeFilmmaker();
+  /* Las imágenes del universo: cotizar → confirmar → generar. Con la capacidad cerrada no hace nada y la fila sale como «Pronto». */
+  const imagenes = useImagenesDeFilmmaker();
   const idProduccionGuardada = pf.guardada?.productionId ?? null;
   const vocesLocales = (pf.omitido?.vozSinDestino.length ?? 0) > 0;
   const avisoDeVoces = useRef(false);
@@ -304,7 +308,7 @@ const FilmmakerCrearScreen: React.FC = () => {
           ) : enTandas ? (
             <TandasYStoryboard ancho={Math.min(ancho, 1040)} compacto={compacto} personajes={universo.elementos.filter((e) => e.tipo === 'character').map((e) => ({ id: e.id, nombre: e.nombre, voz: e.voz }))} duracionTotalSeg={duracionDe(idea)} valor={tandas} onCambio={setTandas} onAviso={setAviso} />
           ) : enUniverso ? (
-            <UniversoDeFilmmaker universo={universo} ancho={Math.min(ancho, 1040)} compacto={compacto} seccion={seccion} onSeccion={setSeccion} onAbrir={(e) => setFichaId(e.id)} onAprobar={() => setUniverso(aprobar)} onEjemplo={() => setUniverso((u) => anadirEjemplos(u, EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))))} onQuitarEjemplo={() => setUniverso(quitarEjemplos)} onContinuar={() => { setAviso(null); setCapa('tandas'); }} onAviso={(clave) => setAviso(t(clave))} />
+            <UniversoDeFilmmaker universo={universo} ancho={Math.min(ancho, 1040)} compacto={compacto} seccion={seccion} onSeccion={setSeccion} onAbrir={(e) => setFichaId(e.id)} onAprobar={() => setUniverso(aprobar)} onEjemplo={() => setUniverso((u) => anadirEjemplos(u, EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))))} onQuitarEjemplo={() => setUniverso(quitarEjemplos)} onContinuar={() => { setAviso(null); setCapa('tandas'); }} onAviso={(clave) => setAviso(t(clave))} imagenes={imagenes} peticionDeImagenes={peticionDeUniverso(universo, { estilo, tipo: tipoId ?? undefined, referencia: (personajes(refs.referencias)[0] ?? listas(refs.referencias)[0])?.url ?? null, aspecto: aspectoDeLaIdea(idea) })} />
           ) : enIdea ? (
             <TallerDeIdea tipo={idea.tipo} estado={estadoDelTaller} compacto={alto < 600} />
           ) : conScroll ? <ScrollView style={styles.lista} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">{entrada}</ScrollView> : entrada}

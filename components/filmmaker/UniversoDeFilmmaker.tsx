@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { IconoWee } from '../icons/IconoWee';
@@ -10,6 +10,8 @@ import { CLAVE_DE_GRUPO, GENERAR_IMAGENES_DEL_UNIVERSO, SECCIONES_DEL_UNIVERSO }
 import { ElementoDeUniverso, ModoDeFicha, OrigenDeUniverso, TOPES_UNIVERSO, TipoDeElemento, UniversoDelTaller, contar, elegirFichaGlobal, hayEjemplos, pendientesDeFicha, ponerMundo, puedeAprobar, secciones } from '../../utils/universoDeFilmmaker';
 import { abrirPortadaDeWeeAi } from '../../navigation/refNavegacion';
 import { etiquetaAccesible } from '../../utils/ideaDeFilmmaker';
+import { ImagenesDelUniverso, ImagenesDeFilmmaker } from './ImagenesDelUniverso';
+import type { peticionDeUniverso } from '../../utils/imagenesDelUniverso';
 
 interface Props {
   universo: UniversoDelTaller;
@@ -33,6 +35,9 @@ interface Props {
   onCambio?: (f: (u: UniversoDelTaller) => UniversoDelTaller) => void;
   /** Abre el selector de imagen para la ficha de un personaje. Sin él, «Subir una imagen» no sale. */
   onSubirImagen?: () => void;
+  /** Las imágenes del universo (hook de Filmmaker) y lo que se pediría ahora. Sin ellas, la fila de imágenes sale como «Pronto». */
+  imagenes?: ImagenesDeFilmmaker;
+  peticionDeImagenes?: ReturnType<typeof peticionDeUniverso>;
 }
 
 const CLAVE_DE_ORIGEN: Record<OrigenDeUniverso, string> = { usuario: 'filmmaker.uniOriginMine', propuesta: 'filmmaker.uniOriginWee', documento: 'filmmaker.uniOriginDoc' };
@@ -44,7 +49,7 @@ const CLAVE_DE_ORIGEN: Record<OrigenDeUniverso, string> = { usuario: 'filmmaker.
  * (regla 10) y la lámina se rotula «referencia de estilo, no vista previa exacta». «Weë lee los personajes» y regenerar salen cerrados con motivo.
  * El único botón blanco aprueba el universo; aprobado, pasa a «Continuar a Tandas» (cerrado hasta la ola 3).
  */
-export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto, onAbrir, onAprobar, onEjemplo, onQuitarEjemplo, onContinuar, onAviso, seccion, onSeccion, imagenDeReferencia, onCambio, onSubirImagen }) => {
+export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto, onAbrir, onAprobar, onEjemplo, onQuitarEjemplo, onContinuar, onAviso, seccion, onSeccion, imagenDeReferencia, onCambio, onSubirImagen, imagenes, peticionDeImagenes }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
@@ -70,7 +75,7 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
     <TouchableOpacity key={e.id} onPress={() => onAbrir(e)} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(e.nombre, e.linea || null, t('filmmaker.uniOpenSheet'))} style={{ width: lado }}>
       <View style={[styles.retrato, { height: Math.round(lado * 1.2) }]}>
         <LinearGradient colors={['#0A0D13', '#1B2029']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-        <Text style={[textoPortada(Math.round(lado * 0.36), '600'), { color: P.tintaSecundaria }]} accessibilityElementsHidden importantForAccessibility="no">{Array.from(e.nombre)[0]?.toUpperCase()}</Text>
+        {imagenes?.porId[e.id]?.estado === 'lista' && imagenes.porId[e.id].url ? <Image source={{ uri: imagenes.porId[e.id].url }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors /> : <Text style={[textoPortada(Math.round(lado * 0.36), '600'), { color: P.tintaSecundaria }]} accessibilityElementsHidden importantForAccessibility="no">{Array.from(e.nombre)[0]?.toUpperCase()}</Text>}
         <View style={[styles.tipo, dir.esRTL ? { start: 8 } : { end: 8 }]}><IconoWee name={def.icono} size={12} color={P.tintaSecundaria} /></View>
       </View>
       <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tinta, marginTop: 6 }]} numberOfLines={1}>{e.nombre}</Text>
@@ -127,6 +132,7 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
           </View>
         ) : null}
 
+        {imagenes?.porId.lamina?.estado === 'lista' && imagenes.porId.lamina.url ? <Image source={{ uri: imagenes.porId.lamina.url }} style={styles.lamina} resizeMode="cover" accessibilityIgnoresInvertColors /> : null}
         <View style={[styles.pestanas, dir.contenedor]} accessibilityRole="tablist">
           {SECCIONES_DEL_UNIVERSO.map((s) => {
             const sel = s.id === seccion;
@@ -154,7 +160,7 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
         <TouchableOpacity onPress={ejemplos ? onQuitarEjemplo : onEjemplo} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t(ejemplos ? 'filmmaker.uniClearExample' : 'filmmaker.uniLoadExample')} style={styles.ejemplo}>
           <Text style={[textoPortada(14, '600'), { color: P.tinta }]} numberOfLines={2}>{t(ejemplos ? 'filmmaker.uniClearExample' : 'filmmaker.uniLoadExample')}</Text>
         </TouchableOpacity>
-        {!GENERAR_IMAGENES_DEL_UNIVERSO ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniRegenerateClosed')}</Text> : null}
+        {imagenes?.abierta && peticionDeImagenes ? <ImagenesDelUniverso imagenes={imagenes} peticion={peticionDeImagenes} /> : !GENERAR_IMAGENES_DEL_UNIVERSO ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniRegenerateClosed')}</Text> : null}
       </ScrollView>
 
       <View style={styles.pie}>
@@ -182,6 +188,7 @@ const styles = StyleSheet.create({
   rejilla: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   retrato: { borderRadius: 16, borderWidth: 1, borderColor: P.bordeLuz, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   tipo: { position: 'absolute', top: 8 },
+  lamina: { width: '100%', aspectRatio: 16 / 9, borderRadius: 16, borderWidth: 1, borderColor: P.bordeLuz },
   vacio: { minHeight: 120, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 24, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', borderColor: P.bordeCapsula },
   ejemplo: { minHeight: 44, alignSelf: 'flex-start', paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.bordeLuz, alignItems: 'center', justifyContent: 'center' },
   pie: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, gap: 6 },
