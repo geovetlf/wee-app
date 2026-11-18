@@ -100,6 +100,8 @@ export { brainChat, brainQuote } from './creator/brain';
 export { generateVideo } from './creator/video';
 /* «Crear mundo 3D» (Weë Studio → 3D World): la tercera puerta del conductor, cerrada por `aiSettings/runtime`. */
 export { generateWorld } from './creator/mundo';
+/* Leer un documento, guion o libro (Weë Filmmaker): ruta legacy por el engine, cerrada por `aiSettings/documentos`. */
+export { leerDocumento } from './creator/documentos';
 export { seedanceCallback } from './engine/webhooks';
 export { evalRun } from './evals';
 

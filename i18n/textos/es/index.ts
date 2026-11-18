@@ -56,6 +56,7 @@ import { travel } from './travel';
 import { mywees } from './mywees';
 import { filmmakerSonido } from './filmmakerSonido';
 import { filmmakerTandas } from './filmmakerTandas';
+import { filmmakerDocumentos } from './filmmakerDocumentos';
 export const es = {
   common,
   help,
@@ -102,6 +103,7 @@ export const es = {
   mywees,
   filmmakerSonido,
   filmmakerTandas,
+  filmmakerDocumentos,
 };
 
 /**

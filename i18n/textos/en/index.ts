@@ -56,6 +56,7 @@ import { travel } from './travel';
 import { mywees } from './mywees';
 import { filmmakerSonido } from './filmmakerSonido';
 import { filmmakerTandas } from './filmmakerTandas';
+import { filmmakerDocumentos } from './filmmakerDocumentos';
 import { FormaDelDiccionario } from '../es';
 
 export const en: FormaDelDiccionario = {
@@ -104,4 +105,5 @@ export const en: FormaDelDiccionario = {
   mywees,
   filmmakerSonido,
   filmmakerTandas,
+  filmmakerDocumentos,
 };

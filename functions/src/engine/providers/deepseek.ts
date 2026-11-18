@@ -1,6 +1,7 @@
 import { ModelSpec, ProviderAdapter, ProviderResult, ProviderRunRequest } from '../types';
 import { env, fetchJson, NotConfiguredError, ProviderError, readImage, toDataUri } from '../http';
 import { pideTextoPlano, SISTEMA_POR_DEFECTO } from '../promptLanguage';
+import { sanitizeForLog } from '../sanitize';
 
 /**
  * DEEPSEEK — API OFICIAL (api.deepseek.com), clave DEEPSEEK_API_KEY.
@@ -79,6 +80,93 @@ export const deepseekModels: ModelSpec[] = [
 ];
 
 /**
+ * ── FICHEROS (lectura de documentos) ─────────────────────────────────────────
+ *
+ * api-docs.deepseek.com/guides/document_parsing y /files_api (leídas el 2026-11-18). Un documento NO viaja en el chat:
+ * se sube a `POST /files` (multipart; `purpose` y `expires_after[*]` ANTES de `file`, si no, 400), la respuesta llega
+ * cuando ya está parseado con un `id` (`file-api-…`), y el chat lo referencia solo por ese id. `DELETE /files/{id}` lo
+ * borra; ni el original ni el resultado se pueden descargar.
+ *
+ *   text_recognition          PDF, DOC/DOCX, PPT/PPTX e imágenes: solo el texto (el que usa Weë por defecto).
+ *   rich_layout_recognition   además recorta figuras y gráficos: más caro y lento, NO se usa por defecto.
+ *   user_data                 TXT/MD/CSV/JSON/XLSX y EPUB/MOBI: se convierten a Markdown en la subida, sin facturar.
+ */
+const FILES_API = 'https://api.deepseek.com/files';
+export type PropositoDeFichero = 'text_recognition' | 'rich_layout_recognition' | 'user_data';
+
+/** USD por 1 000 páginas parseadas, solo si el parseo tiene éxito (api-docs.deepseek.com/quick_start/pricing). */
+export const PARSEO_USD_POR_MIL_PAGINAS = 0.225;
+/** Límites oficiales por documento. */
+export const LIMITES_DE_FICHEROS = Object.freeze({
+  bytesPdfWordPpt: 100 * 1024 * 1024,
+  bytesTextoEbook: 32 * 1024 * 1024,
+  paginas: 1000,
+  textoExtraidoBytes: 8 * 1024 * 1024,
+});
+/** Expiración que se le pide al subir: el fichero se borra además explícitamente en cuanto se lee. */
+export const EXPIRACION_DE_FICHERO_SEG = 3600;
+
+const FICHERO_VALIDO = /^file-api-[A-Za-z0-9_-]{4,100}$/;
+const ESTADOS_PASAJEROS = new Set([408, 429, 500, 503, 504]);
+
+const errorDeFicheros = (accion: string, estado: number): ProviderError =>
+  new ProviderError(`deepseek: ${accion} fallo con estado ${estado}`, 'deepseek', estado, ESTADOS_PASAJEROS.has(estado));
+
+type Fetch = typeof fetch;
+
+/**
+ * Sube un documento y devuelve su id cuando DeepSeek ya lo parseó. El contenido nunca se registra: solo el estado.
+ * `fetchImpl` existe para las pruebas (simular el adaptador sin red).
+ */
+export async function subirFicheroDeepseek(
+  archivo: { buffer: Buffer; nombre: string; mime: string; proposito: PropositoDeFichero; expiraEnSeg?: number },
+  fetchImpl: Fetch = fetch,
+): Promise<{ id: string }> {
+  const apiKey = env(KEY);
+  if (!apiKey) throw new NotConfiguredError('deepseek', KEY);
+  const form = new FormData();
+  /* El orden importa: todo lo que no es el fichero va ANTES de `file`. */
+  form.append('purpose', archivo.proposito);
+  form.append('expires_after[anchor]', 'created_at');
+  form.append('expires_after[seconds]', String(Math.min(2_592_000, Math.max(3600, archivo.expiraEnSeg ?? EXPIRACION_DE_FICHERO_SEG))));
+  form.append('file', new Blob([new Uint8Array(archivo.buffer)], { type: archivo.mime }), archivo.nombre);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 125_000);
+  try {
+    const response = await fetchImpl(FILES_API, { method: 'POST', headers: { Authorization: `Bearer ${apiKey}` }, body: form, signal: controller.signal });
+    if (!response.ok) throw errorDeFicheros('la subida', response.status);
+    const data = (await response.json().catch(() => ({}))) as { id?: unknown };
+    if (typeof data.id !== 'string' || !FICHERO_VALIDO.test(data.id)) throw new ProviderError('deepseek: la subida no devolvio un id valido', 'deepseek', undefined, false);
+    return { id: data.id };
+  } catch (error) {
+    if (error instanceof ProviderError) throw error;
+    throw new ProviderError(`deepseek: la subida no se completo (${sanitizeForLog(error, 120)})`, 'deepseek', undefined, true);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Borra el fichero. Nunca lanza: quien lo llama ya tiene lo que necesitaba y la expiración corta es el seguro. */
+export async function borrarFicheroDeepseek(id: string, fetchImpl: Fetch = fetch): Promise<boolean> {
+  const apiKey = env(KEY);
+  if (!apiKey || !FICHERO_VALIDO.test(id)) return false;
+  try {
+    const response = await fetchImpl(`${FILES_API}/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${apiKey}` } });
+    return response.ok || response.status === 404;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * EL TECHO DE USD DE LEER UN DOCUMENTO (no el promedio: el precio se enseña antes y no sube después). Parseo por página
+ * solo si el formato se parsea (`paginasParseadas` > 0), entrada y salida con la tarifa CARA.
+ */
+export const techoDeLecturaDeDocumento = (v: { paginasParseadas: number; tokensEntrada: number; tokensSalida: number }): number =>
+  (Math.max(0, v.paginasParseadas) / 1000) * PARSEO_USD_POR_MIL_PAGINAS +
+  (Math.max(0, v.tokensEntrada) * TARIFA_PEAK.input + Math.max(0, v.tokensSalida) * TARIFA_PEAK.output) / 1_000_000;
+
+/**
  * El historial, en el formato de Chat Completions.
  *
  * Weë habla en el idioma del motor —`user` y `model`— y aquí se traduce a
@@ -148,7 +236,14 @@ export const deepseekAdapter: ProviderAdapter = {
     ];
     const imagenes = urls.length ? await partesDeImagen(urls) : [];
     /* Sin fotos, el mensaje es texto plano: no se le cambia la forma sin motivo. */
-    const contenido = imagenes.length ? [{ type: 'text', text: prompt || 'Hola' }, ...imagenes] : prompt;
+    /* Un documento ya subido se referencia SOLO por su id (`documentFileId`); el texto va después, y el id debe tener la forma oficial. */
+    const ficheroId = typeof input.documentFileId === 'string' ? input.documentFileId : '';
+    if (ficheroId && !FICHERO_VALIDO.test(ficheroId)) throw new ProviderError('deepseek: el id del documento no es valido', 'deepseek', 400, false);
+    const contenido = ficheroId
+      ? [{ type: 'file', file_id: ficheroId }, { type: 'text', text: prompt || 'Hola' }, ...imagenes]
+      : imagenes.length
+        ? [{ type: 'text', text: prompt || 'Hola' }, ...imagenes]
+        : prompt;
 
     const data = await fetchJson<any>(API, {
       provider: 'deepseek',
