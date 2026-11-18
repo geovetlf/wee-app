@@ -178,7 +178,7 @@ export const produccionDesdeLaExperiencia = (e: ExperienciaDeFilmmaker): Resulta
       operaciones.push(...operacionesDeCamaraDeUnPlano(idDePlano(c.id), c.creativo));
     }
     if (!shots.length) continue;
-    escenas.push({ id: idDeEscena(t.id), order: escenas.length, ...(t.titulo ? { title: recorta(t.titulo, LIMITES.nombre) } : {}), shots });
+    escenas.push({ id: idDeEscena(t.id), order: escenas.length, ...(t.titulo ? { title: recorta(t.titulo, LIMITES.nombre) } : {}), ...(t.aprobada ? { batch: { status: 'approved' as const, ...(t.almacen ? { stored: true } : {}) } } : {}), shots });
   }
   prod = { ...prod, characters: personajes, locations: lugares, objects: objetos, scenes: escenas };
 

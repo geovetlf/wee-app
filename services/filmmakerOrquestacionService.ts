@@ -43,7 +43,10 @@ export const crearOrquestacion = (servicio: Pick<FilmmakerService, 'createProduc
     const { production, omisiones, vozSinDestino } = produccionDesdeLaExperiencia({ ...e, productionId: guardada.productionId });
     /* Solo se toca lo que CAMBIÓ: una escena igual a la del servidor no se quita ni se vuelve a poner (quitarla borraría sus tomas). Una cambiada sí se
        reescribe, y sus tomas anteriores dejan de contar; la pantalla debe avisar antes si esa escena ya tenía vídeo. */
-    const sin = (x: unknown): string => JSON.stringify(x, (k, v) => (k === 'order' ? undefined : v));
+    const sin = (x: unknown): string => JSON.stringify(x, (k, v) => (k === 'order' || k === 'batch' ? undefined : v));
+    /* El estado del capítulo (aprobado, en el almacén) se guarda con su propia operación: cambiarlo NO reescribe la escena ni borra sus tomas. */
+    const lote = (s: { batch?: unknown }): string => JSON.stringify(s.batch ?? null);
+    const loteEnServidor = new Map(guardada.production.scenes.map((s) => [s.id, lote(s)]));
     const enServidor = new Map(guardada.production.scenes.map((s) => [s.id, sin(s)]));
     const nuevas = new Map(production.scenes.map((s) => [s.id, sin(s)]));
     const quitar: FilmmakerOperation[] = guardada.production.scenes
@@ -55,7 +58,11 @@ export const crearOrquestacion = (servicio: Pick<FilmmakerService, 'createProduc
       const { order: _orden, shots, ...escena } = s;
       poner.push({ op: 'add_scene', atOrder: i, scene: { ...escena, shots: shots.map(({ order: _o, ...p }) => p) } as NewScene } as FilmmakerOperation);
     });
-    const operations = [...quitar, ...poner];
+    const reescritas = new Set(poner.map((o) => (o as unknown as { scene: { id: string } }).scene.id));
+    const estados: FilmmakerOperation[] = production.scenes
+      .filter((s) => !reescritas.has(s.id) && enServidor.has(s.id) && loteEnServidor.get(s.id) !== lote(s))
+      .map((s) => ({ op: 'update_scene', sceneId: s.id, changes: { batch: s.batch ?? null } }) as unknown as FilmmakerOperation);
+    const operations = [...quitar, ...poner, ...estados];
     if (!operations.length) return { ok: true, valor: { applied: 0, produccion: guardada, borrador: { omisiones, vozSinDestino } } };
     const r = await servicio.applyProductionOperations({
       productionId: guardada.productionId, expectedRevision: guardada.revision, operations, operationId: nuevoIdDeOperacion(),

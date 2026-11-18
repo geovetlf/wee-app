@@ -41,6 +41,7 @@ check('C3) solo se producen los cuadros aprobados, reales (sin ejemplos ni vací
 check('C4) Juntar enseña lo real contra el límite (60 cuadros · 10:00) y el botón sale cerrado con su motivo mientras el montaje lo esté; nada se simula', JU.includes('excesoDelMontaje(reales)') && JU.includes('LIMITE_DEL_MONTAJE.planos') && JU.includes('JUNTAR_ABIERTO && !!onJuntar') && /JUNTAR_ABIERTO = false/.test(KC));
 check('C5) las etapas Producción y Juntar existen en la barra (ya no son «próxima fase») y la pantalla las monta; Salida sigue sin existir', /id: 'production'[^}]*abierta: true/.test(KU) && /id: 'join'[^}]*abierta: true/.test(KU) && /id: 'output'[^}]*abierta: false/.test(KU) && P.includes('<ProduccionDeFilmmaker') && P.includes('<JuntarDeFilmmaker'));
 check('C6) «Producir» del storyboard lleva a la etapa de Producción, donde viven el precio y el estado', P.includes('onProducir={() =>') && sinComentarios(leer('components/filmmaker/storyboard/StoryboardDeTanda.tsx')).includes('onProducir ??'));
+check('C7) aprobar y el almacén de un capítulo viajan como estado de la escena (update_scene batch) sin reescribirla ni borrar sus tomas', sinComentarios(leer('services/filmmakerOrquestacionService.ts')).includes("op: 'update_scene'") && sinComentarios(leer('utils/filmmakerOrquestacion.ts')).includes("status: 'approved'"));
 
 console.log(failures ? `\n${failures} FALLO(S)` : `\nTodo en verde (${n}).`);
 process.exit(failures ? 1 : 0);
