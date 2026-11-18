@@ -7,7 +7,7 @@ import { TarjetaTuIdea, TiraDeEstructura } from './TarjetaTuIdea';
 import { useT } from '../../contexts/IdiomaContext';
 import { useDireccion } from '../../hooks/useDireccion';
 import { PORTADA_WEEAI as P, textoPortada } from '../../constants/estiloWeeAi';
-import { ARRANQUES, COPILOTO_DEL_TALLER_ABIERTO, EMPEZAR_CON, EmpezarCon, Opcion, REPARTO_ABIERTO } from '../../constants/filmmakerIdea';
+import { ARRANQUES, COPILOTO_DEL_TALLER_ABIERTO, EMPEZAR_CON, EmpezarCon, Opcion } from '../../constants/filmmakerIdea';
 import { IdeaDelTaller, contestarPaso, etiquetaAccesible, estaLista, pasoActual, poner, retrocederPaso } from '../../utils/ideaDeFilmmaker';
 
 export type ModoDelTaller = 'guiado' | 'directo';
@@ -186,7 +186,7 @@ export const TallerDeIdea: React.FC<Props> = ({ idea, onIdea, modo, onModo, empe
         <Text style={[textoPortada(16, '600'), { color: lista ? P.sobreAccion : P.tintaDeshabilitada }]} numberOfLines={1}>{creando ? t('filmmaker.hubCreating') : fallo ? t('filmmaker.hubRetry') : t('filmmaker.ideaContinue')}</Text>
         {!creando ? <IconoDireccional name="arrow-forward" size={18} color={lista ? P.sobreAccion : P.tintaDeshabilitada} /> : null}
       </TouchableOpacity>
-      {!lista ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{t('filmmaker.ideaContinueWhy')}</Text> : !REPARTO_ABIERTO && !compacto ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.ideaContinueNote')}</Text> : null}
+      {!lista ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{t('filmmaker.ideaContinueWhy')}</Text> : null}
     </View>
   );
 

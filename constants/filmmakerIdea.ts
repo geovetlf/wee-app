@@ -5,11 +5,7 @@
  */
 import type { NombreDeIcono } from '../components/icons/trazosDeWee';
 
-/**
- * RECEPCIÓN DE LA SIGUIENTE ETAPA. `false` mientras «Reparto» no exista (ola 2): «Continuar» crea la producción con la operación de siempre y
- * abre el tablero que ya hay, y la pantalla lo dice. Con `true` el botón y las pistas pasan a hablar de Reparto sin más cambios.
- */
-export const REPARTO_ABIERTO = false;
+/* La etapa siguiente a la Idea es el UNIVERSO (ola 2): «Continuar» crea la producción con la operación de siempre y abre la lámina. */
 
 /**
  * EL COPILOTO QUE PROPONE Y COMPLETA — decisión **D5** (profundidad del copiloto y si preparar consume Credits): PENDIENTE.

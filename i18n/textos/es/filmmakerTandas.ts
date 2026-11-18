@@ -53,7 +53,7 @@ export const filmmakerTandas = {
 
   frames_one: '{{contador}} cuadro',
   frames_other: '{{contador}} cuadros',
-  durationOf: '{{actual}} de ≈{{objetivo}}',
+  durationOf: '{{hecho}} de ≈{{objetivo}}',
   boardEmpty: 'Aún no hay cuadros. Añade el primero o mira un ejemplo.',
   addFrame: 'Añadir cuadro',
   approveBoard: 'Aprobar storyboard',

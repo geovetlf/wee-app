@@ -54,7 +54,7 @@ export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, selecc
           <View style={styles.miniatura}>
             <LinearGradient colors={['#0A0D13', '#1B2029']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <Ionicons name="film-outline" size={20} color={P.tintaDeshabilitada} />
-            <View style={[styles.num, { start: 4 }]}><Text style={[textoPortada(11, '700'), { color: P.tinta }]}>{formato.numero(n)}</Text></View>
+            <View style={[styles.num, { start: 4 }]}><Text style={[textoPortada(11, '600'), { color: P.tinta }]}>{formato.numero(n)}</Text></View>
           </View>
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={[textoPortada(16, '600'), dir.texto, { color: P.tinta }]} numberOfLines={1}>{titulo}</Text>

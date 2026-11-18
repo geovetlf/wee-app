@@ -66,11 +66,11 @@ export const StoryboardDeTanda: React.FC<Props> = ({ tanda, posicion, ancho, com
         <View style={[styles.miniatura, { height: Math.round((lado * 9) / 16) }]}>
           <LinearGradient colors={['#0A0D13', '#1B2029']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <Ionicons name={iconoDelCuadro(c)} size={Math.round(lado * 0.2)} color={P.tintaDeshabilitada} />
-          <View style={[styles.numero, { start: 6 }]}><Text style={[textoPortada(12, '700'), { color: P.tinta }]}>{formato.numero(i + 1)}</Text></View>
+          <View style={[styles.numero, { start: 6 }]}><Text style={[textoPortada(12, '600'), { color: P.tinta }]}>{formato.numero(i + 1)}</Text></View>
           <View style={[styles.tiempo, { end: 6 }]}><Text style={[textoPortada(11, '600'), { color: P.tinta }]} numberOfLines={1}>{rango}</Text></View>
           {c.ejemplo ? <View style={[styles.ejemplo, { start: 6 }]}><Text style={[textoPortada(11, '600'), { color: P.tintaSecundaria }]}>{t('filmmakerTandas.exampleBadge')}</Text></View> : null}
         </View>
-        <Text style={[textoPortada(12, '700'), dir.texto, { color: P.luz, marginTop: 6 }]} numberOfLines={1}>{plano}</Text>
+        <Text style={[textoPortada(12, '600'), dir.texto, { color: P.luz, marginTop: 6 }]} numberOfLines={1}>{plano}</Text>
         {c.hablante === NARRADOR ? <Text style={[textoPortada(11, '600'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={1}>{t('filmmakerTandas.speakerNarrator')}</Text> : null}
         <Text style={[textoPortada(12, '400'), dir.texto, { color: c.texto ? P.tinta : P.tintaSecundaria }]} numberOfLines={3}>{c.texto || t('filmmakerTandas.frameEmpty')}</Text>
       </TouchableOpacity>
@@ -94,7 +94,7 @@ export const StoryboardDeTanda: React.FC<Props> = ({ tanda, posicion, ancho, com
           <PastillaDeEstado estado={estado} />
         </View>
         <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>
-          {t('filmmakerTandas.frames', { contador: tanda.cuadros.length })} · {t('filmmakerTandas.durationOf', { actual: tiempo.solo(dur), objetivo: tiempo.solo(tanda.objetivo) })}
+          {t('filmmakerTandas.frames', { contador: tanda.cuadros.length })} · {t('filmmakerTandas.durationOf', { hecho: tiempo.solo(dur), objetivo: tiempo.solo(tanda.objetivo) })}
         </Text>
         <View style={styles.barra} accessible accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(pct * 100) }}><View style={[styles.relleno, { width: `${Math.round(pct * 100)}%` }]} /></View>
         <View style={[styles.barraDeTanda, dir.contenedor]} testID="barra-de-tanda">

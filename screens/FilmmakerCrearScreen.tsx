@@ -17,10 +17,18 @@ import { TarjetaDeTipo } from '../components/filmmaker/TarjetaDeTipo';
 import { HeroDePortada } from '../components/weeai/HeroDePortada';
 import { HojaDeTrabajo } from '../components/filmmaker/HojaDeTrabajo';
 import { HojaDeAdjuntos } from '../components/filmmaker/HojaDeAdjuntos';
+import { HojaDeProyecto } from '../components/filmmaker/HojaDeProyecto';
+import { BarraDeEtapas } from '../components/filmmaker/BarraDeEtapas';
+import { UniversoDeFilmmaker } from '../components/filmmaker/UniversoDeFilmmaker';
+import { FichaDeElemento } from '../components/filmmaker/FichaDeElemento';
+import { SECCIONES_DEL_UNIVERSO, EJEMPLO_DEL_UNIVERSO, EtapaId } from '../constants/filmmakerUniverso';
+import { UniversoDelTaller, TipoDeElemento, anadir, anadirEjemplos, aprobar, editar, quitar, quitarEjemplos, universoVacio } from '../utils/universoDeFilmmaker';
+import { TandasYStoryboard } from '../components/filmmaker/tandas/TandasYStoryboard';
+import { TandasDelTaller, tandasVacias } from '../utils/tandasDeFilmmaker';
 import { TallerDeIdea, ModoDelTaller, MensajeDelTaller } from '../components/filmmaker/TallerDeIdea';
 import { crearProduccion, nuevoIdDeProduccion, useProducciones } from '../hooks/useProducciones';
 import { tituloDesdeLaIdea } from '../utils/presentacionDeProduccion';
-import { IdeaDelTaller, etiquetaAccesible, cambiarDeTipo, contestarPaso, esTipoConTaller, estaLista, ideaVacia, pasoActual, poner, sumarALaFrase, tituloDeLaIdea } from '../utils/ideaDeFilmmaker';
+import { IdeaDelTaller, duracionDe, etiquetaAccesible, cambiarDeTipo, contestarPaso, esTipoConTaller, estaLista, ideaVacia, pasoActual, poner, sumarALaFrase, tituloDeLaIdea } from '../utils/ideaDeFilmmaker';
 import { LIMITES } from '../services/filmmaker/dominio';
 import { PORTADA_WEEAI as P, textoPortada, ESPACIO_WEEAI as SPACING } from '../constants/estiloWeeAi';
 import { CHIP_DE_MARCA_EN_COMPOSER, PILDORA_DE_FORMATO_VISIBLE, FORMATO_POR_DEFECTO, TIPOS_DE_PROYECTO, TipoDeProyecto } from '../constants/filmmakerCrear';
@@ -58,7 +66,13 @@ const FilmmakerCrearScreen: React.FC = () => {
   const [hoja, setHoja] = useState(false);
   const [adjuntos, setAdjuntos] = useState(false);
   const [texto, setTexto] = useState('');
-  const [capa, setCapa] = useState<'entrada' | 'taller'>('entrada');
+  const [capa, setCapa] = useState<'entrada' | 'taller' | 'universo' | 'tandas'>('entrada');
+  const [universo, setUniverso] = useState<UniversoDelTaller>(() => universoVacio());
+  const [seccion, setSeccion] = useState<TipoDeElemento>('character');
+  const [tandas, setTandas] = useState<TandasDelTaller>(() => tandasVacias());
+  const [proyecto, setProyecto] = useState(false);
+  const [fichaId, setFichaId] = useState<string | null>(null);
+  const [produccionId, setProduccionId] = useState<string | null>(null);
   const [tipoId, setTipoId] = useState<TipoDeTaller | null>(null);
   const [idea, setIdea] = useState<IdeaDelTaller>(() => ideaVacia('short'));
   const [modo, setModo] = useState<ModoDelTaller>('guiado');
@@ -82,12 +96,16 @@ const FilmmakerCrearScreen: React.FC = () => {
   const pildora = tipo ? { formato: tipo.formato, segundos: tipo.segundos } : FORMATO_POR_DEFECTO;
   /* Por debajo de 760 dp útiles todo se compacta. */
   const compacto = alto < 760;
-  const enTaller = capa === 'taller';
+  const enTaller = capa !== 'entrada';
+  const enUniverso = capa === 'universo';
+  const enTandas = capa === 'tandas';
   const dosZonas = enTaller && anchoDePantalla >= ANCHO_DE_DOS_ZONAS;
   const pasoDeTexto = enTaller && modo === 'guiado' ? pasoActual(idea) : null;
 
   const volverALasTarjetas = () => { setCapa('entrada'); setAviso(null); };
   const atras = () => {
+    if (enTandas) { setCapa('universo'); setAviso(null); return; }
+    if (enUniverso) { setCapa('taller'); setAviso(null); return; }
     if (enTaller) { volverALasTarjetas(); return; }
     navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main');
   };
@@ -107,6 +125,7 @@ const FilmmakerCrearScreen: React.FC = () => {
   const enviar = () => {
     const dicho = texto.trim();
     if (!dicho) return;
+    if (enUniverso) { setUniverso((u) => anadir(u, seccion, dicho)); setTexto(''); return; }
     if (!enTaller) {
       const id = tipoId ?? TIPO_POR_DEFECTO_AL_ENVIAR;
       const deducido = !tipoId;
@@ -144,7 +163,15 @@ const FilmmakerCrearScreen: React.FC = () => {
     setCreando(false);
     if (!r.ok) { setFallo(true); return; }
     idDeProduccion.current = nuevoIdDeProduccion();
-    navigation.navigate('Production', { productionId: r.valor.produccion.productionId });
+    setProduccionId(r.valor.produccion.productionId);
+    setCapa('universo');
+  };
+
+  const irA = (id: EtapaId) => {
+    setAviso(null);
+    if (id === 'idea') setCapa('taller');
+    else if (id === 'batches') { if (produccionId) setCapa('tandas'); else setAviso(t('filmmaker.stageNeedIdea')); }
+    else if (id === 'universe') { if (produccionId) setCapa('universo'); else setAviso(t('filmmaker.stageNeedIdea')); }
   };
 
   /* El «+» abre la hoja de adjuntos; el resto de lo que antes eran iconos cerrados vive ahora dentro de ella, con su motivo. */
@@ -197,7 +224,8 @@ const FilmmakerCrearScreen: React.FC = () => {
   );
 
   const etiquetaDelTipo = tipo ? t(tipo.clave) : '';
-  const placeholder = pasoDeTexto?.clase === 'text' ? t(pasoDeTexto.clavePlaceholder) : enTaller ? t('filmmaker.ideaPlaceholder') : t('filmmaker.hubPlaceholder');
+  const definicionDeSeccion = SECCIONES_DEL_UNIVERSO.find((s) => s.id === seccion) ?? SECCIONES_DEL_UNIVERSO[0];
+  const placeholder = enUniverso ? t(definicionDeSeccion.clavePlaceholder) : pasoDeTexto?.clase === 'text' ? t(pasoDeTexto.clavePlaceholder) : enTaller ? t('filmmaker.ideaPlaceholder') : t('filmmaker.hubPlaceholder');
   const sinSaldo = !!user && balance === 0;
 
   return (
@@ -217,9 +245,15 @@ const FilmmakerCrearScreen: React.FC = () => {
           <CreditsPill compact sobria />
         </View>
 
+        {enTaller ? <BarraDeEtapas activa={enTandas ? 'batches' : enUniverso ? 'universe' : 'idea'} onIr={irA} onAviso={(clave) => setAviso(t(clave))} onProyecto={() => setProyecto(true)} /> : null}
+
         {/* EL MUNDO de encima de la caja: las tarjetas de tipo, o el hilo del taller de Idea. */}
         <View style={styles.mundo} onLayout={(e: LayoutChangeEvent) => { const h = Math.round(e.nativeEvent.layout.height); setAltoMundo((a) => (Math.abs(a - h) > 1 ? h : a)); }}>
-          {enTaller ? (
+          {enTandas ? (
+            <TandasYStoryboard ancho={Math.min(ancho, 1040)} compacto={compacto} personajes={universo.elementos.filter((e) => e.tipo === 'character').map((e) => ({ id: e.id, nombre: e.nombre, voz: e.voz }))} duracionTotalSeg={duracionDe(idea)} valor={tandas} onCambio={setTandas} onAviso={setAviso} />
+          ) : enUniverso ? (
+            <UniversoDeFilmmaker universo={universo} ancho={Math.min(ancho, 1040)} compacto={compacto} seccion={seccion} onSeccion={setSeccion} onAbrir={(e) => setFichaId(e.id)} onAprobar={() => setUniverso(aprobar)} onEjemplo={() => setUniverso((u) => anadirEjemplos(u, EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))))} onQuitarEjemplo={() => setUniverso(quitarEjemplos)} onContinuar={() => { setAviso(null); setCapa('tandas'); }} onAviso={(clave) => setAviso(t(clave))} />
+          ) : enTaller ? (
             <TallerDeIdea
               idea={idea} onIdea={setIdea} modo={modo} onModo={setModo} empezarCon={empezarCon} onEmpezarCon={setEmpezarCon}
               mensajes={mensajes} dosZonas={dosZonas} compacto={compacto} plegado={alto < 600} onAviso={(clave) => setAviso(t(clave))}
@@ -251,12 +285,14 @@ const FilmmakerCrearScreen: React.FC = () => {
               <IconoWee name="cerrar" size={12} color={P.tintaSecundaria} />
             </TouchableOpacity>
           ) : null}
-          <CajaAnclada alto={topeDeLaCaja}>
+          {!enTandas ? <CajaAnclada alto={topeDeLaCaja}>
             <CajaDePrompt portada enviarDiscreto={enTaller} valor={texto} onCambiar={setTexto} onEnviar={enviar} etiquetaEnviar={t('studio.sendLabel')} placeholder={placeholder} acciones={acciones} />
-          </CajaAnclada>
+          </CajaAnclada> : null}
         </View>
 
         <HojaDeTrabajo visible={hoja} onClose={() => setHoja(false)} onAbrirProduccion={(id) => navigation.navigate('Production', { productionId: id })} onAbrirCreaciones={() => navigation.navigate('MisCreaciones')} />
+        <HojaDeProyecto visible={proyecto} onClose={() => setProyecto(false)} idea={idea} onIdea={setIdea} />
+        <FichaDeElemento elemento={universo.elementos.find((e) => e.id === fichaId) ?? null} onClose={() => setFichaId(null)} onGuardar={(id, c) => setUniverso((u) => editar(u, id, c))} onQuitar={(id) => setUniverso((u) => quitar(u, id))} />
         <HojaDeAdjuntos visible={adjuntos} onClose={() => setAdjuntos(false)} onUsarTexto={usarTextoPegado} />
       </View>
     </CreatorShell>

@@ -110,6 +110,8 @@ const CODIGO = [
   'screens/FilmmakerCrearScreen.tsx', 'constants/filmmakerCrear.ts', 'components/filmmaker/TarjetaDeTipo.tsx',
   /* El taller de Idea (2026-11-17): hilo, tarjeta viva, hoja de adjuntos y sus constantes. */
   'components/filmmaker/TallerDeIdea.tsx', 'components/filmmaker/TarjetaTuIdea.tsx', 'components/filmmaker/HojaDeAdjuntos.tsx', 'constants/filmmakerIdea.ts',
+  /* El Universo y la barra de etapas (ola 2). */
+  'components/filmmaker/BarraDeEtapas.tsx', 'components/filmmaker/UniversoDeFilmmaker.tsx', 'components/filmmaker/FichaDeElemento.tsx', 'components/filmmaker/HojaDeProyecto.tsx', 'constants/filmmakerUniverso.ts',
 ];
 const pedidas = [...new Set(CODIGO.flatMap((f) => [...leer(f).matchAll(/'filmmaker\.([A-Za-z][A-Za-z0-9_]*)'/g)].map((m) => m[1])))];
 const sinTexto = pedidas.filter((k) => !ES.has(k) && !ES.has(`${k}_one`));

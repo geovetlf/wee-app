@@ -67,6 +67,8 @@ import { onboarding } from './onboarding';
 import { aiAvatar } from './aiAvatar';
 import { moderation } from './moderation';
 import { filmmaker } from './filmmaker';
+import { filmmakerTandas } from './filmmakerTandas';
+import { filmmakerSonido } from './filmmakerSonido';
 import { travel } from './travel';
 import { mywees } from './mywees';
 import { FormaDelDiccionario } from '../es';
@@ -113,6 +115,8 @@ export const ru: FormaDelDiccionario = {
   brain,
   moderation,
   filmmaker,
+  filmmakerTandas,
+  filmmakerSonido,
   travel,
   mywees,
 };
