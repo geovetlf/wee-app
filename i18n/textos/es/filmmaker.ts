@@ -355,7 +355,7 @@ export const filmmaker = {
   attachProjects: 'Mis proyectos',
   attachText: 'Texto',
   attachDocument: 'Documento',
-  attachHint: 'Una imagen basta. Necesitas al menos un personaje.',
+  attachHint: 'Una imagen basta. Tu primera imagen es el personaje.',
   refRoleChange: 'Cambiar el papel de {{nombre}}',
   attachPaste: 'Pegar texto',
   attachPasteHint: 'Pega aquí tu guion o tus notas. Añadir nombres, conflictos y género mejora el resultado.',

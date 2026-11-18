@@ -529,6 +529,6 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   attachProjects: 'My projects',
   attachText: 'Text',
   attachDocument: 'Document',
-  attachHint: 'One image is enough. You need at least one character.',
+  attachHint: 'One image is enough. Your first image is the character.',
   refRoleChange: 'Change the role of {{nombre}}',
 };
