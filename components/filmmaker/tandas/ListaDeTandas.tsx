@@ -61,7 +61,7 @@ export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, selecc
             <Text style={[textoPortada(16, '600'), dir.texto, { color: P.tinta }]} numberOfLines={1}>{titulo}</Text>
             <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={2}>{meta}</Text>
             <View style={[styles.pie, dir.contenedor]}>
-              {e !== 'none' ? <PastillaDeEstado estado={e} /> : null}
+              {e !== 'none' && e !== 'review' ? <PastillaDeEstado estado={e} /> : null}
             </View>
           </View>
         </TouchableOpacity>
