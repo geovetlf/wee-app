@@ -55,7 +55,13 @@ export const MAX_PROMPT_DE_PLANO = 3000;
 /** Lo que genera esta ruta, y hasta dónde. Números de producto, no de ningún proveedor. */
 export const LIMITES_DE_PLANO = Object.freeze({
   duracionMinimaSec: 4,
-  duracionMaximaSec: 15,
+  /**
+   * Ola 3b / convergencia: el tope de PRODUCTO es el del modelo que más admite (Seedance 2.5, 30 s). Cada modelo
+   * tiene el suyo (`CapacidadesDeModelo.duracion`) y lo valida `validarPlano`; 2.0 y sus variantes se quedan en 15 s.
+   */
+  duracionMaximaSec: 30,
+  /** Lo que se admite SIN las capacidades de ningún modelo delante (la ruta de siempre): lo que todos los modelos hacen. */
+  duracionMaximaSinModeloSec: 15,
   proporciones: Object.freeze(['16:9', '9:16', '1:1', '4:3', '21:9'] as const),
   /** Cuando la proporción no está, estas son las que se proponen. */
   proporcionesSugeridas: Object.freeze(['9:16', '1:1'] as const),
@@ -383,8 +389,8 @@ export const evaluarPlano = (r: RequisitoDePlano, calidad: unknown, caps?: Capac
   if (r.promptAvanzado) return no('advanced_prompt_blocked');
   if (r.lineasACamara > 0) return no('dialogue_not_supported');
   if (!r.descripcion && !r.descripcionDeEscena && !r.acciones.length) return no('description_missing');
-  if (r.duracionSec > LIMITES_DE_PLANO.duracionMaximaSec) {
-    return no('duration_too_long', { requestedSec: r.duracionSec, maxSec: LIMITES_DE_PLANO.duracionMaximaSec });
+  if (r.duracionSec > LIMITES_DE_PLANO.duracionMaximaSinModeloSec) {
+    return no('duration_too_long', { requestedSec: r.duracionSec, maxSec: LIMITES_DE_PLANO.duracionMaximaSinModeloSec });
   }
   if (!(LIMITES_DE_PLANO.proporciones as readonly string[]).includes(r.proporcion)) {
     return no('aspect_ratio_not_supported', { aspectRatio: r.proporcion, suggestions: LIMITES_DE_PLANO.proporcionesSugeridas });

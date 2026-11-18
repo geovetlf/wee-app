@@ -118,7 +118,7 @@ const plano = cargar('creator/plano.ts', { '../core': { creativosValidos: () => 
   check('B2) sin capacidades, lo de siempre: 20 s → duration_too_long (máx 15); `video.reference` → capability_not_supported',
     plano.evaluarPlano(lee(crudo({}, { durationSec: 20 })), 'standard').motivo === 'duration_too_long'
     && plano.evaluarPlano(lee(crudo({ references: [ref('r1', 'image', 'style', 'a1')] }, { capability: 'video.reference' })), 'standard').motivo === 'capability_not_supported'
-    && plano.LIMITES_DE_PLANO.duracionMaximaSec === 15);
+    && plano.LIMITES_DE_PLANO.duracionMaximaSinModeloSec === 15 && plano.LIMITES_DE_PLANO.duracionMaximaSec === 30);
   const conRef = lee(crudo({ references: [ref('r1', 'image', 'style', 'a1'), ref('r2', 'video', 'motion', 'a2')] }, { capability: 'video.reference' }));
   check('B3) con referencias: `entradas` en su orden y con su papel; lo demás del requisito no cambia', conRef.entradas.referencias.map((r) => `${r.id}:${r.tipo}:${r.rol}`).join() === 'r1:image:style,r2:video:motion' && conRef.referencias === 2);
   const caps25 = reg.capacidadesConEstado('M25', new Set(['M25']));

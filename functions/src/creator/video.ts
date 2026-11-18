@@ -21,10 +21,11 @@ import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, conductorDeWee, configuracionDeLa
 import { crearMaterialDesdeUrl, leerMaterial } from '../content';
 import { loadCostOverrides } from '../credits/creditCosts';
 import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
-import { CAPACIDADES_DE_VIDEO } from '../engine/capacidadesDeVideo';
+import { CAPACIDADES_DE_VIDEO, capacidadesConEstado } from '../engine/capacidadesDeVideo';
+import { SEEDANCE_MODEL_IDS } from '../engine/providers/seedance';
 import { MODEL_CAPABILITIES_VERSION } from '../core/model-capability';
 import { MODELOS_VALIDADOS_POR_ENTRADA } from './entradasDePlano';
-import { PLANTILLA_DE_PLANO, PlanoRepresentable, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano } from './plano';
+import { LIMITES_DE_PLANO, PLANTILLA_DE_PLANO, PlanoRepresentable, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano } from './plano';
 import {
   MAX_TOMAS, TomaExistente, UnidadEnLaProduccion, leerUnidadEnLaProduccion, nodoDeLaUnidad, puedePedirseLaToma, requestIdDeToma, tomaTerminada, tomasDeLaUnidad,
 } from './toma';
@@ -242,7 +243,14 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
   if (enOrden) return { ...vacia, toma, requestId: null, motivo: enOrden };
   const requestId = requestIdDeToma(accountId, productionId, unitId, toma);
 
-  const evaluacion = evaluarPlano(requisito, d.quality);
+  /*
+   * Convergencia (2026-11-18): sobre 15 s solo atiende Seedance 2.5 (`chooseSeedanceModel` lo elige por la duración) y
+   * su tope de 30 s lo valida el contrato de capacidades, no una constante de esta ruta. Hasta 15 s, lo de siempre.
+   */
+  const capacidadesLargas = requisito.duracionSec > LIMITES_DE_PLANO.duracionMaximaSinModeloSec
+    ? capacidadesConEstado(SEEDANCE_MODEL_IDS.SEEDANCE_2_5, new Set([SEEDANCE_MODEL_IDS.SEEDANCE_2_5]))
+    : undefined;
+  const evaluacion = evaluarPlano(requisito, d.quality, capacidadesLargas);
   if (!evaluacion.ok) return { ...vacia, toma, requestId, motivo: evaluacion.motivo, ...(evaluacion.detalle ? { detalle: evaluacion.detalle } : {}) };
   return {
     ...vacia,
