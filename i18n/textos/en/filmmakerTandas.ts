@@ -47,7 +47,7 @@ export const filmmakerTandas = {
   actWatch: 'See progress',
   actView: 'View',
   actRetry: 'Retry',
-  produceClosed: 'Closed: producing chapters is not available yet.',
+  produceClosed: 'Coming soon: producing your chapters is not available yet.',
 
   frames_one: '{{contador}} frame',
   frames_other: '{{contador}} frames',
@@ -58,7 +58,7 @@ export const filmmakerTandas = {
   saveToStore: 'Save to the store',
   storedSession: 'Saved to this session’s store. Your account store arrives with Production.',
   storedAccount: 'Saved to your account store.',
-  generateImagesClosed: 'Closed: generating images per frame is not authorized in Filmmaker yet.',
+  generateImagesClosed: 'Coming soon: Weë will create an image for each frame.',
   shotUndecided: 'Shot to decide',
   frameEmpty: 'No text yet',
   openFrame: 'Open frame sheet',

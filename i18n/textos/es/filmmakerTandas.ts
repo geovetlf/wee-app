@@ -47,7 +47,7 @@ export const filmmakerTandas = {
   actWatch: 'Ver progreso',
   actView: 'Ver',
   actRetry: 'Reintentar',
-  produceClosed: 'Cerrado: la Producción de capítulos todavía no está disponible.',
+  produceClosed: 'Pronto: producir tus capítulos aún no está disponible.',
 
   frames_one: '{{contador}} cuadro',
   frames_other: '{{contador}} cuadros',
@@ -58,7 +58,7 @@ export const filmmakerTandas = {
   saveToStore: 'Guardar en el almacén',
   storedSession: 'Guardado en el almacén de esta sesión. El de tu cuenta llegará con la Producción.',
   storedAccount: 'Guardado en el almacén de tu cuenta.',
-  generateImagesClosed: 'Cerrado: generar imágenes por cuadro aún no está autorizado en Filmmaker.',
+  generateImagesClosed: 'Pronto: Weë creará una imagen por cuadro.',
   shotUndecided: 'Plano por decidir',
   frameEmpty: 'Sin texto todavía',
   openFrame: 'Abrir ficha del cuadro',

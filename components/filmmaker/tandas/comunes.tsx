@@ -59,7 +59,7 @@ export const FilaCerrada: React.FC<{ titulo: string; motivo: string; icono: keyo
 /** EL botón blanco de una pantalla. Apagado = contorno, y quien lo pinta pone el motivo debajo. */
 export const BotonBlanco: React.FC<{ texto: string; onPress: () => void; apagado?: boolean; motivo?: string | null; testID?: string }> = ({ texto, onPress, apagado, motivo, testID }) => (
   <TouchableOpacity testID={testID} onPress={onPress} disabled={apagado} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(texto, apagado ? motivo : null)} accessibilityState={{ disabled: !!apagado }} style={[styles.principal, apagado && styles.principalApagado]}>
-    <Text style={[textoPortada(16, '600'), { color: apagado ? P.tintaDeshabilitada : P.sobreAccion }]} numberOfLines={1}>{texto}</Text>
+    <Text style={[textoPortada(16, '600'), { color: apagado ? P.tintaDeshabilitada : P.sobreAccion, textAlign: 'center' }]} numberOfLines={2}>{texto}</Text>
   </TouchableOpacity>
 );
 
