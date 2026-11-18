@@ -324,7 +324,7 @@ const FilmmakerCrearScreen: React.FC = () => {
           ) : enUniverso ? (
             <UniversoDeFilmmaker universo={universo} ancho={Math.min(ancho, 1040)} compacto={compacto} seccion={seccion} onSeccion={setSeccion} onAbrir={(e) => setFichaId(e.id)} onAprobar={() => setUniverso(aprobar)} onEjemplo={() => setUniverso((u) => anadirEjemplos(u, EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))))} onQuitarEjemplo={() => setUniverso(quitarEjemplos)} onContinuar={() => { setAviso(null); setCapa('tandas'); }} onAviso={(clave) => setAviso(t(clave))} imagenes={imagenes} peticionDeImagenes={peticionDeUniverso(universo, { estilo, tipo: tipoId ?? undefined, referencia: (personajes(refs.referencias)[0] ?? listas(refs.referencias)[0])?.url ?? null, aspecto: aspectoDeLaIdea(idea) })} />
           ) : enIdea ? (
-            <TallerDeIdea tipo={idea.tipo} estado={estadoDelTaller} compacto={alto < 600} especificaciones={<ResumenDeEspecificaciones idea={idea} compacto={alto < 700} onAbrir={() => setProyecto(true)} />} />
+            <TallerDeIdea tipo={idea.tipo} estado={estadoDelTaller} compacto={alto < 600} especificaciones={<ResumenDeEspecificaciones idea={idea} compacto={altoMundo > 0 && altoMundo < 340} onAbrir={() => setProyecto(true)} />} />
           ) : conScroll ? <ScrollView style={styles.lista} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">{entrada}</ScrollView> : entrada}
         </View>
 

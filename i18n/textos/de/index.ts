@@ -56,6 +56,7 @@ import { onboarding } from './onboarding';
 import { aiAvatar } from './aiAvatar';
 import { moderation } from './moderation';
 import { filmmaker } from './filmmaker';
+import { filmmakerProd } from './filmmakerProd';
 import { filmmakerImagenes } from './filmmakerImagenes';
 import { filmmakerDocumentos } from './filmmakerDocumentos';
 import { filmmakerTandas } from './filmmakerTandas';
@@ -106,6 +107,7 @@ export const de: FormaDelDiccionario = {
   brain,
   moderation,
   filmmaker,
+  filmmakerProd,
   filmmakerImagenes,
   filmmakerDocumentos,
   filmmakerTandas,

@@ -14,6 +14,8 @@ interface Props {
   estado: EstadoDelTaller;
   /** Pantalla corta o teclado abierto: la letra baja un punto y el aire se recorta. */
   compacto: boolean;
+  /** El estudio de comando: el resumen de especificaciones, bajo la frase. Lo pone la pantalla; aquí solo se coloca. */
+  especificaciones?: React.ReactNode;
 }
 
 /**
@@ -21,7 +23,7 @@ interface Props {
  * de etapas: la persona cuenta su idea en la caja (con el «+» para pegar o adjuntar) y Weë sigue solo. NO hay IA aquí (D5 pendiente): lo que se ve
  * sale de lo que la persona escribe. Ningún botón: reintentar es volver a enviar desde la caja, que conserva la idea.
  */
-export const TallerDeIdea: React.FC<Props> = ({ tipo, estado, compacto }) => {
+export const TallerDeIdea: React.FC<Props> = ({ tipo, estado, compacto, especificaciones }) => {
   const t = useT();
   const clave = estado === 'creando' ? 'filmmaker.hubCreating' : estado === 'pregunta' ? 'filmmaker.askDoneNeedIdea' : CLAVE_DE_SALUDO[tipo];
   return (
@@ -30,12 +32,13 @@ export const TallerDeIdea: React.FC<Props> = ({ tipo, estado, compacto }) => {
         {estado === 'creando' ? <ActivityIndicator size="small" color={P.tintaSecundaria} /> : null}
         <Text style={[textoPortada(compacto ? 20 : 26, '600'), styles.frase, { color: P.tinta }]} accessibilityRole="header">{t(clave)}</Text>
       </View>
+      {estado === 'creando' ? null : especificaciones}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  mundo: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
-  centro: { alignItems: 'center', gap: 14 },
+  mundo: { flex: 1, justifyContent: 'center', gap: 28 },
+  centro: { alignItems: 'center', gap: 14, paddingHorizontal: 24 },
   frase: { textAlign: 'center' },
 });

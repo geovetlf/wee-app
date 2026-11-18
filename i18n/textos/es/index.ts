@@ -55,6 +55,7 @@ import { filmmaker } from './filmmaker';
 import { travel } from './travel';
 import { mywees } from './mywees';
 import { filmmakerSonido } from './filmmakerSonido';
+import { filmmakerSpecs } from './filmmakerSpecs';
 import { filmmakerTandas } from './filmmakerTandas';
 import { filmmakerDocumentos } from './filmmakerDocumentos';
 import { filmmakerImagenes } from './filmmakerImagenes';
@@ -104,6 +105,7 @@ export const es = {
   travel,
   mywees,
   filmmakerSonido,
+  filmmakerSpecs,
   filmmakerTandas,
   filmmakerDocumentos,
   filmmakerImagenes,
