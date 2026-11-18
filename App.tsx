@@ -316,6 +316,7 @@ const linking: any = {
       Plantillas: { path: 'weeai/plantillas', alias: ['Plantillas'] },
       Herramientas: { path: 'weeai/herramientas', alias: ['Herramientas'] },
       Filmmaker: { path: 'weeai/filmmaker', alias: ['Filmmaker'] },
+      FilmmakerTandas: { path: 'weeai/filmmaker/tandas', alias: ['FilmmakerTandas'] },
       Help: { path: 'help', alias: ['Help'] },
       Login: { path: 'login', alias: ['Login'] },
       Register: { path: 'register', alias: ['Register'] },

@@ -56,6 +56,7 @@ const DESTINO_DE_RUTA: Record<string, DestinoId> = {
   Plantillas: 'WeeAI',
   Herramientas: 'WeeAI',
   Filmmaker: 'WeeAI',
+  FilmmakerTandas: 'WeeAI',
   Specialist: 'WeeAI',
   CreatorFlow: 'WeeAI',
   Studio: 'WeeAI',

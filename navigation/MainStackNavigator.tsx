@@ -36,6 +36,7 @@ import CrearVideoScreen from '../screens/CrearVideoScreen';
 import PlantillasWeeAiScreen from '../screens/PlantillasWeeAiScreen';
 import HerramientasWeeAiScreen from '../screens/HerramientasWeeAiScreen';
 import FilmmakerCrearScreen from '../screens/FilmmakerCrearScreen';
+import FilmmakerTandasScreen from '../screens/FilmmakerTandasScreen';
 import SavedPostsScreen from '../screens/SavedPostsScreen';
 import WeePagesScreen from '../screens/WeePagesScreen';
 import WeePageScreen from '../screens/WeePageScreen';
@@ -99,6 +100,8 @@ export type MainStackParamList = {
   Herramientas: undefined;
   /* La primera capa de Weë Filmmaker: «Crear» (portada de WeëAI v2). */
   Filmmaker: undefined;
+  /* Etapa «Tandas y Storyboard» de Filmmaker (ola 3), ruta mínima para abrirla sola. */
+  FilmmakerTandas: undefined;
   SavedPosts: undefined;
   /* WeëPages: crear y gestionar las Páginas de la cuenta; editPageId abre una para editar. */
   WeePages: { editPageId?: string } | undefined;
@@ -397,6 +400,7 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="Plantillas" component={PlantillasWeeAiScreen} />
       <Stack.Screen name="Herramientas" component={HerramientasWeeAiScreen} />
       <Stack.Screen name="Filmmaker" component={FilmmakerCrearScreen} />
+      <Stack.Screen name="FilmmakerTandas" component={FilmmakerTandasScreen} />
       <Stack.Screen name="AgregarUbicacion" component={AgregarUbicacionScreen} />
       <Stack.Screen name="SavedPosts" component={SavedPostsScreen} />
       <Stack.Screen name="WeePages" component={WeePagesScreen} />
