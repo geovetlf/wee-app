@@ -25,10 +25,13 @@ export const filmmakerDirector = {
   noCredits: 'You are out of Credits to keep talking with Weë.',
   messageLabel: 'Message from Weë',
   createNow: 'Create the production',
-  askChange: 'Ask Weë for a change',
+  askChange: 'Change with Weë',
   askChangePlaceholder: 'Tell Weë what to change',
   redo: 'Redo',
   expand: 'Show message',
   collapse: 'Collapse',
   dismiss: 'Close',
+  /* Claves nuevas del director. PROVISIONAL en inglés, SIN traducir. */
+  demoChangeReply: 'You asked: “{{texto}}”. With Weë connected, I would propose the change and you approve it before it is applied.',
+  askChangeExample: 'E.g. make it night',
 };

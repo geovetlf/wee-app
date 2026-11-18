@@ -18,7 +18,7 @@ export const filmmakerTandas = {
   loadExample: 'See an example',
   clearExample: 'Remove the example',
   exampleNote: 'These frames are an example to show you how a storyboard looks. Edit one and it becomes yours.',
-  options: 'Options',
+  options: 'Edit chapter',
   moveUp: 'Move up',
   moveDown: 'Move down',
   splitHalf: 'Split in half',

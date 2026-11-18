@@ -18,7 +18,7 @@ export const filmmakerTandas = {
   loadExample: 'Ver un ejemplo',
   clearExample: 'Quitar el ejemplo',
   exampleNote: 'Estos cuadros son de ejemplo para enseñarte cómo queda un storyboard. Edita uno y pasa a ser tuyo.',
-  options: 'Opciones',
+  options: 'Editar capítulo',
   moveUp: 'Subir',
   moveDown: 'Bajar',
   splitHalf: 'Partir por la mitad',

@@ -40,7 +40,7 @@ export const filmmakerProd = {
   demoBadge: 'Demo · example preview. Not real: it generates nothing and charges no Credits.',
   demoExit: 'Exit demo',
   demoTry: 'Try the demo',
-  demoCharacter: 'Mara — the demo protagonist',
+  demoCharacter: 'Kai — the demo protagonist',
   demoProduceNote: 'Demo: "Produce" only marks the chapter on screen.',
   demoProduce: 'Produce chapter (demo)',
   demoResultTitle: 'Your film, joined (example)',
