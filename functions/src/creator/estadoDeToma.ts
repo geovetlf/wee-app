@@ -395,9 +395,17 @@ const generacionDeLaToma = async (db: Firestore, uid: string, requestId: string)
   return {
     generationId: fila.id,
     estado: texto(g.status),
-    costeEstimadoUsd: dolares(g.estimatedProviderCost),
-    costeRealUsd: dolares(g.actualProviderCost),
-    estadoDelCoste: texto(g.providerCostStatus),
+    /*
+     * Porte (2026-11-18): el libro de ESTA rama guarda `estimatedUsd` (la tarifa cotizada), `providerCost` y la marca
+     * `providerCostStatus` (`estimado` | `desconocido`; sin marca = medido o tarifa exacta). Se cuenta con su vocabulario:
+     * «actual» solo si la fila cerró bien y NO es una estimación; «estimated» si lo es; «unavailable» si el proveedor
+     * trabajó y no terminó bien. El coste real no se inventa nunca: sin cierre, ninguno.
+     */
+    costeEstimadoUsd: dolares(g.estimatedUsd),
+    costeRealUsd: g.status === 'COMPLETED' && g.providerCostStatus === undefined ? dolares(g.providerCost) : null,
+    estadoDelCoste: g.providerCostStatus === 'estimado' ? 'estimated'
+      : g.providerCostStatus === 'desconocido' ? 'unavailable'
+        : g.status === 'COMPLETED' ? 'actual' : null,
   };
 };
 
