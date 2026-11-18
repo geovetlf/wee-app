@@ -5,7 +5,7 @@ import { puedeReferenciar } from '../core/element';
 import type { FichaDeMaterial, MotivoDeNoReferenciar } from '../core/element';
 import { leerMaterial } from '../content';
 import {
-  FILMMAKER_MODEL_VERSION, FORMA_DE_ID, FilmmakerProduction, FormatPresetId, LIMITES, PRESETS, ProductionScene,
+  FILMMAKER_MODEL_VERSION, FORMA_DE_ID, FilmmakerProduction, FormatPresetId, LIMITES, PRESETS, ProductionReference, ProductionScene,
   ResolutionTarget, canonico, configuracionDePreset, produccionVacia,
 } from '../filmmaker/modelo';
 import { FilmmakerIssue, Params, integridad } from '../filmmaker/validacion';
@@ -515,6 +515,11 @@ export interface PeticionDeCreacion {
   readonly preset?: unknown;
   /** O una producción entera, como borrador. Lo uno o lo otro. */
   readonly production?: unknown;
+  /**
+   * Convergencia (2026-11-18): las referencias con las que nace, YA convertidas en material de la cuenta
+   * (`referenciasAlCrear.ts`). Se añaden a las de la producción; opcional.
+   */
+  readonly references?: readonly ProductionReference[];
   readonly at: number;
 }
 
@@ -571,6 +576,10 @@ export const crearProduccion = async (p: PeticionDeCreacion, deps: DepsDeProducc
   const productionId = p.productionId;
   const inicial = produccionInicial(p, productionId);
   if (!inicial.ok) return inicial;
+  if (p.references && p.references.length) {
+    const ya = Array.isArray(inicial.prod.references) ? (inicial.prod.references as readonly unknown[]) : [];
+    inicial.prod = { ...inicial.prod, references: aJson([...ya, ...p.references]) };
+  }
   const rota = integridad(inicial.prod);
   if (rota.length) return rechazo('production_invalid', rota);
   const prod = inicial.prod as unknown as FilmmakerProduction;

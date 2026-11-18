@@ -1,6 +1,8 @@
 import { Firestore, getFirestore } from 'firebase-admin/firestore';
 import { FunctionsErrorCode, HttpsError, onCall } from 'firebase-functions/v2/https';
 import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
+import type { ProductionReference } from '../filmmaker/modelo';
+import { DepsDeReferenciasAlCrear, materializarReferenciasAlCrear } from './referenciasAlCrear';
 import {
   CodigoDePersistencia,
   LectorDeMateriales,
@@ -84,8 +86,12 @@ const fallar = (r: Rechazo): never => {
 };
 
 export interface ContextoDeLaPuerta {
+  /** El principal autenticado (para las URLs de `users/{uid}/creator-inputs/` de las referencias al crear). */
+  readonly uid?: string;
   readonly db?: Firestore;
   readonly material?: LectorDeMateriales;
+  /** Dependencias de las referencias al crear (pruebas). */
+  readonly referencias?: DepsDeReferenciasAlCrear;
   /** La hora de la petición, leída una vez en la puerta. */
   readonly at: number;
 }
@@ -102,9 +108,18 @@ export const atenderProducciones = async (accountId: string, datos: unknown, ctx
 
   switch (data.op) {
     case 'create': {
+      /* Convergencia: `references: [{ role, url }]` → material de la cuenta → referencias de la producción. */
+      let references: readonly ProductionReference[] | undefined;
+      if (data.references !== undefined) {
+        if (!ctx.uid) throw error('invalid-argument', 'reference_rejected', { problems: [{ code: 'reference_rejected', reason: 'session_required' }] });
+        const m = await materializarReferenciasAlCrear({ uid: ctx.uid, accountId, references: data.references }, ctx.referencias);
+        if (!m.ok) throw error('invalid-argument', 'reference_rejected', { reason: m.reason, ...(m.index !== undefined ? { index: m.index } : {}) });
+        references = m.references;
+      }
       const r = await crearProduccion({
         accountId, productionId: data.productionId, operationId: data.operationId, title: data.title,
-        aspectRatio: data.aspectRatio, resolution: data.resolution, preset: data.preset, production: data.production, at,
+        aspectRatio: data.aspectRatio, resolution: data.resolution, preset: data.preset, production: data.production,
+        ...(references ? { references } : {}), at,
       }, deps);
       if (!r.ok) return fallar(r);
       return { created: r.created, ...r.view };
@@ -160,5 +175,5 @@ export const productions = onCall({ region: REGION, timeoutSeconds: 60, memory: 
   const db = getFirestore();
   const cuenta = await cuentaDelPrincipalEnWee(db, request.auth.uid);
   if (!cuenta) throw error('permission-denied', 'account_not_found');
-  return atenderProducciones(cuenta.accountId, request.data, { db, at: Date.now() });
+  return atenderProducciones(cuenta.accountId, request.data, { db, uid: request.auth.uid, at: Date.now() });
 });
