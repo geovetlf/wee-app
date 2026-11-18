@@ -380,7 +380,7 @@ export const weeai: ConPlurales<typeof import('../es/weeai').weeai> = {
   /* Portada de WeëAI v2 (2026-11-17). SIN REVISIÓN NATIVA. */
   portadaEtiqueta: 'Творческая студия',
   portadaTitulo: 'Твори без границ',
-  portadaSub: 'Представляй, описывай и превращай свои идеи с помощью ИИ',
+  portadaSub: 'Представляйте, описывайте и превращайте свои идеи с помощью ИИ',
   portadaPlantillas: 'Шаблоны',
   /* Marca: no se traduce (2026-11-17). */
   portadaFilmmaker: 'Filmmaker',
