@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, LayoutChangeEvent } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { IconoWee } from '../icons/IconoWee';
 import IconoDireccional from '../IconoDireccional';
@@ -30,6 +30,8 @@ interface Props {
   dosZonas: boolean;
   /** Pantalla corta: se retiran las notas que ya dicen los controles (la pista del modo, el saldo, la nota de Reparto); el motivo del botón apagado se queda. */
   compacto: boolean;
+  /** Con el teclado abierto (o muy poca altura): «Empezar con» se retira y el modo queda en una fila compacta; el espacio es del hilo y de la caja. */
+  plegado: boolean;
   onAviso: (clave: string) => void;
   creando: boolean;
   fallo: boolean;
@@ -43,7 +45,7 @@ interface Props {
  * la pregunta o los arranques—; después la tarjeta viva «Tu idea», la tira de estructura y «Continuar a Reparto», el único botón blanco.
  * NO hay IA aquí (D5 pendiente): lo que se ve sale de lo que la persona elige o escribe; la fila «Weë propone» está cerrada con su motivo.
  */
-export const TallerDeIdea: React.FC<Props> = ({ idea, onIdea, modo, onModo, empezarCon, onEmpezarCon, mensajes, dosZonas, compacto, onAviso, creando, fallo, sinSaldo, onContinuar }) => {
+export const TallerDeIdea: React.FC<Props> = ({ idea, onIdea, modo, onModo, empezarCon, onEmpezarCon, mensajes, dosZonas, compacto, plegado, onAviso, creando, fallo, sinSaldo, onContinuar }) => {
   const t = useT();
   const dir = useDireccion();
   const lista = estaLista(idea);
@@ -51,16 +53,21 @@ export const TallerDeIdea: React.FC<Props> = ({ idea, onIdea, modo, onModo, empe
   const refHilo = useRef<ScrollView>(null);
   /* Al llegar un mensaje, cambiar de pregunta o de modo, el hilo vuelve arriba: la pregunta nueva está justo bajo el saludo, antes que la tarjeta. */
   const primera = useRef(true);
+  /* Dónde empieza la pregunta (o el cierre) dentro del hilo: al contestar, el hilo se coloca ahí y las opciones se ven enteras. */
+  const yPregunta = useRef(0);
+  const marcarPregunta = (e: LayoutChangeEvent) => { yPregunta.current = e.nativeEvent.layout.y; };
   useEffect(() => {
     if (primera.current) { primera.current = false; return; }
-    const id = setTimeout(() => refHilo.current?.scrollTo({ y: 0, animated: true }), 60);
+    const id = setTimeout(() => refHilo.current?.scrollTo({ y: Math.max(0, yPregunta.current - 4), animated: true }), 80);
     return () => clearTimeout(id);
   }, [mensajes.length, idea.paso, modo]);
 
   const burbuja = (texto: string, rol: 'tu' | 'wee', clave: string | number) => (
-    <View key={clave} style={[styles.burbuja, rol === 'tu' ? styles.burbujaTuya : styles.burbujaWee, { alignSelf: rol === 'tu' ? 'flex-end' : 'flex-start' }]}>
-      <Text style={[textoPortada(15, '400'), dir.texto, { color: P.tinta }]} numberOfLines={rol === 'tu' ? 6 : undefined}>{texto}</Text>
-    </View>
+    rol === 'tu'
+      ? <BurbujaDeLaPersona key={clave} texto={texto} />
+      : <View key={clave} style={[styles.burbuja, styles.burbujaWee, { alignSelf: 'flex-start' }]}>
+        <Text style={[textoPortada(15, '400'), dir.texto, { color: P.tinta }]}>{texto}</Text>
+      </View>
   );
 
   const hilo = (
@@ -68,7 +75,7 @@ export const TallerDeIdea: React.FC<Props> = ({ idea, onIdea, modo, onModo, empe
       {/* En pantalla corta el saludo se retira: la etiqueta del tipo, bajo el hilo, ya dice de qué producción se trata. */}
       {!compacto ? burbuja(t(CLAVE_DE_SALUDO[idea.tipo]), 'wee', 'saludo') : null}
 
-      <View style={[styles.fila, dir.contenedor]} accessibilityRole="radiogroup" accessibilityLabel={t('filmmaker.ideaStartWith')}>
+      {!plegado ? <View style={[styles.fila, dir.contenedor]} accessibilityRole="radiogroup" accessibilityLabel={t('filmmaker.ideaStartWith')}>
         {EMPEZAR_CON.map((e) => {
           const sel = empezarCon === e.id;
           return (
@@ -86,8 +93,8 @@ export const TallerDeIdea: React.FC<Props> = ({ idea, onIdea, modo, onModo, empe
             </TouchableOpacity>
           );
         })}
-      </View>
-      {empezarCon === 'script' ? <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.ideaScriptHint')}</Text> : null}
+      </View> : null}
+      {empezarCon === 'script' && !plegado ? <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.ideaScriptHint')}</Text> : null}
 
       <View style={[styles.modos, dir.contenedor]} accessibilityRole="radiogroup" accessibilityLabel={t('filmmaker.ideaMode')}>
         {(['guiado', 'directo'] as const).map((m) => {
@@ -95,17 +102,17 @@ export const TallerDeIdea: React.FC<Props> = ({ idea, onIdea, modo, onModo, empe
           return (
             <TouchableOpacity key={m} onPress={() => onModo(m)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t(m === 'guiado' ? 'filmmaker.ideaModeGuided' : 'filmmaker.ideaModeDirect'), t(m === 'guiado' ? 'filmmaker.ideaModeGuidedHint' : 'filmmaker.ideaModeDirectHint'))} accessibilityState={{ selected: sel }} style={[styles.modo, sel && styles.modoSel]}>
               <Text style={[textoPortada(14, sel ? '600' : '500'), { color: sel ? P.tinta : P.tintaSecundaria }]} numberOfLines={1}>{t(m === 'guiado' ? 'filmmaker.ideaModeGuided' : 'filmmaker.ideaModeDirect')}</Text>
+              {!compacto ? <Text style={[textoPortada(12, '400'), { color: P.tintaSecundaria }]} numberOfLines={1}>{t(m === 'guiado' ? 'filmmaker.ideaModeGuidedHint' : 'filmmaker.ideaModeDirectHint')}</Text> : null}
             </TouchableOpacity>
           );
         })}
       </View>
-      {!compacto ? <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t(modo === 'guiado' ? 'filmmaker.ideaModeGuidedHint' : 'filmmaker.ideaModeDirectHint')}</Text> : null}
 
       {mensajes.map((m) => burbuja(m.clave ? t(m.clave) : m.texto ?? '', m.rol, m.id))}
 
       {modo === 'guiado' ? (
         paso ? (
-          <View style={styles.pregunta}>
+          <View style={styles.pregunta} onLayout={marcarPregunta}>
             {burbuja(t(paso.claveTitulo), 'wee', 'pregunta')}
             {paso.clase === 'choice' ? (
               <View style={[styles.opciones, dir.contenedor]}>
@@ -133,7 +140,7 @@ export const TallerDeIdea: React.FC<Props> = ({ idea, onIdea, modo, onModo, empe
           burbuja(t(lista ? 'filmmaker.askDone' : 'filmmaker.askDoneNeedIdea'), 'wee', 'fin')
         )
       ) : !idea.valores.idea ? (
-        <View style={styles.pregunta}>
+        <View style={styles.pregunta} onLayout={marcarPregunta}>
           {burbuja(t('filmmaker.directPrompt'), 'wee', 'directo')}
           <View style={[styles.opciones, dir.contenedor]}>
             {ARRANQUES[idea.tipo].map((a) => (
@@ -202,6 +209,28 @@ export const TallerDeIdea: React.FC<Props> = ({ idea, onIdea, modo, onModo, empe
   );
 };
 
+/**
+ * LA BURBUJA DE LO QUE ESCRIBE LA PERSONA: se ajusta al contenido, nunca lleva altura fija. Los saltos de línea se pliegan a espacios (una caja de varias
+ * líneas con Intro dejaba líneas en blanco que inflaban la burbuja) y, si pasa de cuatro líneas, se recorta con «Ver más».
+ */
+const BurbujaDeLaPersona: React.FC<{ texto: string }> = ({ texto }) => {
+  const t = useT();
+  const dir = useDireccion();
+  const [abierta, setAbierta] = useState(false);
+  const [recortable, setRecortable] = useState(false);
+  const limpio = texto.replace(/\s+/g, ' ').trim();
+  return (
+    <View style={[styles.burbuja, styles.burbujaTuya, { alignSelf: 'flex-end' }]}>
+      <Text style={[textoPortada(15, '400'), dir.texto, { color: P.tinta }]} numberOfLines={abierta ? undefined : 4} onTextLayout={(e) => { if (!abierta && e.nativeEvent.lines.length >= 4 && limpio.length > 120) setRecortable(true); }}>{limpio}</Text>
+      {recortable ? (
+        <TouchableOpacity onPress={() => setAbierta((a) => !a)} accessibilityRole="button" accessibilityLabel={t(abierta ? 'filmmaker.ideaSeeLess' : 'filmmaker.ideaSeeMore')} style={styles.verMas}>
+          <Text style={[textoPortada(13, '600'), { color: P.tintaSecundaria }]}>{t(abierta ? 'filmmaker.ideaSeeLess' : 'filmmaker.ideaSeeMore')}</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+};
+
 /** Una opción del modo Guiado: la sensación va en tarjeta con icono; las demás, en chip. */
 const Tarjeta: React.FC<{ o: Opcion; grande: boolean; onPress: () => void }> = ({ o, grande, onPress }) => {
   const t = useT();
@@ -228,6 +257,7 @@ const styles = StyleSheet.create({
   hilo: { gap: 10 },
   tarjetas: { gap: 12 },
   burbuja: { maxWidth: '88%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10 },
+  verMas: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' },
   burbujaWee: { backgroundColor: P.superficie, borderWidth: 1, borderColor: P.bordeCapsula },
   burbujaTuya: { backgroundColor: P.superficieAlta, borderWidth: 1, borderColor: P.bordeLuz },
   fila: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
@@ -235,7 +265,7 @@ const styles = StyleSheet.create({
   chipSel: { borderColor: '#FFFFFF', borderWidth: 2, backgroundColor: P.superficieAlta },
   chipCerrado: { borderStyle: 'dashed', borderColor: P.bordeCapsula, backgroundColor: 'transparent' },
   modos: { flexDirection: 'row', borderRadius: 22, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.fondo, padding: 3, gap: 3 },
-  modo: { flex: 1, minHeight: 44, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  modo: { flex: 1, minHeight: 44, paddingVertical: 4, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   modoSel: { backgroundColor: P.superficieAlta, borderWidth: 1, borderColor: P.bordeLuz },
   pregunta: { gap: 10 },
   opciones: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

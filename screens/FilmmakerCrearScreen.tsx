@@ -222,7 +222,7 @@ const FilmmakerCrearScreen: React.FC = () => {
           {enTaller ? (
             <TallerDeIdea
               idea={idea} onIdea={setIdea} modo={modo} onModo={setModo} empezarCon={empezarCon} onEmpezarCon={setEmpezarCon}
-              mensajes={mensajes} dosZonas={dosZonas} compacto={compacto} onAviso={(clave) => setAviso(t(clave))}
+              mensajes={mensajes} dosZonas={dosZonas} compacto={compacto} plegado={alto < 600} onAviso={(clave) => setAviso(t(clave))}
               creando={creando} fallo={fallo} sinSaldo={sinSaldo} onContinuar={continuar}
             />
           ) : conScroll ? <ScrollView style={styles.lista} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">{entrada}</ScrollView> : entrada}
@@ -244,7 +244,7 @@ const FilmmakerCrearScreen: React.FC = () => {
             </View>
             {CHIP_DE_MARCA_EN_COMPOSER ? <View style={styles.pildora}><Text style={[textoPortada(12, '500'), { color: P.tintaSecundaria }]}>{t('filmmaker.hubBrain')}</Text></View> : null}
           </View> : null}
-          {enTaller && tipo ? (
+          {enTaller && tipo && alto >= 540 ? (
             <TouchableOpacity onPress={volverALasTarjetas} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(etiquetaDelTipo, t('filmmaker.ideaChangeType'))} hitSlop={{ top: 4, bottom: 4 }} style={[styles.etiqueta, compacto && { minHeight: 36 }, dir.contenedor]}>
               <IconoWee name="claqueta" size={14} color={P.tinta} />
               <Text style={[textoPortada(13, '600'), { color: P.tinta }]} numberOfLines={1}>{etiquetaDelTipo}</Text>
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
   lista: { flex: 1 },
   separador: { flex: 1, minHeight: 4 },
   bloque: { paddingHorizontal: SPACING.md },
-  abajo: { width: '100%', alignSelf: 'center', paddingHorizontal: SPACING.md, paddingBottom: SPACING.sm },
+  abajo: { width: '100%', alignSelf: 'center', paddingHorizontal: SPACING.md, paddingBottom: SPACING.md },
   etiqueta: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 14, borderRadius: 22, borderWidth: 1, borderColor: P.bordeLuz, backgroundColor: P.superficie, marginBottom: 8 },
   fila: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pildora: { minHeight: 28, paddingHorizontal: 12, borderRadius: 999, backgroundColor: P.superficie, borderColor: P.bordeCapsula, borderWidth: 1, alignItems: 'center', justifyContent: 'center', flexDirection: 'row' },
