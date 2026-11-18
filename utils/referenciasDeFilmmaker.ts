@@ -31,3 +31,10 @@ export const agregar = (r: readonly ReferenciaDeIdea[], nueva: ReferenciaDeIdea)
 export const quitar = (r: readonly ReferenciaDeIdea[], id: string): readonly ReferenciaDeIdea[] => r.filter((x) => x.id !== id);
 export const marcar = (r: readonly ReferenciaDeIdea[], id: string, cambios: Partial<Pick<ReferenciaDeIdea, 'estado' | 'url' | 'uri'>>): readonly ReferenciaDeIdea[] =>
   r.map((x) => (x.id === id ? { ...x, ...cambios } : x));
+
+/**
+ * El papel con el que entra una imagen nueva: «Personaje» mientras no haya ninguno (el Universo exige al menos uno) y «Referencia» después.
+ * La persona lo cambia de un toque sobre la miniatura (`cambiarRol`): el rol se decide DESPUÉS de adjuntar, no en tres puertas distintas.
+ */
+export const rolPorDefecto = (r: readonly ReferenciaDeIdea[]): RolDeReferencia => (r.some((x) => x.rol === 'character') ? 'reference' : 'character');
+export const cambiarRol = (r: readonly ReferenciaDeIdea[], id: string, rol: RolDeReferencia): readonly ReferenciaDeIdea[] => r.map((x) => (x.id === id ? { ...x, rol } : x));

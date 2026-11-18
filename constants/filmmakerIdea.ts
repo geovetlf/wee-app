@@ -13,15 +13,13 @@ export const TIPOS_CON_TALLER: readonly TipoDeTaller[] = ['short', 'film', 'ad']
 export const TOPES = { titulo: 80, idea: 600, guion: 12000 } as const;
 
 /**
- * La hoja del «+»: cada fila hace algo real —imagen de referencia, personaje y mundo (suben una imagen al Storage de Weë), pegar texto y traer una creación de Mis proyectos—.
- * «Documento o libro» es la única cerrada (su motivo sale en la fila, mientras la lectura no esté abierta).
+ * La hoja del «+» (rediseño 2026-11-18): una rejilla baja de destinos de una palabra —Imagen, Mis proyectos, Texto— y «Documento» aparte (cerrado mientras la lectura no esté abierta).
+ * El papel de la imagen (Personaje, Mundo, Referencia) NO es una puerta: se elige después de adjuntar, sobre la miniatura.
  */
 export const ADJUNTOS = [
-  { id: 'reference', clave: 'filmmaker.refImage', claveSub: 'filmmaker.refImageSub', icono: 'galeria' as NombreDeIcono },
-  { id: 'character', clave: 'filmmaker.refCharacter', claveSub: 'filmmaker.refCharacterSub', icono: 'perfilReal' as NombreDeIcono },
-  { id: 'world', clave: 'filmmaker.refWorld', claveSub: 'filmmaker.refWorldSub', icono: 'lugar' as NombreDeIcono },
-  { id: 'paste', clave: 'filmmaker.attachPaste', claveSub: 'filmmaker.attachPasteSub', icono: 'texto' as NombreDeIcono },
-  { id: 'projects', clave: 'filmmaker.refFromProjects', claveSub: 'filmmaker.refFromProjectsSub', icono: 'carpeta' as NombreDeIcono },
+  { id: 'image', clave: 'filmmaker.attachImage', icono: 'galeria' as NombreDeIcono },
+  { id: 'projects', clave: 'filmmaker.attachProjects', icono: 'carpeta' as NombreDeIcono },
+  { id: 'paste', clave: 'filmmaker.attachText', icono: 'texto' as NombreDeIcono },
 ] as const;
 
 /** Duraciones objetivo sugeridas por tipo (segundos). Son del diseño, no del contrato; el tope por plano lo marca el modelo en Planos (D7). */

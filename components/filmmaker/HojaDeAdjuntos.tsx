@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, TextInput, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, TextInput, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IconoWee } from '../icons/IconoWee';
 import IconoDireccional from '../IconoDireccional';
@@ -8,65 +8,53 @@ import { useDireccion } from '../../hooks/useDireccion';
 import { PORTADA_WEEAI as P, textoPortada } from '../../constants/estiloWeeAi';
 import { ADJUNTOS, TOPES } from '../../constants/filmmakerIdea';
 import { scale } from '../../utils/scale';
-import { etiquetaAccesible } from '../../utils/ideaDeFilmmaker';
-import type { RolDeReferencia } from '../../utils/referenciasDeFilmmaker';
+import type { NombreDeIcono } from '../icons/trazosDeWee';
 import { useCerrarConEscape } from '../../hooks/useCerrarConEscape';
 import { LECTURA_DE_DOCUMENTOS_ABIERTA } from '../../constants/filmmakerDocumentos';
 import { selectorDisponible } from '../../services/selectorDeDocumentos';
 import { useDocumentoDeReferencia } from '../../hooks/useDocumentoDeReferencia';
 
 /**
- * LA FILA «DOCUMENTO O LIBRO»: cerrada, con su motivo a la vista, mientras la lectura no esté abierta (`LECTURA_DE_DOCUMENTOS_ABIERTA`) o la build no traiga el
- * selector de archivos; abierta, elige el archivo y enseña el progreso con las claves de `filmmakerDocumentos`. No simula nada: cerrada no hace nada.
+ * UN DESTINO DE LA REJILLA: icono grande y una palabra (≥ 44 dp de alto y de ancho). `apagado` lo deja casi invisible (lo cerrado), sin texto extra: su motivo
+ * sale en la única línea de ayuda cuando la persona lo toca.
  */
-const FilaDeDocumento: React.FC = () => {
-  const t = useT();
-  const dir = useDireccion();
-  const doc = useDocumentoDeReferencia();
-  const viva = LECTURA_DE_DOCUMENTOS_ABIERTA && selectorDisponible();
-  const motivo = !LECTURA_DE_DOCUMENTOS_ABIERTA ? t('filmmakerDocumentos.errClosed') : !selectorDisponible() ? t('filmmakerDocumentos.errUpdateApp') : '';
-  const estado = doc.estado;
-  const sub = !viva ? motivo
-    : estado === 'subiendo' ? t('filmmakerDocumentos.uploading')
-    : estado === 'cotizado' ? t('filmmakerDocumentos.price', { credits: doc.cotizacion?.credits ?? 0 })
-    : estado === 'leyendo' ? t('filmmakerDocumentos.reading')
-    : estado === 'listo' ? t('filmmakerDocumentos.done')
-    : estado === 'error' && doc.errorClave ? t(doc.errorClave)
-    : t('filmmakerDocumentos.rowHint');
-  const alPulsar = estado === 'cotizado' ? () => { void doc.confirmar(); } : () => { void doc.seleccionar(); };
-  const accion = estado === 'cotizado' ? t('filmmakerDocumentos.confirm') : estado === 'error' ? t('filmmakerDocumentos.retry') : t('filmmakerDocumentos.pick');
-  const ocupado = estado === 'subiendo' || estado === 'leyendo';
-  return (
-    <TouchableOpacity onPress={alPulsar} disabled={!viva || ocupado || estado === 'listo'} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmakerDocumentos.rowTitle'), sub)} accessibilityState={{ disabled: !viva }} style={[styles.fila, dir.contenedor, !viva && styles.cerrada]}>
-      <View style={styles.icono}><IconoWee name="texto" size={scale(22)} color={viva ? P.tinta : P.tintaSecundaria} /></View>
-      <View style={styles.textos}>
-        <Text style={[textoPortada(16, '600'), dir.texto, { color: viva ? P.tinta : P.tintaSecundaria }]} numberOfLines={1}>{t('filmmakerDocumentos.rowTitle')}</Text>
-        <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={3} accessibilityLiveRegion="polite">{sub}</Text>
-      </View>
-      {viva && !ocupado && estado !== 'listo' ? <Text style={[textoPortada(13, '600'), { color: P.tinta }]}>{accion}</Text> : null}
-    </TouchableOpacity>
-  );
-};
+const Destino: React.FC<{ icono: NombreDeIcono; etiqueta: string; onPress: () => void; apagado?: boolean; ocupado?: boolean; ancho: 'mitad' | 'tercio' }> = ({ icono, etiqueta, onPress, apagado, ocupado, ancho }) => (
+  <TouchableOpacity onPress={onPress} disabled={ocupado} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiqueta} accessibilityState={{ disabled: !!apagado || !!ocupado }} style={[styles.destino, ancho === 'mitad' ? styles.mitad : styles.tercio, apagado && styles.apagado]}>
+    <IconoWee name={icono} size={scale(26)} color={apagado ? P.tintaDeshabilitada : P.tinta} />
+    <Text style={[textoPortada(13, '500'), { color: apagado ? P.tintaDeshabilitada : P.tinta }]} numberOfLines={2}>{etiqueta}</Text>
+  </TouchableOpacity>
+);
 
-/**
- * LA HOJA DEL «+» DE FILMMAKER (2026-11-17): qué se puede añadir a lo que se escribe. «Pegar texto» —pega o escribe un guion o unas notas largas (hasta
- * 12 000 caracteres) y lo lleva a la caja— es la única fila viva; lo que aún no existe se dice en una línea al pie (no se simula nada). Escape la cierra en la web.
- */
-export const HojaDeAdjuntos: React.FC<{ visible: boolean; onClose: () => void; onUsarTexto: (texto: string) => void; onImagen: (rol: RolDeReferencia) => void; onDesdeCreaciones: () => void }> = ({ visible, onClose, onUsarTexto, onImagen, onDesdeCreaciones }) => {
+export const HojaDeAdjuntos: React.FC<{ visible: boolean; onClose: () => void; onUsarTexto: (texto: string) => void; onImagen: () => void; onDesdeCreaciones: () => void }> = ({ visible, onClose, onUsarTexto, onImagen, onDesdeCreaciones }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
   const insets = useSafeAreaInsets();
   const [vista, setVista] = useState<'menu' | 'pegar'>('menu');
   const [texto, setTexto] = useState('');
+  const doc = useDocumentoDeReferencia();
   useEffect(() => { if (!visible) { setVista('menu'); setTexto(''); } }, [visible]);
   useCerrarConEscape(visible, onClose);
   const hay = texto.trim().length > 0;
-  /* Cada fila hace lo suyo: las de imagen abren la galería (y la hoja se cierra mientras se elige), «Pegar texto» cambia de vista y «Mis proyectos» abre su selector. */
+  const viva = LECTURA_DE_DOCUMENTOS_ABIERTA && selectorDisponible();
+  const estadoDoc = doc.estado;
+  const ocupado = estadoDoc === 'subiendo' || estadoDoc === 'leyendo';
+  /* La línea de ayuda es UNA: el estado del documento si hay uno en curso, el motivo si se tocó «Documento» cerrado, y si no, la regla de siempre. */
+  const linea = viva && estadoDoc === 'subiendo' ? t('filmmakerDocumentos.uploading')
+    : viva && estadoDoc === 'cotizado' ? t('filmmakerDocumentos.price', { credits: doc.cotizacion?.credits ?? 0 })
+    : viva && estadoDoc === 'leyendo' ? t('filmmakerDocumentos.reading')
+    : viva && estadoDoc === 'listo' ? t('filmmakerDocumentos.done')
+    : viva && estadoDoc === 'error' && doc.errorClave ? t(doc.errorClave)
+    : t('filmmaker.attachHint');
+  const alDocumento = () => {
+    if (estadoDoc === 'cotizado') { void doc.confirmar(); return; }
+    if (estadoDoc !== 'listo') void doc.seleccionar();
+  };
+  /* Cada destino hace lo suyo: «Imagen» abre la galería (la hoja se cierra mientras se elige), «Texto» cambia de vista y «Mis proyectos» abre su selector. */
   const alPulsar = (id: string) => {
     if (id === 'paste') { setVista('pegar'); return; }
     onClose();
-    if (id === 'projects') onDesdeCreaciones(); else onImagen(id as RolDeReferencia);
+    if (id === 'projects') onDesdeCreaciones(); else onImagen();
   };
 
   return (
@@ -75,20 +63,15 @@ export const HojaDeAdjuntos: React.FC<{ visible: boolean; onClose: () => void; o
       <View style={[styles.hoja, { paddingBottom: Math.max(insets.bottom, 12) + 8, maxHeight: '86%' }]} accessibilityViewIsModal>
         <View style={styles.asa} />
         {vista === 'menu' ? (
-          <ScrollView contentContainerStyle={styles.filas} keyboardShouldPersistTaps="handled">
-            <Text style={[textoPortada(18, '600'), dir.texto, { color: P.tinta, paddingBottom: 4 }]} accessibilityRole="header">{t('filmmaker.attachTitle')}</Text>
-            {ADJUNTOS.map((a) => (
-              <TouchableOpacity key={a.id} onPress={() => alPulsar(a.id)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t(a.clave), t(a.claveSub))} style={[styles.fila, dir.contenedor]}>
-                <View style={styles.icono}><IconoWee name={a.icono} size={scale(22)} color={P.tinta} /></View>
-                <View style={styles.textos}>
-                  <Text style={[textoPortada(16, '600'), dir.texto, { color: P.tinta }]} numberOfLines={1}>{t(a.clave)}</Text>
-                  <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={3}>{t(a.claveSub)}</Text>
-                </View>
-                <IconoDireccional name="chevron-forward" size={scale(18)} color={P.tintaSecundaria} />
-              </TouchableOpacity>
-            ))}
-            <FilaDeDocumento />
-          </ScrollView>
+          <View>
+            <Text style={[textoPortada(16, '600'), dir.texto, { color: P.tinta, paddingBottom: 10 }]} accessibilityRole="header">{t('filmmaker.attachTitle')}</Text>
+            <View style={[styles.rejilla, dir.contenedor]}>
+              {ADJUNTOS.map((a) => <Destino key={a.id} ancho={viva ? 'mitad' : 'tercio'} icono={a.icono} etiqueta={t(a.clave)} onPress={() => alPulsar(a.id)} />)}
+              {viva ? <Destino ancho="mitad" icono="documento" etiqueta={t('filmmaker.attachDocument')} onPress={alDocumento} ocupado={ocupado} /> : null}
+            </View>
+            <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria, paddingTop: 12 }]} accessibilityLiveRegion="polite">{linea}</Text>
+            {!viva ? <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaDeshabilitada, paddingTop: 4 }]}>{!LECTURA_DE_DOCUMENTOS_ABIERTA ? t('filmmakerDocumentos.errClosed') : t('filmmakerDocumentos.errUpdateApp')}</Text> : null}
+          </View>
         ) : (
           <View style={styles.pegar}>
             <View style={[styles.titulo, dir.contenedor]}>
@@ -138,11 +121,11 @@ const styles = StyleSheet.create({
   velo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' },
   hoja: { backgroundColor: P.superficie, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderColor: P.bordeLuz, borderWidth: 1, borderBottomWidth: 0, paddingHorizontal: 16, paddingTop: 8 },
   asa: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: P.bordeLuz, marginBottom: 10 },
-  filas: { gap: 8, paddingBottom: 4 },
-  fila: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 64, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, borderWidth: 1, borderColor: P.bordeLuz, backgroundColor: P.fondo },
-  cerrada: { opacity: 0.7, borderStyle: 'dashed' },
-  icono: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: P.superficie },
-  textos: { flex: 1, gap: 2 },
+  rejilla: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  destino: { minHeight: 64, minWidth: 44, borderRadius: 18, borderWidth: 1, borderColor: P.bordeLuz, backgroundColor: P.fondo, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 8 },
+  mitad: { flexBasis: '48%', flexGrow: 1, flexDirection: 'row', gap: 12 },
+  tercio: { flex: 1, flexDirection: 'column', gap: 6, minHeight: 80 },
+  apagado: { opacity: 0.45, borderStyle: 'dashed' },
   titulo: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 },
   atras: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   pegar: { flexShrink: 1 },

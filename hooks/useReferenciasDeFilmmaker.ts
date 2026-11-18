@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
 import { uploadCreatorImage } from '../services/creatorUploads';
-import { ReferenciaDeIdea, RolDeReferencia, agregar, hayCupo, marcar, quitar as sinReferencia } from '../utils/referenciasDeFilmmaker';
+import { ReferenciaDeIdea, RolDeReferencia, agregar, cambiarRol as conRol, hayCupo, marcar, quitar as sinReferencia, rolPorDefecto } from '../utils/referenciasDeFilmmaker';
 
 /** Lo que `uploadCreatorImage` lanza, en una clave de i18n que la persona entiende. */
 const claveDelFallo = (e: unknown): string => (e instanceof Error && e.message === 'foto-demasiado-grande' ? 'filmmaker.refTooBig' : 'filmmaker.refError');
@@ -31,8 +31,8 @@ export function useReferenciasDeFilmmaker() {
     }
   }, [user]);
 
-  /** Abre la galería del dispositivo y sube lo elegido con el rol dado. */
-  const elegirDelDispositivo = useCallback(async (rol: RolDeReferencia) => {
+  /** Abre la galería del dispositivo y sube lo elegido; entra con el rol por defecto (Personaje si aún no hay ninguno) y se cambia después. */
+  const elegirDelDispositivo = useCallback(async () => {
     setAviso(null);
     if (!hayCupo(referencias)) return;
     try {
@@ -44,7 +44,7 @@ export function useReferenciasDeFilmmaker() {
       const uri = !r.canceled ? r.assets[0]?.uri : undefined;
       if (!uri) return;
       const id = siguienteId();
-      setReferencias((x) => agregar(x, { id, rol, uri, estado: 'subiendo', origen: 'subida' }));
+      setReferencias((x) => agregar(x, { id, rol: rolPorDefecto(x), uri, estado: 'subiendo', origen: 'subida' }));
       void subir(id, uri);
     } catch {
       setAviso('filmmaker.refError');
@@ -52,9 +52,9 @@ export function useReferenciasDeFilmmaker() {
   }, [referencias, subir]);
 
   /** Una creación que ya está en Weë: entra lista, sin subir otra vez. */
-  const usarCreacion = useCallback((rol: RolDeReferencia, url: string) => {
+  const usarCreacion = useCallback((url: string) => {
     setAviso(null);
-    setReferencias((x) => agregar(x, { id: siguienteId(), rol, uri: url, url, estado: 'lista', origen: 'creaciones' }));
+    setReferencias((x) => agregar(x, { id: siguienteId(), rol: rolPorDefecto(x), uri: url, url, estado: 'lista', origen: 'creaciones' }));
   }, []);
 
   const reintentar = useCallback((id: string) => {
@@ -65,6 +65,7 @@ export function useReferenciasDeFilmmaker() {
     void subir(id, una.uri);
   }, [referencias, subir]);
 
+  const cambiarRol = useCallback((id: string, rol: RolDeReferencia) => setReferencias((x) => conRol(x, id, rol)), []);
   const quitar = useCallback((id: string) => setReferencias((x) => sinReferencia(x, id)), []);
-  return { referencias, aviso, elegirDelDispositivo, usarCreacion, reintentar, quitar };
+  return { referencias, aviso, elegirDelDispositivo, usarCreacion, reintentar, quitar, cambiarRol };
 }
