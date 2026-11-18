@@ -94,7 +94,7 @@ export const crearOrquestacion = (servicio: Pick<FilmmakerService, 'createProduc
     /* El modelo preferido, las variantes y la semilla viajan con `change_generation` solo si cambiaron (null quita). */
     const antes = guardada.production.generation as unknown as Record<string, unknown>;
     const ahora = production.generation as unknown as Record<string, unknown>;
-    const campos = ['preferredModel', 'variants', 'consistencySeed'] as const;
+    const campos = ['preferredModel', 'variants', 'consistencySeed', 'quality'] as const;
     const generacion: FilmmakerOperation[] = campos.some((k) => (antes?.[k] ?? null) !== (ahora?.[k] ?? null))
       ? [{ op: 'change_generation', target: { scope: 'production' }, ...Object.fromEntries(campos.filter((k) => (antes?.[k] ?? null) !== (ahora?.[k] ?? null)).map((k) => [k, ahora?.[k] ?? null])) } as unknown as FilmmakerOperation]
       : [];

@@ -77,7 +77,7 @@ export interface ExperienciaDeFilmmaker {
   readonly resolution?: ResolutionTarget;
   readonly preset?: FormatPresetId;
   /** Modelo preferido, variantes y semilla de consistencia (panel de especificaciones): van a `production.generation`. */
-  readonly preferencias?: { readonly preferredModel?: string; readonly variants?: number; readonly consistencySeed?: number };
+  readonly preferencias?: { readonly preferredModel?: string; readonly variants?: number; readonly consistencySeed?: number; readonly quality?: 'standard' | 'high' | 'max' };
   readonly universo?: UniversoDelTaller;
   readonly tandas?: TandasDelTaller;
   /** El personaje que habla en pantalla: `dialogue` (a cámara, hoy NO se puede producir: contrato 6) o `voiceover` (voz en off, sí). Por defecto `dialogue`: es lo que la persona escribió. */

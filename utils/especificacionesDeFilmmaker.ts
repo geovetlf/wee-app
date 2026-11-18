@@ -45,13 +45,22 @@ export const elegirModelo = (idea: IdeaDelTaller, id: string): IdeaDelTaller => 
   const modelo = id === MODELO_AUTO ? null : modeloPorId(id) ?? null;
   if (modelo && !esElegible(modelo)) return idea;
   let siguiente = poner(idea, 'model', modelo ? modelo.id : '');
+  if (modelo) siguiente = poner(siguiente, 'quality', '');
   const o = opcionesDe(modelo);
   if (siguiente.valores.format && !o.formatos.includes(siguiente.valores.format)) siguiente = poner(siguiente, 'format', '');
   if (siguiente.valores.resolution && !o.resoluciones.includes(siguiente.valores.resolution)) siguiente = poner(siguiente, 'resolution', '');
   return siguiente;
 };
 
-export interface PreferenciasDeGeneracion { readonly preferredModel?: string; readonly variants?: number; readonly consistencySeed?: number }
+export type CalidadDeProduccion = 'standard' | 'high' | 'max';
+export interface PreferenciasDeGeneracion { readonly preferredModel?: string; readonly variants?: number; readonly consistencySeed?: number; readonly quality?: CalidadDeProduccion }
+
+/** La calidad elegida (Rápida/Equilibrada/Máxima = standard/high/max). Solo cuenta con «Auto»: con un modelo elegido, el modelo ya fija la calidad. */
+export const calidadDe = (idea: IdeaDelTaller): CalidadDeProduccion | null => {
+  if (modeloDeLaIdea(idea)) return null;
+  const q = idea.valores.quality;
+  return q === 'standard' || q === 'high' || q === 'max' ? q : null;
+};
 
 /** Variantes guardadas (1–4; 1 = una sola, lo de siempre). */
 export const variantesDe = (idea: IdeaDelTaller): number => { const n = Math.trunc(Number(idea.valores.variants)); return n >= 1 && n <= 4 ? n : 1; };
@@ -64,8 +73,8 @@ export const semillaDe = (idea: IdeaDelTaller): number | null => {
 };
 /** Lo que se guarda en la generación del proyecto: el modelo por su id oficial, `variants` y la semilla como `consistencySeed` (en el dominio `seed` es clave prohibida). Solo lo elegido. */
 export const preferenciasDeLaIdea = (idea: IdeaDelTaller): PreferenciasDeGeneracion => {
-  const m = modeloDeLaIdea(idea); const v = variantesDe(idea); const s = semillaDe(idea);
-  return { ...(m?.idServidor ? { preferredModel: m.idServidor } : {}), ...(v > 1 ? { variants: v } : {}), ...(s !== null ? { consistencySeed: s } : {}) };
+  const m = modeloDeLaIdea(idea); const v = variantesDe(idea); const s = semillaDe(idea); const q = calidadDe(idea);
+  return { ...(q ? { quality: q } : {}), ...(m?.idServidor ? { preferredModel: m.idServidor } : {}), ...(v > 1 ? { variants: v } : {}), ...(s !== null ? { consistencySeed: s } : {}) };
 };
 
 /** Lo elegido, listo para pintar el resumen (vacío = Auto). */

@@ -23,7 +23,7 @@ import { ReferenciasAdjuntas } from '../components/filmmaker/ReferenciasAdjuntas
 import { useReferenciasDeFilmmaker } from '../hooks/useReferenciasDeFilmmaker';
 import { personajes, listas, subiendo } from '../utils/referenciasDeFilmmaker';
 import { HojaDeProyecto } from '../components/filmmaker/HojaDeProyecto';
-import { ResumenDeEspecificaciones } from '../components/filmmaker/PanelDeEspecificaciones';
+import { ResumenDeEspecificaciones, FocoDeEspecificaciones } from '../components/filmmaker/PanelDeEspecificaciones';
 import { preferenciasDeLaIdea } from '../utils/especificacionesDeFilmmaker';
 import { BarraDeEtapas } from '../components/filmmaker/BarraDeEtapas';
 import { UniversoDeFilmmaker } from '../components/filmmaker/UniversoDeFilmmaker';
@@ -93,6 +93,7 @@ const FilmmakerCrearScreen: React.FC = () => {
   const [seccion, setSeccion] = useState<TipoDeElemento>('character');
   const [tandas, setTandas] = useState<TandasDelTaller>(() => tandasVacias());
   const [proyecto, setProyecto] = useState(false);
+  const [foco, setFoco] = useState<FocoDeEspecificaciones | null>(null);
   const [fichaId, setFichaId] = useState<string | null>(null);
   const [produccionId, setProduccionId] = useState<string | null>(null);
   const [tipoId, setTipoId] = useState<TipoDeTaller | null>(null);
@@ -141,7 +142,7 @@ const FilmmakerCrearScreen: React.FC = () => {
     }, 1200);
     return () => clearTimeout(espera);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tandas, universo, idProduccionGuardada, idea.valores.model, idea.valores.variants, idea.valores.seed]);
+  }, [tandas, universo, idProduccionGuardada, idea.valores.model, idea.valores.variants, idea.valores.seed, idea.valores.quality]);
   /* Lo que no se pudo guardar se dice en una línea; la voz elegida, que hoy solo vive en esta pantalla, también (una vez). */
   useEffect(() => {
     if (!enTandas) return;
@@ -352,7 +353,7 @@ const FilmmakerCrearScreen: React.FC = () => {
         </View>
 
         {/* Las etapas solo aparecen cuando sirven (después de la Idea) y solo las que existen: nunca bloqueadas. */}
-        {enEtapas ? <BarraDeEtapas activa={enJuntar ? 'join' : enProduccion ? 'production' : enTandas ? 'batches' : 'universe'} onIr={irA} onProyecto={() => setProyecto(true)} /> : null}
+        {enEtapas ? <BarraDeEtapas activa={enJuntar ? 'join' : enProduccion ? 'production' : enTandas ? 'batches' : 'universe'} onIr={irA} onProyecto={() => { setFoco(null); setProyecto(true); }} /> : null}
 
         {/* EL MUNDO de encima de la caja: las tarjetas de tipo, o el hilo del taller de Idea. */}
         <View style={styles.mundo} onLayout={(e: LayoutChangeEvent) => { const h = Math.round(e.nativeEvent.layout.height); setAltoMundo((a) => (Math.abs(a - h) > 1 ? h : a)); }}>
@@ -367,7 +368,7 @@ const FilmmakerCrearScreen: React.FC = () => {
           ) : enUniverso ? (
             <UniversoDeFilmmaker universo={universo} ancho={Math.min(ancho, 1040)} compacto={compacto} seccion={seccion} onSeccion={setSeccion} onAbrir={(e) => setFichaId(e.id)} onAprobar={() => setUniverso(aprobar)} onEjemplo={() => setUniverso((u) => anadirEjemplos(u, EJEMPLO_DEL_UNIVERSO.map((x) => ({ tipo: x.tipo, nombre: x.nombre, linea: t(x.claveLinea), grupo: x.grupo, voz: x.voz }))))} onQuitarEjemplo={() => setUniverso(quitarEjemplos)} onContinuar={() => { setAviso(null); setCapa('tandas'); }} onAviso={(clave) => setAviso(t(clave))} imagenes={imagenes} peticionDeImagenes={peticionDeUniverso(universo, { estilo, tipo: tipoId ?? undefined, referencia: (personajes(refs.referencias)[0] ?? listas(refs.referencias)[0])?.url ?? null, aspecto: aspectoDeLaIdea(idea) })} />
           ) : enIdea ? (
-            <TallerDeIdea tipo={idea.tipo} estado={estadoDelTaller} compacto={alto < 600} especificaciones={<ResumenDeEspecificaciones idea={idea} compacto={altoMundo > 0 && altoMundo < 340} onAbrir={() => setProyecto(true)} />} />
+            <TallerDeIdea tipo={idea.tipo} estado={estadoDelTaller} compacto={alto < 600} especificaciones={<ResumenDeEspecificaciones idea={idea} compacto={altoMundo > 0 && altoMundo < 340} onAbrir={(f) => { setFoco(f ?? null); setProyecto(true); }} />} />
           ) : conScroll ? <ScrollView style={styles.lista} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">{entrada}</ScrollView> : entrada}
         </View>
 
@@ -410,7 +411,7 @@ const FilmmakerCrearScreen: React.FC = () => {
         </View>
 
         <HojaDeTrabajo visible={hoja} onClose={() => setHoja(false)} onAbrirProduccion={(id) => navigation.navigate('Production', { productionId: id })} onAbrirCreaciones={() => navigation.navigate('MisCreaciones')} />
-        <HojaDeProyecto visible={proyecto} onClose={() => setProyecto(false)} idea={idea} onIdea={setIdea} />
+        <HojaDeProyecto visible={proyecto} onClose={() => setProyecto(false)} idea={idea} onIdea={setIdea} foco={foco} />
         <FichaDeElemento elemento={universo.elementos.find((e) => e.id === fichaId) ?? null} onClose={() => setFichaId(null)} onGuardar={(id, c) => setUniverso((u) => editar(u, id, c))} onQuitar={(id) => setUniverso((u) => quitar(u, id))} />
         <HojaDeAdjuntos visible={adjuntos} onClose={() => setAdjuntos(false)} onUsarTexto={usarTextoPegado} onImagen={() => { void refs.elegirDelDispositivo(); }} onDesdeCreaciones={() => setCreaciones(true)} />
         <HojaDeCreaciones visible={creaciones} onClose={() => setCreaciones(false)} onElegir={refs.usarCreacion} />

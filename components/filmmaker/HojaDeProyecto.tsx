@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useT } from '../../contexts/IdiomaContext';
@@ -6,26 +6,34 @@ import { useDireccion } from '../../hooks/useDireccion';
 import { PORTADA_WEEAI as P, textoPortada } from '../../constants/estiloWeeAi';
 import { useCerrarConEscape } from '../../hooks/useCerrarConEscape';
 import { IdeaDelTaller } from '../../utils/ideaDeFilmmaker';
-import { ContenidoDeEspecificaciones } from './PanelDeEspecificaciones';
+import { ContenidoDeEspecificaciones, FocoDeEspecificaciones } from './PanelDeEspecificaciones';
 
 /**
  * LA HOJA «PROYECTO» (hoja única, a un toque desde la barra de etapas y desde el resumen de la Idea): las especificaciones de toda la obra en un solo sitio —modelo,
  * formato, resolución, duración y sonido—. El estilo no se cambia aquí: se elige en su capa y se cambia desde la píldora. El antiguo «Avanzado» vive ahora en
  * `PanelDeEspecificaciones`: Weë propone lo técnico (Auto) y la persona fija lo que quiera, solo con lo que el modelo elegido admite. Cambia la idea; no crea nada.
  */
-export const HojaDeProyecto: React.FC<{ visible: boolean; onClose: () => void; idea: IdeaDelTaller; onIdea: (i: IdeaDelTaller) => void }> = ({ visible, onClose, idea, onIdea }) => {
+export const HojaDeProyecto: React.FC<{ visible: boolean; onClose: () => void; idea: IdeaDelTaller; onIdea: (i: IdeaDelTaller) => void; foco?: FocoDeEspecificaciones | null }> = ({ visible, onClose, idea, onIdea, foco }) => {
   const t = useT();
   const dir = useDireccion();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   useCerrarConEscape(visible, onClose);
+  const lista = useRef<ScrollView>(null);
+  const posiciones = useRef<Record<string, number>>({});
+  /* Abierta desde una celda de la tarjeta: la hoja baja hasta SU control (cuando ya están medidos). */
+  useEffect(() => {
+    if (!visible || !foco) return;
+    const espera = setTimeout(() => { const y = posiciones.current[foco]; if (y !== undefined) lista.current?.scrollTo({ y: Math.max(0, y - 8), animated: false }); }, 150);
+    return () => clearTimeout(espera);
+  }, [visible, foco]);
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={styles.velo} onPress={onClose} accessibilityRole="button" accessibilityLabel={t('common.close')} />
       <View style={[styles.hoja, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal>
         <View style={styles.asa} />
-        <ScrollView style={{ maxHeight: Math.max(240, height * 0.62) }} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <ContenidoDeEspecificaciones idea={idea} onIdea={onIdea} />
+        <ScrollView ref={lista} style={{ maxHeight: Math.max(240, height * 0.62) }} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ContenidoDeEspecificaciones idea={idea} onIdea={onIdea} onPosicion={(id, y) => { posiciones.current[id] = y; }} />
         </ScrollView>
         <TouchableOpacity onPress={onClose} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={t('filmmaker.ideaFieldDone')} style={styles.listo}>
           <Text style={[textoPortada(15, '600'), { color: P.sobreAccion }]}>{t('filmmaker.ideaFieldDone')}</Text>

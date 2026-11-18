@@ -68,6 +68,7 @@ export const RejillaDeModelos: React.FC<Props> = ({ valor, onElegir, onVolver })
           </TouchableOpacity>
         ))}
       </View>
+      <View style={styles.marco}>
       <ScrollView style={styles.lista} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {tipo === 'video' ? (
           <View style={styles.grupo}>
@@ -89,6 +90,8 @@ export const RejillaDeModelos: React.FC<Props> = ({ valor, onElegir, onVolver })
         ))}
         {grupos.length === 0 ? <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerSpecs.noResults')}</Text> : null}
       </ScrollView>
+      <View pointerEvents="none" style={styles.fundido}>{[0.1, 0.25, 0.45, 0.65, 0.82, 0.95].map((a) => <View key={a} style={{ height: 4, backgroundColor: P.superficie, opacity: a }} />)}</View>
+      </View>
       <View style={styles.motivo} accessibilityLiveRegion="polite">{motivo ? <Text style={[textoPortada(13, '500'), dir.texto, { color: P.tinta }]}>{motivo}</Text> : null}</View>
     </View>
   );
@@ -100,6 +103,8 @@ const styles = StyleSheet.create({
   volver: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   fila: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'stretch', gap: 8 },
   filtro: { minHeight: 44, paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.bordeCapsula, backgroundColor: P.fondo, alignItems: 'center', justifyContent: 'center' },
+  marco: { position: 'relative' },
+  fundido: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 24 },
   lista: { maxHeight: 340 },
   contenido: { gap: 16, paddingBottom: 4 },
   grupo: { gap: 8 },

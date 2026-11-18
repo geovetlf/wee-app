@@ -76,7 +76,16 @@ check('D3) semilla inválida (letras, fuera de rango) o variantes fuera de 1–4
 const orq = leer('services/filmmakerOrquestacionService.ts');
 check('D4) sincronizar manda change_generation solo de lo que cambió (null quita)', /change_generation/.test(orq) && /preferredModel', 'variants', 'consistencySeed/.test(orq));
 check('D5) la pantalla y la experiencia llevan las preferencias a production.generation', /preferencias: preferenciasDeLaIdea\(base\)/.test(leer('screens/FilmmakerCrearScreen.tsx')) && /generation: \{ \.\.\.prod\.generation, \.\.\.e\.preferencias \}/.test(leer('utils/filmmakerOrquestacion.ts')));
-check('D6) la semilla solo se abre si el servidor dice «si» (cerrada sin respuesta)', /semilla: m\.options\?\.semilla === 'si'/.test(leer('hooks/useCapacidadesDeVideo.ts')) && /editable=\{servidor\.semilla\}/.test(fuentes[0]));
+check('D6) la semilla solo se abre si el servidor dice «si» (cerrada sin respuesta)', /semilla: m\.options\?\.semilla === 'si'/.test(leer('hooks/useCapacidadesDeVideo.ts')) && /disabled=\{!servidor\.semilla\}/.test(fuentes[0]));
+
+check('D7) la calidad solo cuenta con Auto y viaja como quality (standard/high/max); con modelo elegido se limpia', (() => {
+  let q = I.poner(I.ideaVacia('film'), 'quality', 'max');
+  const a = U.preferenciasDeLaIdea(q).quality === 'max';
+  const b = U.preferenciasDeLaIdea(U.elegirModelo(q, 'seedance-2-0-fast')).quality === undefined && U.elegirModelo(q, 'seedance-2-0-fast').valores.quality === undefined;
+  return a && b && U.calidadDe(I.poner(I.ideaVacia('film'), 'quality', 'x')) === null;
+})());
+check('D8) variantes cerradas (sin acción) hasta que el servidor multiplique tomas; calidad con modelo cerrada', /cerrada\(`v\$\{n\}`/.test(fuentes[0]) && /cerrada\('qfijo'/.test(fuentes[0]));
+check('D9) cada celda de la tarjeta abre la hoja en su control (foco) y la rejilla lleva fundido', /onAbrir\('model'\)/.test(fuentes[0]) && /scrollTo/.test(leer('components/filmmaker/HojaDeProyecto.tsx')) && /fundido/.test(fuentes[1]));
 
 console.log(failures ? `\n${failures} FALLOS de ${n}` : `\n${n}/${n} OK`);
 process.exit(failures ? 1 : 0);
