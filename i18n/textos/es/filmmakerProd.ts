@@ -15,4 +15,5 @@ export const filmmakerProd = {
   joinEmpty: 'Aún no hay cuadros que juntar.',
   joinClosed: 'Pronto: Weë juntará tus cuadros en un solo video.',
   joinAction: 'Juntar mi película',
+  d1Reason: 'El modelo de video actual aún no acepta referencias, fotogramas, extender ni editar.',
 };

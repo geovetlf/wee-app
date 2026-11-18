@@ -16,4 +16,5 @@ export const filmmakerProd = {
   joinEmpty: 'There are no frames to join yet.',
   joinClosed: 'Coming soon: Weë will join your frames into a single video.',
   joinAction: 'Join my film',
+  d1Reason: 'The current video model does not accept references, frames, extend or edit yet.',
 };

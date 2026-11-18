@@ -221,7 +221,7 @@ export const FichaDelCuadro: React.FC<Props> = ({ cuadro, numero, inicio, fin, e
                       </TouchableOpacity>
                     ))}
                   </View>
-                ) : <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.moreSoon', { lista: formato.lista([...EFECTOS_CERRADOS, ...ACCIONES_D1].map((x) => t(x.clave))) })}</Text>}
+                ) : <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.moreSoon', { lista: formato.lista([...EFECTOS_CERRADOS, ...ACCIONES_D1].map((x) => t(x.clave))) })} {t('filmmakerProd.d1Reason')}</Text>}
                 <View style={[E.fila, dir.contenedor]}>
                   <BotonContorno texto={t('filmmakerTandas.frameMoveBefore')} icono={dir.esRTL ? 'arrow-forward' : 'arrow-back'} apagado={esPrimero} onPress={accion(() => onMover(cuadro.id, -1))} />
                   <BotonContorno texto={t('filmmakerTandas.frameMoveAfter')} icono={dir.esRTL ? 'arrow-back' : 'arrow-forward'} apagado={esUltimo} onPress={accion(() => onMover(cuadro.id, 1))} />
