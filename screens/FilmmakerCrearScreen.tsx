@@ -443,7 +443,7 @@ const FilmmakerCrearScreen: React.FC = () => {
           ) : enJuntar ? (
             <JuntarDeFilmmaker tandas={tandas} demo={enDemo} />
           ) : enProduccion ? (
-            <ProduccionDeFilmmaker tandas={tandas} guardada={pf.guardada} guardando={pf.carga !== 'libre'} demo={enDemo} onJuntar={() => { setAviso(null); setCapa('juntar'); }} onIrACapitulos={() => setCapa('tandas')} />
+            <ProduccionDeFilmmaker tandas={tandas} guardada={pf.guardada} guardando={pf.carga !== 'libre'} demo={enDemo} calidadDelProyecto={preferenciasDeLaIdea(idea).quality as 'standard' | 'high' | 'max' | undefined} onJuntar={() => { setAviso(null); setCapa('juntar'); }} onIrACapitulos={() => setCapa('tandas')} />
           ) : enTandas ? (
             <TandasYStoryboard ancho={Math.min(ancho, 1040)} compacto={compacto} personajes={universo.elementos.filter((e) => e.tipo === 'character').map((e) => ({ id: e.id, nombre: e.nombre, voz: e.voz }))} duracionTotalSeg={duracionDe(idea)} valor={tandas} onCambio={setTandas} onAviso={setAviso} onProducir={() => { setAviso(null); setCapa('produccion'); }} pedirCambio={director.disponible && (!!idProduccionGuardada || enDemo) ? { version: versionDelDirector, enviar: (texto, seleccion) => { void director.enviar(texto, { etapa: 'cuadro', seleccion, productionId: idProduccionGuardada ?? undefined }); }, contenido: <BurbujaDelDirector burbuja={director.burbuja} propuesta={director.propuesta} aviso={director.aviso} estado={director.estado} aplicada={director.aplicada} onAprobar={() => { void director.aprobar(); }} onDescartar={director.descartar} compacta obsoleta={director.obsoleta} onRehacer={() => { void director.rehacer(); }} /> } : undefined} />
           ) : enUniverso ? (

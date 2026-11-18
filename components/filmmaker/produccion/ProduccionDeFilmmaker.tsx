@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useT, useIdioma } from '../../../contexts/IdiomaContext';
@@ -26,19 +26,23 @@ interface Props {
   /** Vista previa local (solo desarrollo): «Producir» marca el capítulo como producido en pantalla; no genera ni cobra nada. */
   demo?: boolean;
   onIrACapitulos: () => void;
+  /** La calidad fijada en el panel de ajustes del proyecto: cada toma y cada lote ARRANCAN con ella (la persona puede cambiarla). Sin ella, se elige. */
+  calidadDelProyecto?: CalidadDeToma;
 }
 
 /** Los cuadros que de verdad viajan al servidor (con texto y que no son de muestra): los que se pueden producir. */
 const reales = (t: Tanda): readonly CuadroDeStoryboard[] => t.cuadros.filter((c) => !c.ejemplo && c.texto.trim().length > 0);
 
 /** UN CUADRO, SU TOMA. Pinta lo que dice la toma del servidor (precio, calidad, progreso, vídeo) y nada más: no calcula nada ni cobra por su cuenta. */
-const FilaDeToma: React.FC<{ cuadro: CuadroDeStoryboard; numero: number; escenaId: string; guardada: ProduccionGuardada | null; guardando: boolean; onCambio: () => void }> = ({ cuadro, numero, escenaId, guardada, guardando, onCambio }) => {
+const FilaDeToma: React.FC<{ cuadro: CuadroDeStoryboard; numero: number; escenaId: string; guardada: ProduccionGuardada | null; guardando: boolean; onCambio: () => void; calidadInicial?: CalidadDeToma }> = ({ cuadro, numero, escenaId, guardada, guardando, onCambio, calidadInicial }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
   const seleccion = useMemo(() => ({ tipo: 'plano' as const, id: idDePlano(cuadro.id) }), [cuadro.id]);
   const toma = useTomaDePlano(guardada, guardando, seleccion);
   const { fase, calidad, enElPlano, ultima } = toma;
+  /* Arranca con la calidad del proyecto (la del panel de ajustes), no con una propia. */
+  useEffect(() => { if (calidadInicial && !calidad && fase.fase === 'elige_calidad') toma.elegirCalidad(calidadInicial); }, [calidadInicial, calidad, fase.fase]); // eslint-disable-line react-hooks/exhaustive-deps
   const nota = (texto: string, fuerte = false) => <Text style={[textoPortada(12, fuerte ? '600' : '400'), dir.texto, { color: fuerte ? P.tinta : P.tintaSecundaria }]}>{texto}</Text>;
   const boton = (texto: string, onPress: () => void, apagado = false) => (
     <TouchableOpacity onPress={onPress} disabled={apagado} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={texto} accessibilityState={{ disabled: apagado }} style={[styles.boton, apagado && { opacity: 0.5 }]}>
@@ -98,11 +102,11 @@ const FilaDeToma: React.FC<{ cuadro: CuadroDeStoryboard; numero: number; escenaI
 };
 
 /** PRODUCIR UN CAPÍTULO ENTERO: calidad → presupuesto (≈ N Credits, qué ya está o no se puede) → confirmar → el servidor pide cada cuadro en orden y para al primer fallo. */
-const BloqueDeLote: React.FC<{ tanda: Tanda; cuadros: readonly CuadroDeStoryboard[]; guardada: ProduccionGuardada | null; guardando: boolean; onCambio: () => void }> = ({ tanda, cuadros, guardada, guardando, onCambio }) => {
+const BloqueDeLote: React.FC<{ tanda: Tanda; cuadros: readonly CuadroDeStoryboard[]; guardada: ProduccionGuardada | null; guardando: boolean; onCambio: () => void; calidadInicial?: CalidadDeToma }> = ({ tanda, cuadros, guardada, guardando, onCambio, calidadInicial }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
-  const [calidad, setCalidad] = useState<CalidadDeToma | null>(null);
+  const [calidad, setCalidad] = useState<CalidadDeToma | null>(calidadInicial ?? null);
   const [fase, setFase] = useState<'libre' | 'cotizando' | 'cotizado' | 'generando' | 'listo'>('libre');
   const [presupuesto, setPresupuesto] = useState<PresupuestoDeLote | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -160,7 +164,7 @@ const BloqueDeLote: React.FC<{ tanda: Tanda; cuadros: readonly CuadroDeStoryboar
  * botón que lo causa y la confirmación de cada uno (es la toma que ya existe en el servidor: cotizar → reservar → generar → enlazar). Mientras la
  * capacidad esté cerrada (`PRODUCCION_ABIERTA`) la pantalla es solo la lista de lo aprobado y UNA línea con el motivo: nada se simula.
  */
-export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guardando, onJuntar, onIrACapitulos, demo = false }) => {
+export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guardando, onJuntar, onIrACapitulos, demo = false, calidadDelProyecto }) => {
   const [hechos, setHechos] = useState<readonly string[]>([]);
   const t = useT();
   const { formato } = useIdioma();
@@ -186,8 +190,8 @@ export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guard
             <View key={tanda.id} style={{ gap: 8 }}>
               <FilaDeCapitulo tanda={tanda} posicion={indice} cuadros={cuadros.length} estado={demo && hechos.includes(tanda.id) ? 'listo' : 'pendiente'} />
               {demo && !hechos.includes(tanda.id) ? <BotonContorno texto={t('filmmakerProd.demoProduce')} icono="play-outline" onPress={() => setHechos((h) => [...h, tanda.id])} testID={'demo-producir-' + tanda.id} /> : null}
-              {PRODUCCION_ABIERTA && !demo ? <BloqueDeLote key={'l' + tanda.id + version} tanda={tanda} cuadros={cuadros} guardada={guardada} guardando={guardando} onCambio={refrescar} /> : null}
-              {PRODUCCION_ABIERTA && !demo ? cuadros.map((c, i) => <FilaDeToma key={c.id + version} cuadro={c} numero={i + 1} escenaId={idDeEscena(tanda.id)} guardada={guardada} guardando={guardando} onCambio={refrescar} />) : null}
+              {PRODUCCION_ABIERTA && !demo ? <BloqueDeLote key={'l' + tanda.id + version} tanda={tanda} cuadros={cuadros} guardada={guardada} guardando={guardando} onCambio={refrescar} calidadInicial={calidadDelProyecto} /> : null}
+              {PRODUCCION_ABIERTA && !demo ? cuadros.map((c, i) => <FilaDeToma key={c.id + version} cuadro={c} numero={i + 1} escenaId={idDeEscena(tanda.id)} guardada={guardada} guardando={guardando} onCambio={refrescar} calidadInicial={calidadDelProyecto} />) : null}
             </View>
           );
         })}
