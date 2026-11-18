@@ -90,9 +90,9 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
         <View style={[styles.cabeza, dir.contenedor]}>
           <Text style={[textoPortada(compacto ? 18 : 22, '600'), dir.texto, { color: P.tinta, flex: 1 }]} accessibilityRole="header" numberOfLines={1}>{t('filmmaker.uniTitle')}</Text>
         </View>
-        <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniCounts', { personajes: formato.numero(n.character), lugares: formato.numero(n.place), objetos: formato.numero(n.object) })}</Text>
+        <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>{[t('filmmakerProd.cntCharacters', { contador: n.character }), t('filmmakerProd.cntPlaces', { contador: n.place }), t('filmmakerProd.cntObjects', { contador: n.object })].join(' · ')}</Text>
 
-        {!universo.elementos.some((e) => !e.ejemplo) ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} testID="universo-construir-cerrado">{t('filmmakerProd.uniBuildClosed')}</Text> : null}
+        {universo.elementos.length === 0 ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} testID="universo-construir-cerrado">{t('filmmakerProd.uniBuildClosed')}</Text> : null}
         {onCambio && pendientes.length > 0 ? (
           <View style={styles.tarjeta} testID="universo-detectados">
             <Text style={[textoPortada(15, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header">{t('filmmaker.uniFoundTitle', { contador: formato.numero(pendientes.length) })}</Text>
@@ -161,7 +161,7 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
         <TouchableOpacity onPress={ejemplos ? onQuitarEjemplo : onEjemplo} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t(ejemplos ? 'filmmaker.uniClearExample' : 'filmmaker.uniLoadExample')} style={styles.ejemplo}>
           <Text style={[textoPortada(14, '600'), { color: P.tinta }]} numberOfLines={2}>{t(ejemplos ? 'filmmaker.uniClearExample' : 'filmmaker.uniLoadExample')}</Text>
         </TouchableOpacity>
-        {imagenes?.abierta && peticionDeImagenes ? <ImagenesDelUniverso imagenes={imagenes} peticion={peticionDeImagenes} /> : !GENERAR_IMAGENES_DEL_UNIVERSO ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniRegenerateClosed')}</Text> : null}
+        {imagenes?.abierta && peticionDeImagenes ? <ImagenesDelUniverso imagenes={imagenes} peticion={peticionDeImagenes} /> : !GENERAR_IMAGENES_DEL_UNIVERSO && puede ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniRegenerateClosed')}</Text> : null}
       </ScrollView>
 
       <View style={styles.pie}>

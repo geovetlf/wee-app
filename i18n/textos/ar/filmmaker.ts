@@ -394,7 +394,6 @@ export const filmmaker: ConPlurales<typeof import('../es/filmmaker').filmmaker> 
   stageOutput: 'الإخراج',
   stageSoon: 'هذه المرحلة تصل في مرحلة قادمة.',
   uniTitle: 'عالم فيلمك',
-  uniCounts: '{{personajes}} شخصيات · {{lugares}} أماكن · {{objetos}} أغراض',
   uniCharacters: 'الشخصيات',
   uniPlaces: 'الأماكن',
   uniObjects: 'الأغراض',

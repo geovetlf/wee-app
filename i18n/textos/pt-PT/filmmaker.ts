@@ -374,7 +374,6 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   stageOutput: 'Output',
   stageSoon: 'This stage arrives in an upcoming phase.',
   uniTitle: 'The universe of your film',
-  uniCounts: '{{personajes}} characters · {{lugares}} places · {{objetos}} objects',
   uniCharacters: 'Characters',
   uniPlaces: 'Places',
   uniObjects: 'Objects',

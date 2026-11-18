@@ -29,4 +29,11 @@ export const filmmakerProd = {
   cancelTake: 'Cancelar',
   joinDaily: 'Puedes juntar hasta {{n}} películas al día.',
   uniBuildClosed: 'Pronto: Weë construirá tu universo a partir de tu idea y tu documento. Por ahora, añade tus personajes.',
+  cntCharacters_one: '{{contador}} personaje',
+  cntCharacters_other: '{{contador}} personajes',
+  cntPlaces_one: '{{contador}} lugar',
+  cntPlaces_other: '{{contador}} lugares',
+  cntObjects_one: '{{contador}} objeto',
+  cntObjects_other: '{{contador}} objetos',
+  pending: 'Pendiente',
 };
