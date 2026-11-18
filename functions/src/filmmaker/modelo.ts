@@ -400,7 +400,23 @@ export interface ProductionScene {
   readonly continuity?: ContinuityRule;
   /** De qué escenas continúa esta. Si una cambia, esta puede tener que rehacerse. */
   readonly dependsOn?: readonly string[];
+  /**
+   * CONVERGENCIA (2026-11-18) · EL ESTADO DE LA TANDA, EN EL SERVIDOR. Una tanda (capítulo) ES una escena del contrato:
+   * no hay temporadas ni episodios. Opcional: una escena sin esto es una tanda en borrador y sin guardar, como siempre.
+   * No es parte de lo que la escena ES (no cambia lo que se genera): `toma.ts` la deja fuera de la firma.
+   */
+  readonly batch?: SceneBatch;
   readonly shots: readonly ProductionShot[];
+}
+
+/** Estados que la persona puede dar a una tanda. `producing`/`done`/`error` salen de las tomas, no se guardan aquí. */
+export const ESTADOS_DE_TANDA_GUARDADOS = Object.freeze(['draft', 'approved'] as const);
+export type SceneBatchStatus = typeof ESTADOS_DE_TANDA_GUARDADOS[number];
+
+/** `stored`: guardada en el almacén de la cuenta. Solo con la tanda aprobada. */
+export interface SceneBatch {
+  readonly status: SceneBatchStatus;
+  readonly stored?: boolean;
 }
 
 /**

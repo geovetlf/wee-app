@@ -87,5 +87,15 @@ check('15) `move_shot` mueve un plano a otra escena (la tanda se reorganiza sin 
 r = aplica(p, [{ op: 'rename_production', title: 'Otro título' }, { op: 'change_intent', changes: { freeText: 'Una idea larga' } }]);
 check('16) renombrar y cambiar la idea (el universo se edita después de crear)', ok(r) && r.production.title === 'Otro título' && r.production.intent.freeText === 'Una idea larga', codes(r));
 
+console.log('── El estado de la tanda en el servidor ──');
+r = aplica(p, [{ op: 'update_scene', sceneId: 'sc01', changes: { batch: { status: 'approved', stored: true } } }]);
+check('17) aprobar y guardar una tanda (escena del contrato) persiste en la producción', ok(r) && r.production.scenes[0].batch?.stored === true && validacion.validarProduccion(r.production).problems.every((x) => x.severity !== 'error'), codes(r));
+r = aplica(p, [{ op: 'update_scene', sceneId: 'sc01', changes: { batch: { status: 'draft', stored: true } } }]);
+check('18) guardada sin aprobar no cabe: lo dice la validación', ok(r) && validacion.validarProduccion(r.production).problems.some((x) => /batch.stored/.test(x.path) && x.severity === 'error'));
+r = aplica(p, [{ op: 'update_scene', sceneId: 'sc01', changes: { batch: { status: 'producing' } } }]);
+check('19) `producing`/`done`/`error` no se guardan: salen de las tomas', !ok(r) || validacion.validarProduccion(r.production).problems.some((x) => /batch.status/.test(x.path) && x.severity === 'error'));
+r = aplica(p, [{ op: 'update_scene', sceneId: 'sc01', changes: { batch: null } }]);
+check('20) y se retira con `null`', ok(r) && r.production.scenes[0].batch === undefined);
+
 console.log(fallos ? `\n✘ ${fallos} fallan de ${n}` : `\n✔ ${n} comprobaciones`);
 process.exit(fallos ? 1 : 0);

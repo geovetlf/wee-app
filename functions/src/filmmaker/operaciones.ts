@@ -106,7 +106,7 @@ export type IntentChanges = Cambios<ProductionIntent, keyof ProductionIntent>;
 /** El estilo y la cinematografía de la producción tienen su operación: `change_style`, cámara, movimiento, luz y transición. */
 export type DirectionChanges = Cambios<CreativeDirection, 'mood' | 'tone' | 'pacing' | 'color' | 'referenceIds'>;
 /** Lo de una escena que no tiene operación propia. */
-export type SceneChanges = Cambios<ProductionScene, 'narrativePurpose' | 'characterIds' | 'objectIds' | 'actions' | 'dependsOn' | 'audio'>;
+export type SceneChanges = Cambios<ProductionScene, 'narrativePurpose' | 'characterIds' | 'objectIds' | 'actions' | 'dependsOn' | 'audio' | 'batch'>;
 /**
  * Lo de un plano que no tiene operación propia. Ola 3b: `revision` —editar o extender la toma del plano— entra por
  * aquí, con `null` para retirarla, y NO como una operación nueva.
@@ -598,7 +598,7 @@ const CAMBIOS_DE_INTENCION = [
 const CAMBIOS_DE_DIRECCION = ['tone', 'pacing', 'color', 'referenceIds'];
 /** El estilo es `change_style`; el ánimo, `change_mood`; cámara, movimiento, luz y transición, las suyas. */
 const DEDICADOS_DE_DIRECCION = ['visualStyle', 'mood', 'cinematography'];
-const CAMBIOS_DE_ESCENA = ['narrativePurpose', 'characterIds', 'objectIds', 'actions', 'dependsOn', 'audio'];
+const CAMBIOS_DE_ESCENA = ['narrativePurpose', 'characterIds', 'objectIds', 'actions', 'dependsOn', 'audio', 'batch'];
 const DEDICADOS_DE_ESCENA = [
   'title', 'description', 'durationSec', 'timeOfDay', 'weather', 'locationId', 'characterStates', 'dialogue',
   'visual', 'continuity', 'shots',

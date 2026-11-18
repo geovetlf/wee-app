@@ -156,8 +156,12 @@ const canonico = (v: unknown): unknown => {
  * con `revision: null`); si la firma la incluyera, retirarla cambiaría la firma de una toma ya hecha y su enlace
  * saldría `production_changed`. Un plano sin revisión da la MISMA firma que siempre, byte a byte.
  */
-const sinRevision = (e: Record<string, unknown>): Record<string, unknown> =>
-  (Array.isArray(e.shots) ? { ...e, shots: e.shots.map((p) => (esObj(p) ? Object.fromEntries(Object.entries(p).filter(([k]) => k !== 'revision')) : p)) } : e);
+const sinRevision = (e0: Record<string, unknown>): Record<string, unknown> => {
+  /* Convergencia: el estado de la tanda (`batch`) tampoco es parte de lo que la escena es: aprobar o guardar no invalida tomas. */
+  const { batch: _batch, ...e } = e0;
+  void _batch;
+  return Array.isArray(e.shots) ? { ...e, shots: e.shots.map((p) => (esObj(p) ? Object.fromEntries(Object.entries(p).filter(([k]) => k !== 'revision')) : p)) } : e;
+};
 
 export const firmaDe = (raiz: Record<string, unknown>, escena: Record<string, unknown>): string => {
   const { revision: _r, ...metadatos } = esObj(raiz.metadata) ? raiz.metadata : {};

@@ -142,6 +142,7 @@ const plano = cargar('creator/plano.ts', { '../core': { creativosValidos: () => 
   const raiz = { ownerAccountId: 'a', metadata: { revision: 3 }, title: 'T', references: [{ id: 'r1', assetId: 'x' }], status: 'active' };
   const escena = (p) => ({ ownerAccountId: 'a', productionId: 'p', id: 's1', shots: [{ id: 'u1', order: 0, description: 'faro', ...p }] });
   const sinR = T.firmaDe(raiz, escena({}));
+  check('B9b) ni por aprobar o guardar la tanda (`batch`): eso no invalida tomas ya hechas', sinR === T.firmaDe(raiz, { ...escena({}), batch: { status: 'approved', stored: true } }));
   check('B9) la firma de una unidad NO cambia por pedir ni retirar una revisión, y sí por cambiar el plano',
     sinR === T.firmaDe(raiz, escena({ revision: { mode: 'extend', instruction: 'sigue', seconds: 5 } }))
     && sinR !== T.firmaDe(raiz, escena({ description: 'otro faro' })) && sinR !== T.firmaDe({ ...raiz, references: [{ id: 'r1', assetId: 'y' }] }, escena({})));

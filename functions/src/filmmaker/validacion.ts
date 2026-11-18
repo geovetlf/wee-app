@@ -8,7 +8,7 @@ import {
   PAPELES_DE_REFERENCIA, PISTAS, POSICIONES_DE_SUBTITULO, PRESETS, PREVISUALIZACIONES, PRIORIDADES,
   PROPOSITOS_DE_EXPORTACION, PROPOSITOS_NARRATIVOS, RASGOS, RELACIONES_ENTRE_PERSONAJES, RESOLUCIONES, RITMOS,
   TIPOS_DE_LINEA, TIPOS_DE_OBJETO, TIPOS_DE_PRODUCCION, TIPOS_DE_RESTRICCION, TIPOS_DE_SONIDO, AMBIENTES,
-  FILMMAKER_MODEL_VERSION, aMs, aSec, canonico, compararTexto, esId, DIRECCIONES_DE_EXTENSION, MODOS_DE_REVISION,
+  FILMMAKER_MODEL_VERSION, aMs, aSec, canonico, compararTexto, esId, DIRECCIONES_DE_EXTENSION, MODOS_DE_REVISION, ESTADOS_DE_TANDA_GUARDADOS,
 } from './modelo';
 
 /**
@@ -527,13 +527,24 @@ const plano = (c: Ctx, p: unknown, j: number, rutaDeEscena: string, reparto: Rea
 
 const ESCENA = [
   'id', 'order', 'title', 'description', 'narrativePurpose', 'durationSec', 'timeOfDay', 'weather', 'locationId',
-  'characterIds', 'objectIds', 'characterStates', 'actions', 'dialogue', 'visual', 'audio', 'continuity', 'dependsOn', 'shots',
+  'characterIds', 'objectIds', 'characterStates', 'actions', 'dialogue', 'visual', 'audio', 'continuity', 'dependsOn', 'batch', 'shots',
 ];
+
+/** Convergencia: el estado de la tanda. `stored` solo con la tanda aprobada. */
+const tanda = (c: Ctx, v: unknown, ruta: string): void => {
+  if (v === undefined) return;
+  if (!objeto(c, v, ruta)) return;
+  claves(c, v, ['status', 'stored'], ruta, 'status');
+  uno(c, v.status, ESTADOS_DE_TANDA_GUARDADOS, unir(ruta, 'status'), 'value_invalid', true);
+  if (v.stored !== undefined && typeof v.stored !== 'boolean') mal(c, 'value_invalid', 'error', unir(ruta, 'stored'), { reason: 'not_boolean' });
+  if (v.stored === true && v.status !== 'approved') mal(c, 'constraints_incompatible', 'error', unir(ruta, 'stored'), { reason: 'only_when_approved' });
+};
 
 const escena = (c: Ctx, s: unknown, i: number): void => {
   const r = unir('scenes', tramo(s, i));
   if (!objeto(c, s, r, true)) return;
   claves(c, s, ESCENA, r);
+  tanda(c, s.batch, unir(r, 'batch'));
   if (s.order !== i) mal(c, 'order_mismatch', 'error', unir(r, 'order'), { expected: i });
   texto(c, s.title, unir(r, 'title'), LIMITES.nombre);
   texto(c, s.description, unir(r, 'description'), LIMITES.texto);
