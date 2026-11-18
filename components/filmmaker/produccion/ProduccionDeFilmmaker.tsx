@@ -6,6 +6,8 @@ import { useDireccion } from '../../../hooks/useDireccion';
 import { PORTADA_WEEAI as P, textoPortada } from '../../../constants/estiloWeeAi';
 import { PRODUCCION_ABIERTA } from '../../../constants/filmmakerCamara';
 import { useTomaDePlano } from '../../../hooks/useTomaDePlano';
+import { useEstadoDeLaProduccion } from '../../../hooks/useEstadoDeLaProduccion';
+import { estadoDelCapitulo, estadosDeLosCuadros } from '../../../utils/estadoDeLaProduccion';
 import type { ProduccionGuardada } from '../../../services/filmmakerService';
 import { CALIDADES_DE_TOMA, CalidadDeToma } from '../../../utils/controladorDeToma';
 import { videoService } from '../../../services/videoService';
@@ -28,6 +30,8 @@ interface Props {
   onIrACapitulos: () => void;
   /** La calidad fijada en el panel de ajustes del proyecto: cada toma y cada lote ARRANCAN con ella (la persona puede cambiarla). Sin ella, se elige. */
   calidadDelProyecto?: CalidadDeToma;
+  /** Los valores REALES del panel de ajustes (modelo, formato y resolución efectivos, no «Automático»): se enseñan en una sola línea discreta. */
+  ajustes?: { modelo: string; formato: string; resolucion: string };
 }
 
 /** Los cuadros que de verdad viajan al servidor (con texto y que no son de muestra): los que se pueden producir. */
@@ -164,19 +168,23 @@ const BloqueDeLote: React.FC<{ tanda: Tanda; cuadros: readonly CuadroDeStoryboar
  * botón que lo causa y la confirmación de cada uno (es la toma que ya existe en el servidor: cotizar → reservar → generar → enlazar). Mientras la
  * capacidad esté cerrada (`PRODUCCION_ABIERTA`) la pantalla es solo la lista de lo aprobado y UNA línea con el motivo: nada se simula.
  */
-export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guardando, onJuntar, onIrACapitulos, demo = false, calidadDelProyecto }) => {
+export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guardando, onJuntar, onIrACapitulos, demo = false, calidadDelProyecto, ajustes }) => {
   const [hechos, setHechos] = useState<readonly string[]>([]);
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
   const [version, setVersion] = useState(0);
   const refrescar = () => setVersion((v) => v + 1);
+  /* Los estados de capítulo salen de UNA lectura del servidor (`shot.production`), no de preguntar toma por toma. */
+  const { produccion } = useEstadoDeLaProduccion(guardada, PRODUCCION_ABIERTA && !demo, version);
+  const porCuadro = useMemo(() => estadosDeLosCuadros(produccion, tandas), [produccion, tandas]);
   const aprobadas = tandas.tandas.filter((x) => x.aprobada && !tandaEsDeEjemplo(x) && reales(x).length > 0);
 
   return (
     <View style={styles.raiz}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
         <Text style={[textoPortada(22, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header">{t('filmmakerProd.prodTitle')}</Text>
+        {ajustes ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={1} testID="produccion-ajustes">{`${ajustes.modelo} · ⁦${ajustes.formato}⁩ · ${ajustes.resolucion}`}</Text> : null}
         {demo ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerProd.demoProduceNote')}</Text> : !PRODUCCION_ABIERTA ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerTandas.produceClosed')}</Text> : null}
         {aprobadas.length === 0 ? (
           <View style={styles.vacio}>
@@ -188,7 +196,7 @@ export const ProduccionDeFilmmaker: React.FC<Props> = ({ tandas, guardada, guard
           const indice = tandas.tandas.findIndex((x) => x.id === tanda.id) + 1;
           return (
             <View key={tanda.id} style={{ gap: 8 }}>
-              <FilaDeCapitulo tanda={tanda} posicion={indice} cuadros={cuadros.length} estado={demo && hechos.includes(tanda.id) ? 'listo' : 'pendiente'} />
+              <FilaDeCapitulo tanda={tanda} posicion={indice} cuadros={cuadros.length} estado={demo ? (hechos.includes(tanda.id) ? 'listo' : 'pendiente') : estadoDelCapitulo(cuadros.map((c) => c.id), porCuadro) ?? 'pendiente'} />
               {demo && !hechos.includes(tanda.id) ? <BotonContorno texto={t('filmmakerProd.demoProduce')} icono="play-outline" onPress={() => setHechos((h) => [...h, tanda.id])} testID={'demo-producir-' + tanda.id} /> : null}
               {PRODUCCION_ABIERTA && !demo ? <BloqueDeLote key={'l' + tanda.id + version} tanda={tanda} cuadros={cuadros} guardada={guardada} guardando={guardando} onCambio={refrescar} calidadInicial={calidadDelProyecto} /> : null}
               {PRODUCCION_ABIERTA && !demo ? cuadros.map((c, i) => <FilaDeToma key={c.id + version} cuadro={c} numero={i + 1} escenaId={idDeEscena(tanda.id)} guardada={guardada} guardando={guardando} onCambio={refrescar} calidadInicial={calidadDelProyecto} />) : null}

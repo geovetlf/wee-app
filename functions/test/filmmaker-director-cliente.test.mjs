@@ -91,7 +91,7 @@ check('R1 antes de crear, la caja habla con Brain con el borrador (idea, tipo, e
 check('R2 si la puerta está cerrada, enviar crea como siempre', /r === 'cerrado'\) recibir\(base\)/.test(pantalla));
 check('R3 crear es una acción de la propia burbuja (no un botón suelto) y solo en la Idea', /onCrear=\{enIdea && borradorListo/.test(pantalla) && /createNow/.test(burbuja));
 check('R4 la ficha del cuadro tiene UNA fila «Pídele un cambio a Weë» con la caja común dentro', /askChange/.test(ficha) && /<CajaDePrompt portada/.test(ficha) && /pedirCambio\?: \{/.test(ficha));
-check('R5 la selección que viaja es la escena y el plano del servidor (idDeEscena / idDePlano)', /idDeEscena\(actual\.id\)/.test(tandas) && /idDePlano\(enFicha\.id\)/.test(tandas) && /etapa: 'cuadro', seleccion/.test(pantalla));
+check('R5 la selección que viaja es la escena y el plano del servidor (idDeEscena / idDePlano)', /idDeEscena\(actual\.id\)/.test(tandas) && /idDePlano\(enFicha\.id\)/.test(tandas) && /etapa: seleccion\.shotId \? 'cuadro' : 'capitulos', seleccion/.test(pantalla) && /idDeEscena\(enOpciones\.id\)/.test(tandas));
 check('R6 tras aplicar, la ficha se relee de lo guardado (versión)', /pedirCambio\?\.version/.test(ficha) && /setVersionDelDirector\(\(v\) => v \+ 1\)/.test(pantalla));
 check('R7 propuesta obsoleta: el cliente avisa y ofrece «Rehacer» sobre la producción de ahora', /obsoleta = falloAlAplicar\?\.tipo === 'conflicto'/.test(hook) && /rehacer/.test(hook) && /onRehacer/.test(burbuja) && /redo/.test(burbuja));
 check('R8 pantalla corta: la burbuja se pliega a una línea y se abre con un toque', /compacta/.test(burbuja) && /numberOfLines=\{plegada \? 1 : 5\}/.test(burbuja) && /compacta=\{alto < 600 && !enIdea\}/.test(pantalla));

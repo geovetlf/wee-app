@@ -49,5 +49,29 @@ check('C10) el demo nunca toca el servidor ni los Credits: sin pf ni servicios d
 check('C11) el demo se rotula siempre «Demo» con salida, y avisa de que no genera ni cobra', P.includes('testID="banda-demo"') && P.includes('salirDelDemo'));
 check('C12) el demo se ofrece en tipo, estilo y composer, y junto a «Reintentar» si crear falla; conserva la idea y las imágenes; todo bajo __DEV__', P.includes("(capa === 'entrada' || capa === 'estilo' || capa === 'taller')") && P.includes('testID="probar-demo-error"') && /__DEV__ \? \(\s*<TouchableOpacity onPress=\{\(\) => cargarDemo/.test(P) && P.includes("const ideaPrevia = fraseDe(idea) || texto.trim();") && P.includes('personajes(refs.referencias).reduce'));
 
+console.log('── D · Estado leído de shot.production / shot.montage, ajustes reales y «pídele un cambio» por capítulo ──');
+const EP = cargar('utils/estadoDeLaProduccion.ts');
+const OR = cargar('utils/filmmakerOrquestacion.ts');
+const tandasD = { siguiente: 3, tandas: [{ id: 't1', titulo: '', objetivo: 60, cuadros: [{ id: 'c1', texto: 'a', duracion: 6 }, { id: 'c2', texto: 'b', duracion: 6 }] }, { id: 't2', titulo: '', objetivo: 60, cuadros: [{ id: 'c3', texto: 'c', duracion: 6 }] }] };
+const vista = { units: [
+  { sceneId: OR.idDeEscena('t1'), unitId: OR.idDePlano('c1'), takes: 1, latest: { state: 'completed' }, videoAssetId: 'a1' },
+  { sceneId: OR.idDeEscena('t1'), unitId: OR.idDePlano('c2'), takes: 1, latest: { state: 'processing' } },
+  { sceneId: OR.idDeEscena('t2'), unitId: OR.idDePlano('c3'), takes: 1, latest: { state: 'refunded' } }], summary: { readyToAssemble: false } };
+const leida = EP.leerProduccion(vista);
+const porCuadro = EP.estadosDeLosCuadros(leida, tandasD);
+check('D1) shot.production se lee a un estado por cuadro: vídeo = lista, toma en marcha = en proceso, devuelta = fallida', porCuadro.c1 === 'lista' && porCuadro.c2 === 'en_proceso' && porCuadro.c3 === 'fallida');
+check('D2) el capítulo sale de sus cuadros (en curso / terminado / con error) y sin toma no hay estado', EP.estadoDelCapitulo(['c1', 'c2'], porCuadro) === 'producing' && EP.estadoDelCapitulo(['c3'], porCuadro) === 'error' && EP.estadoDelCapitulo(['c1'], porCuadro) === 'listo' && EP.estadoDelCapitulo(['c9'], porCuadro) === undefined);
+check('D3) una toma completada sin vídeo enlazado sigue «en proceso» (nunca «lista» sin el vídeo en su plano)', EP.estadoDeUnidad({ sceneId: 's', unitId: 'u', ultima: 'completed', conVideo: false }) === 'en_proceso');
+check('D4) lo que llega mal formado no se adivina: nulo, sin units o sin ids', EP.leerProduccion(null) === null && EP.leerProduccion({}) === null && EP.leerProduccion({ units: [{ unitId: 'x' }, 7] }).unidades.length === 0 && EP.estadosDeLosCuadros(null, tandasD).c1 === 'sin_toma');
+check('D5) shot.montage: listo, o cuántos planos faltan; una respuesta sin forma es nula', EP.leerMontaje({ montage: { ready: true, manifest: {} } }).listo === true && EP.leerMontaje({ montage: { ready: false, reason: 'x', missing: ['a', 'b'] } }).faltan === 2 && EP.leerMontaje({}) === null);
+const SV = sinComentarios(leer('services/tomaService.ts'));
+const HK = sinComentarios(leer('hooks/useEstadoDeLaProduccion.ts'));
+check('D6) el cliente solo LEE (`shot.production`, `shot.montage`), una consulta por producción y no por toma; Producción y Juntar usan el hook', SV.includes("op: 'shot.production'") && SV.includes("op: 'shot.montage'") && HK.includes('tomaService.produccion(id)') && PR.includes('useEstadoDeLaProduccion(guardada') && JU.includes('useEstadoDeLaProduccion(guardada') && !/spendCredits|creditsService/.test(HK + JU));
+check('D7) Juntar solo se abre con el montaje listo según el servidor; si no, dice que faltan cuadros', JU.includes('montaje?.listo === true') && JU.includes('filmmakerProd.joinNotReady'));
+check('D8) Producción enseña UNA línea con modelo, formato y resolución EFECTIVOS del panel (no «Automático»)', PR.includes('testID="produccion-ajustes"') && P.includes('const e = efectivas(idea); return { modelo: e.modelo.nombre, formato: e.formato, resolucion: e.resolucion }'));
+const HT = sinComentarios(leer('components/filmmaker/tandas/HojaDeTanda.tsx'));
+const TS = sinComentarios(leer('components/filmmaker/tandas/TandasYStoryboard.tsx'));
+check('D9) «Pídele un cambio a Weë» por capítulo: fila plegada en las opciones del capítulo con la caja común (CajaDePrompt), etapa «capitulos» y escena, y la propuesta se aprueba con la burbuja (no se aplica sola)', HT.includes("t('filmmakerDirector.askChange')") && HT.includes('<CajaDePrompt portada enviarDiscreto') && TS.includes('sceneId: idDeEscena(enOpciones.id)') && P.includes("etapa: seleccion.shotId ? 'cuadro' : 'capitulos'") && P.includes('onAprobar={() => { void director.aprobar(); }}'));
+
 console.log(failures ? `\n${failures} FALLO(S)` : `\nTodo en verde (${n}).`);
 process.exit(failures ? 1 : 0);

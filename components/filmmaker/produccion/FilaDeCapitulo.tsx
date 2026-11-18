@@ -13,14 +13,14 @@ import { useTiempo } from '../tandas/comunes';
  * UN CAPÍTULO EN UNA FILA (Producción y Juntar): miniatura con su número, «Capítulo n», sus cuadros y su duración, y su estado
  * («Pendiente» mientras no se ha producido; «Producido» cuando todos sus cuadros están listos). Solo lectura: la acción vive en la pantalla.
  */
-export const FilaDeCapitulo: React.FC<{ tanda: Tanda; posicion: number; cuadros: number; estado?: 'pendiente' | 'listo' }> = ({ tanda, posicion, cuadros, estado = 'pendiente' }) => {
+export const FilaDeCapitulo: React.FC<{ tanda: Tanda; posicion: number; cuadros: number; estado?: 'pendiente' | 'listo' | 'producing' | 'error' }> = ({ tanda, posicion, cuadros, estado = 'pendiente' }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
   const tiempo = useTiempo();
   const titulo = tanda.titulo || t('filmmakerTandas.chapterN', { n: formato.numero(posicion) });
   const meta = `${t('filmmakerTandas.frames', { contador: cuadros })} · ${tiempo.solo(duracionDe(tanda))}`;
-  const etiqueta = estado === 'listo' ? t('filmmakerTandas.stateDone') : t('filmmakerProd.pending');
+  const etiqueta = estado === 'listo' ? t('filmmakerTandas.stateDone') : estado === 'producing' ? t('filmmakerTandas.stateProducing') : estado === 'error' ? t('filmmakerTandas.stateError') : t('filmmakerProd.pending');
   return (
     <View style={[styles.fila, dir.contenedor]} accessible accessibilityLabel={etiquetaAccesible(titulo, meta, etiqueta)}>
       <View style={styles.miniatura}>
