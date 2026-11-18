@@ -383,7 +383,6 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   /* Taller de Idea de Filmmaker (2026-11-17). PROVISIONAL en inglés, SIN traducir (pendiente de traducción y revisión nativa). */
   attachTitle: 'Add to your idea',
   attachPaste: 'Paste text',
-  attachPasteSub: 'Paste or write a script or long notes.',
   attachPasteHint: 'Paste your script or notes here. Adding names, conflicts and genre improves the result.',
   attachPastePlaceholder: 'Paste or write your text…',
   attachPasteCount: '{{n}} / {{max}}',
@@ -473,7 +472,6 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   ideaKept: 'Your idea is still here: tap send to try again.',
   stageOf: '{{etapa}} · {{n}} of {{total}}',
   /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
-  styleMore: 'More styles',
   projResolution: 'Resolution',
   /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
   hubRetry: 'Try again',
@@ -497,14 +495,7 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   uniSheetWee: 'Let Weë interpret it',
   sheetSoon: 'Soon: visual style and variants.',
   /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
-  refImage: 'Reference image',
-  refImageSub: 'A single image is enough to guide your whole universe.',
-  refCharacter: 'Character',
-  refCharacterSub: 'The image or sheet of a character. You need at least one.',
-  refWorld: 'World',
-  refWorldSub: 'An image of the place. It is optional.',
   refFromProjects: 'From My projects',
-  refFromProjectsSub: 'Choose an image you already created in Weë.',
   refRoleReference: 'Reference',
   refRoleCharacter: 'Character',
   refRoleWorld: 'World',
@@ -515,10 +506,16 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   refRemove: 'Remove {{nombre}}',
   refCharacterName: 'Character {{n}}',
   refWorldName: 'World',
-  refPickerAs: 'Add as',
   refPickerEmpty: 'You have no images created in Weë yet.',
   refPickerError: 'We could not load your images.',
   refPlaceholder: 'Tell me something about your image…',
   refWaitUpload: 'Wait for the image to finish uploading.',
   hubSoon: 'Soon',
+  /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  attachImage: 'Image',
+  attachProjects: 'My projects',
+  attachText: 'Text',
+  attachDocument: 'Document',
+  attachHint: 'One image is enough. You need at least one character.',
+  refRoleChange: 'Change the role of {{nombre}}',
 };

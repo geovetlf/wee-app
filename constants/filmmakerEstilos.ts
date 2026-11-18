@@ -1,9 +1,9 @@
 /**
- * LOS ESTILOS DE FILMMAKER (segunda capa, 2026-11-18): catorce estilos estándar, los más pedidos primero (sin «Weë elige por mí» ni estilo por defecto: la persona elige). Se ven los diez primeros y los otros cuatro quedan tras «Más estilos» (`ESTILOS_VISIBLES`). Se
- * pintan con la MISMA tarjeta de los tipos de proyecto (`TarjetaDeTipo`: imagen a sangre, borde luminoso, 2:1); solo cambia la imagen.
- * Solo DATOS: identificador, clave i18n, la textura y los dos tonos del fondo propio que se ven mientras la imagen no existe, y la imagen
- * (`assets/images/filmmaker/estilos/<id>.webp`; hoy cada archivo es un marcador —el empaquetador exige que exista— y mientras tanto la tarjeta enseña su degradado sobrio; se sustituye por la
- * definitiva sin tocar código; prompts en `_filmmaker-mision-2026-11-17/diseno/PROMPTS-IMAGENES-ESTILOS.md`).
+ * LOS ESTILOS DE FILMMAKER (segunda capa, 2026-11-18): catorce estilos estándar, los más pedidos primero (sin «Weë elige por mí» ni estilo por defecto: la persona elige).
+ * Se ven TODOS a la vez, sin desplazamiento (`ElegirEstilo` calcula columnas y altura con el alto disponible).
+ * Solo DATOS: identificador, clave i18n, la textura y los dos tonos del fondo propio que se ven mientras la imagen carga, y la imagen
+ * (`assets/images/filmmaker/estilos/<id>.webp`, 640×480: ilustraciones procedurales de `_filmmaker-mision-2026-11-17/diseno/generar-estilos.cjs`; se sustituyen por
+ * imágenes generadas sin tocar código; prompts en `diseno/PROMPTS-IMAGENES-ESTILOS.md`).
  * El estilo se guarda en el taller y se ve en la píldora; el contrato de crear no tiene campo de estilo, así que NO viaja al servidor.
  */
 import type { TexturaDeModulo } from '../components/weeai/arteDePortada';
@@ -26,9 +26,6 @@ export const ESTILOS: readonly EstiloDeFilmmaker[] = [
   { id: 'vintage', clave: 'filmmaker.styleVintage', textura: 'video', tonos: ['#A88A3A', '#2A200A'] },
   { id: 'documentary', clave: 'filmmaker.styleDocumentary', textura: 'audio', tonos: ['#5C8A5C', '#142014'] },
 ];
-
-/** Cuántos estilos se ven de entrada; el resto, a un toque en «Más estilos». */
-export const ESTILOS_VISIBLES = 10;
 
 export const IMAGEN_DE_ESTILO: Record<string, number> = {
   realistic: require('../assets/images/filmmaker/estilos/realistic.webp'),
