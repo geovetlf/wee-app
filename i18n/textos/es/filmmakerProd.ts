@@ -44,4 +44,5 @@ export const filmmakerProd = {
   demoProduce: 'Producir capítulo (demo)',
   demoResultTitle: 'Tu película, juntada (ejemplo)',
   demoResultBody: 'Así se vería el resultado: una sola película de {{duracion}}. En la demo no se crea ningún video.',
+  demoBadgeShort: 'Demo · vista previa, no es real',
 };

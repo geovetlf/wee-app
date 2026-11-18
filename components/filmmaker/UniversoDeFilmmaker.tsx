@@ -18,6 +18,8 @@ interface Props {
   /** Ancho útil para repartir la rejilla de retratos. */
   ancho: number;
   compacto: boolean;
+  /** Pantalla muy baja (teclado, ventana pequeña): se quitan los textos de apoyo para que la lista de personajes siga a la vista y se desplace. */
+  bajo?: boolean;
   onAbrir: (e: ElementoDeUniverso) => void;
   onAprobar: () => void;
   /** Cargar / quitar el universo de ejemplo (rotulado como ejemplo). */
@@ -49,7 +51,7 @@ const CLAVE_DE_ORIGEN: Record<OrigenDeUniverso, string> = { usuario: 'filmmaker.
  * (regla 10) y la lámina se rotula «referencia de estilo, no vista previa exacta». «Weë lee los personajes» y regenerar salen cerrados con motivo.
  * El único botón blanco aprueba el universo; aprobado, pasa a «Continuar a Tandas» (cerrado hasta la ola 3).
  */
-export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto, onAbrir, onAprobar, onEjemplo, onQuitarEjemplo, onContinuar, onAviso, seccion, onSeccion, imagenDeReferencia, onCambio, onSubirImagen, imagenes, peticionDeImagenes }) => {
+export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto, bajo = false, onAbrir, onAprobar, onEjemplo, onQuitarEjemplo, onContinuar, onAviso, seccion, onSeccion, imagenDeReferencia, onCambio, onSubirImagen, imagenes, peticionDeImagenes }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
@@ -84,15 +86,20 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
     </TouchableOpacity>
   );
 
+  const botonContinuar = (
+    <TouchableOpacity testID="universo-continuar" onPress={() => { if (!puede) return; onAprobar(); onContinuar(); }} disabled={!puede} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmaker.uniContinue'), puede ? null : t('filmmaker.uniApproveWhy'))} accessibilityState={{ disabled: !puede }} style={[styles.principal, !puede && styles.principalApagado]}>
+      <Text style={[textoPortada(16, '600'), { color: puede ? P.sobreAccion : P.tintaDeshabilitada }]} numberOfLines={1}>{t('filmmaker.uniContinue')}</Text>
+    </TouchableOpacity>
+  );
   return (
     <View style={styles.raiz}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled">
-        <View style={[styles.cabeza, dir.contenedor]}>
+      <ScrollView style={{ flex: 1, minHeight: 120 }} contentContainerStyle={[styles.contenido, bajo && { paddingTop: 2, gap: 8 }]} keyboardShouldPersistTaps="handled">
+        {bajo ? null : <View style={[styles.cabeza, dir.contenedor]}>
           <Text style={[textoPortada(compacto ? 18 : 22, '600'), dir.texto, { color: P.tinta, flex: 1 }]} accessibilityRole="header" numberOfLines={1}>{t('filmmaker.uniTitle')}</Text>
-        </View>
-        <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>{[t('filmmakerProd.cntCharacters', { contador: n.character }), t('filmmakerProd.cntPlaces', { contador: n.place }), t('filmmakerProd.cntObjects', { contador: n.object })].join(' · ')}</Text>
+        </View>}
+        {bajo ? null : <Text style={[textoPortada(13, '400'), dir.texto, { color: P.tintaSecundaria }]}>{[t('filmmakerProd.cntCharacters', { contador: n.character }), t('filmmakerProd.cntPlaces', { contador: n.place }), t('filmmakerProd.cntObjects', { contador: n.object })].join(' · ')}</Text>}
 
-        {universo.elementos.length === 0 ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} testID="universo-construir-cerrado">{t('filmmakerProd.uniBuildClosed')}</Text> : null}
+        {universo.elementos.length === 0 && !bajo ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} testID="universo-construir-cerrado">{t('filmmakerProd.uniBuildClosed')}</Text> : null}
         {onCambio && pendientes.length > 0 ? (
           <View style={styles.tarjeta} testID="universo-detectados">
             <Text style={[textoPortada(15, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header">{t('filmmaker.uniFoundTitle', { contador: formato.numero(pendientes.length) })}</Text>
@@ -162,14 +169,14 @@ export const UniversoDeFilmmaker: React.FC<Props> = ({ universo, ancho, compacto
           <Text style={[textoPortada(14, '600'), { color: P.tinta }]} numberOfLines={2}>{t(ejemplos ? 'filmmaker.uniClearExample' : 'filmmaker.uniLoadExample')}</Text>
         </TouchableOpacity>
         {imagenes?.abierta && peticionDeImagenes ? <ImagenesDelUniverso imagenes={imagenes} peticion={peticionDeImagenes} /> : !GENERAR_IMAGENES_DEL_UNIVERSO && puede ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniRegenerateClosed')}</Text> : null}
+        {bajo ? <View style={{ gap: 6 }}>{botonContinuar}{!puede ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmaker.uniApproveWhy')}</Text> : null}</View> : null}
       </ScrollView>
-
-      <View style={styles.pie}>
-        <TouchableOpacity testID="universo-continuar" onPress={() => { if (!puede) return; onAprobar(); onContinuar(); }} disabled={!puede} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmaker.uniContinue'), puede ? null : t('filmmaker.uniApproveWhy'))} accessibilityState={{ disabled: !puede }} style={[styles.principal, !puede && styles.principalApagado]}>
-          <Text style={[textoPortada(16, '600'), { color: puede ? P.sobreAccion : P.tintaDeshabilitada }]} numberOfLines={1}>{t('filmmaker.uniContinue')}</Text>
-        </TouchableOpacity>
-        {!puede ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{t('filmmaker.uniApproveWhy')}</Text> : null}
-      </View>
+      {bajo ? null : (
+        <View style={styles.pie}>
+          {botonContinuar}
+          {!puede && !bajo ? <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]} accessibilityLiveRegion="polite">{t('filmmaker.uniApproveWhy')}</Text> : null}
+        </View>
+      )}
     </View>
   );
 };
@@ -193,6 +200,6 @@ const styles = StyleSheet.create({
   vacio: { minHeight: 120, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 24, borderRadius: 20, borderWidth: 1, borderStyle: 'dashed', borderColor: P.bordeCapsula },
   ejemplo: { minHeight: 44, alignSelf: 'flex-start', paddingHorizontal: 16, borderRadius: 22, borderWidth: 1, borderColor: P.bordeLuz, alignItems: 'center', justifyContent: 'center' },
   pie: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 8, gap: 6 },
-  principal: { minHeight: 52, borderRadius: 26, backgroundColor: P.accion, alignItems: 'center', justifyContent: 'center' },
+  principal: { minHeight: 48, borderRadius: 26, backgroundColor: P.accion, alignItems: 'center', justifyContent: 'center' },
   principalApagado: { backgroundColor: 'transparent', borderWidth: 1, borderColor: P.bordeCapsula },
 });
