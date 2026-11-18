@@ -51,7 +51,6 @@ export const CuerpoDeEspecificaciones: React.FC<Props & { onModelos: () => void;
   const perfil = modelo?.perfil === 'rapido' ? 'filmmakerSpecs.qualityFast' : modelo?.perfil === 'calidad' ? 'filmmakerSpecs.qualityBest' : 'filmmakerSpecs.qualityBalanced';
   return (
     <View style={styles.cuerpo}>
-      <Text style={[textoPortada(18, '600'), dir.texto, { color: P.tinta }]} accessibilityRole="header">{t('filmmakerSpecs.sheetTitle')}</Text>
       {sec('model', <>
         {etiqueta('filmmakerSpecs.model')}
         <TouchableOpacity onPress={onModelos} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmakerSpecs.model'), modelo ? modelo.nombre : t('filmmakerSpecs.auto'))} style={[styles.selector, dir.contenedor]}>
@@ -123,10 +122,9 @@ export const CuerpoDeEspecificaciones: React.FC<Props & { onModelos: () => void;
 };
 
 /** El contenido de la hoja: el cuerpo, o la rejilla de modelos en su lugar (un solo Modal, sin hojas encimadas). */
-export const ContenidoDeEspecificaciones: React.FC<Props & { onPosicion?: (id: string, y: number) => void }> = ({ idea, onIdea, onPosicion }) => {
-  const [modelos, setModelos] = useState(false);
-  if (modelos) return <RejillaDeModelos valor={idea.valores.model ?? ''} onElegir={(id) => { onIdea(elegirModelo(idea, id)); setModelos(false); }} onVolver={() => setModelos(false)} />;
-  return <CuerpoDeEspecificaciones idea={idea} onIdea={onIdea} onModelos={() => setModelos(true)} onPosicion={onPosicion} />;
+export const ContenidoDeEspecificaciones: React.FC<Props & { modelos: boolean; onModelos: (abierta: boolean) => void; onPosicion?: (id: string, y: number) => void }> = ({ idea, onIdea, modelos, onModelos, onPosicion }) => {
+  if (modelos) return <RejillaDeModelos valor={idea.valores.model ?? ''} onElegir={(id) => { onIdea(elegirModelo(idea, id)); onModelos(false); }} />;
+  return <CuerpoDeEspecificaciones idea={idea} onIdea={onIdea} onModelos={() => onModelos(true)} onPosicion={onPosicion} />;
 };
 
 /**

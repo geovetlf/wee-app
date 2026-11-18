@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useT } from '../../contexts/IdiomaContext';
+import IconoDireccional from '../IconoDireccional';
 import { useDireccion } from '../../hooks/useDireccion';
 import { PORTADA_WEEAI as P, textoPortada } from '../../constants/estiloWeeAi';
 import { useCerrarConEscape } from '../../hooks/useCerrarConEscape';
@@ -19,6 +20,8 @@ export const HojaDeProyecto: React.FC<{ visible: boolean; onClose: () => void; i
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   useCerrarConEscape(visible, onClose);
+  const [modelos, setModelos] = useState(false);
+  useEffect(() => { if (!visible) setModelos(false); }, [visible]);
   const lista = useRef<ScrollView>(null);
   const posiciones = useRef<Record<string, number>>({});
   /* Abierta desde una celda de la tarjeta: la hoja baja hasta SU control en cuanto está medido (en la web el Modal monta tarde: se espera a su medida, no a un reloj). */
@@ -35,8 +38,17 @@ export const HojaDeProyecto: React.FC<{ visible: boolean; onClose: () => void; i
       <Pressable style={styles.velo} onPress={onClose} accessibilityRole="button" accessibilityLabel={t('common.close')} />
       <View style={[styles.hoja, { paddingBottom: Math.max(insets.bottom, 12) + 8 }]} accessibilityViewIsModal>
         <View style={styles.asa} />
+        {/* La cabecera NO se desplaza: el título se ve siempre, aunque la hoja abra llevada a un control. */}
+        <View style={[styles.cabecera, dir.contenedor]}>
+          {modelos ? (
+            <TouchableOpacity onPress={() => setModelos(false)} accessibilityRole="button" accessibilityLabel={t('common.back')} style={styles.volver}>
+              <IconoDireccional name="arrow-back" size={22} color={P.tinta} />
+            </TouchableOpacity>
+          ) : null}
+          <Text style={[textoPortada(18, '600'), dir.texto, { color: P.tinta, flex: 1 }]} accessibilityRole="header">{t(modelos ? 'filmmakerSpecs.modelsTitle' : 'filmmakerSpecs.sheetTitle')}</Text>
+        </View>
         <ScrollView ref={lista} style={{ maxHeight: Math.max(240, height * 0.62) }} contentContainerStyle={styles.contenido} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <ContenidoDeEspecificaciones idea={idea} onIdea={onIdea} onPosicion={(id, y) => { posiciones.current[id] = y; if (pendiente.current === id) bajar(id); }} />
+          <ContenidoDeEspecificaciones idea={idea} onIdea={onIdea} modelos={modelos} onModelos={setModelos} onPosicion={(id, y) => { posiciones.current[id] = y; if (pendiente.current === id) bajar(id); }} />
         </ScrollView>
         <TouchableOpacity onPress={onClose} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={t('filmmaker.ideaFieldDone')} style={styles.listo}>
           <Text style={[textoPortada(15, '600'), { color: P.sobreAccion }]}>{t('filmmaker.ideaFieldDone')}</Text>
@@ -50,6 +62,8 @@ const styles = StyleSheet.create({
   velo: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' },
   hoja: { backgroundColor: P.superficie, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderColor: P.bordeLuz, borderWidth: 1, borderBottomWidth: 0, paddingHorizontal: 16, paddingTop: 8, gap: 10, width: '100%', maxWidth: 760, alignSelf: 'center' },
   asa: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: P.bordeLuz, marginBottom: 6 },
+  cabecera: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 44 },
+  volver: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   contenido: { paddingBottom: 4 },
   listo: { minHeight: 48, borderRadius: 24, backgroundColor: P.accion, alignItems: 'center', justifyContent: 'center', marginTop: 4 },
 });

@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import IconoDireccional from '../IconoDireccional';
 import { useT } from '../../contexts/IdiomaContext';
 import { useDireccion } from '../../hooks/useDireccion';
 import { PORTADA_WEEAI as P, textoPortada } from '../../constants/estiloWeeAi';
@@ -12,7 +11,7 @@ interface Props {
   /** Id del modelo elegido (`'auto'` o vacío = Auto). */
   valor: string;
   onElegir: (id: string) => void;
-  onVolver: () => void;
+  onVolver?: () => void;
 }
 
 /** La razón corta por la que una píldora está cerrada. */
@@ -25,7 +24,7 @@ export const motivoDeModelo = (m: ModeloDeFilmmaker): string =>
  * (candado y «Pronto» / «Sin configurar») y, al tocarlo, dice su motivo. Las píldoras saltan de línea: nunca hay una fila que se desplace de lado.
  * Con el filtro de tipo (Vídeo · Imagen · Voz) la lista no se satura aunque el catálogo crezca.
  */
-export const RejillaDeModelos: React.FC<Props> = ({ valor, onElegir, onVolver }) => {
+export const RejillaDeModelos: React.FC<Props> = ({ valor, onElegir }) => {
   const t = useT();
   const dir = useDireccion();
   const [tipo, setTipo] = useState<TipoDeModelo>('video');
@@ -55,12 +54,6 @@ export const RejillaDeModelos: React.FC<Props> = ({ valor, onElegir, onVolver })
 
   return (
     <View style={styles.raiz}>
-      <View style={[styles.titulo, dir.contenedor]}>
-        <TouchableOpacity onPress={onVolver} accessibilityRole="button" accessibilityLabel={t('common.back')} style={styles.volver}>
-          <IconoDireccional name="arrow-back" size={22} color={P.tinta} />
-        </TouchableOpacity>
-        <Text style={[textoPortada(18, '600'), dir.texto, { color: P.tinta, flex: 1 }]} accessibilityRole="header">{t('filmmakerSpecs.modelsTitle')}</Text>
-      </View>
       <View style={[styles.fila, dir.contenedor]}>
         {FILTROS_DE_TIPO.map((f) => (
           <TouchableOpacity key={f.id} onPress={() => { setTipo(f.id); setMotivo(null); }} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t(f.clave)} accessibilityState={{ selected: tipo === f.id }} style={[styles.filtro, tipo === f.id && styles.pildoraSel]}>
