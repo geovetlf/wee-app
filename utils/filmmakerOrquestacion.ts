@@ -5,7 +5,7 @@ import type {
 } from '../services/filmmaker/dominio';
 import { OPERACION_DE_LA_RUTA } from '../constants/filmmaker';
 import type { Tanda, CuadroDeStoryboard, TandasDelTaller } from './tandasDeFilmmaker';
-import { NARRADOR, SIN_HABLANTE } from './tandasDeFilmmaker';
+import { NARRADOR, OBJETIVO_POR_TANDA, SIN_HABLANTE } from './tandasDeFilmmaker';
 import type { ElementoDeUniverso, UniversoDelTaller } from './universoDeFilmmaker';
 
 /**
@@ -242,3 +242,50 @@ export const planosPorProducir = (t: Tanda, porCuadro: Readonly<Record<string, E
 /** Cuadros cuya duración el generador no podría tomar tal cual: <4 s se genera en 4; >30 s se rechaza (`creator/plano.ts`: duración 4–30; 15 s si no hay modelo delante). */
 export const AJUSTE_DE_TOMA = Object.freeze({ minimoSeg: 4, maximoSeg: 30 });
 export const duracionFueraDeToma = (seg: number): 'corta' | 'larga' | null => (seg > AJUSTE_DE_TOMA.maximoSeg ? 'larga' : seg < AJUSTE_DE_TOMA.minimoSeg ? 'corta' : null);
+
+/* ── Lo guardado → la experiencia (al reabrir una producción) ─────────────── */
+
+const sinPrefijo = (prefijo: string, id: string): string => (id.startsWith(prefijo) ? id.slice(prefijo.length) : id);
+const sufijo = (id: string): number => { const m = /(\d+)$/.exec(id); return m ? Number(m[1]) : 0; };
+const delCreativo = (creativo: unknown, ruta: string): string | undefined => {
+  let v: unknown = creativo;
+  for (const k of ruta.split('.')) v = v && typeof v === 'object' ? (v as Record<string, unknown>)[k] : undefined;
+  return typeof v === 'string' && v ? v : undefined;
+};
+
+/** Los tipos de la experiencia a partir del tipo del servidor (el inverso de `TIPO_DE_PRODUCCION`). */
+export const tipoDeLaExperiencia = (tipo: string | undefined): string | null => Object.entries(TIPO_DE_PRODUCCION).find(([, v]) => v === tipo)?.[0] ?? null;
+
+/** Escenas → capítulos y planos → cuadros, con su estado de aprobado y almacén y su cámara. Lo que la orquestación escribe, vuelto a leer. */
+export const tandasDesdeLaProduccion = (prod: FilmmakerProduction): TandasDelTaller => {
+  let max = 0;
+  const tandas: Tanda[] = prod.scenes.map((s) => {
+    const id = sinPrefijo('sc_', s.id); max = Math.max(max, sufijo(id));
+    const cuadros: CuadroDeStoryboard[] = s.shots.map((p) => {
+      const cid = sinPrefijo('sh_', p.id); max = Math.max(max, sufijo(cid));
+      const linea = p.dialogue?.[0];
+      const hablante = !linea ? SIN_HABLANTE : linea.kind === 'narration' ? NARRADOR : linea.characterId ? sinPrefijo('ch_', linea.characterId) : SIN_HABLANTE;
+      const creativo: Record<string, string> = {};
+      for (const ruta of Object.keys(OPERACION_DE_LA_RUTA)) { const v = delCreativo(p.visual?.creative, ruta); if (v) creativo[ruta] = v; }
+      return { id: cid, texto: p.description ?? linea?.text ?? '', hablante, duracion: p.durationSec ?? 6, creativo } as CuadroDeStoryboard;
+    });
+    const segundos = cuadros.reduce((n, c) => n + c.duracion, 0);
+    return { id, titulo: s.title ?? '', objetivo: Math.max(10, Math.round(segundos) || OBJETIVO_POR_TANDA), cuadros, aprobada: s.batch?.status === 'approved', almacen: !!s.batch?.stored } as Tanda;
+  });
+  return { tandas, siguiente: max + 1 };
+};
+
+/** Personajes, lugares y objetos guardados → el universo de la pantalla (origen «Tuyo»). */
+export const universoDesdeLaProduccion = (prod: FilmmakerProduction): UniversoDelTaller => {
+  let max = 0;
+  const hacer = (tipo: ElementoDeUniverso['tipo'], prefijo: string, x: { id: string; name: string }, linea: string | undefined): ElementoDeUniverso => {
+    const id = sinPrefijo(prefijo, x.id); max = Math.max(max, sufijo(id));
+    return { id, tipo, nombre: x.name, linea: linea ?? '', grupo: 'main', voz: 'auto', origen: 'usuario' };
+  };
+  const elementos = [
+    ...prod.characters.map((x) => hacer('character', 'ch_', x, x.identityDescription)),
+    ...prod.locations.map((x) => hacer('place', 'lo_', x, x.description)),
+    ...prod.objects.map((x) => hacer('object', 'ob_', x, x.description)),
+  ];
+  return { elementos, aprobado: false, siguiente: max + 1 };
+};

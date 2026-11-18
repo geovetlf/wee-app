@@ -61,5 +61,19 @@ console.log('── C · Sincronizar ──');
   const ops = llamadas[1]?.[1].operations ?? [];
   check('C3) una escena cambiada se quita y se vuelve a poner en UN lote con la revisión esperada', cambiado.ok && ops.map((o) => o.op).join() === 'remove_scene,add_scene' && llamadas[1][1].expectedRevision === 0);
 }
+
+console.log('── D · Reabrir: lo guardado vuelve a la experiencia ──');
+{
+  const aprobada = { ...tandas, tandas: tandas.tandas.map((x) => ({ ...x, aprobada: true, almacen: true })) };
+  const g = O.produccionDesdeLaExperiencia({ ...exp, tandas: aprobada });
+  const vuelta = O.tandasDesdeLaProduccion(g.production);
+  const c = vuelta.tandas[0]?.cuadros[0];
+  check('D1) el capítulo vuelve con su aprobación y su almacén', vuelta.tandas.length === 1 && vuelta.tandas[0].aprobada === true && vuelta.tandas[0].almacen === true && vuelta.tandas[0].id === tid);
+  check('D2) el cuadro vuelve con texto, duración, narrador y su cámara', c && c.id === c1 && c.texto === 'Un jinete cruza el desierto' && c.duracion === 6 && c.hablante === 'narrator' && c.creativo['shot.type'] === 'wide' && c.creativo['movement.type'] === 'orbit', JSON.stringify(c));
+  const u = O.universoDesdeLaProduccion(g.production);
+  check('D3) el universo vuelve sin ejemplos, con su origen y ids sin prefijo', u.elementos.length === 2 && u.elementos[0].id === 'e1' && u.elementos[0].nombre === 'Jay' && !u.elementos.some((e) => e.ejemplo));
+  check('D4) el tipo del servidor vuelve a su tipo de la experiencia', O.tipoDeLaExperiencia('short_film') === 'short' && O.tipoDeLaExperiencia('cinematic') === 'film' && O.tipoDeLaExperiencia('music_video') === null);
+}
+
 console.log(failures ? `\n${failures} FALLO(S)` : `\nTodo en verde (${n}).`);
 process.exit(failures ? 1 : 0);
