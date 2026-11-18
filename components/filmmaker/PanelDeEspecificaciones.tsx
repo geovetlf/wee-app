@@ -159,9 +159,9 @@ export const ResumenDeEspecificaciones: React.FC<{ idea: IdeaDelTaller; compacto
         {dato('filmmakerSpecs.sound', s)}
         {dato('filmmakerSpecs.variants', formato.numero(variantesDe(idea)))}
       </View>
-      <View style={[styles.pie, dir.contenedor]}>
-        <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tintaSecundaria, flex: 1 }]} numberOfLines={1}>{t('filmmakerSpecs.seedFold')} · {semillaDe(idea) !== null ? formato.numero(semillaDe(idea) as number) : auto}</Text>
-        <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tintaSecundaria, flexShrink: 1 }]} numberOfLines={1}>{t('filmmakerSpecs.costTbc')}</Text>
+      <View style={styles.pie}>
+        <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={1}>{t('filmmakerSpecs.seedFold')} · {semillaDe(idea) !== null ? formato.numero(semillaDe(idea) as number) : auto}</Text>
+        <Text style={[textoPortada(12, '500'), dir.texto, { color: P.tintaSecundaria }]} numberOfLines={1}>{t('filmmakerSpecs.costTbc')}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   linea: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 44, paddingHorizontal: 16 },
   tarjeta: { alignSelf: 'stretch', marginHorizontal: 20, padding: 16, gap: 14, borderRadius: 24, borderWidth: 1, borderColor: P.bordeLuz, backgroundColor: P.superficie },
   cabeza: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  pie: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pie: { gap: 4 },
   rejilla: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 },
   dato: { width: '33.33%', minHeight: 44, gap: 2, paddingRight: 8 },
 });
