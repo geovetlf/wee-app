@@ -39,19 +39,19 @@ export const CuerpoDeEspecificaciones: React.FC<Props & { onModelos: () => void 
         <Ionicons name="chevron-down" size={16} color={P.tintaSecundaria} />
       </TouchableOpacity>
 
-      {etiqueta('filmmakerSpecs.format')}
+      {etiqueta('filmmaker.projFormat')}
       <View style={[styles.fila, dir.contenedor]}>
         {chip('fauto', t('filmmakerSpecs.auto'), !idea.valores.format, () => onIdea(poner(idea, 'format', '')))}
         {o.formatos.map((f) => chip(`f${f}`, `⁦${f}⁩`, idea.valores.format === f, () => onIdea(poner(idea, 'format', f))))}
       </View>
 
-      {etiqueta('filmmakerSpecs.resolution')}
+      {etiqueta('filmmaker.projResolution')}
       <View style={[styles.fila, dir.contenedor]}>
         {chip('rauto', t('filmmakerSpecs.auto'), !idea.valores.resolution, () => onIdea(poner(idea, 'resolution', '')))}
         {o.resoluciones.map((r) => chip(`r${r}`, r, idea.valores.resolution === r, () => onIdea(poner(idea, 'resolution', r))))}
       </View>
 
-      {etiqueta('filmmakerSpecs.duration')}
+      {etiqueta('filmmaker.projDuration')}
       <View style={[styles.fila, dir.contenedor]}>
         {duracionesDelTipo(idea.tipo).map((s) => chip(`d${s}`, t('filmmaker.hubSeconds', { n: formato.numero(s) }), s === total, () => onIdea(poner(idea, 'duration', String(s)))))}
       </View>
@@ -61,8 +61,8 @@ export const CuerpoDeEspecificaciones: React.FC<Props & { onModelos: () => void 
       <Text style={[textoPortada(15, '600'), dir.texto, { color: P.tinta }]}>{t(claveDeSonido(o.audio))}</Text>
       <Text style={[textoPortada(12, '400'), dir.texto, { color: P.tintaSecundaria }]}>{t('filmmakerSpecs.soundHint')}</Text>
 
-      <TouchableOpacity onPress={() => setMas((v) => !v)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmakerSpecs.more')} accessibilityState={{ expanded: mas }} style={[styles.mas, dir.contenedor]}>
-        <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tintaSecundaria, flex: 1 }]}>{t('filmmakerSpecs.more')}</Text>
+      <TouchableOpacity onPress={() => setMas((v) => !v)} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={t('filmmaker.projAdvanced')} accessibilityState={{ expanded: mas }} style={[styles.mas, dir.contenedor]}>
+        <Text style={[textoPortada(14, '600'), dir.texto, { color: P.tintaSecundaria, flex: 1 }]}>{t('filmmaker.projAdvanced')}</Text>
         <Ionicons name={mas ? 'chevron-up' : 'chevron-down'} size={16} color={P.tintaSecundaria} />
       </TouchableOpacity>
       {mas ? (
@@ -130,9 +130,9 @@ export const ResumenDeEspecificaciones: React.FC<{ idea: IdeaDelTaller; compacto
         <Ionicons name="options-outline" size={20} color={P.tintaSecundaria} />
       </View>
       <View style={[styles.rejilla, dir.contenedor]}>
-        {dato('filmmakerSpecs.format', f)}
-        {dato('filmmakerSpecs.resolution', r)}
-        {dato('filmmakerSpecs.duration', d)}
+        {dato('filmmaker.projFormat', f)}
+        {dato('filmmaker.projResolution', r)}
+        {dato('filmmaker.projDuration', d)}
         {dato('filmmakerSpecs.sound', s)}
         {dato('filmmakerSpecs.variants', t('filmmakerSpecs.soon'), true)}
         {dato('filmmakerSpecs.seed', t('filmmakerSpecs.soon'), true)}

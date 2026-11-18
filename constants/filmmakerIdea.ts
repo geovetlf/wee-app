@@ -26,5 +26,5 @@ export const ADJUNTOS = [
 export const DURACIONES: Record<TipoDeTaller, readonly number[]> = { short: [30, 60, 90, 120], film: [120, 180, 300, 600], ad: [15, 30] };
 export const DURACION_POR_DEFECTO: Record<TipoDeTaller, number> = { short: 60, film: 120, ad: 15 };
 /** Lo que `create` admite hoy como formato y resolución (contrato de producciones): el nivel Avanzado de la hoja «Proyecto» ofrece estos, más «Auto». */
-export const FORMATOS: readonly string[] = ['16:9', '9:16', '1:1', '4:5'];
+export const FORMATOS: readonly string[] = ['16:9', '9:16', '1:1'];
 export const RESOLUCIONES_ELEGIBLES: readonly string[] = ['720p', '1080p'];

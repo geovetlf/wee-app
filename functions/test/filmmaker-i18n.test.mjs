@@ -112,7 +112,7 @@ const CODIGO = [
   'components/filmmaker/TallerDeIdea.tsx', 'components/filmmaker/ElegirEstilo.tsx', 'components/filmmaker/HojaDeAdjuntos.tsx', 'constants/filmmakerIdea.ts', 'constants/filmmakerEstilos.ts',
   /* El Universo y la barra de etapas (ola 2). */
   'components/filmmaker/HojaDeCreaciones.tsx', 'components/filmmaker/ReferenciasAdjuntas.tsx', 'hooks/useReferenciasDeFilmmaker.ts',
-  'components/filmmaker/BarraDeEtapas.tsx', 'components/filmmaker/UniversoDeFilmmaker.tsx', 'components/filmmaker/FichaDeElemento.tsx', 'components/filmmaker/HojaDeProyecto.tsx', 'constants/filmmakerUniverso.ts',
+  'components/filmmaker/BarraDeEtapas.tsx', 'components/filmmaker/UniversoDeFilmmaker.tsx', 'components/filmmaker/FichaDeElemento.tsx', 'components/filmmaker/HojaDeProyecto.tsx', 'components/filmmaker/PanelDeEspecificaciones.tsx', 'constants/filmmakerUniverso.ts',
 ];
 const pedidas = [...new Set(CODIGO.flatMap((f) => [...leer(f).matchAll(/'filmmaker\.([A-Za-z][A-Za-z0-9_]*)'/g)].map((m) => m[1])))];
 const sinTexto = pedidas.filter((k) => !ES.has(k) && !ES.has(`${k}_one`));
