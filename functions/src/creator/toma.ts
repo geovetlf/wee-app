@@ -163,7 +163,21 @@ const sinRevision = (e0: Record<string, unknown>): Record<string, unknown> => {
   return Array.isArray(e.shots) ? { ...e, shots: e.shots.map((p) => (esObj(p) ? Object.fromEntries(Object.entries(p).filter(([k]) => k !== 'revision')) : p)) } : e;
 };
 
-export const firmaDe = (raiz: Record<string, unknown>, escena: Record<string, unknown>): string => {
+/**
+ * Convergencia · `origin` (de dónde viene una ficha: tuyo, propuesta de Weë, documento) NO es parte de lo que la ficha ES: cambiarlo
+ * no invalida las tomas ya hechas. Se quita de las cuatro listas del universo antes de firmar.
+ */
+const sinOrigen = (raiz: Record<string, unknown>): Record<string, unknown> => {
+  const salida: Record<string, unknown> = { ...raiz };
+  for (const k of ['characters', 'locations', 'objects', 'references']) {
+    const l = salida[k];
+    if (Array.isArray(l)) salida[k] = l.map((x) => (esObj(x) ? Object.fromEntries(Object.entries(x).filter(([c]) => c !== 'origin')) : x));
+  }
+  return salida;
+};
+
+export const firmaDe = (raiz0: Record<string, unknown>, escena: Record<string, unknown>): string => {
+  const raiz = sinOrigen(raiz0);
   const { revision: _r, ...metadatos } = esObj(raiz.metadata) ? raiz.metadata : {};
   const { metadata: _m, updatedAt: _u, createdAt: _c, status: _s, archivedAt: _a, ownerAccountId: _o, ...creativa } = raiz;
   const { ownerAccountId: _eo, productionId: _ep, ...deLaEscena } = sinRevision(escena);
