@@ -42,6 +42,9 @@ import { ESTILOS } from '../constants/filmmakerEstilos';
 import { nuevoIdDeProduccion, useProducciones } from '../hooks/useProducciones';
 import { useProduccionDeFilmmaker } from '../hooks/useProduccionDeFilmmaker';
 import { useImagenesDeFilmmaker } from '../hooks/useImagenesDeFilmmaker';
+import { useDirectorDeFilmmaker } from '../hooks/useDirectorDeFilmmaker';
+import { BurbujaDelDirector } from '../components/filmmaker/BurbujaDelDirector';
+import type { ProduccionGuardada } from '../services/filmmakerService';
 import { peticionDeUniverso } from '../utils/imagenesDelUniverso';
 import { fraseDelFallo } from '../utils/mensajesDeFilmmaker';
 import { filmmakerService } from '../services/filmmakerService';
@@ -137,6 +140,26 @@ const FilmmakerCrearScreen: React.FC = () => {
   const enProduccion = capa === 'produccion';
   const enJuntar = capa === 'juntar';
   const enEtapas = enUniverso || enTandas || enProduccion || enJuntar;
+
+  /*
+   * WEË BRAIN COMO DIRECTOR (regla 10: la caja es la común y lo único que cambia es el contexto). Con la puerta del servidor cerrada, sin
+   * conexión o sin tipo y estilo, esto no hace nada y la pantalla sigue como siempre; en el demo contesta con un ejemplo marcado.
+   * Brain propone y la persona aprueba: lo aprobado se aplica por `productions` y la pantalla se repinta desde lo guardado.
+   */
+  const director = useDirectorDeFilmmaker({
+    contexto: tipoId && estilo ? { tipo: tipoId as 'short' | 'film' | 'ad', estilo, etapa: enUniverso ? 'universo' : enTandas ? 'capitulos' : 'idea', ...(idProduccionGuardada && !enDemo ? { productionId: idProduccionGuardada } : {}) } : null,
+    demo: enDemo,
+    alAplicar: (p: ProduccionGuardada) => {
+      pf.adoptar(p);
+      /* Lo que la persona ya había afinado en pantalla (voz, ficha) se conserva en lo que sigue existiendo; lo quitado se va y lo nuevo entra. */
+      setUniverso((u) => {
+        const nuevo = universoDesdeLaProduccion(p.production);
+        const previos = new Map(u.elementos.map((e) => [e.id, e]));
+        return { ...nuevo, aprobado: u.aprobado, elementos: nuevo.elementos.map((e) => { const antes = previos.get(e.id); return antes ? { ...antes, nombre: e.nombre, linea: e.linea } : e; }) };
+      });
+      setTandas((x) => (p.production.scenes.length || x.tandas.length === 0 ? tandasDesdeLaProduccion(p.production) : x));
+    },
+  });
 
   /* Los capítulos y cuadros que la persona escribe se guardan en su producción (escenas y planos) un momento después de cada cambio; sin cambios reales no se llama al servidor. */
   useEffect(() => {
@@ -253,6 +276,8 @@ const FilmmakerCrearScreen: React.FC = () => {
     setUniverso(universoInicial);
     setPreguntado(false);
     setCapa('universo');
+    /* Weë Brain, como director, lee la idea que la persona acaba de contar y contesta con UNA frase breve (o propone el mundo). Cerrado o sin conexión: nada cambia. */
+    void director.enviar(fraseDe(base), { etapa: 'universo', productionId: idUsado, borrador: { idea: fraseDe(base) } });
   };
 
   /** Lo que llega a Weë (texto de la caja o texto pegado): si la idea alcanza, sigue sola; si no, lo dice y la caja sigue abierta (idea mínima obligatoria). */
@@ -276,7 +301,19 @@ const FilmmakerCrearScreen: React.FC = () => {
   const enviar = () => {
     const dicho = texto.trim();
     if (!dicho) return;
-    if (enUniverso) { setUniverso((u) => anadir(u, seccion, dicho)); setTexto(''); return; }
+    if (enUniverso) {
+      const anadirAMano = () => setUniverso((u) => anadir(u, seccion, dicho));
+      setTexto('');
+      /* Con el director disponible la caja le habla a Weë Brain («quita el volcán», «un personaje más»): propone y la persona aprueba. En el demo contesta un ejemplo marcado y no añade nada. */
+      if (director.disponible) {
+        void director.enviar(dicho, {
+          etapa: 'universo', borrador: { universo: universo.elementos.map((e) => `${e.nombre}${e.linea ? `: ${e.linea}` : ''}`).join('\n') },
+        }).then((r) => { if (r === 'cerrado' && !enDemo) anadirAMano(); });
+        return;
+      }
+      anadirAMano();
+      return;
+    }
     const base = sumarALaFrase(idea, dicho);
     if (!aceptar(base)) { if (tipoId) setTexto(''); return; }
     setTexto('');
@@ -429,6 +466,7 @@ const FilmmakerCrearScreen: React.FC = () => {
           {__DEV__ && !enDemo && (capa === 'entrada' || capa === 'estilo' || capa === 'taller') && !fallo ? (
             <TouchableOpacity onPress={() => cargarDemo('universo')} accessibilityRole="button" accessibilityLabel={t('filmmakerProd.demoTry')} testID="probar-demo" style={styles.demoEntrada}><Text style={[textoPortada(13, '600'), { color: P.tintaSecundaria }]}>{t('filmmakerProd.demoTry')}</Text></TouchableOpacity>
           ) : null}
+          {(enIdea || enUniverso) ? <BurbujaDelDirector burbuja={director.burbuja} propuesta={director.propuesta} aviso={director.aviso} estado={director.estado} aplicada={director.aplicada} onAprobar={() => { void director.aprobar(); }} onDescartar={director.descartar} /> : null}
           {!enEstilo && !enProduccion && !enJuntar && !enTandas ? <CajaAnclada alto={topeDeLaCaja}>
             <CajaDePrompt portada enviarDiscreto={enUniverso} valor={texto} onCambiar={setTexto} onEnviar={enviar} etiquetaEnviar={t('studio.sendLabel')} placeholder={placeholder} acciones={acciones} />
           </CajaAnclada> : null}

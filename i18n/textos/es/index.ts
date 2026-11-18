@@ -59,6 +59,7 @@ import { filmmakerSpecs } from './filmmakerSpecs';
 import { filmmakerTandas } from './filmmakerTandas';
 import { filmmakerDocumentos } from './filmmakerDocumentos';
 import { filmmakerImagenes } from './filmmakerImagenes';
+import { filmmakerDirector } from './filmmakerDirector';
 import { filmmakerProd } from './filmmakerProd';
 export const es = {
   common,
@@ -109,6 +110,7 @@ export const es = {
   filmmakerTandas,
   filmmakerDocumentos,
   filmmakerImagenes,
+  filmmakerDirector,
   filmmakerProd,
 };
 

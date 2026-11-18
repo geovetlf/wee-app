@@ -83,6 +83,7 @@ import { filmmaker } from './filmmaker';
 import { filmmakerSpecs } from './filmmakerSpecs';
 import { filmmakerProd } from './filmmakerProd';
 import { filmmakerImagenes } from './filmmakerImagenes';
+import { filmmakerDirector } from './filmmakerDirector';
 import { filmmakerDocumentos } from './filmmakerDocumentos';
 import { filmmakerTandas } from './filmmakerTandas';
 import { filmmakerSonido } from './filmmakerSonido';
@@ -135,6 +136,7 @@ export const hi: FormaDelDiccionario = {
   filmmakerSpecs,
   filmmakerProd,
   filmmakerImagenes,
+  filmmakerDirector,
   filmmakerDocumentos,
   filmmakerTandas,
   filmmakerSonido,
