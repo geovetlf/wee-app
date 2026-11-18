@@ -46,4 +46,6 @@ export const filmmakerProd = {
   demoResultTitle: 'Your film, joined (example)',
   demoResultBody: 'This is how the result would look: a single film of {{duracion}}. The demo creates no video.',
   demoBadgeShort: 'Demo · preview, not real',
+  /* Claves nuevas de Producción. PROVISIONAL en inglés, SIN traducir. */
+  joinNotReady: 'Some frames are not produced yet.',
 };

@@ -14,6 +14,7 @@ export const filmmakerProd = {
   joinTitle: 'Juntar',
   joinEmpty: 'Aún no hay cuadros que juntar.',
   joinClosed: 'Pronto: Weë juntará tus cuadros en un solo video.',
+  joinNotReady: 'Aún faltan cuadros por producir.',
   joinAction: 'Juntar mi película',
   d1Reason: 'El modelo de video actual aún no acepta referencias, fotogramas, extender ni editar.',
   batchProduce: 'Producir este capítulo',

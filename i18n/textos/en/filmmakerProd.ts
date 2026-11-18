@@ -14,6 +14,7 @@ export const filmmakerProd = {
   joinTitle: 'Join',
   joinEmpty: 'There are no frames to join yet.',
   joinClosed: 'Coming soon: Weë will join your frames into a single video.',
+  joinNotReady: 'Some frames are not produced yet.',
   joinAction: 'Join my film',
   d1Reason: 'The current video model does not accept references, frames, extend or edit yet.',
   batchProduce: 'Produce this chapter',
