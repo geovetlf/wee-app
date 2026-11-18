@@ -16,8 +16,8 @@ import { sanitizeForLog } from '../engine/sanitize';
 import { ensureAccount } from './credits';
 import { assertInputImageUrl } from './inputs';
 import { AI_SECRETS } from '../secrets';
-import { CapabilityId, POLITICA_DE_TRABAJO, operacionAbandonada } from '../core';
-import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, atencionDeWee, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio, politicaDe, reconciliarUno, segundosParaElProveedor, trabajoDelMedioDeWee } from '../runtime';
+import { CapabilityId, Job, POLITICA_DE_TRABAJO, esTrabajoTerminal, operacionAbandonada } from '../core';
+import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, atencionDeWee, conductorDeWee, configuracionDeLaPuerta, decidirLiquidacion, decidirRuntime, pedirMedio, politicaDe, reconciliarUno, segundosParaElProveedor, trabajoDelMedioDeWee } from '../runtime';
 import { almacenDeTrabajos } from '../runtime/almacen';
 import { crearMaterialDesdeUrl, leerMaterial } from '../content';
 import { loadCostOverrides } from '../credits/creditCosts';
@@ -25,7 +25,8 @@ import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
 /* Porte de filmmaker/core (2026-11-18): el lote y la cancelación pasan por ESTA misma puerta; el requisito vale el del servidor. */
 import { mismoRequisito, requisitoDelServidor } from './requisitoDelServidor';
 import { generarLote, presupuestarLote } from './lotes';
-import { cancelarToma } from './cancelacionDeToma';
+import { canceladaPorLaPersona, cancelarToma } from './cancelacionDeToma';
+import { categoriaDelFallo } from './fallos';
 import { CAPACIDADES_DE_VIDEO, capacidadesConEstado } from '../engine/capacidadesDeVideo';
 import { SEEDANCE_MODEL_IDS, pararTareaDeSeedance, resolutorDeSeedance } from '../engine/providers/seedance';
 import { MODEL_CAPABILITIES_VERSION } from '../core/model-capability';
@@ -204,6 +205,8 @@ interface GenerateVideoInput {
  * la generación lo pueda rechazar.
  */
 interface TomaPreparada {
+  /** Quien la pide: con su uid se leen sus reservas y su trabajo. */
+  readonly uid: string;
   readonly accountId: string;
   readonly productionId: string;
   readonly sceneId: string;
@@ -250,7 +253,7 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
    */
   const delServidor = leida.ok ? await requisitoDelServidor(db, accountId, { productionId, sceneId, unitId, revision }) : null;
   const requisito = delServidor?.ok ? delServidor.requisito : requisitoDeLaApp;
-  const base = { accountId, productionId, sceneId, unitId, revision };
+  const base = { uid, accountId, productionId, sceneId, unitId, revision };
   const ultima = tomas[tomas.length - 1];
   /* Cotizar ofrece la siguiente, si la que hay ya terminó; generar pide una concreta. */
   const toma = soloCotizar
@@ -320,11 +323,40 @@ const capacidadesParaLaApp = () => ({
 const noSeGenera = (t: TomaPreparada, motivo = t.motivo ?? 'shot_invalid', detalle = t.detalle): EngineError =>
   new EngineError('INVALID_REQUEST', 'Esa toma no se puede generar así.', { reason: motivo, ...(detalle ?? {}) });
 
+/**
+ * CÓMO ACABÓ EL TRABAJO DE UNA TOMA, que puede ir por delante de su reserva: el trabajo ya terminó y la liquidación
+ * todavía no ha pasado. Sin esto la app seguiría diciendo «en proceso» de algo que ya no se está haciendo.
+ *
+ * Solo lectura, y solo tres palabras y una categoría: nada del trabajo por dentro. «Salió hacia el proveedor y no se
+ * sabe cómo acabó» no es «falló»: su dinero no vuelve solo, se comprueba (`reconciling`). Porte de filmmaker/core.
+ */
+export interface DesenlaceDeLaToma {
+  outcome?: 'in_progress' | 'succeeded' | 'failed' | 'reconciling';
+  failure?: string;
+  cancelled?: true;
+}
+
+/** El desenlace, de un trabajo ya leído. Pura: el mismo trabajo y el mismo `at` dan lo mismo. */
+export const desenlaceDeUnTrabajo = (job: Job, at: number): DesenlaceDeLaToma => {
+  if (job.state === 'completed') return { outcome: 'succeeded' };
+  if (decidirLiquidacion(job, at).tipo === 'reconciliar') return { outcome: 'reconciling' };
+  if (!esTrabajoTerminal(job.state)) return { outcome: 'in_progress' };
+  /* La paró la persona. No es un fallo de nadie, y así se dice. */
+  if (canceladaPorLaPersona(job)) return { outcome: 'failed', cancelled: true };
+  const intento = job.attempts[job.attempts.length - 1];
+  return { outcome: 'failed', failure: job.state === 'timed_out' && !intento?.error ? 'TIMEOUT' : categoriaDelFallo(intento?.error) };
+};
+
+const desenlaceDeLaToma = async (uid: string, requestId: string): Promise<DesenlaceDeLaToma> => {
+  const job = await trabajoDelMedioDeWee(getFirestore(), uid, requestId).catch(() => undefined);
+  return job ? desenlaceDeUnTrabajo(job, Date.now()) : {};
+};
+
 /** Lo que la cotización cuenta de las tomas que ya existen y del plano del Core. */
 const estadoDeLaToma = async (t: TomaPreparada) => {
   const ultima = t.tomas[t.tomas.length - 1];
   return {
-    current: ultima ? { take: ultima.toma, requestId: ultima.requestId, status: ultima.estado } : null,
+    current: ultima ? { take: ultima.toma, requestId: ultima.requestId, status: ultima.estado, ...(await desenlaceDeLaToma(t.uid, ultima.requestId)) } : null,
     next: t.toma !== null && t.requestId !== null ? { take: t.toma, requestId: t.requestId } : null,
     node: await nodoDeLaUnidad(getFirestore(), t.accountId, { productionId: t.productionId, unitId: t.unitId }),
   };
