@@ -24,6 +24,8 @@ interface Props {
   onQuitarEjemplo: () => void;
   hayEjemplos: boolean;
   onAviso: (mensaje: string) => void;
+  /** Con todo aprobado, el botón principal pasa a «Producir» y lleva a la etapa de Producción. */
+  onProducir?: () => void;
 }
 
 /**
@@ -31,7 +33,7 @@ interface Props {
  * (crear storyboard · revisar · producir…). Abajo, los totales contra lo que admite el montaje final (60 cuadros / 10:00) y el único botón blanco: el
  * siguiente paso (crear o revisar el storyboard pendiente). Sin tandas, «Weë lo hace por mí» las reparte por duración. «⋯» abre partir, unir, mover y quitar.
  */
-export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, seleccionada, onAbrir, onOpciones, onAnadir, onAutomatico, onEjemplo, onQuitarEjemplo, hayEjemplos, onAviso }) => {
+export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, seleccionada, onAbrir, onOpciones, onAnadir, onAutomatico, onEjemplo, onQuitarEjemplo, hayEjemplos, onAviso, onProducir }) => {
   const t = useT();
   const { formato } = useIdioma();
   const dir = useDireccion();
@@ -77,7 +79,7 @@ export const ListaDeTandas: React.FC<Props> = ({ estado, ancho, compacto, selecc
       const n = posicion(pendiente.id);
       return { texto: t(estadoDe(pendiente) === 'none' ? 'filmmakerTandas.nextCreate' : 'filmmakerTandas.nextReview', { n: formato.numero(n) }), onPress: () => onAbrir(pendiente.id), apagado: false, motivo: null };
     }
-    return { texto: t('filmmakerTandas.continueProduction'), onPress: () => onAviso(t('filmmakerTandas.produceClosed')), apagado: true, motivo: todas ? t('filmmakerTandas.produceClosed') : null };
+    return { texto: t('filmmakerTandas.actProduce'), onPress: onProducir ?? (() => onAviso(t('filmmakerTandas.produceClosed'))), apagado: !todas, motivo: null as string | null };
   })();
 
   return (

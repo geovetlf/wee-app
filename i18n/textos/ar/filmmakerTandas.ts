@@ -34,7 +34,6 @@ export const filmmakerTandas: ConPlurales<typeof import('../es/filmmakerTandas')
   limitOver: 'تتجاوز ما يقبله المونتاج النهائي حاليًا: {{planos}} لقطة و{{duracion}}. قلّل اللقطات أو المدة.',
   nextCreate: 'إنشاء اللوحة القصصية للفصل {{n}}',
   nextReview: 'مراجعة الفصل {{n}}',
-  continueProduction: 'المتابعة إلى الإنتاج',
   pickChapter: 'اختر فصلًا لرؤية لوحته القصصية.',
   backToChapters: 'العودة إلى الفصول',
 

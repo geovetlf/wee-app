@@ -92,7 +92,7 @@ export const TandasYStoryboard: React.FC<TandasYStoryboardProps> = ({ ancho, com
     <ListaDeTandas
       estado={estado} ancho={dosZonas ? 380 : ancho} compacto={compacto} seleccionada={dosZonas ? actual?.id ?? null : null}
       onAbrir={abrirTanda} onOpciones={setOpcionesId} onAnadir={anadirTandaNueva} onAutomatico={automatico}
-      onEjemplo={cargarEjemplo} onQuitarEjemplo={() => poner(quitarEjemplos)} hayEjemplos={hayEjemplos(estado)} onAviso={aviso}
+      onEjemplo={cargarEjemplo} onQuitarEjemplo={() => poner(quitarEjemplos)} hayEjemplos={hayEjemplos(estado)} onAviso={aviso} onProducir={onProducir}
     />
   );
 

@@ -33,7 +33,6 @@ export const filmmakerTandas = {
   limitOver: 'You are over what the final edit supports today: {{planos}} frames and {{duracion}}. Trim frames or length.',
   nextCreate: 'Create the storyboard for chapter {{n}}',
   nextReview: 'Review chapter {{n}}',
-  continueProduction: 'Continue to Production',
   pickChapter: 'Pick a chapter to see its storyboard.',
   backToChapters: 'Back to chapters',
 

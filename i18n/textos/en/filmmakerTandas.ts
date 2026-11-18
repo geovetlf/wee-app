@@ -13,7 +13,7 @@ export const filmmakerTandas = {
   targetLess: 'Remove 30 seconds',
   targetMore: 'Add 30 seconds',
   listEmpty: 'Split your story into chapters of about 3 minutes. Each one gets its own storyboard.',
-  autoSplit: 'Suggest chapters from my idea',
+  autoSplit: 'Suggest chapters',
   addChapter: 'Add chapter',
   loadExample: 'See an example',
   clearExample: 'Remove the example',
@@ -32,7 +32,6 @@ export const filmmakerTandas = {
   limitOver: 'You are over what the final edit supports today: {{planos}} frames and {{duracion}}. Trim frames or length.',
   nextCreate: 'Create the storyboard for chapter {{n}}',
   nextReview: 'Review chapter {{n}}',
-  continueProduction: 'Continue to Production',
   pickChapter: 'Pick a chapter to see its storyboard.',
   backToChapters: 'Back to chapters',
 
