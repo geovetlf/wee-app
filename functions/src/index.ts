@@ -102,6 +102,8 @@ export { generateVideo } from './creator/video';
 export { generateWorld } from './creator/mundo';
 /* Leer un documento, guion o libro (Weë Filmmaker): ruta legacy por el engine, cerrada por `aiSettings/documentos`. */
 export { leerDocumento } from './creator/documentos';
+/* Imágenes del universo y del storyboard (Weë Filmmaker): ruta legacy por el engine, cerrada por `aiSettings/filmmakerImagenes`. */
+export { generarImagenesFilmmaker } from './creator/imagenes';
 export { seedanceCallback } from './engine/webhooks';
 export { evalRun } from './evals';
 
