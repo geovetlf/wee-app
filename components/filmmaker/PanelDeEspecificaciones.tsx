@@ -148,8 +148,9 @@ export const ResumenDeEspecificaciones: React.FC<{ idea: IdeaDelTaller; compacto
   if (compacto) {
     return (
       <TouchableOpacity onPress={() => onAbrir()} activeOpacity={0.8} accessibilityRole="button" accessibilityLabel={etiquetaAccesible(t('filmmakerSpecs.summaryLabel'), nombre, f, r, d, s, t('filmmakerSpecs.openLabel'))} style={[styles.linea, dir.contenedor]}>
-        <Text style={[textoPortada(13, '600'), dir.texto, { color: P.tinta, flexShrink: 1 }]} numberOfLines={1}>{[nombre, idea.valores.format ? f : '', idea.valores.resolution ? r : '', d].filter(Boolean).join(' · ')}</Text>
-        <Ionicons name="options-outline" size={16} color={P.tintaSecundaria} />
+        <Ionicons name="options-outline" size={16} color={P.tinta} />
+        <Text style={[textoPortada(13, '600'), dir.texto, { color: P.tinta }]} numberOfLines={1}>{t('filmmakerSpecs.configure')}</Text>
+        <Text style={[textoPortada(11, '400'), dir.texto, { color: P.tintaSecundaria, flexShrink: 1 }]} numberOfLines={1}>{[modelo ? nombre : '', idea.valores.format ? f : '', idea.valores.resolution ? r : '', d].filter(Boolean).join(' · ')}</Text>
       </TouchableOpacity>
     );
   }

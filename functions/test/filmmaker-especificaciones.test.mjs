@@ -87,5 +87,9 @@ check('D7) la calidad solo cuenta con Auto y viaja como quality (standard/high/m
 check('D8) variantes cerradas (sin acción) hasta que el servidor multiplique tomas; calidad con modelo cerrada', /cerrada\(`v\$\{n\}`/.test(fuentes[0]) && /cerrada\('qfijo'/.test(fuentes[0]));
 check('D9) cada celda de la tarjeta abre la hoja en su control (foco) y la rejilla lleva fundido', /onAbrir\('model'\)/.test(fuentes[0]) && /scrollTo/.test(leer('components/filmmaker/HojaDeProyecto.tsx')) && /fundido/.test(fuentes[1]));
 
+check('E1) la línea compacta nombra QUÉ configura («Configurar vídeo») y el resumen va aparte, más pequeño', /filmmakerSpecs\.configure/.test(fuentes[0]) && /textoPortada\(11, '400'\)/.test(fuentes[0].split('filmmakerSpecs.configure')[1] || ''));
+const pant = leer('screens/FilmmakerCrearScreen.tsx');
+check('E2) una sola frase de placeholder en la Idea y la ayuda para continuar (con la flecha del sentido de lectura)', /storyPlaceholder/.test(pant) && !/refPlaceholder|ideaPlaceholder/.test(pant) && /continueHint', \{ flecha: dir\.flecha\.adelante/.test(pant));
+
 console.log(failures ? `\n${failures} FALLOS de ${n}` : `\n${n}/${n} OK`);
 process.exit(failures ? 1 : 0);
