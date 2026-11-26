@@ -73,7 +73,13 @@
         "credits-perfil-duplicado",
         "guest-sin-ia",
         "edad-minima",
-        "perfil-publico"
+        "perfil-publico",
+        "alter-egos-core",
+        "alter-egos-puertas",
+        "alter-egos-cliente",
+        "cuenta-eliminar",
+        "personaje-ficha",
+        "wite"
       ]
     },
     {
@@ -95,8 +101,6 @@
         "pagos-proveedor-prueba",
         "idempotencia-de-cobro",
         "puente-pre-f1d",
-        "f1d-generacion",
-        "f1d-cliente",
         "credits-cliente-cerrado",
         "techo-de-propuestas",
         "pricing-mode",
@@ -119,7 +123,32 @@
         "boost-motor",
         "boost-interfaz",
         "mock-fallback-apagado",
-        "chat-limites"
+        "chat-limites",
+        "wite",
+        "personaje-pase",
+        "personaje-servidor",
+        "personaje-encargos",
+        "filmmaker-toma-estado",
+        "filmmaker-lotes",
+        "filmmaker-cancelar"
+      ],
+      "archivadas": [
+        {
+          "suite": "f1d-generacion",
+          "motivo": "F1-D de Weë Filmmaker (la toma de un plano): Filmmaker está archivado",
+          "desde": "2026-11-23",
+          "donde": "npm --prefix functions run test:archivado",
+          "documento": "docs/ARCHIVO.md",
+          "vuelve": "al retomar Filmmaker/Music: devolverla a scripts.test, ponerla en verde y moverla de nuevo a `suites`"
+        },
+        {
+          "suite": "f1d-cliente",
+          "motivo": "F1-D de Weë Filmmaker (la toma de un plano): Filmmaker está archivado",
+          "desde": "2026-11-23",
+          "donde": "npm --prefix functions run test:archivado",
+          "documento": "docs/ARCHIVO.md",
+          "vuelve": "al retomar Filmmaker/Music: devolverla a scripts.test, ponerla en verde y moverla de nuevo a `suites`"
+        }
       ]
     },
     {
@@ -192,7 +221,10 @@
         "rutas-creatorrun",
         "desactivacion-selectiva",
         "jurisdiccion-seedance",
-        "seedance-parametros"
+        "seedance-parametros",
+        "wite",
+        "byteplus-text",
+        "embeddings-byteplus"
       ]
     },
     {
@@ -233,7 +265,11 @@
         "brain-bloque",
         "brain-operacion",
         "brain-demo-no-cobra",
-        "creator-entrada-del-paso"
+        "creator-entrada-del-paso",
+        "personaje-memoria",
+        "personaje-acciones",
+        "filmmaker-director",
+        "filmmaker-director-cliente"
       ]
     },
     {
@@ -302,7 +338,10 @@
         "content",
         "inventario-media",
         "ciclo-de-vida-3d",
-        "gran-motor-e-assets"
+        "gran-motor-e-assets",
+        "wite",
+        "personaje-material",
+        "filmmaker-montaje"
       ]
     },
     {
@@ -347,7 +386,11 @@
         "weels-feed",
         "invitado-navegacion",
         "comunidades-identidad",
-        "weepages"
+        "weepages",
+        "weepages-tipos",
+        "personaje-acciones",
+        "personaje-iniciativa",
+        "personaje-app"
       ]
     },
     {
@@ -411,22 +454,73 @@
       "critico": false,
       "ambito": "experiencia",
       "estado": "activo",
-      "alcance": "Modelo, reductor, servicio, navegación, i18n y UI de Filmmaker.",
+      "alcance": "Modelo, reductor, servicio, navegación, i18n y UI de Filmmaker. Archivado el 2026-11-23 (docs/ARCHIVO.md): lo que sigue en la cadena —espejo, reductor, i18n, navegación, toma, lotes, montaje, cancelar y director— se sigue vigilando aquí; el resto está en `archivadas`.",
       "ci": [
         "Nivel 2 · suites",
         "Nivel 2 · emuladores demo-*"
       ],
       "suites": [
-        "filmmaker-modelo",
-        "productions-runtime",
         "filmmaker-espejo",
-        "filmmaker-servicio",
         "filmmaker-reductor",
-        "filmmaker-ui",
         "filmmaker-i18n",
         "filmmaker-navegacion",
-        "gran-motor-g-filmmaker",
-        "gran-motor-g-experiencias"
+        "gran-motor-g-experiencias",
+        "filmmaker-toma-estado",
+        "filmmaker-lotes",
+        "filmmaker-montaje",
+        "filmmaker-cancelar",
+        "filmmaker-director",
+        "filmmaker-director-cliente"
+      ],
+      "archivadas": [
+        {
+          "suite": "filmmaker-modelo",
+          "motivo": "Weë Filmmaker archivado",
+          "desde": "2026-11-23",
+          "donde": "npm --prefix functions run test:archivado",
+          "documento": "docs/ARCHIVO.md",
+          "vuelve": "al retomar Filmmaker/Music: devolverla a scripts.test, ponerla en verde y moverla de nuevo a `suites`"
+        },
+        {
+          "suite": "productions-runtime",
+          "motivo": "Weë Filmmaker archivado",
+          "desde": "2026-11-23",
+          "donde": "npm --prefix functions run test:archivado",
+          "documento": "docs/ARCHIVO.md",
+          "vuelve": "al retomar Filmmaker/Music: devolverla a scripts.test, ponerla en verde y moverla de nuevo a `suites`"
+        },
+        {
+          "suite": "filmmaker-servicio",
+          "motivo": "Weë Filmmaker archivado",
+          "desde": "2026-11-23",
+          "donde": "npm --prefix functions run test:archivado",
+          "documento": "docs/ARCHIVO.md",
+          "vuelve": "al retomar Filmmaker/Music: devolverla a scripts.test, ponerla en verde y moverla de nuevo a `suites`"
+        },
+        {
+          "suite": "filmmaker-ui",
+          "motivo": "Weë Filmmaker archivado",
+          "desde": "2026-11-23",
+          "donde": "npm --prefix functions run test:archivado",
+          "documento": "docs/ARCHIVO.md",
+          "vuelve": "al retomar Filmmaker/Music: devolverla a scripts.test, ponerla en verde y moverla de nuevo a `suites`"
+        },
+        {
+          "suite": "gran-motor-g-filmmaker",
+          "motivo": "Weë Filmmaker archivado",
+          "desde": "2026-11-23",
+          "donde": "npm --prefix functions run test:archivado",
+          "documento": "docs/ARCHIVO.md",
+          "vuelve": "al retomar Filmmaker/Music: devolverla a scripts.test, ponerla en verde y moverla de nuevo a `suites`"
+        },
+        {
+          "suite": "filmmaker-requisito-servidor",
+          "motivo": "Weë Filmmaker archivado",
+          "desde": "2026-11-23",
+          "donde": "npm --prefix functions run test:archivado",
+          "documento": "docs/ARCHIVO.md",
+          "vuelve": "al retomar Filmmaker/Music: devolverla a scripts.test, ponerla en verde y moverla de nuevo a `suites`"
+        }
       ]
     },
     {
@@ -561,7 +655,8 @@
         "i18n-vietnamita",
         "eslogan-localizado",
         "rtl-flechas",
-        "rtl-y-enlaces"
+        "rtl-y-enlaces",
+        "i18n-character-preparados"
       ]
     },
     {
@@ -620,7 +715,8 @@
         "secretos-declarados",
         "config-web-publicacion",
         "users-fases",
-        "demo-aislamiento"
+        "demo-aislamiento",
+        "personaje-auditoria"
       ]
     },
     {
