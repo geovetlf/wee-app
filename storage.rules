@@ -35,7 +35,7 @@ service firebase.storage {
       return firestore.exists(cuenta) ? firestore.get(cuenta).data.get('identidadesWee', []) : [];
     }
 
-    // === Imágenes de posts (legacy — nuevas subidas van a Cloudinary) ===
+    // === Imágenes de posts — TODO lo nuevo sube aquí (sin Cloudinary, decisión del dueño 2026-11-26) ===
     // Las de un alter ego van a SU carpeta, nunca a la de la cuenta (F3): la URL
     // pública no delata la cuenta. Lecturas: 0 (cuenta o heredada) · 1 (alter ego: entities).
     match /images/posts/{userId}/{fileName} {
@@ -46,13 +46,43 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
 
-    // === Imágenes de perfil (legacy — nuevas subidas van a Cloudinary) ===
-    // Igual que las de posts. Lecturas: 0 (cuenta o heredada) · 1 (alter ego: entities).
+    // === Imágenes de perfil y portada ===
+    // Igual que las de posts. 5 MB (antes 2): la portada sube con el lado largo a 2048 px (la app la limita y le quita
+    // los metadatos). Lecturas: 0 (cuenta o heredada) · 1 (alter ego: entities).
     match /images/profile/{userId}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null
                    && esCaraDeLaSesion(userId)
-                   && request.resource.size < 2 * 1024 * 1024
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // === Vídeos de publicaciones y Weëls (2026-11-26, sin Cloudinary) ===
+    // A la carpeta de la cara que publica, como las fotos. mp4 o mov y 200 MB como mucho (un Weël dura ≤15 s).
+    // Se crea, no se reescribe: un vídeo publicado no cambia por debajo. Lecturas: 0 · 1 (alter ego: entities).
+    match /videos/posts/{userId}/{fileName} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    && esCaraDeLaSesion(userId)
+                    && request.resource.size < 200 * 1024 * 1024
+                    && request.resource.contentType.matches('video/(mp4|quicktime)');
+      allow update, delete: if false;
+    }
+
+    // === Imágenes de comunidades y de comentarios (2026-11-26, sin Cloudinary) ===
+    // Públicas, de la cara que las sube, 5 MB, solo imágenes. Lecturas: 0 · 1 (alter ego: entities).
+    match /images/communities/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && esCaraDeLaSesion(userId)
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+    match /images/comments/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && esCaraDeLaSesion(userId)
+                   && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
 
@@ -166,13 +196,14 @@ service firebase.storage {
             || caraHeredadaDeLaSesion() in firestore.get(conversacion).data.participants
             || firestore.get(conversacion).data.participants.hasAny(alterEgosDeLaCuenta()));
     }
+    // Fotos y, desde 2026-11-26, notas de voz (antes iban a Cloudinary, públicas y sin poder borrarse).
     match /users/{userId}/weetalk/{conversationId}/{fileName} {
       allow read: if request.auth != null
                   && (request.auth.uid == userId || participaEn(conversationId));
       allow write: if request.auth != null
                    && esCaraDeLaSesion(userId)
                    && request.resource.size < 10 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+                   && request.resource.contentType.matches('(image|audio)/.*');
     }
 
     // === El material del personaje del Perfil Weë (docs/AUTONOMIA.md § 1b) ===

@@ -291,9 +291,14 @@ console.log('\n── E · Reglas (análisis estático) ──');
   const bloques = bloquesDe(ST).filter((b) => b.ruta !== '/b/{bucket}/o');
   const rutas = bloques.map((b) => b.ruta);
   check('E1) storage.rules no tiene comodín: lo no declarado se deniega', !/\{[a-zA-Z]+=\*\*\}/.test(ST));
-  const PUBLICAS = new Set(['/images/posts/{userId}/{fileName}', '/images/profile/{userId}/{fileName}', '/users/{userId}/ai-avatar/{fileName}']);
+  /*
+   * + vídeos de publicaciones, imágenes de comunidades y de comentarios (2026-11-26, sin Cloudinary): contenido social
+   * público como las fotos de las publicaciones; escribe solo la cara de la sesión, con tipo y tamaño acotados.
+   */
+  const PUBLICAS = new Set(['/images/posts/{userId}/{fileName}', '/images/profile/{userId}/{fileName}', '/users/{userId}/ai-avatar/{fileName}',
+    '/videos/posts/{userId}/{fileName}', '/images/communities/{userId}/{fileName}', '/images/comments/{userId}/{fileName}']);
   const lecturaLibre = bloques.filter((b) => /allow read: if true/.test(b.cuerpo)).map((b) => b.ruta);
-  check('E2) solo son de lectura libre las tres rutas públicas por diseño', lecturaLibre.length === PUBLICAS.size && lecturaLibre.every((r) => PUBLICAS.has(r)), lecturaLibre.join(' · '));
+  check('E2) solo son de lectura libre las seis rutas públicas por diseño', lecturaLibre.length === PUBLICAS.size && lecturaLibre.every((r) => PUBLICAS.has(r)), lecturaLibre.join(' · '));
   const deUsuario = bloques.filter((b) => b.ruta.startsWith('/users/{userId}/'));
   const escrituraMala = deUsuario.filter((b) => /allow write: if (?!false)/.test(b.cuerpo) && !/request\.auth\.uid == userId/.test(b.cuerpo));
   check('E3) toda escritura de cliente bajo users/{userId}/ exige ser esa cuenta', escrituraMala.length === 0, escrituraMala.map((b) => b.ruta).join(','));

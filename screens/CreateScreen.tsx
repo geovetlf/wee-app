@@ -22,12 +22,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { postsService } from '../services/firestoreService';
-import { uploadPostImage } from '../services/storageService';
+import { uploadPostImage, uploadPostVideoFromUri } from '../services/storageService';
 import { PostPlace, etiquetaDeLugar } from '../data/places';
 import { MURO_GENERAL } from '../utils/sectionFeed';
 import { nombreDeComunidad } from '../utils/comunidadesDeWee';
 import type { Community } from '../services/communityService';
-import { uploadVideoToCloudinary } from '../services/cloudinaryService';
 import { TRANSFORMAR_IDENTIDAD_EN_WEELS } from '../constants/transformarIdentidad';
 import { performAvatarReplacement, uploadImageForSwap, saveFaceSwapResult } from '../services/avatarGenerationService';
 import * as ImagePicker from 'expo-image-picker';
@@ -490,10 +489,8 @@ const CreateScreen: React.FC = () => {
                 const duration = await new Promise<number>((res) => {
                   const videoEl = document.createElement('video');
                   videoEl.preload = 'metadata';
-                  videoEl.onloadedmetadata = () => {
-                    res(videoEl.duration);
-                    URL.revokeObjectURL(videoEl.src);
-                  };
+                  /* El enlace local NO se libera aquí: es el mismo que pinta la vista previa y el que se sube al publicar. */
+                  videoEl.onloadedmetadata = () => res(videoEl.duration);
                   videoEl.onerror = () => res(0);
                   videoEl.src = uri;
                 });
@@ -705,7 +702,7 @@ const CreateScreen: React.FC = () => {
         const isVideoPost = attachedMedia[0].type === 'video';
 
         if (isVideoPost) {
-          // Subir video a Cloudinary (comprime y sirve por CDN)
+          // Subir el vídeo al Storage de Weë, a la carpeta de la cara que publica (sin Cloudinary, 2026-11-26)
           const media = attachedMedia[0];
           /*
            * UN VÍDEO QUE YA ES MATERIAL NO SE VUELVE A SUBIR. Viene de Weë AI
@@ -718,9 +715,8 @@ const CreateScreen: React.FC = () => {
             videoAssetId = media.assetId;
           } else {
           try {
-            console.log('📹 Subiendo video a Cloudinary...');
             setSubida({ n: 1, total: 1 });
-            videoUrl = await uploadVideoToCloudinary(media.uri);
+            videoUrl = await uploadPostVideoFromUri(media.uri, userProfile?.uid || user.uid);
             console.log('✅ Video subido:', videoUrl);
           } catch (error) {
             console.error('Error uploading video:', error);

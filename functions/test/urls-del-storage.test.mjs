@@ -457,7 +457,7 @@ console.log('\n── E · Una sola regla, en el código ──');
     /* + creatorQuote sin trabajo (WeëAI sencillo, 2026-11-23): la foto que se cotiza pasa por la misma puerta → 3. */
     (CREATOR.match(/assertInputImageUrl\(data\.imageUrl, uid\)/g) || []).length === 3
     && /assertInputImageUrl\(inputImage, uid\)/.test(VIDEO) && /assertInputImageUrl\(data\.lastFrameImage, uid\)/.test(VIDEO)
-    && /values\.slice\(0, 30\)\.map\(\(value\) => assertInputImageUrl\(value, uid\)\)/.test(VIDEO)
+    && /values\.slice\(0, 30\)\.map\(\(value\) => \(typeof value === 'string' && activosAutorizados\.includes\(value\) \? value : assertInputImageUrl\(value, uid\)\)\)/.test(VIDEO)
     && /assertInputImageUrl\(request\.data\?\.selfieUrl, request\.auth\.uid\)/.test(AVATAR) && /assertInputImageUrl\(request\.data\?\.avatarUrl, request\.auth\.uid\)/.test(AVATAR));
 
   /*

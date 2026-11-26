@@ -23,13 +23,13 @@ import IconoDireccional from '../components/IconoDireccional';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
-import { uploadAudioToCloudinary } from '../services/cloudinaryService';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { messagesService, Message, Conversation, ParticipantData, claveDeAvisoGuardado } from '../services/messagesService';
-import { uploadMessageImageFromUri, uploadViewOncePhoto } from '../services/storageService';
+/* Todo al Storage de Weë, a la carpeta privada de la conversación (decisión del dueño, 2026-11-26: sin Cloudinary). */
+import { uploadMessageAudio, uploadMessageImageFromUri, uploadViewOncePhoto } from '../services/storageService';
 import { notify } from '../utils/notify';
 import { cloudinaryThumb } from '../services/cloudinaryService';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
@@ -272,7 +272,7 @@ const ConversationScreen = () => {
        * (`claveDeAvisoGuardado` en services/messagesService.ts; `cuerpoDelMensaje` en functions/src/social/avisos.ts).
        * Cambiarlas sería migrar datos. Lo vigila functions/test/i18n-marcas-de-mensaje.test.mjs.
        */
-      const url = viewOnce ? await uploadViewOncePhoto(uri, myUid, convId) : await uploadMessageImageFromUri(uri, myUid);
+      const url = viewOnce ? await uploadViewOncePhoto(uri, myUid, convId) : await uploadMessageImageFromUri(uri, myUid, convId);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
     } catch (e) {
       notify(t('common.error'), t('weetalk.imageFailed'));
@@ -393,7 +393,7 @@ const ConversationScreen = () => {
       if (durationSec < 1) return;
 
       setSending(true);
-      const audioUrl = await uploadAudioToCloudinary(uri, `audio/${myUid}`);
+      const audioUrl = await uploadMessageAudio(uri, myUid, convId);
       await messagesService.sendMessage(convId, myUid, '🎤 Audio', 'audio', audioUrl, false, durationSec);
       setSending(false);
     } catch (e) {
@@ -415,7 +415,7 @@ const ConversationScreen = () => {
        *
        * Las marcas 'Foto única' / '📷 Imagen' son datos, no interfaz: ver `confirmSendImage`.
        */
-      const url = viewOnce ? await uploadViewOncePhoto(uri, myUid, convId) : await uploadMessageImageFromUri(uri, myUid);
+      const url = viewOnce ? await uploadViewOncePhoto(uri, myUid, convId) : await uploadMessageImageFromUri(uri, myUid, convId);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
     } catch (e) {
       notify(t('common.error'), t('weetalk.imageFailed'));

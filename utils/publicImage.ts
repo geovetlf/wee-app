@@ -15,13 +15,28 @@ import * as ImageManipulator from 'expo-image-manipulator';
  * para comprimir, y en web el canvas del navegador.
  *
  * Se limpia SOLO lo que va a ser público, y en el único sitio por donde pasa todo
- * lo público: la subida a Cloudinary. Las fotos que la persona le entrega a Weë
+ * lo público: la subida al Storage de Weë (`services/storageService.ts`). Las fotos que la persona le entrega a Weë
  * Creator viven en su carpeta privada del Storage y no se tocan; si un resultado
  * se publica, sale por aquí como cualquier otra imagen.
  */
 
 /** Calidad al re-escribir un JPEG. Alta a propósito: limpiar no es degradar. */
 const CALIDAD = 0.92;
+
+/**
+ * EL LADO MÁS LARGO, COMO MUCHO (2026-11-26, coste mínimo): una foto de 12 MP sale del teléfono a 4032 px y pesa 3–6 MB;
+ * en una pantalla de teléfono no se ve más que ~2048 px. Ya se reescribe para quitar el EXIF, así que limitarla aquí no
+ * añade ningún paso y guarda y sirve ~4 veces menos píxeles. Una foto más pequeña se queda como está (nunca se amplía).
+ */
+export const LADO_MAXIMO_PUBLICO = 2048;
+
+/** El tamaño que cabe en `lado` sin deformar y sin ampliar nunca. */
+export const medidasQueCaben = (ancho: number, alto: number, lado: number): { ancho: number; alto: number } => {
+  const mayor = Math.max(ancho, alto);
+  if (!(mayor > lado)) return { ancho, alto };
+  const f = lado / mayor;
+  return { ancho: Math.round(ancho * f), alto: Math.round(alto * f) };
+};
 
 /** Un PNG se reescribe como PNG: si lo pasáramos a JPEG perdería la transparencia. */
 const esPng = (pista: string): boolean => /png/i.test(pista);
@@ -58,17 +73,17 @@ const decodificarEnWeb = async (blob: Blob): Promise<ImageBitmap | HTMLImageElem
   }
 };
 
-const limpiarEnWeb = async (blob: Blob): Promise<Blob> => {
+const limpiarEnWeb = async (blob: Blob, lado: number): Promise<Blob> => {
   const fuente = await decodificarEnWeb(blob);
-  const ancho = 'naturalWidth' in fuente ? fuente.naturalWidth : fuente.width;
-  const alto = 'naturalHeight' in fuente ? fuente.naturalHeight : fuente.height;
+  const original = { ancho: 'naturalWidth' in fuente ? fuente.naturalWidth : fuente.width, alto: 'naturalHeight' in fuente ? fuente.naturalHeight : fuente.height };
+  const { ancho, alto } = medidasQueCaben(original.ancho, original.alto, lado);
 
   const lienzo = document.createElement('canvas');
   lienzo.width = ancho;
   lienzo.height = alto;
   const pincel = lienzo.getContext('2d');
   if (!pincel) throw new Error('lienzo-sin-contexto-2d');
-  pincel.drawImage(fuente as CanvasImageSource, 0, 0);
+  pincel.drawImage(fuente as CanvasImageSource, 0, 0, ancho, alto);
   if ('close' in fuente) fuente.close();
 
   const tipo = esPng(blob.type) ? 'image/png' : 'image/jpeg';
@@ -79,15 +94,15 @@ const limpiarEnWeb = async (blob: Blob): Promise<Blob> => {
 
 // ─── Móvil: expo-image-manipulator ──────────────────────────────────────────
 
-const limpiarEnMovil = async (uri: string): Promise<string> => {
-  // Sin acciones: no se recorta, no se rota y no se cambia de tamaño. Lo único
-  // que ocurre es que el archivo se vuelve a escribir, y al escribirlo de nuevo
-  // no se copia nada del EXIF original.
-  const resultado = await ImageManipulator.manipulateAsync(uri, [], {
-    compress: esPng(uri) ? 1 : CALIDAD,
-    format: esPng(uri) ? ImageManipulator.SaveFormat.PNG : ImageManipulator.SaveFormat.JPEG,
-  });
-  return resultado.uri;
+const limpiarEnMovil = async (uri: string, lado: number): Promise<string> => {
+  // Sin acciones: no se recorta ni se rota. El archivo se vuelve a escribir, y al escribirlo de nuevo no se copia nada
+  // del EXIF original. Si pasa del lado máximo, una segunda escritura lo reduce (sin ampliar nunca).
+  const formato = { compress: esPng(uri) ? 1 : CALIDAD, format: esPng(uri) ? ImageManipulator.SaveFormat.PNG : ImageManipulator.SaveFormat.JPEG };
+  const limpia = await ImageManipulator.manipulateAsync(uri, [], formato);
+  const cabe = medidasQueCaben(limpia.width, limpia.height, lado);
+  if (cabe.ancho === limpia.width && cabe.alto === limpia.height) return limpia.uri;
+  const reducida = await ImageManipulator.manipulateAsync(limpia.uri, [{ resize: { width: cabe.ancho, height: cabe.alto } }], formato);
+  return reducida.uri;
 };
 
 // ─── Lo que usa el resto de Weë ─────────────────────────────────────────────
@@ -96,20 +111,20 @@ const limpiarEnMovil = async (uri: string): Promise<string> => {
  * Devuelve una dirección a la misma imagen sin metadatos. En web sigue siendo una
  * dirección utilizable (un blob local); en móvil, un archivo nuevo en la caché.
  */
-export const uriSinMetadatos = async (uri: string): Promise<string> => {
+export const uriSinMetadatos = async (uri: string, lado: number = LADO_MAXIMO_PUBLICO): Promise<string> => {
   try {
-    if (Platform.OS !== 'web') return await limpiarEnMovil(uri);
+    if (Platform.OS !== 'web') return await limpiarEnMovil(uri, lado);
     const original = await (await fetch(uri)).blob();
-    return URL.createObjectURL(await limpiarEnWeb(original));
+    return URL.createObjectURL(await limpiarEnWeb(original, lado));
   } catch (error) {
     throw new ImagenNoLimpiable(error);
   }
 };
 
 /** Igual, para cuando la imagen ya está en memoria. */
-export const blobSinMetadatos = async (blob: Blob): Promise<Blob> => {
+export const blobSinMetadatos = async (blob: Blob, lado: number = LADO_MAXIMO_PUBLICO): Promise<Blob> => {
   try {
-    if (Platform.OS === 'web') return await limpiarEnWeb(blob);
+    if (Platform.OS === 'web') return await limpiarEnWeb(blob, lado);
     // En móvil el manipulador trabaja con archivos: se pasa por un data URL.
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const lector = new FileReader();
@@ -117,7 +132,7 @@ export const blobSinMetadatos = async (blob: Blob): Promise<Blob> => {
       lector.onerror = reject;
       lector.readAsDataURL(blob);
     });
-    const limpia = await limpiarEnMovil(dataUrl);
+    const limpia = await limpiarEnMovil(dataUrl, lado);
     return await (await fetch(limpia)).blob();
   } catch (error) {
     throw new ImagenNoLimpiable(error);

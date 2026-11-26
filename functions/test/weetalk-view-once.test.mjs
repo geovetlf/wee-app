@@ -161,7 +161,7 @@ console.log('\n── D · El cliente: a dónde va la foto y cuándo se quema �
    * y el servidor no podría borrar el objeto.
    */
   check('21) la pantalla elige el camino por `viewOnce`, en las dos entradas (galería y cámara)',
-    (pantalla.match(/const url = viewOnce \? await uploadViewOncePhoto\(uri, user\.uid, convId\) : await uploadMessageImageFromUri\(uri, myUid\);/g) || []).length === 2);
+    (pantalla.match(/const url = viewOnce \? await uploadViewOncePhoto\(uri, user\.uid, convId\) : await uploadMessageImageFromUri\(uri, myUid, convId\);/g) || []).length === 2);
   check('21) y la ruta de la foto única es la de la cuenta, nunca la de la cara', !/uploadViewOncePhoto\(uri, myUid/.test(pantalla));
   check('22) abrir NO quema: se quema cuando la foto ya cargó (onLoad)',
     /onLoad=\{quemarSiToca\}/.test(pantalla) && /setPendienteDeQuemar\(msg\.id\);\s*\n\s*setViewOnceImage\(msg\.imageUrl\);/.test(pantalla)
