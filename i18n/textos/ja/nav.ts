@@ -14,6 +14,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: '作成',
   talk: 'WeeTalk',
   notifications: '通知',
+  notificationsUnread: '通知、未読のお知らせがあります',
   current: '表示中',
   goTo: '{{nombre}}に移動',
   weeNavigation: 'Weëのナビゲーション',

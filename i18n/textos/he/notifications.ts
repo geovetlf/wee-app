@@ -25,6 +25,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: 'פוסט חדש מ-{{nombre}} ב-{{comunidad}}',
   aCommunity: 'קהילה',
   generic: 'פעילות חדשה מ-{{nombre}}',
+  characterNotice: 'יש התראות מ-{{nombre}} שמחכות לבדיקה',
   now: 'עכשיו',
   markAllRead: 'סימון הכול כנקרא',
   all: 'הכול',

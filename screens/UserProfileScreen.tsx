@@ -26,6 +26,7 @@ import { useUserById, updateUserCache } from '../hooks/useUserById';
 import { useEContact, mensajeDeEContact } from '../hooks/useEContact';
 import { postsService, Post, repostsService } from '../services/firestoreService';
 import { likesService } from '../services/likesService';
+import { perfilDesactivado } from '../utils/cuentaDesactivada';
 import { formatNumber } from '../utils/formatoCorto';
 import { MainStackParamList } from '../navigation/MainStackNavigator';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
@@ -451,8 +452,8 @@ const UserProfileScreen: React.FC = () => {
     );
   }
 
-  // Error state
-  if (profileError || !userProfile) {
+  // Error state. Una cuenta desactivada se ve como una que no existe (utils/cuentaDesactivada.ts).
+  if (profileError || !userProfile || perfilDesactivado(userProfile)) {
     return (
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         {/* Header */}

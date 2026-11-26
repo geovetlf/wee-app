@@ -79,8 +79,13 @@ export const esTipoDeEntidad = (v: unknown): v is EntityType =>
  * LA CONVENCIÓN DE SECUENCIA, Y POR QUÉ SE GUARDA EL TIPO IGUAL.
  *
  *   1  → Perfil Real (ËContact)
- *   2  → Perfil Weë (ẄContact)
- *   3+ → Páginas
+ *   2  → Perfil Weë (ẄContact), el primero y heredado de la cuenta
+ *   3+ → Páginas, o Perfiles Weë más (alter egos, contrato 2.1)
+ *
+ * Desde el contrato 2.1 (plan de alter egos, 2026-11-23) una cuenta puede tener
+ * varios Perfiles Weë. La secuencia 2 se queda para el primero; los siguientes
+ * toman su secuencia del MISMO contador que las Páginas, y de la 3 en adelante
+ * es el tipo GUARDADO el que dice qué es cada entidad.
  *
  * La convención sirve para CREAR. El tipo se guarda aparte y es la única fuente
  * de verdad al leer, porque deducirlo de cualquier otra cosa —del último
@@ -121,6 +126,24 @@ export const tipoPorSecuencia = (entitySequence: number): EntityType | undefined
   return 'PAGE';
 };
 
+/**
+ * Qué tipos ADMITE una secuencia al leer una entidad ya guardada (contrato 2.1).
+ *
+ *   1  → solo REAL_PROFILE
+ *   2  → solo WEE_PROFILE
+ *   3+ → PAGE o WEE_PROFILE: manda el tipo guardado
+ *
+ * No clasifica nada: dice qué combinaciones de tipo y secuencia son coherentes.
+ * Para crear se sigue usando `tipoPorSecuencia`, y un alter ego se crea con su
+ * tipo explícito, no deducido de su número.
+ */
+export const tiposAdmitidosPorSecuencia = (entitySequence: number): readonly EntityType[] => {
+  if (!Number.isSafeInteger(entitySequence) || entitySequence < 1) return [];
+  if (entitySequence === SECUENCIA_DE_PERFIL_REAL) return ['REAL_PROFILE'];
+  if (entitySequence === SECUENCIA_DE_PERFIL_WEE) return ['WEE_PROFILE'];
+  return ['PAGE', 'WEE_PROFILE'];
+};
+
 /* ── El nombre público, que es OTRA COSA que el identificador ───────────── */
 
 /**
@@ -150,7 +173,11 @@ export const esHandle = (v: unknown): v is EntityHandle =>
 
 /* ── La entidad completa ────────────────────────────────────────────────── */
 
-export type EntityStatus = 'ACTIVE' | 'SUSPENDED' | 'DELETED';
+/**
+ * `RETIRED` (contrato 2.1): un alter ego que su dueño retiró. Deja de ser de
+ * nadie para resolver identidades, y su secuencia no vuelve a usarse.
+ */
+export type EntityStatus = 'ACTIVE' | 'SUSPENDED' | 'DELETED' | 'RETIRED';
 
 /**
  * UNA ENTIDAD, ENTERA, CON SU DUEÑO DELANTE.
@@ -239,7 +266,8 @@ export const atribuirA = <T extends OwnedByAccount>(
  * Incluye la comprobación que da sentido a todo el archivo: el tipo guardado
  * tiene que ser COHERENTE con la secuencia. No se deduce de ella —se compara
  * con ella—, y una entidad cuyo tipo y secuencia se contradicen se rechaza en
- * vez de creerle a uno de los dos.
+ * vez de creerle a uno de los dos. De la 3 en adelante caben una Página o un
+ * Perfil Weë (`tiposAdmitidosPorSecuencia`).
  */
 export const entidadValida = (e: EntityIdentity | undefined): boolean => {
   if (!e || typeof e !== 'object') return false;
@@ -248,7 +276,7 @@ export const entidadValida = (e: EntityIdentity | undefined): boolean => {
   if (!esTipoDeEntidad(e.entityType)) return false;
   if (!Number.isSafeInteger(e.entitySequence) || e.entitySequence < 1) return false;
   if (e.handle !== undefined && !esHandle(e.handle)) return false;
-  return tipoPorSecuencia(e.entitySequence) === e.entityType;
+  return tiposAdmitidosPorSecuencia(e.entitySequence).includes(e.entityType);
 };
 
 /* ── El identificador de la cuenta ──────────────────────────────────────── */

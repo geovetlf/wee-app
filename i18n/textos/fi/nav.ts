@@ -12,6 +12,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Luo',
   talk: 'WeeTalk',
   notifications: 'Ilmoitukset',
+  notificationsUnread: 'Ilmoitukset, sinulla on lukemattomia ilmoituksia',
   current: 'nykyinen osio',
   goTo: 'Siirry kohtaan {{nombre}}',
   weeNavigation: 'Weë-navigointi',

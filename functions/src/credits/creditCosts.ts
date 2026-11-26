@@ -68,6 +68,14 @@ export const CREDIT_COSTS = {
   ai_search: 3,
   ai_book: 100,
   wee_avatar: 50,          // Nano Banana Pro, dos llamadas
+  /*
+   * PASE DE AUTONOMÍA DEL PERSONAJE: 24 h de autonomía con IA del Perfil Weë.
+   * Añadido con AUTORIZACIÓN EXPLÍCITA del dueño (2026-11-22) sobre el catálogo
+   * congelado (functions/test/job-queue.test.mjs, comprobación 63). Precio
+   * provisional dado por el dueño; se ajusta tras medir (creditCosts/{servicio}).
+   * Lo que el personaje encargue a Weë AI se cobra con su propio servicio.
+   */
+  wee_autonomy_pass: 30,
 } as const;
 
 export type CreditService = keyof typeof CREDIT_COSTS;
@@ -144,6 +152,7 @@ export const SERVICE_LABEL: Record<CreditService, string> = {
   ai_search: 'Búsqueda con IA',
   ai_book: 'Creación de libro',
   wee_avatar: 'Avatar Weë',
+  wee_autonomy_pass: 'Autonomía del personaje (24 h)',
 };
 
 /*

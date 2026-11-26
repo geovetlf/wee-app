@@ -418,7 +418,8 @@ export const EXPERIENCIAS_POR_ENTRADA: Readonly<Partial<Record<EntradaDeStudio, 
  * (`productions`, `shots`) y los índices de `productions`/`shots` (docs/INTEGRACION-PRODUCCION.md §2 y §7); sin eso la pantalla falla al leer.
  * Cerrarla de nuevo es volver a poner esto a `false`.
  */
-export const FILMMAKER_EN_LA_APP = true;
+/* 2026-11-23 — ARCHIVADO (decisión del dueño, 2026-11-23): Weë Filmmaker queda dormido hasta terminar la app; ver docs/ARCHIVO.md. Cerrada otra vez: la producción no tiene ruta ni enlace y su módulo no navega. */
+export const FILMMAKER_EN_LA_APP = false;
 
 /**
  * Pura: el catálogo tal como se enseña. Con la puerta abierta, el de Filmmaker

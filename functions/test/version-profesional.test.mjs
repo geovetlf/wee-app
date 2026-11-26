@@ -29,7 +29,7 @@ check('9) la barra de la App no entra', /'EspacioProfesional',\s*\]\)/.test(leer
 check('10) el marco de Weë AI no se duplica dentro', leer('components/creator/CreatorShell.tsx').includes('{!enProfesional && <CreatorSidebar'));
 const SEL = leer('components/workspace/SelectorDeVersion.tsx');
 check('12) la píldora está arriba en las dos versiones', MARCO.includes('<SelectorDeVersion puesta="pro" />') && leer('components/Header.tsx').includes('<SelectorDeVersion puesta="app" corta />'));
-check('13) la píldora es solo de la web', SEL.includes('!VERSION_PROFESIONAL_EN_LA_WEB') && DATOS.includes("VERSION_PROFESIONAL_EN_LA_WEB = Platform.OS === 'web'"));
+check('13) la píldora depende de la puerta, y la puerta está APAGADA: Weë versión creator archivada (dueño, 2026-11-24)', SEL.includes('!VERSION_PROFESIONAL_EN_LA_WEB') && /VERSION_PROFESIONAL_EN_LA_WEB: boolean = false;/.test(DATOS));
 check('14) la barra lateral de la App no cambia: se entra por la píldora', !leer('components/Sidebar.tsx').includes('EspacioProfesional'));
 check('15) en la app móvil no existe: ni ruta, ni dirección, ni píldora', leer('navigation/MainStackNavigator.tsx').includes('{VERSION_PROFESIONAL_EN_LA_WEB && <Stack.Screen name="EspacioProfesional"') && APP.includes('...(!VERSION_PROFESIONAL_EN_LA_WEB ? {} : { EspacioProfesional') && leer('components/Header.tsx').includes('{isWeb && <SelectorDeVersion'));
 check('16) la barra de Weë AI, con su enlace al perfil, no entra', leer('components/creator/CreatorShell.tsx').includes('{!enProfesional && <View style={[styles.topBar'));

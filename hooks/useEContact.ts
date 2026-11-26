@@ -10,6 +10,7 @@ import {
   EstadoEntre,
   NombreDeLista,
   TipoDeIdentidad,
+  bloqueaMismaPersona,
   esIdentidadDePersona,
   nombreDeIdentidad,
   nombreDeLista,
@@ -136,15 +137,15 @@ export const useEContact = (otraIdentidad?: string): RelacionEContact => {
 
   /*
    * No hay con quién conectar si no hay sesión, si ese perfil no es de una
-   * persona, o si es tuyo —da igual cuál de los dos—: las dos caras de una cuenta
-   * son la misma persona y no se agregan entre sí.
+   * persona, o si es tuyo y cruza el Perfil Real con un alter ego (`misma-persona`).
+   * Entre tus alter egos sí se puede (D6, 2026-11-23): cada uno tiene su lista.
    */
   const disponible =
     !!identidad &&
     !!otraIdentidad &&
     esIdentidadDePersona(otraIdentidad) &&
     otraIdentidad !== identidad &&
-    !econtactService.esMia(otraIdentidad);
+    !(econtactService.esMia(otraIdentidad) && bloqueaMismaPersona(identidad, otraIdentidad));
 
   const recargar = useCallback(async () => {
     if (!disponible || !identidad || !otraIdentidad) {

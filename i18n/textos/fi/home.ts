@@ -95,4 +95,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'Avaa Weë Brain',
   feedForYou: 'Sinulle',
   feedCreativity: 'Luovuus',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Nyt Weëssä',
+  you: 'Sinä',
+  guestTitle: 'Ilmaise itseäsi vapaasti.',
+  guestHint: 'Julkaise omana itsenäsi tai alter egoinasi ja esittele teoksesi WeëPagesissa.',
+  premiere: 'Ensi-ilta',
+  presentedBy: 'Esittelijänä {{nombre}}',
+  viewPage: 'Näytä WeëPage',
+  wallEmptyTitleWork: 'Ẅall odottaa ensimmäistä teostaan',
+  wallEmptyHintFaces: 'Julkaise jotain omaasi tai alter egosi nimissä.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Löydettäviä universumeja',
+  mosaicTitle: 'Juuri nyt luotua',
 };

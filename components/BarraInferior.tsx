@@ -44,7 +44,8 @@ import { RellenoDeMarca } from './GradienteDeMarca';
  * mismo que antes aunque el dibujo mida dos puntos menos.
  */
 
-export type DestinoId = 'Home' | 'WeeAI' | 'Create' | 'Inbox' | 'Profile';
+/* `WeeAI` ya no tiene botón (2026-11-24) pero sigue siendo un destino: enciende el tema de WeëAI en sus pantallas. */
+export type DestinoId = 'Home' | 'Weels' | 'WeeAI' | 'Create' | 'Inbox' | 'Profile';
 
 interface Destino {
   id: DestinoId;
@@ -68,7 +69,12 @@ interface Destino {
  */
 export const DESTINOS: Destino[] = [
   { id: 'Home', clave: 'nav.home', icono: 'home-outline', iconoPuesto: 'home' },
-  { id: 'WeeAI', clave: 'nav.weeAi', icono: 'sparkles-outline', iconoPuesto: 'sparkles' },
+  /*
+   * WEËLS OCUPA EL HUECO DE WEËAI (propuesta de Home 0+, aplicada el 2026-11-24): Weë es una red de creadores
+   * y sus alter egos, y WeëAI es una herramienta que vive en el +, en el ☰ y en «Recrear este estilo».
+   * Weëls es el formato que más retiene y gana pestaña.
+   */
+  { id: 'Weels', clave: 'menu.weels', icono: 'play-circle-outline', iconoPuesto: 'play-circle' },
   { id: 'Create', clave: 'nav.create', icono: 'add', iconoPuesto: 'add' },
   { id: 'Inbox', clave: 'nav.messages', icono: 'chatbubble-ellipses-outline', iconoPuesto: 'chatbubble-ellipses' },
   { id: 'Profile', clave: 'nav.myWee', icono: 'person-outline', iconoPuesto: 'person' },
@@ -86,15 +92,21 @@ interface BarraInferiorProps {
   onSelect: (destino: DestinoId) => void;
   /** Mensajes sin leer (WeeTalk). 0 o menos, no se dibuja nada. */
   sinLeer?: number;
+  /** Pulsación larga en la pestaña de la cara: abre la hoja «Cambiar de cara» con todos los alter egos. */
+  onMantener?: (destino: DestinoId) => void;
 }
 
-const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer = 0 }) => {
+const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer = 0, onMantener }) => {
   const t = useT();
-  const { activeProfileType, hasWeeProfile } = useUserProfile();
+  const { activeProfileType, hasWeeProfile, weeProfile } = useUserProfile();
   /* A qué cara lleva el interruptor: la otra. */
   const haciaWee = activeProfileType !== 'hidi';
-  /* La última pestaña nombra la OTRA cara: con el Perfil Real activo dice «Weë» (marca, no se traduce) y con el Perfil Weë activo, «Real». El icono, el destino y el comportamiento no cambian. */
-  const rotulo = (destino: Destino): string => (destino.id === 'Profile' ? (activeProfileType === 'hidi' ? t('pages.nature_real') : 'Weë') : t(destino.clave));
+  /*
+   * La última pestaña nombra la OTRA cara: con un alter ego puesto, «Real»; con el Perfil Real, el NOMBRE del último alter ego
+   * usado (contenido de la persona, no se traduce) o «Weë» (marca) si todavía no tiene ninguno. Con varios alter egos
+   * (2026-11-23) el toque sigue alternando con el último; la pulsación larga abre la hoja con todos.
+   */
+  const rotulo = (destino: Destino): string => (destino.id === 'Profile' ? (activeProfileType === 'hidi' ? t('pages.nature_real') : (weeProfile?.displayName || 'Weë')) : t(destino.clave));
   const { theme } = useTheme();
   const { scrollProgress, isTransparent } = useTabBar();
   const insets = useSafeAreaInsets();
@@ -146,11 +158,12 @@ const BarraInferior: React.FC<BarraInferiorProps> = ({ puesto, onSelect, sinLeer
             key={destino.id}
             style={styles.destino}
             onPress={() => onSelect(destino.id)}
+            onLongPress={destino.id === 'Profile' && hasWeeProfile && onMantener ? () => onMantener(destino.id) : undefined}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityState={{ selected: activo }}
             aria-selected={activo}
-            accessibilityLabel={destino.id === 'Profile' ? (haciaWee && !hasWeeProfile ? t('menu.createWeeProfile') : t('menu.switchToProfile', { perfil: t(haciaWee ? MENU_ITEM.weeProfile.clave : MENU_ITEM.realProfile.clave) })) : activo ? `${rotulo(destino)}, ${t('nav.current')}` : rotulo(destino)}
+            accessibilityLabel={destino.id === 'Profile' ? (haciaWee && !hasWeeProfile ? t('menu.createWeeProfile') : t('menu.switchToProfile', { perfil: haciaWee ? (weeProfile?.displayName || t(MENU_ITEM.weeProfile.clave)) : t(MENU_ITEM.realProfile.clave) })) : activo ? `${rotulo(destino)}, ${t('nav.current')}` : rotulo(destino)}
           >
             {destino.id === 'Create' ? (
               /*

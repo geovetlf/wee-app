@@ -20,6 +20,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} a postat în {{comunidad}}',
   aCommunity: 'o comunitate',
   generic: '{{nombre}} a interacționat cu tine',
+  characterNotice: '{{nombre}} ți-a lăsat notificări de verificat',
   now: 'acum',
   markAllRead: 'Marchează-le pe toate ca citite',
   all: 'Toate',

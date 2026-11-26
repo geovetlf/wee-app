@@ -7,6 +7,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'ایجاد',
   talk: 'WeeTalk',
   notifications: 'اعلان‌ها',
+  notificationsUnread: 'اعلان‌ها، اعلان‌های خوانده‌نشده دارید',
   current: 'بخش فعلی',
   goTo: 'رفتن به {{nombre}}',
   weeNavigation: 'ناوبری Weë',

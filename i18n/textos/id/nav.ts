@@ -12,6 +12,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Buat',
   talk: 'WeeTalk',
   notifications: 'Notifikasi',
+  notificationsUnread: 'Notifikasi, Anda punya notifikasi yang belum dibaca',
   current: 'bagian saat ini',
   goTo: 'Pergi ke {{nombre}}',
   weeNavigation: 'Navigasi Weë',

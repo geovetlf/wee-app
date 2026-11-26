@@ -45,6 +45,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { formatearNumero } from '../i18n/formato';
 import { useNombreDelIdioma } from '../hooks/useNombreDelIdioma';
 import { useDireccion } from '../hooks/useDireccion';
 import { useAuth } from '../contexts/AuthContext';
@@ -55,8 +56,8 @@ import { scale } from '../utils/scale';
 import { useWallet } from '../hooks/useWallet';
 import { Image } from 'expo-image';
 import { MENU_ITEM, MenuItemId, WEE_MENU } from '../constants/weeMenu';
-import SelectorDeIdentidad, { Identidad } from './inicio/SelectorDeIdentidad';
-import TarjetaWeeAi from './inicio/TarjetaWeeAi';
+import { ListaDeCaras } from './HojaDeAlterEgos';
+import { useAvisosDeLosPersonajes, avisoSinLeer } from '../hooks/useCampanita';
 import { RellenoDeMarca, RellenoDeDegradado } from './GradienteDeMarca';
 import { ARTE_WEEAI } from '../constants/marca';
 import { useMyWees } from '../hooks/useMyWees';
@@ -82,9 +83,10 @@ interface DrawerMenuProps {
  *
  *   logo Weë · ✕
  *   quién soy  ›
- *   [ Real | Weë ]                       ← el selector de identidad
+ *   Tus caras: Perfil Real · alter egos · + Crear alter ego   ← rediseño «Tu mundo» (2026-11-23)
+ *   Tu mundo · <cara puesta>: Ficha (solo alter ego) · Por revisar · WeëPages · ËContact/ẄContact
  *   ┌ WeëAI · lema                    → ┐ ← abre el centro creativo
- *   Inicio / Ẅall · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
+ *   Inicio / Ẅall · Weëls · Explorar · Comunidades · Proyectos · WeëPages
  *   ┌ MyWeës · descripción · [Personalizar] ┐
  *   Guardados · Historial · Credits · Configuración
  *   Ayuda y soporte
@@ -102,12 +104,14 @@ interface DrawerMenuProps {
  */
 const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const t = useT();
-  const { theme, setThemeMode } = useTheme();
-  const { formato } = useIdioma();
+  const { theme } = useTheme();
+  const { formato, locale } = useIdioma();
   const nombreDelIdioma = useNombreDelIdioma();
   const dir = useDireccion();
   const { user, logout } = useAuth();
-  const { userProfile, activeProfileType, hasWeeProfile, switchIdentity } = useUserProfile();
+  const { userProfile, activeProfileType } = useUserProfile();
+  /* Los avisos de cada personaje: «Por revisar» de la cara puesta, en «Tu mundo». */
+  const avisosDeLosPersonajes = useAvisosDeLosPersonajes();
   const navigation = useNavigation<any>();
   /*
    * ¿Estamos ya en el Home? La misma lectura que hace la barra de escritorio:
@@ -221,33 +225,15 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   };
 
   /*
-   * ─── EL SELECTOR DE IDENTIDAD ────────────────────────────────────────────
+   * ─── «TUS CARAS» (rediseño «Tu mundo», 2026-11-23) ────────────────────────
    *
-   * Es la misma lógica que tenían las filas «Perfil Real» y «Perfil Weë», y la
-   * misma que la píldora de la cabecera: `switchIdentity()` cambia de cara y
-   * `setThemeMode()` viste la app —clara con el Perfil Real, oscura con el
-   * Perfil Weë—. El tema sale del DESTINO, que es lo único seguro en ese
-   * momento. Aquí no se guarda ni se decide ninguna identidad: se pide el
-   * cambio a quien es su dueño, `UserProfileContext`.
-   *
-   *  · sin sesión, pide entrar;
-   *  · sin Perfil Weë todavía, el lado Weë lleva a crearlo;
-   *  · tocar el lado que ya está puesto no hace nada: ya estás ahí.
+   * El selector de dos lados [Real | Weë] se cambió por la lista de caras de
+   * `HojaDeAlterEgos` —la misma que abre la píldora de la cabecera—: el Perfil
+   * Real y cada alter ego, con su punto rojo y «+ Crear alter ego». Tocar una
+   * fila llama a `switchIdentity(id)` y pone el tema del DESTINO (claro con el
+   * Real, oscuro con cualquier alter ego); aquí no se decide ninguna identidad.
+   * Cambiar de cara cierra el cajón; ir a crear o a gestionar, también.
    */
-  const elegirIdentidad = (destino: Identidad) => {
-    if (!user) return requireLogin();
-    if (destino === 'hidi' && !hasWeeProfile) return after(() => navigateRoot('WeeProfileCreation'));
-    if (activeProfileType === destino) return;
-    /* Las dos ramas, escritas: el tema sale del DESTINO —oscuro con el Perfil Weë, claro con el Perfil Real—. */
-    if (destino === 'hidi') {
-      switchIdentity();
-      setThemeMode('dark');
-    } else {
-      switchIdentity();
-      setThemeMode('light');
-    }
-    closeDrawer();
-  };
 
   /*
    * ─── Home ────────────────────────────────────────────────────────────────
@@ -276,6 +262,9 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   const conCuenta = (pantalla: string, params?: object) => () => (user ? after(() => navigateRoot(pantalla, params)) : requireLogin());
   const goProjects = conCuenta('Projects');
   const goPages = conCuenta('WeePages');
+  /* «Tu mundo»: la ficha es SIEMPRE la del alter ego puesto (nunca por parámetro); la agenda, la de la cara puesta. */
+  const goSheet = conCuenta('CharacterSheet');
+  const goAgenda = conCuenta('EContact');
   const goMyWees = conCuenta('MyWees');
   const goCustomizeMyWees = conCuenta('MyWees', { personalizar: true });
 
@@ -331,6 +320,9 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
   /* El nombre de la persona NO se traduce. Lo que se traduce es el respaldo. */
   const displayName = userProfile?.displayName || user?.displayName || t('common.guest');
   const isWee = activeProfileType === 'hidi';
+  const avisoPuesto = isWee && userProfile?.uid ? avisosDeLosPersonajes[userProfile.uid] : null;
+  const pendientesPuesto = (avisoPuesto as { pendientes?: unknown } | null)?.pendientes;
+  const porRevisar = avisoSinLeer(avisoPuesto) ? Math.max(1, typeof pendientesPuesto === 'number' ? pendientesPuesto : 1) : 0;
   /* El @usuario, solo si la persona tiene uno. No se inventa a partir del nombre ni del correo. */
   const usuario = user && typeof userProfile?.username === 'string' && userProfile.username.trim() ? `@${userProfile.username.trim().replace(/^@/, '')}` : '';
 
@@ -527,6 +519,7 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
             {user ? (
               <AvatarDisplay
                 size={scale(48)}
+                cuadrado={isWee}
                 avatarType={userProfile?.avatarType || 'predefined'}
                 avatarId={userProfile?.avatarId || 'male'}
                 photoURL={typeof userProfile?.photoURL === 'string' ? userProfile.photoURL : undefined}
@@ -555,21 +548,43 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
           </TouchableOpacity>
 
           {/*
-            EL SELECTOR DE IDENTIDAD. Sustituye a las filas «Perfil Real» y
-            «Perfil Weë». Solo pinta y avisa: el cambio lo hace `elegirIdentidad`,
-            con el `switchIdentity` y el `setThemeMode` de siempre. Sin sesión
-            no se pinta: no hay identidad entre la que elegir.
+            «TUS CARAS»: el Perfil Real y los alter egos, la misma lista que la hoja
+            de la cabecera (`HojaDeAlterEgos`). Con más de cuatro alter egos se
+            pliega. Sin sesión no se pinta: no hay identidad entre la que elegir.
           */}
           {user && (
             <View style={styles.selector}>
-              <SelectorDeIdentidad activa={isWee ? 'hidi' : 'real'} tieneWee={hasWeeProfile} onElegir={elegirIdentidad} />
+              <Text style={[styles.rotulo, { color: theme.colors.textSecondary }]} accessibilityRole="header" numberOfLines={1}>{t('alterEgo.yourFaces')}</Text>
+              <ListaDeCaras plegable onCambiada={closeDrawer} antesDeIr={after} />
             </View>
           )}
 
-          {/* WeëAI: la tarjeta que abre el centro creativo. Ya no despliega una lista: las experiencias están dentro. */}
-          <View style={styles.tarjeta}>
-            <TarjetaWeeAi variante="menu" onOpenWeeAi={goWeeAi} />
-          </View>
+          {/*
+            «TU MUNDO» ES DE LA CARA PUESTA. Con un alter ego: su ficha (privada, solo
+            tú), lo que tiene por revisar, las WeëPages y su ẄContact. Con el Perfil
+            Real: las WeëPages y su ËContact. Credits, Configuración y Ayuda son de la
+            cuenta y siguen abajo.
+          */}
+          {user && (
+            <View style={styles.mundo}>
+              <Text style={[styles.rotulo, { color: theme.colors.textSecondary }]} accessibilityRole="header" numberOfLines={1}>{t('alterEgo.yourWorld', { nombre: displayName })}</Text>
+              {isWee && renderRow('perfilWee', t('character.entry'), goSheet, {
+                right: <Text style={[styles.chapaPrivada, { color: theme.colors.textSecondary, borderColor: theme.colors.border }]} numberOfLines={1}>{t('alterEgo.private')}</Text>,
+              })}
+              {isWee && porRevisar > 0 && renderRow('alerta', t('alterEgo.toReview'), goSheet, {
+                right: <View style={styles.contador}><Text style={styles.contadorTexto}>{formatearNumero(porRevisar, locale)}</Text></View>,
+                etiqueta: t('alterEgo.toReviewCount', { contador: porRevisar }),
+              })}
+              {fila('pages', goPages)}
+              {renderRow('econtact', nombreDeLaAgenda, goAgenda)}
+            </View>
+          )}
+
+          {/*
+            WeëAI, una fila más (propuesta de Home 0+, 2026-11-23): Weë es una red de creadores y
+            sus alter egos, y WeëAI es una herramienta. Ya no es una tarjeta destacada.
+          */}
+          {fila('creator', goWeeAi)}
 
           {/*
             LAS FILAS, EN EL ORDEN DEL CATÁLOGO. `WEE_MENU` dice qué hay y en
@@ -634,7 +649,8 @@ const DrawerMenu: React.FC<DrawerMenuProps> = ({ visible, onClose }) => {
                 </View>
               ) : (
                 <View style={i === 0 ? styles.primerGrupo : undefined}>
-                  {grupo.items.map((id) =>
+                  {/* WeëPages vive en «Tu mundo» cuando hay sesión: no se repite aquí. */}
+                  {grupo.items.filter((id) => !(user && id === 'pages')).map((id) =>
                     fila(id, ACCION[id] ?? closeDrawer, {
                       active: id === 'home' && enHome,
                       /* Credits: el saldo, a la derecha, con el degradado de marca. Se lee de `useWallet`; aquí no se toca ningún Credit. */
@@ -761,8 +777,42 @@ const styles = StyleSheet.create({
     paddingBottom: SPACING.md,
   },
   selector: {
-    paddingHorizontal: SPACING.sm,
+    paddingHorizontal: SPACING.xs,
     marginBottom: SPACING.md,
+  },
+  /* «Tu mundo · <cara>»: las filas de la cara puesta, entre las caras y WeëAI. */
+  mundo: {
+    marginBottom: SPACING.md,
+  },
+  /* El rótulo de cada bloque: pequeño y en gris, sin mayúsculas forzadas (cada idioma decide su caja). */
+  rotulo: {
+    fontSize: FONT_SIZE.xs,
+    fontWeight: FONT_WEIGHT.semibold,
+    paddingHorizontal: SPACING.sm,
+    marginBottom: SPACING.xs,
+  },
+  chapaPrivada: {
+    fontSize: scale(11),
+    fontWeight: FONT_WEIGHT.medium,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: BORDER_RADIUS.full,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: scale(2),
+    maxWidth: '45%',
+  },
+  contador: {
+    minWidth: scale(22),
+    height: scale(22),
+    borderRadius: scale(11),
+    paddingHorizontal: scale(6),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EF4444',
+  },
+  contadorTexto: {
+    color: '#FFFFFF',
+    fontSize: scale(12),
+    fontWeight: FONT_WEIGHT.semibold,
   },
   tarjeta: {
     paddingHorizontal: SPACING.xs,

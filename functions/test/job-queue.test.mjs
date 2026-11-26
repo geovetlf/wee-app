@@ -475,7 +475,14 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
         "const MODALIDADES = ['text', 'vision', 'image', 'video', 'voice', 'music', 'doc', '3d'] as const;",
         "const MODALIDADES_COMPLETAS: Record<Modality, true> = { text: true, vision: true, image: true, video: true, voice: true, music: true, doc: true, '3d': true };",
       ]) && JSON.stringify(deCostes.quitadas) === JSON.stringify(QUITADAS_DE_COSTES_POR_IMPORTE)
-      && JSON.stringify(deCostes.nuevas) === JSON.stringify([
+      /*
+       * Y EL PASE DE AUTONOMÍA DEL PERSONAJE (autorización expresa del dueño, 2026-11-22): el catálogo gana
+       * exactamente sus dos líneas —precio de prueba y etiqueta—, nada más. Se apartan aquí y se exigen tal cual.
+       */
+      && JSON.stringify(deCostes.nuevas.filter((l) => l.startsWith('wee_autonomy_pass:'))) === JSON.stringify([
+        'wee_autonomy_pass: 30,', "wee_autonomy_pass: 'Autonomía del personaje (24 h)',",
+      ])
+      && JSON.stringify(deCostes.nuevas.filter((l) => !l.startsWith('wee_autonomy_pass:'))) === JSON.stringify([
         'ai_world: 39,', "ai_world: 'Generación de mundo 3D',", 'export const WELCOME_CREDITS = 0;', "case 'world.generate':", "return 'ai_world';",
       ]), JSON.stringify({ delRouter, deCostes }));
   }

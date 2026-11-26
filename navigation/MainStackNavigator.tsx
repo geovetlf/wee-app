@@ -13,6 +13,8 @@ import SettingsScreen from '../screens/SettingsScreen';
 import HelpScreen from '../screens/HelpScreen';
 import IdiomaScreen from '../screens/IdiomaScreen';
 import EngineAdminScreen from '../screens/EngineAdminScreen';
+import EliminarCuentaScreen from '../screens/EliminarCuentaScreen';
+import RetirarAlterEgoScreen from '../screens/RetirarAlterEgoScreen';
 import SearchScreen from '../screens/SearchScreen';
 import CreateScreen from '../screens/CreateScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
@@ -20,9 +22,12 @@ import UserProfileScreen from '../screens/UserProfileScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import CommunitiesManagementScreen from '../screens/CommunitiesManagementScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
+import ActivarCuentaScreen from '../screens/ActivarCuentaScreen';
+import { perfilDesactivado } from '../utils/cuentaDesactivada';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import WeeProfileCreationScreen from '../screens/WeeProfileCreationScreen';
+import CharacterSheetScreen from '../screens/CharacterSheetScreen';
 import AiAvatarScreen from '../screens/AiAvatarScreen';
 import ReelsScreen from '../screens/ReelsScreen';
 import WallScreen from '../screens/WallScreen';
@@ -33,9 +38,12 @@ import CreditStoreScreen from '../screens/CreditStoreScreen';
 import WalletScreen from '../screens/WalletScreen';
 import WeeCreatorScreen from '../screens/WeeCreatorScreen';
 import CrearVideoScreen from '../screens/CrearVideoScreen';
+import CrearPublicacionScreen from '../screens/CrearPublicacionScreen';
+import TransformarIdentidadScreen from '../screens/TransformarIdentidadScreen';
 import PlantillasWeeAiScreen from '../screens/PlantillasWeeAiScreen';
 import HerramientasWeeAiScreen from '../screens/HerramientasWeeAiScreen';
 import FilmmakerCrearScreen from '../screens/FilmmakerCrearScreen';
+import { FILMMAKER_EN_LA_APP } from '../constants/studioExperiences';
 import FilmmakerTandasScreen from '../screens/FilmmakerTandasScreen';
 import SavedPostsScreen from '../screens/SavedPostsScreen';
 import WeePagesScreen from '../screens/WeePagesScreen';
@@ -74,6 +82,9 @@ export type MainStackParamList = {
   Idioma: undefined;
   Help: { section?: 'faq' | 'legal' } | undefined;
   EngineAdmin: undefined;
+  EliminarCuenta: undefined;
+  /** Borrar un alter ego (inmediato, sin vuelta). Solo se acepta uno de la cuenta; el servidor lo vuelve a comprobar. */
+  RetirarAlterEgo: { perfilId: string };
   CommunitiesManagement: undefined;
   Search: { query?: string } | undefined;
   /**
@@ -94,6 +105,10 @@ export type MainStackParamList = {
   WeeCreator: { category?: string } | undefined;
   /* «Crear video» con personajes (solo interfaz, datos locales y de muestra). */
   CrearVideo: undefined;
+  /* WeëAI sencillo (2026-11-23): Imagen, Video corto y Editar mi foto, para publicar. */
+  CrearPublicacion: { tipo: 'imagen' | 'video' | 'editar'; idea?: string; estiloDe?: { postId: string; autorId: string; nombre: string }; jobId?: string } | undefined;
+  /* Weëls · Transform Your Identity (WITE): vídeo propio → personaje propio → revisar → publicar a mano. */
+  TransformarIdentidad: undefined;
   /* Las plantillas de WeëAI: la pantalla con el muro completo (portada v2). */
   Plantillas: undefined;
   /* Las herramientas de WeëAI: Weë Brain, Moda y el avatar (portada v2). */
@@ -175,6 +190,7 @@ export type MainStackParamList = {
     communityId: string;
   };
   WeeProfileCreation: undefined;
+  CharacterSheet: undefined;
   AiAvatar: undefined;
   CreditStore: undefined;
   Wallet: undefined;
@@ -271,6 +287,15 @@ const MainStackNavigator: React.FC = () => {
         <ActivityIndicator size="large" color={MARCA.primario} />
       </View>
     );
+  }
+
+  /*
+   * Una cuenta DESACTIVADA (pidió «Eliminar cuenta» y tiene 30 días para volver)
+   * no entra en la app: ve «Activar cuenta». Va antes del onboarding porque una
+   * cuenta desactivada ya lo hizo. Ver utils/cuentaDesactivada.ts.
+   */
+  if (user && userProfile && perfilDesactivado(userProfile)) {
+    return <ActivarCuentaScreen />;
   }
 
   const hasValidDisplayName = userProfile?.displayName &&
@@ -392,15 +417,20 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="UserProfile" component={UserProfileScreen} />
       <Stack.Screen name="Community" component={CommunityScreen} />
       <Stack.Screen name="WeeProfileCreation" component={WeeProfileCreationScreen} />
+      <Stack.Screen name="CharacterSheet" component={CharacterSheetScreen} />
       <Stack.Screen name="AiAvatar" component={AiAvatarScreen} />
       <Stack.Screen name="CreditStore" component={CreditStoreScreen} />
       <Stack.Screen name="Wallet" component={WalletScreen} />
       <Stack.Screen name="WeeCreator" component={WeeCreatorScreen} />
       <Stack.Screen name="CrearVideo" component={CrearVideoScreen} />
+      <Stack.Screen name="CrearPublicacion" component={CrearPublicacionScreen} />
+      {/* Weëls · Transform Your Identity (WITE, 2026-11-26): la entrada del compositor depende de TRANSFORMAR_IDENTIDAD_EN_WEELS; el servidor, de su propia puerta. */}
+      <Stack.Screen name="TransformarIdentidad" component={TransformarIdentidadScreen} />
       <Stack.Screen name="Plantillas" component={PlantillasWeeAiScreen} />
       <Stack.Screen name="Herramientas" component={HerramientasWeeAiScreen} />
-      <Stack.Screen name="Filmmaker" component={FilmmakerCrearScreen} />
-      <Stack.Screen name="FilmmakerTandas" component={FilmmakerTandasScreen} />
+      {/* Weë Filmmaker ARCHIVADO (2026-11-23, docs/ARCHIVO.md): sin la puerta, sus pantallas no tienen ruta. */}
+      {FILMMAKER_EN_LA_APP && <Stack.Screen name="Filmmaker" component={FilmmakerCrearScreen} />}
+      {FILMMAKER_EN_LA_APP && <Stack.Screen name="FilmmakerTandas" component={FilmmakerTandasScreen} />}
       <Stack.Screen name="AgregarUbicacion" component={AgregarUbicacionScreen} />
       <Stack.Screen name="SavedPosts" component={SavedPostsScreen} />
       <Stack.Screen name="WeePages" component={WeePagesScreen} />
@@ -426,6 +456,8 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="Help" component={HelpScreen} />
       <Stack.Screen name="Idioma" component={IdiomaScreen} />
       <Stack.Screen name="EngineAdmin" component={EngineAdminScreen} />
+      <Stack.Screen name="EliminarCuenta" component={EliminarCuentaScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RetirarAlterEgo" component={RetirarAlterEgoScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="CommunitiesManagement" component={CommunitiesManagementScreen} />
       <Stack.Screen name="Project" component={ProjectScreen} />
       <Stack.Screen name="Boost" component={BoostScreen} />

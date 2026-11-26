@@ -61,7 +61,8 @@ check('17) confianza: «todavía no se ha gastado nada» antes de crear (plan y 
   leer('components/creator/PlanCard.tsx').includes("t('weeai.notChargedYet')") && leer('components/weeai/VistaPreviaDePlantilla.tsx').includes("t('weeai.notChargedYet')"));
 
 /* PORTADA v2 (2026-11-17): la referencia del dueño lleva bordes finos en módulos, caja y píldoras. Solo las piezas de la portada v2 pueden dibujarlos y SOLO con los tokens PORTADA_WEEAI (nunca un color suelto); el resto de WeëAI sigue sin líneas. */
-const PIEZAS_PORTADA_V2 = ['CabeceraDePortada', 'HeroDePortada', 'ModulosDePortada', 'GaleriaDePlantillas', 'PortadaWeeAi', 'arteDePortada'];
+/* + PuertasDePortada (WeëAI sencillo, 2026-11-23): las tres puertas llevan el material del módulo de siempre, con sus tokens. */
+const PIEZAS_PORTADA_V2 = ['CabeceraDePortada', 'HeroDePortada', 'ModulosDePortada', 'PuertasDePortada', 'GaleriaDePlantillas', 'PortadaWeeAi', 'arteDePortada'];
 const codigoSinPortadaV2 = carpeta.filter((f) => !PIEZAS_PORTADA_V2.some((p) => f.includes('/' + p + '.'))).map(leer).map(sinComentarios).join(' ');
 const codigoPortadaV2 = carpeta.filter((f) => PIEZAS_PORTADA_V2.some((p) => f.includes('/' + p + '.'))).map(leer).map(sinComentarios).join(' ');
 check('18) sin líneas fuera de la portada v2; en la portada v2 los bordes salen solo de los tokens PORTADA_WEEAI (ni un color suelto)',
@@ -180,10 +181,20 @@ const portada = sinComentarios(leer('components/weeai/PortadaWeeAi.tsx'));
 check('38) la portada es FIJA: el marco la monta sin desplazamiento (prop fija), y no lleva el muro, ni filtros, ni RefreshControl; el tope de la caja sale de la altura medida',
   leer('screens/WeeCreatorScreen.tsx').includes('fija') && leer('components/creator/CreatorShell.tsx').includes('{fija ? (') && !/TarjetaDePlantilla|FiltrosDePlantillas|RefreshControl|usePlantillas/.test(portada + sinComentarios(leer('screens/WeeCreatorScreen.tsx')))
   && portada.includes('topeDeLaCaja') && portada.includes('<CajaAnclada alto={topeDeLaCaja}>'));
-check('39) ocho módulos: Imagen, Video, Audio, Filmmaker, Texto, 3D, Plantillas y Herramientas; Plantillas navega a la pantalla propia y «Herramientas» reutiliza weeai.tools (sin la clave de «Más»)',
-  ['imagen:', 'video:', 'audio:', 'filmmaker:', 'texto:', 'tresD:', 'plantillas:', 'herramientas:'].every((k) => portada.includes(k)) && portada.includes("navigation.navigate('Plantillas')") && portada.includes("clave: 'weeai.tools'") && portada.includes("navigation.navigate('Herramientas')") && !/portadaMas/.test(portada + leer('i18n/textos/es/weeai.ts')));
-check('40) Filmmaker: icono de cámara de cine propio, navega a su primera capa (la pantalla Filmmaker, que a su vez abre Production) y la puerta está ABIERTA desde 2026-11-17; con la puerta cerrada volvería a «Próximamente» sin navegar',
-  portada.includes("icono: 'camaraCine'") && portada.includes("alPulsar: FILMMAKER_EN_LA_APP ? () => navigation.navigate('Filmmaker') : undefined") && /camaraCine:/.test(leer('components/icons/trazosDeWee.ts')) && /export const FILMMAKER_EN_LA_APP = true/.test(leer('constants/studioExperiences.ts')));
+/*
+ * WEËAI SENCILLO (decisión del dueño, 2026-11-23, boceto aprobado): la rejilla de ocho módulos pasa a TRES puertas para publicar
+ * —Imagen, Video corto y Editar mi foto— y Filmmaker y Music no aparecen (archivados, docs/ARCHIVO.md). Sustituyen a las 39, 40 y 45
+ * de la portada v2; Plantillas y Herramientas siguen con su ruta propia (41 y 43), solo dejan de estar en la portada.
+ */
+check('39) tres puertas: Imagen, Video corto y Editar mi foto, todas a «crear para publicar» (CrearPublicacion); ni Audio, ni Texto, ni 3D, ni Plantillas, ni Herramientas en la portada',
+  ["id: 'imagen'", "id: 'video'", "id: 'editar'"].every((k) => portada.includes(k)) && (portada.match(/crear\('(imagen|video|editar)'/g) || []).length >= 3
+  && portada.includes("navigation.navigate('CrearPublicacion'") && !/audio:|texto:|tresD:|plantillas:|herramientas:|kindAudio|ondas/.test(portada));
+check('40) Filmmaker y Music archivados: la portada no los nombra ni los abre, la puerta de Filmmaker está CERRADA y la de Music sigue tras su bandera',
+  !/Filmmaker|FILMMAKER_EN_LA_APP|MUSICA_EN_LA_UI|camaraCine|music/.test(portada) && /export const FILMMAKER_EN_LA_APP = false/.test(leer('constants/studioExperiences.ts'))
+  && /MUSICA_EN_LA_UI: boolean = process\.env\.EXPO_PUBLIC_WEEMUSIC_UI === '1'/.test(experiencias));
+check('40b) la caja: el «+» adjunta una foto y lleva a «Editar mi foto» (la foto viaja en memoria, no en la ruta); sin marcar nada, Weë Brain como siempre',
+  portada.includes("t('publicar.adjuntarFoto')") && portada.includes('dejarFotoPendiente(') && portada.includes("crear('editar'") && !/deshabilitada: true/.test(portada)
+  && portada.includes("navigation.navigate('CreatorFlow', { experienceId: 'brain', goal })"));
 check('41) la ruta Plantillas está en la pila principal (con su enlace web y su pestaña WeëAI) y la barra inferior no se toca; la pestaña sigue abriendo la portada con popTo',
   leer('navigation/MainStackNavigator.tsx').includes('<Stack.Screen name="Plantillas" component={PlantillasWeeAiScreen} />') && leer('App.tsx').includes("Plantillas: { path: 'weeai/plantillas'") && leer('navigation/NavegacionGlobal.tsx').includes("Plantillas: 'WeeAI'")
   && /StackActions\.popTo\('WeeCreator'\)/.test(leer('navigation/refNavegacion.ts')));
@@ -203,12 +214,14 @@ check('44) todos los idiomas: la medida de texto de la portada distingue escritu
 /* RONDA 4 (2026-11-17): corrección en teléfono real (pantalla alta). */
 const modulosTsx = sinComentarios(leer('components/weeai/ModulosDePortada.tsx'));
 const heroTsx = sinComentarios(leer('components/weeai/HeroDePortada.tsx'));
-check('45) rejilla: tarjetas SIEMPRE cuadradas e iguales (width = height = lado), tres por fila y la última de dos centrada; el lado sale del ancho o de la altura, nunca de un alto suelto',
-  modulosTsx.includes('width: lado, height: lado') && modulosTsx.includes('FILAS_DE_MODULOS = [3, 3, 2]') && modulosTsx.includes("justifyContent: 'center'") && portada.includes('Math.min(ladoPorAncho, ladoPorAlto, 132)') && !/altoDeTarjeta|columnas=/.test(portada));
+const puertasTsx = sinComentarios(leer('components/weeai/PuertasDePortada.tsx'));
+check('45) puertas: en el teléfono, FILAS a lo ancho (icono, nombre y su línea de ayuda, sin cortar: dos líneas como mucho); en escritorio, las tres en fila',
+  puertasTsx.includes("puertaEnColumna: { flexDirection: 'row'") && puertasTsx.includes('numberOfLines={2}>{p.nombre}') && puertasTsx.includes('numberOfLines={2}>{p.desc}')
+  && portada.includes('enFila={isDesktop}') && /rejilla: \{ flexDirection: 'row'/.test(puertasTsx));
 check('46) el arco es un recurso AMBIENTAL: vive dentro del hero, por detrás del texto, anclado arriba y desvanecido con un degradado NATIVO (el del SVG no lo respeta Android y dejaba una banda con borde duro); sin meridianos que bajen al texto',
   heroTsx.includes('<LinearGradient') && heroTsx.includes("colors={['rgba(5,6,8,0)', P.fondo]}") && heroTsx.includes('BORDE_ARRIBA') && !/FondoDeEsfera/.test(portada) && !/meridianos = [^']/.test(sinComentarios(leer('components/weeai/arteDePortada.ts'))) && !/id="g3"/.test(leer('components/weeai/arteDePortada.ts')));
 check('47) reparto vertical adaptativo: el hero ocupa lo que sobra (flex), la rejilla se ancla abajo con una holgura constante de 20 dp sobre la barra, y la caja y las tarjetas se calculan con la altura medida',
-  heroTsx.includes('flex: 1') && portada.includes('HOLGURA_SOBRE_LA_BARRA = 20') && portada.includes('paddingBottom: HOLGURA_SOBRE_LA_BARRA') && portada.includes('presupuestoDeRejilla') && portada.includes('topeDeLaCaja'));
+  heroTsx.includes('flex: 1') && portada.includes('HOLGURA_SOBRE_LA_BARRA = 20') && portada.includes('paddingBottom: HOLGURA_SOBRE_LA_BARRA') && portada.includes('altoDePuertas') && portada.includes('topeDeLaCaja'));
 check('48) subtítulo y titular sin palabra huérfana también en Android: salto equilibrado por código (no solo textWrap: balance de la web) y una sola línea si el titular cabe con una letra >= 78 %',
   heroTsx.includes('export const equilibrar') && heroTsx.includes("equilibrar(tSub") && heroTsx.includes('enUnaLinea'));
 

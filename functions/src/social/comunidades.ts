@@ -26,7 +26,8 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { createHash } from 'node:crypto';
-import { cuentaDeIdentidad, decidirIdentidad, esIdentidadDePersona, tipoDeIdentidad, PerfilDeIdentidad, TipoDeIdentidad } from './econtact';
+import { cuentaDelPerfilLeido } from '../identity/compatibilidad';
+import { decidirIdentidad, esIdentidadDePersona, tipoDeIdentidad, PerfilDeIdentidad, TipoDeIdentidad } from './econtact';
 
 const OPTS = { region: 'us-central1' as const, timeoutSeconds: 30 };
 
@@ -252,12 +253,14 @@ export const createComunidadesEngine = (deps: ComunidadesDeps) => {
     const snap = await perfilesDe(identidad as string).get();
     const doc = snap.empty ? null : snap.docs[0];
     const perfil = doc ? PERFIL_DATOS(doc.data()) : null;
-    const decision = decidirIdentidad({ identidad, perfil, cuentaDeLaSesion, debeSerMia });
+    /* Lo heredado por su vínculo; un alter ego (`ent_…`) por su entidad (F4). */
+    const cuenta = await cuentaDelPerfilLeido(deps.db(), identidad, perfil);
+    const decision = decidirIdentidad({ identidad, perfil, cuentaDeLaSesion, debeSerMia, cuenta });
     if (!decision.ok) throw new ComunidadError(decision.motivo as MotivoComunidad);
     const type = tipoDeIdentidad(identidad as string);
     return {
       identity: identidad as string,
-      accountUid: cuentaDeIdentidad(identidad as string, perfil) as string,
+      accountUid: cuenta as string,
       type,
       publico: { ref: referenciaPublicaSegura(perfil), type },
       perfilRef: doc!.ref,

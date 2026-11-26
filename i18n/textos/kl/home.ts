@@ -97,4 +97,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'Ammaruk: Weë Brain',
   feedForYou: 'Illinnut',
   feedCreativity: 'Pilersitsineq',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Maanna Weë-mi',
+  you: 'Illit',
+  guestTitle: 'Nammineerlutit imminut saqqummiutigit.',
+  guestHint: 'Illit nammineq imaluunniit alter ego-tit atorlugit saqqummiussigit, suliatillu WeëPages-imi takutillugit.',
+  premiere: 'Saqqummiineq siulleq',
+  presentedBy: '{{nombre}}-mit saqqummiunneqartoq',
+  viewPage: 'WeëPage takuuk',
+  wallEmptyTitleWork: 'Ẅall suliamik siullermik utaqqivoq',
+  wallEmptyHintFaces: 'Illit pigisannik alter ego-nnilluunniit pigisaanik saqqummiussigit.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Silarsuit nassaarineqarsinnaasut',
+  mosaicTitle: 'Maanna pilersinneqartut',
 };

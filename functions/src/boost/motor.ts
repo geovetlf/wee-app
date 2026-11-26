@@ -42,7 +42,8 @@ import {
   vistaDeCampana,
   vistaPrevia,
 } from './modelo';
-import { cuentaDeIdentidad, idDeContacto, PerfilDeIdentidad } from '../social/econtact';
+import { idDeContacto, PerfilDeIdentidad } from '../social/econtact';
+import { cuentaDelPerfilLeido, identidadesDeLaCuenta } from '../identity/compatibilidad';
 
 /** Lo que este motor usa del Credit Engine. Nada más: ni `grantCredits`, ni el saldo para escribir. */
 export interface CreditosParaBoost {
@@ -114,17 +115,22 @@ export function createBoostEngine(deps: BoostDeps) {
     return porId.exists && d?.uid === identidad ? d : null;
   };
 
-  /** ¿Es esta identidad de esta cuenta? Lo decide el resolutor canónico (`cuentaDeIdentidad`), leyendo, sin deducir. */
+  /**
+   * ¿Es esta identidad de esta cuenta? Se LEE, sin deducir: lo heredado por su vínculo y un alter ego por su
+   * entidad (`cuentaDelPerfilLeido`, F4).
+   */
   const esDeLaCuenta = async (identidad: string, cuenta: string): Promise<boolean> =>
-    cuentaDeIdentidad(identidad, (await perfilDe(identidad)) as PerfilDeIdentidad | null) === cuenta;
+    (await cuentaDelPerfilLeido(db(), identidad, (await perfilDe(identidad)) as PerfilDeIdentidad | null)) === cuenta;
 
-  /** Las identidades de una cuenta: su Perfil Real y, si existe y está bien enlazado, su Perfil Weë. */
+  /**
+   * Las identidades de una cuenta: su Perfil Real y TODOS sus Perfiles Weë (F4: `identidadesDeLaCuenta`, la cara
+   * heredada y los alter egos de `accounts.identidadesWee`). Cada una se vuelve a comprobar leyendo: una lista no
+   * afirma nada que el documento no confirme.
+   */
   const identidadesDe = async (cuenta: string): Promise<string[]> => {
     const out = [cuenta];
-    const caras = await db().collection('users').where('linkedAccountId', '==', cuenta).limit(5).get();
-    for (const d of caras.docs) {
-      const datos = (d.data() || {}) as PerfilDeIdentidad;
-      if (typeof datos.uid === 'string' && datos.uid !== cuenta && cuentaDeIdentidad(datos.uid, datos) === cuenta) out.push(datos.uid);
+    for (const id of await identidadesDeLaCuenta(db(), cuenta)) {
+      if (id !== cuenta && (await esDeLaCuenta(id, cuenta))) out.push(id);
     }
     return [...new Set(out)];
   };

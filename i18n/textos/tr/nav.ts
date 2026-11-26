@@ -17,6 +17,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Oluştur',
   talk: 'WeeTalk',
   notifications: 'Bildirimler',
+  notificationsUnread: 'Bildirimler, okunmamış bildirimlerin var',
   current: 'geçerli bölüm',
   goTo: '{{nombre}} sayfasına git',
   weeNavigation: 'Weë gezinme çubuğu',

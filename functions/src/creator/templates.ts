@@ -39,6 +39,12 @@ export interface ExperienceTemplate {
   /** Objetivo cuando la persona empieza sin escribir nada. */
   defaultGoal: string;
   questions: TemplateQuestion[];
+  /**
+   * WeëAI sencillo: respuestas que solo llegan ELEGIDAS en pantalla (`presetAnswers`) y nunca se preguntan.
+   * Viven aparte de `questions` para que la conversación de siempre —sus preguntas, sus opciones, su
+   * catálogo traducido y sus mediciones— no cambie en nada.
+   */
+  elegidas?: TemplateQuestion[];
   buildPlan: (goal: string, answers: Record<string, string>) => Plan;
   /** Respuestas que se deducen del texto de la persona (sin LLM): questionId → optionId. */
   infer?: (goal: string) => Record<string, string>;
@@ -51,6 +57,59 @@ const inferByKeywords = (text: string, table: Record<string, string[]>): string 
     if (words.some((w) => lower.includes(w))) return optionId;
   }
   return undefined;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WEËAI SENCILLO · CREAR PARA PUBLICAR (decisión del dueño, 2026-11-23)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/*
+ * La portada de WeëAI ofrece tres cosas para publicar —Imagen, Video corto y
+ * Editar mi foto— y la persona elige el formato, el estilo o la duración en
+ * pantalla, con botones. Lo elegido llega como `presetAnswers` a las mismas
+ * plantillas de siempre (Design, Studio y Photo), por el mismo camino y con la
+ * misma regla (`respuestaPara`). No hay otro planificador ni otro router.
+ *
+ * Son PREGUNTAS QUE NUNCA SE HACEN: viven en `elegidas`, fuera de `questions`, y
+ * su `when` es siempre falso, así que ningún planificador las pregunta ni se las
+ * consulta al LLM, pero una respuesta que llega elegida sí vale (`preguntasDe`). Cuando `publicar` está, el resto de las
+ * preguntas de la experiencia se apaga (`fueraDePublicar`) y el plan es de UN
+ * paso y UN resultado (una sola imagen por creación, decisión 4 del dueño).
+ */
+const NUNCA = (): boolean => false;
+/** Las preguntas de siempre se apagan cuando la creación viene de «crear para publicar». */
+const fueraDePublicar = (when?: (a: Record<string, string>) => boolean) => (a: Record<string, string>): boolean => !a.publicar && (when ? when(a) : true);
+
+/** Las preguntas con las que se valida un `presetAnswers`: las de la conversación y las que solo llegan elegidas. */
+export const preguntasDe = (template: { questions: TemplateQuestion[]; elegidas?: TemplateQuestion[] }): TemplateQuestion[] => [
+  ...template.questions,
+  ...(template.elegidas ?? []),
+];
+
+/** Un Weël dura como mucho 15 s (regla del producto: CLAUDE.md, docs/UX.md). El modelo pone su propio límite después. */
+export const MAX_WEEL_SEC = 15;
+
+/** Cómo entra cada estilo en el encargo: una frase, no la etiqueta del botón. `auto` no añade nada: decide Weë. */
+const FRASES_DE_ESTILO: Record<string, string> = {
+  real: 'fotografía realista, luz natural',
+  ilustracion: 'ilustración digital',
+  cine: 'fotograma de cine, iluminación cinematográfica',
+  anime: 'estilo anime',
+};
+const OPCIONES_DE_ESTILO = ['auto', 'real', 'ilustracion', 'cine', 'anime'];
+
+/**
+ * La duración elegida para un video para publicar, ya acotada por la regla del producto.
+ * `auto` es «Que Weë elija»: -1, la duración automática del motor de video. Lo demás, segundos
+ * enteros; el Weë Video Engine la vuelve a acotar al mínimo y al máximo del modelo que la ejecute
+ * (`seedance-capacidades.ts` es la fuente única de esos límites).
+ */
+export const duracionParaPublicar = (valor: string | undefined, weel: boolean): number => {
+  const limpio = String(valor ?? '').trim();
+  if (!limpio || limpio === 'auto') return -1;
+  const n = Math.round(Number(limpio));
+  if (!Number.isFinite(n) || n <= 0) return -1;
+  return weel ? Math.min(n, MAX_WEEL_SEC) : n;
 };
 
 const IDK: QuestionOption = { id: 'idk', label: '🤷 No sé' };
@@ -358,10 +417,10 @@ const design: ExperienceTemplate = {
       opt('object', '🏎️ Un vehículo o una máquina · autos, aviones, inventos'),
       opt('scene', '🏙️ Un lugar o un escenario · casas, locales, paisajes'),
       opt('character', '🧑‍🚀 Un personaje · mascotas, héroes, criaturas'),
-    ]),
+    ], true, fueraDePublicar()),
 
     // 🔤 Un logo o mi marca
-    q('name', '¿Qué nombre o texto quieres que aparezca?', [], true, (a) => a.what === 'logo'),
+    q('name', '¿Qué nombre o texto quieres que aparezca?', [], true, fueraDePublicar((a) => a.what === 'logo')),
     q('feel', '¿Qué quieres que transmita tu marca?', [
       opt('serious', '🏛️ Seria y confiable'),
       opt('modern', '✨ Moderna'),
@@ -369,7 +428,7 @@ const design: ExperienceTemplate = {
       opt('luxury', '💎 De lujo'),
       opt('natural', '🌿 Natural'),
       IDK,
-    ], true, (a) => a.what === 'logo'),
+    ], true, fueraDePublicar((a) => a.what === 'logo')),
 
     // 🪧 Algo para redes o publicidad
     q('message', '¿Qué quieres anunciar o comunicar?', [
@@ -377,14 +436,14 @@ const design: ExperienceTemplate = {
       opt('event', '📅 Un evento'),
       opt('launch', '🆕 Un producto nuevo'),
       opt('news', '🕒 Un horario o una novedad'),
-    ], true, (a) => a.what === 'poster'),
+    ], true, fueraDePublicar((a) => a.what === 'poster')),
     q('where', '¿Dónde vas a publicarlo?', [
       opt('feed', '📱 Instagram o Facebook'),
       opt('story', '📖 Una historia'),
       opt('whatsapp', '💬 WhatsApp'),
       opt('print', '🖨️ Para imprimir'),
       IDK,
-    ], true, (a) => a.what === 'poster'),
+    ], true, fueraDePublicar((a) => a.what === 'poster')),
 
     // 📦 Un producto
     q('item', '¿Qué producto quieres diseñar?', [
@@ -392,7 +451,7 @@ const design: ExperienceTemplate = {
       opt('furniture', '🛋️ Un mueble'),
       opt('clothes', '👟 Ropa o calzado'),
       opt('gadget', '📱 Algo de tecnología'),
-    ], true, (a) => a.what === 'product'),
+    ], true, fueraDePublicar((a) => a.what === 'product')),
     q('look', '¿Cómo lo imaginas?', [
       opt('clean', '✨ Moderno y limpio'),
       opt('natural', '🌿 Natural'),
@@ -400,7 +459,7 @@ const design: ExperienceTemplate = {
       opt('fun', '🎈 Divertido'),
       opt('industrial', '🏭 Industrial'),
       IDK,
-    ], true, (a) => a.what === 'product' && !a.look),
+    ], true, fueraDePublicar((a) => a.what === 'product' && !a.look)),
 
     // 🏎️ Un vehículo o una máquina
     q('machine', '¿Qué vehículo o máquina imaginas?', [
@@ -408,7 +467,7 @@ const design: ExperienceTemplate = {
       opt('air', '🚁 Algo que vuela'),
       opt('bike', '🏍️ Una moto'),
       opt('engine', '⚙️ Un motor o una pieza'),
-    ], true, (a) => a.what === 'object'),
+    ], true, fueraDePublicar((a) => a.what === 'object')),
     // Solo si no se sabe ya: quien escribe "del futuro" no debe repetirlo.
     q('era', '¿De qué época?', [
       opt('future', '🚀 Del futuro'),
@@ -416,7 +475,7 @@ const design: ExperienceTemplate = {
       opt('classic', '🕰️ Clásico'),
       opt('scifi', '🤖 Ciencia ficción'),
       IDK,
-    ], true, (a) => a.what === 'object' && !a.era),
+    ], true, fueraDePublicar((a) => a.what === 'object' && !a.era)),
 
     // 🏙️ Un lugar o un escenario
     q('place', '¿Qué lugar o escenario quieres crear?', [
@@ -424,13 +483,13 @@ const design: ExperienceTemplate = {
       opt('shop', '🏪 Un local o negocio'),
       opt('city', '🌆 Una ciudad'),
       opt('nature', '🌄 Un paisaje'),
-    ], true, (a) => a.what === 'scene'),
+    ], true, fueraDePublicar((a) => a.what === 'scene')),
     q('inout', '¿Es un espacio interior o exterior?', [
       opt('outside', '🏠 Por fuera'),
       opt('inside', '🛋️ Por dentro'),
       opt('wide', '🌄 Una vista amplia'),
       IDK,
-    ], true, (a) => a.what === 'scene' && !a.inout),
+    ], true, fueraDePublicar((a) => a.what === 'scene' && !a.inout)),
 
     // 🧑‍🚀 Un personaje
     q('who', '¿Quién o qué personaje quieres crear?', [
@@ -438,7 +497,7 @@ const design: ExperienceTemplate = {
       opt('hero', '🦸 Un héroe o protagonista'),
       opt('robot', '🤖 Un robot'),
       opt('creature', '🐉 Una criatura'),
-    ], true, (a) => a.what === 'character'),
+    ], true, fueraDePublicar((a) => a.what === 'character')),
     q('draw', '¿Qué estilo visual quieres?', [
       opt('cartoon', '🎨 Dibujo animado'),
       opt('real', '📷 Realista'),
@@ -446,7 +505,12 @@ const design: ExperienceTemplate = {
       opt('pencil', '✏️ A lápiz'),
       opt('cute', '🧸 Tierno'),
       IDK,
-    ], true, (a) => a.what === 'character' && !a.draw),
+    ], true, fueraDePublicar((a) => a.what === 'character' && !a.draw)),
+  ],
+  // WeëAI sencillo · «Imagen»: llegan elegidas desde la pantalla, nunca se preguntan.
+  elegidas: [
+    q('publicar', 'Formato de la publicación', [opt('post', 'Publicación'), opt('vertical', 'Vertical')], false, NUNCA),
+    q('estilo', 'Estilo', OPCIONES_DE_ESTILO.map((id) => opt(id, id)), false, NUNCA),
   ],
   infer: (goal) => {
     const answers: Record<string, string> = {};
@@ -514,6 +578,20 @@ const design: ExperienceTemplate = {
      * le manda al modelo se escribe en frases, no pegando etiquetas: "un logo para
      * \"La Espiga\", con un aire natural" en vez de "logo, estilo natural, marca".
      */
+    /* WeëAI sencillo: UNA imagen, en el formato donde se va a publicar, con el estilo elegido (o el que decida Weë). */
+    if (answers.publicar) {
+      const estilo = FRASES_DE_ESTILO[answers.estilo ?? ''] ?? '';
+      return {
+        experience: 'design',
+        goal,
+        steps: [
+          step('image', 'image.generate', 'Crear tu imagen', {
+            input: { count: 1, kind: answers.estilo === 'real' ? 'photo' : 'design', brief: estilo, aspectRatio: answers.publicar === 'vertical' ? '9:16' : '1:1' },
+          }),
+        ],
+        explainToUser: 'Voy a crear una imagen a partir de tu idea, lista para publicar.',
+      };
+    }
     const pregunta = (id: string) => design.questions.find((x) => x.id === id) as Question;
     const resp = (id: string) => chosen(pregunta(id), answers);
     /**
@@ -597,20 +675,26 @@ const studio: ExperienceTemplate = {
       opt('story', '🎞️ Una historia'),
       opt('animate', '🖼️ Animar una foto'),
       IDK,
-    ]),
+    ], true, fueraDePublicar()),
     q('style', '¿Qué estilo quieres?', [
       opt('impact', '🔥 Impactante'),
       opt('warm', '🤗 Cercano'),
       opt('elegant', '✨ Elegante'),
       opt('fun', '😂 Divertido'),
       SURPRISE,
-    ]),
+    ], true, fueraDePublicar()),
     q('where', '¿Dónde lo vas a publicar?', [
       opt('vertical', '📱 Instagram o TikTok'),
       opt('horizontal', '▶️ YouTube'),
       opt('square', '💬 WhatsApp o Facebook'),
       IDK,
-    ], true, (a) => a.type !== 'animate'),
+    ], true, fueraDePublicar((a) => a.type !== 'animate')),
+  ],
+  // WeëAI sencillo · «Video corto»: llegan elegidas desde la pantalla, nunca se preguntan.
+  elegidas: [
+    q('publicar', 'Formato de la publicación', [opt('weel', 'Weël'), opt('post', 'Publicación')], false, NUNCA),
+    /* La duración en segundos (texto) o `auto`; la acota `duracionParaPublicar` y, después, el modelo. */
+    q('duracion', 'Duración', [opt('auto', 'auto')], false, NUNCA, undefined, true),
   ],
   infer: (goal) => {
     const answers: Record<string, string> = {};
@@ -637,6 +721,22 @@ const studio: ExperienceTemplate = {
     return answers;
   },
   buildPlan: (goal, answers) => {
+    /*
+     * WeëAI sencillo: UN video, en un solo paso, con la duración elegida (o la automática). Un Weël es vertical y
+     * no pasa de 15 s; si la persona adjuntó una foto, viaja como referencia (`stepInputFor`).
+     */
+    if (answers.publicar) {
+      const weel = answers.publicar === 'weel';
+      const durationSec = duracionParaPublicar(answers.duracion, weel);
+      return {
+        experience: 'studio',
+        goal,
+        steps: [
+          step('clip', 'video.generate', 'Crear tu video', { input: { kind: 'clip', brief: '', durationSec, aspectRatio: weel ? '9:16' : '1:1' } }),
+        ],
+        explainToUser: weel ? 'Voy a crear un Weël vertical a partir de tu idea.' : 'Voy a crear un video a partir de tu idea, listo para publicar.',
+      };
+    }
     const type = chosen(studio.questions[0], answers);
     const style = chosen(studio.questions[1], answers);
     const where = chosen(studio.questions[2], answers);
@@ -692,15 +792,17 @@ const photo: ExperienceTemplate = {
       opt('transform', '🎇 Transformar con un estilo'),
       opt('generate', '🖼️ Crear una imagen desde cero'),
       IDK,
-    ]),
+    ], true, fueraDePublicar()),
     q('detail', '¿Cómo lo quieres?', [
       opt('natural', '🍃 Natural, que no se note'),
       opt('vivid', '🌈 Con colores vivos'),
       opt('clean', '⬜ Fondo limpio o blanco'),
       opt('artistic', '🎨 Artístico o vintage'),
       SURPRISE,
-    ]),
+    ], true, fueraDePublicar()),
   ],
+  // WeëAI sencillo · «Editar mi foto»: llega elegida desde la pantalla, nunca se pregunta.
+  elegidas: [q('publicar', 'Editar para publicar', [opt('editar', 'Editar')], false, NUNCA)],
   infer: (goal) => {
     const answers: Record<string, string> = {};
     const action = inferByKeywords(goal, {
@@ -724,6 +826,15 @@ const photo: ExperienceTemplate = {
     return answers;
   },
   buildPlan: (goal, answers) => {
+    /* WeëAI sencillo: la persona dijo con sus palabras qué cambiar; UN paso de edición sobre su foto y UN resultado. */
+    if (answers.publicar) {
+      return {
+        experience: 'photo',
+        goal,
+        steps: [step('edit', 'image.edit', 'Editar tu foto', { input: { kind: 'transform', brief: '', count: 1 } })],
+        explainToUser: 'Voy a aplicar a tu foto el cambio que me pediste y conservar todo lo demás.',
+      };
+    }
     const action = chosen(photo.questions[0], answers);
     const detail = chosen(photo.questions[1], answers);
     const capability: CapabilityId =

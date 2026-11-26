@@ -1,5 +1,5 @@
 import SelectorDeVersion from './workspace/SelectorDeVersion';
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Pressable, StatusBar, Text, Platform, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
@@ -19,6 +19,8 @@ import { scale } from '../utils/scale';
 import { DireccionDelGesto, maquinaDeLaPildora } from '../utils/gestoHorizontal';
 import { RellenoDeMarca } from './GradienteDeMarca';
 import AvatarDisplay from './avatars/AvatarDisplay';
+import { useCampanita, useAvisosDeLosPersonajes, avisoSinLeer } from '../hooks/useCampanita';
+import HojaDeAlterEgos from './HojaDeAlterEgos';
 
 const isWeb = Platform.OS === 'web';
 
@@ -51,7 +53,8 @@ const WEB_ICONS: Record<string, string> = {
  * teléfono estrecho la marca se ciñe sola —el logo mantiene su proporción y el
  * lema se ajusta— en vez de meterse debajo del selector.
  */
-const ANCHO_CON_SELECTOR = scale(90);
+/* Con alter egos (2026-11-23) la mitad Weë lleva el avatar, el nombre y ▾: la píldora crece (unos 136). */
+const ANCHO_CON_SELECTOR = scale(140);
 const ANCHO_SIN_SELECTOR = scale(52);
 
 /*
@@ -122,7 +125,17 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
   const { theme, setThemeMode } = useTheme();
   const t = useT();
   const { user } = useAuth();
-  const { userProfile, hasWeeProfile, activeProfileType, switchIdentity } = useUserProfile();
+  const { userProfile, hasWeeProfile, activeProfileType, switchIdentity, weeProfile } = useUserProfile();
+  /*
+   * LA HOJA DE ALTER EGOS (2026-11-23). La mitad Weë de la píldora dice «avatar + nombre ▾» del alter ego de turno; tocarla
+   * cuando ya está puesta abre la hoja «Cambiar de cara» con todos. Un punto rojo en la píldora si algún personaje que no
+   * está puesto tiene avisos. El gesto izquierda/derecha no cambia: alterna con el último alter ego usado.
+   */
+  const [hojaDeCaras, setHojaDeCaras] = useState(false);
+  const avisosDeLosPersonajes = useAvisosDeLosPersonajes();
+  const otraCaraConAvisos = Object.entries(avisosDeLosPersonajes).some(([id, aviso]) => id !== userProfile?.uid && avisoSinLeer(aviso));
+  /* El punto rojo de la campanita (decisión del dueño, 2026-11-23). */
+  const campanitaEncendida = useCampanita();
   /* El ancho manda sobre cuánto puede ocupar la marca: se recalcula al girar. */
   const { width: anchoDePantalla } = useWindowDimensions();
   const conSelectorDeIdentidad = !!user && hasWeeProfile;
@@ -313,7 +326,13 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
    * regla no dependa de la plataforma.
    */
   const tocarMitad = (destino: 'real' | 'hidi') => {
-    if (maquina.alTocar()) elegirIdentidad(destino);
+    if (!maquina.alTocar()) return;
+    /* La mitad Weë ya puesta abre la lista de alter egos; la otra mitad cambia, como siempre. */
+    if (destino === 'hidi' && (identidadPedida.current ?? activeProfileType) === 'hidi') {
+      setHojaDeCaras(true);
+      return;
+    }
+    elegirIdentidad(destino);
   };
   const { triggerScrollToTop } = useScroll();
   const insets = useSafeAreaInsets();
@@ -452,8 +471,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                   <Ionicons name="search-outline" size={scale(22)} color={textColor} />
                 </TouchableOpacity>
                 {user && (
-                  <TouchableOpacity onPress={onNotificationsPress} activeOpacity={0.7} style={styles.botonDePortada} accessibilityRole="button" accessibilityLabel={t('nav.notifications')}>
+                  <TouchableOpacity onPress={onNotificationsPress} activeOpacity={0.7} style={styles.botonDePortada} accessibilityRole="button" accessibilityLabel={campanitaEncendida ? t('nav.notificationsUnread') : t('nav.notifications')}>
                     <Ionicons name="notifications-outline" size={scale(22)} color={textColor} />
+                    {campanitaEncendida ? <View style={[styles.puntoDeCampanita, { borderColor: theme.colors.background }]} /> : null}
                   </TouchableOpacity>
                 )}
                 {user && (
@@ -501,7 +521,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                         accessibilityRole="button"
                         accessibilityState={{ selected: puesta }}
                         aria-selected={puesta}
-                        accessibilityLabel={t(puesta ? 'menu.profileActive' : 'menu.switchToProfile', { perfil: t(opcion.clave) })}
+                        accessibilityLabel={opcion.id === 'hidi' && weeProfile?.displayName
+                          ? t(puesta ? 'menu.profileActive' : 'menu.switchToProfile', { perfil: weeProfile.displayName })
+                          : t(puesta ? 'menu.profileActive' : 'menu.switchToProfile', { perfil: t(opcion.clave) })}
+                        accessibilityHint={opcion.id === 'hidi' && puesta ? t('alterEgo.switchFace') : undefined}
                         /* El atenuado del dedo encima, como lo daba la pastilla; la puesta no se atenúa. */
                         style={({ pressed }) => [
                           styles.selectorSegmento,
@@ -511,6 +534,30 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                       >
                         {/* El perfil puesto lleva el degradado de marca (2026-11-05); el otro sigue neutro. */}
                         {puesta && <RellenoDeMarca radio={BORDER_RADIUS.full} />}
+                        {opcion.id === 'hidi' && weeProfile ? (
+                          /* La mitad Weë: el avatar CUADRADO del alter ego de turno, su nombre (contenido, no se traduce) y ▾. */
+                          <View style={styles.selectorAlterEgo}>
+                            <AvatarDisplay
+                              size={scale(16)}
+                              cuadrado
+                              avatarType={weeProfile.avatarType || 'predefined'}
+                              avatarId={weeProfile.avatarId || 'ghost'}
+                              photoURL={typeof weeProfile.photoURL === 'string' ? weeProfile.photoURL : undefined}
+                              photoURLThumbnail={typeof weeProfile.photoURLThumbnail === 'string' ? weeProfile.photoURLThumbnail : undefined}
+                              backgroundColor={theme.colors.accent}
+                            />
+                            <Text
+                              style={[styles.selectorTexto, styles.selectorNombre, {
+                                color: puesta ? '#1F2937' : (transparent ? 'rgba(255,255,255,0.75)' : theme.colors.textSecondary),
+                                fontWeight: puesta ? FONT_WEIGHT.semibold : FONT_WEIGHT.medium,
+                              }]}
+                              numberOfLines={1}
+                            >
+                              {weeProfile.displayName || opcion.etiqueta}
+                            </Text>
+                            <Ionicons name="chevron-down" size={scale(11)} color={puesta ? '#1F2937' : theme.colors.textSecondary} />
+                          </View>
+                        ) : (
                         <Text
                           style={[styles.selectorTexto, {
                             color: puesta ? '#1F2937' : (transparent ? 'rgba(255,255,255,0.75)' : theme.colors.textSecondary),
@@ -521,6 +568,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                         >
                           {opcion.etiqueta}
                         </Text>
+                        )}
+                        {opcion.id === 'hidi' && otraCaraConAvisos ? <View style={[styles.puntoDeLaPildora, { borderColor: theme.colors.background }]} /> : null}
                       </Pressable>
                     );
                   })}
@@ -528,6 +577,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                 </GestureDetector>
               )
             )}
+            {user && hasWeeProfile && <HojaDeAlterEgos visible={hojaDeCaras} onClose={() => setHojaDeCaras(false)} />}
 
             {/*
               La campana se fue al pie de la aplicación (fase 2E-77).
@@ -704,6 +754,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: scale(20),
   },
+  /* El punto rojo: arriba a la derecha de la campana, con un aro del color del fondo para que se lea en los dos temas. */
+  puntoDeCampanita: {
+    position: 'absolute',
+    top: scale(8),
+    right: scale(9),
+    width: scale(10),
+    height: scale(10),
+    borderRadius: scale(5),
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+  },
   logo: {
     height: scale(32),
     width: scale(32),
@@ -780,6 +841,26 @@ const styles = StyleSheet.create({
   },
   selectorTexto: {
     fontSize: FONT_SIZE.xs,
+  },
+  /* La mitad Weë con alter ego: avatar, nombre y ▾ en fila; el nombre se corta con puntos antes de empujar nada. */
+  selectorAlterEgo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    maxWidth: scale(96),
+  },
+  selectorNombre: {
+    flexShrink: 1,
+  },
+  puntoDeLaPildora: {
+    position: 'absolute',
+    top: -1,
+    end: -1,
+    width: scale(9),
+    height: scale(9),
+    borderRadius: scale(5),
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
   },
   switchButtonText: {
     fontSize: FONT_SIZE.xs,

@@ -485,6 +485,8 @@ console.log('\n── J · Traducciones defectuosas ──');
        coincide en español con composer.location): es el permiso de ubicación del aparato (जगह की जानकारी), no el lugar que
        se añade a una publicación o a una página (जगह). */
     'settings.location',
+    /* Ficha del personaje (2026-11-22): «Básico»/«Medio» son niveles de autonomía (बुनियादी, मध्यम), no el paquete de Credits (बेसिक) ni el largo de un texto (मीडियम). */
+    'character.levelBasico',
   ]);
   const porFrase = new Map();
   for (const [k, v] of HI) {

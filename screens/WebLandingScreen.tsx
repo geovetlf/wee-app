@@ -24,8 +24,6 @@ import Header from '../components/Header';
 import DrawerMenu from '../components/DrawerMenu';
 import PromotedSlot from '../components/boost/PromotedSlot';
 import PestanasDeInicio, { AtajoDeInicio } from '../components/inicio/PestanasDeInicio';
-import TarjetaWeeAi from '../components/inicio/TarjetaWeeAi';
-import { abrirPortadaDeWeeAi } from '../navigation/refNavegacion';
 import { HomeFeedId, filterBySections, seccionesDelFeed } from '../utils/feedFilters';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
@@ -214,15 +212,7 @@ const WebLandingScreen: React.FC = () => {
 
       {/* Al bajar, la barra de navegación se aparta; al subir, vuelve. */}
       <div onScroll={reportarScroll} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch' }}>
-        {/*
-          WeëAI, a la vista y sin comerse el muro: el nombre, el lema, el chip de
-          Weë Brain y la puerta «¿Qué quieres crear hoy?». La puerta ABRE Weë
-          Brain; no es un campo, no lleva texto ni adjuntos (TarjetaWeeAi).
-        */}
-        <div style={{ padding: '12px 16px 4px' }}>
-          <TarjetaWeeAi variante="portada" onOpenWeeAi={() => { if (!abrirPortadaDeWeeAi()) navigation.navigate('WeeCreator'); }} />
-        </div>
-
+        {/* WeëAI ya no ocupa la portada (propuesta de Home 0+, 2026-11-23): vive en el +, en el ☰ y en «Recrear este estilo». */}
         {/* Creado por la comunidad: el Ẅall, el centro del Home. */}
         <div style={{ padding: '4px 16px 100px' }}>
           {/* Boost: UNA publicación promocionada de otra cuenta, si el servidor tiene alguna para ti (docs/BOOST.md). */}

@@ -9,6 +9,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Cruthaigh',
   talk: 'WeeTalk',
   notifications: 'Fógraí',
+  notificationsUnread: 'Fógraí, tá fógraí gan léamh agat',
   current: 'an rannóg reatha',
   goTo: 'Téigh chuig {{nombre}}',
   weeNavigation: 'Nascleanúint Weë',

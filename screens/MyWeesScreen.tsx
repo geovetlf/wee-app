@@ -28,7 +28,7 @@ import { scale } from '../utils/scale';
  *
  * Empieza VACÍO, siempre: no trae nada puesto ni recomienda nada. La persona
  * añade accesos a destinos que ya existen —las experiencias, funciones de Weë,
- * sus Weë Pages, Weë Pages públicas de otras personas, sus proyectos— y los
+ * sus WeëPages, WeëPages públicas de otras personas, sus proyectos— y los
  * ordena. Tocar uno abre el destino ORIGINAL por su ruta de siempre.
  *
  * Lo que esta pantalla NO hace: crear, copiar ni modificar nada de lo que hay

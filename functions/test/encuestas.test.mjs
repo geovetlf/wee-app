@@ -510,15 +510,20 @@ check('88) ser biz_ ya no da permiso genérico sobre posts ajenos', !/^\s*(resou
 check('89) no queda ni una cláusula que trate un `biz_*` como identidad', !/matches\('biz_\.\*'\)/.test(reglas));
 check('90) ni la función que comprobaba el dueño del negocio', !/ownsBizProfile|businessIdOf/.test(reglas));
 check('91) update y delete usan la misma autoría', /allow delete: if isAuthenticated\(\) && ownsPost\(\);/.test(bloquePosts) && /ownsPost\(\)/.test(lineaUpdate));
-check('92) y ownsPost cubre las DOS caras de una cuenta, no tres', (() => {
+/* F3 de alter egos (2026-11-23): las caras de la cuenta —Real, heredada y alter egos— salen de `esMia`, sin biz. */
+check('92) y ownsPost cubre las caras de una cuenta (esMia), sin biz', (() => {
   const f = (reglas.match(/function ownsPost\(\)[\s\S]{0,300}?\n    \}/) || [''])[0];
-  return /request\.auth\.uid/.test(f) && /hidi_/.test(f) && !/biz/i.test(f);
+  const esMia = (reglas.match(/function esMia\(id\)[\s\S]{0,300}?\n    \}/) || [''])[0];
+  return /esMia\(resource\.data\.userId\)/.test(f) && /request\.auth\.uid/.test(esMia)
+    && /identidadWeeHeredadaDe/.test(esMia) && !/biz/i.test(f + esMia);
 })());
 
 const lineaCreate = (bloquePosts.match(/allow create:[^;]*;/) || [''])[0];
 check('92b) publicar como un negocio ya no es posible: esa identidad no existe', !/biz/i.test(lineaCreate));
-check('92d) una cuenta personal publica igual que siempre', /request\.resource\.data\.userId == request\.auth\.uid/.test(lineaCreate));
-check('92e) y el perfil Weë también', /request\.resource\.data\.userId == \("hidi_" \+ request\.auth\.uid\)/.test(lineaCreate));
+/* F3 (2026-11-23): la cuenta, su Perfil Weë heredado y sus alter egos publican por `esMia` (ver 92). */
+check('92d) una cuenta personal publica igual que siempre', /esMia\(request\.resource\.data\.userId\)/.test(lineaCreate));
+check('92e) y el perfil Weë también', /esMia\(request\.resource\.data\.userId\)/.test(lineaCreate)
+  && /function esMia\(id\) \{\s*\n\s*return id == request\.auth\.uid \|\| id == identidadWeeHeredadaDe\(request\.auth\.uid\)/.test(reglas));
 check('92f) `users` ya no admite crear un perfil de tipo biz', !/profileType == 'biz'/.test(reglas));
 
 // ═════════════════════════════════════════════════════════════════════════════

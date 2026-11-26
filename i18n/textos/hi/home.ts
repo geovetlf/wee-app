@@ -111,4 +111,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'Weë Brain खोलें',
   feedForYou: 'आपके लिए',
   feedCreativity: 'रचनात्मकता',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'अभी Weë पर',
+  you: 'आप',
+  guestTitle: 'खुद को खुलकर व्यक्त करो।',
+  guestHint: 'अपने नाम से या अपने ऑल्टर ईगो के नाम से पोस्ट करें, और अपना काम WeëPages पर दिखाएँ।',
+  premiere: 'प्रीमियर',
+  presentedBy: '{{nombre}} की प्रस्तुति',
+  viewPage: 'WeëPage देखें',
+  wallEmptyTitleWork: 'Ẅall अपनी पहली कृति का इंतज़ार कर रहा है',
+  wallEmptyHintFaces: 'अपना या अपने ऑल्टर ईगो का कुछ पोस्ट करें।',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'खोजने के लिए ब्रह्मांड',
+  mosaicTitle: 'अभी बन रहा है',
 };

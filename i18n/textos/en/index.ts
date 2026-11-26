@@ -61,6 +61,10 @@ import { filmmakerDocumentos } from './filmmakerDocumentos';
 import { filmmakerImagenes } from './filmmakerImagenes';
 import { filmmakerDirector } from './filmmakerDirector';
 import { filmmakerProd } from './filmmakerProd';
+import { character } from './character';
+import { cuenta } from './cuenta';
+import { publicar } from './publicar';
+import { alterEgo } from './alterEgo';
 import { FormaDelDiccionario } from '../es';
 
 export const en: FormaDelDiccionario = {
@@ -114,4 +118,8 @@ export const en: FormaDelDiccionario = {
   filmmakerImagenes,
   filmmakerDirector,
   filmmakerProd,
+  character,
+  cuenta,
+  publicar,
+  alterEgo,
 };

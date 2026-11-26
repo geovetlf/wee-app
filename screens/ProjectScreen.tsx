@@ -21,6 +21,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { projectsService, WeeProject } from '../services/projectsService';
 import { CreatorJob, claveDelEstado } from '../services/creatorService';
 import { getExperienceById } from '../constants/weeExperiences';
+import { esTrabajoParaPublicar, tipoDeExperiencia } from '../utils/publicacionDeWeeAi';
 import CreatorShell from '../components/creator/CreatorShell';
 import { SectionTitle, ClosingBanner } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -72,6 +73,12 @@ const ProjectScreen: React.FC = () => {
   const { locale } = useIdioma();
   const { isDesktop, isTablet } = useResponsive();
   const dir = useDireccion();
+  /* Lo creado en «crear para publicar» (WeëAI sencillo) se abre en su pantalla, con su resultado y su «Publicar»; lo demás, en el flujo de siempre. */
+  const abrirTrabajo = (job: CreatorJob) => {
+    const tipo = tipoDeExperiencia(job.experienceId);
+    if (tipo && esTrabajoParaPublicar(job.answers)) navigation.navigate('CrearPublicacion', { tipo, jobId: job.id });
+    else navigation.navigate('CreatorFlow', { experienceId: job.experienceId, jobId: job.id });
+  };
 
   const [project, setProject] = useState<WeeProject | null>(null);
   const [jobs, setJobs] = useState<CreatorJob[]>([]);
@@ -194,7 +201,7 @@ const ProjectScreen: React.FC = () => {
                 return (
                   <TouchableOpacity
                     key={job.id}
-                    onPress={() => navigation.navigate('CreatorFlow', { experienceId: job.experienceId, jobId: job.id })}
+                    onPress={() => abrirTrabajo(job)}
                     activeOpacity={0.8}
                     style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: 'transparent' }]}
                   >
@@ -310,7 +317,7 @@ const ProjectScreen: React.FC = () => {
                     return (
                       <View key={job.id} style={{ width: `${(100 / columnas).toFixed(2)}%` as never, padding: 6 }}>
                         <TouchableOpacity
-                          onPress={() => navigation.navigate('CreatorFlow', { experienceId: job.experienceId, jobId: job.id })}
+                          onPress={() => abrirTrabajo(job)}
                           activeOpacity={0.88}
                           style={styles.appTrabajo}
                           accessibilityRole="button"

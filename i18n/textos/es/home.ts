@@ -90,4 +90,17 @@ export const home = {
   openBrain: 'Abrir Weë Brain',
   feedForYou: 'Para ti',
   feedCreativity: 'Creatividad',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Ahora en Weë',
+  you: 'Tú',
+  guestTitle: 'Sé libre de expresarte.',
+  guestHint: 'Publica como tú o como tus alter egos, y muestra tu obra en WeëPages.',
+  premiere: 'Estreno',
+  presentedBy: 'Presentada por {{nombre}}',
+  viewPage: 'Ver WeëPage',
+  wallEmptyTitleWork: 'El Ẅall espera su primera obra',
+  wallEmptyHintFaces: 'Publica algo tuyo o de tu alter ego.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Universos para descubrir',
+  mosaicTitle: 'Lo que se crea ahora',
 };

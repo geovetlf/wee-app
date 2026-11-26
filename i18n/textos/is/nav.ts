@@ -14,6 +14,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Búa til',
   talk: 'WeeTalk',
   notifications: 'Tilkynningar',
+  notificationsUnread: 'Tilkynningar, þú átt ólesnar tilkynningar',
   current: 'núverandi hluti',
   goTo: 'Fara á svæðið {{nombre}}',
   weeNavigation: 'Leiðsögn um Weë',

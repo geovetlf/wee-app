@@ -85,6 +85,10 @@ import { filmmakerTandas } from './filmmakerTandas';
 import { filmmakerSonido } from './filmmakerSonido';
 import { travel } from './travel';
 import { mywees } from './mywees';
+import { character } from './character';
+import { cuenta } from './cuenta';
+import { publicar } from './publicar';
+import { alterEgo } from './alterEgo';
 import { FormaDelDiccionario } from '../es';
 
 export const fil: FormaDelDiccionario = {
@@ -138,4 +142,8 @@ export const fil: FormaDelDiccionario = {
   filmmakerSonido,
   travel,
   mywees,
+  character,
+  cuenta,
+  publicar,
+  alterEgo,
 };

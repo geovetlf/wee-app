@@ -18,6 +18,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'बनाएँ',
   talk: 'WeeTalk',
   notifications: 'सूचनाएँ',
+  notificationsUnread: 'सूचनाएँ, आपकी कुछ सूचनाएँ बिना पढ़ी हैं',
   current: 'मौजूदा सेक्शन',
   goTo: '{{nombre}} पर जाएँ',
   weeNavigation: 'Weë नेविगेशन',

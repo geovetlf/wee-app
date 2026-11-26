@@ -1,32 +1,34 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Platform, ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import IconoDireccional from '../components/IconoDireccional';
-import { Image } from 'expo-image';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useIdentidadActiva } from '../hooks/useEContact';
 import { useMyWees } from '../hooks/useMyWees';
 import { crearAcceso, idDeAcceso } from '../utils/myWees';
-import { tipoDePagina } from '../constants/pageTypes';
 import { pagesService, WeePage, claveDelError } from '../services/pagesService';
+import { usersService } from '../services/firestoreService';
 import { notify } from '../utils/notify';
-import CabeceraDePagina from '../components/pages/CabeceraDePagina';
-import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
-import { scale } from '../utils/scale';
-import { MARCA } from '../constants/marca';
+import PlantillaDePagina from '../components/pages/PlantillaDePagina';
+import type { PresentadorDePagina } from '../components/pages/CabeceraDePagina';
+import { PALETA_WEEPAGE as P, RADIO_WEEPAGE, interfazWeePage } from '../constants/estiloWeePage';
 import { RellenoDeMarca } from '../components/GradienteDeMarca';
+import { useDireccion } from '../hooks/useDireccion';
 
 /*
- * UNA PÁGINA, VISTA DESDE FUERA (WeëPages).
+ * UNA WEË PAGE, VISTA DESDE FUERA — la plantilla negra de museo (boceto aprobado por el dueño, 2026-11-23).
  *
- * Portada, logo, nombre, tipo, Seguir y Compartir; debajo, la información, lo destacado y el muro de la página.
- * Se sigue con la cara ACTIVA (Perfil Real o Perfil Weë): seguir es de cada identidad y no toca su agenda (ËContact o
- * ẄContact). Quien gestiona la página —su cuenta, desde cualquiera de las dos caras— ve además «Editar página».
+ * Portada a sangre, la etiqueta del tipo («Libro · Novela»), el título en EB Garamond, «Presentada por <cara>» (que abre
+ * su perfil), Seguir y Compartir; debajo, el índice y las secciones del tipo. Es SIEMPRE negra, con el Perfil Real y con
+ * el Perfil Weë, como WeëAI. Se sigue con la cara ACTIVA (Perfil Real o Perfil Weë): seguir es de cada identidad y no
+ * toca su agenda (ËContact o ẄContact). Quien gestiona la página —su cuenta, desde cualquiera de sus caras— ve además
+ * «Editar página» e «Impulsar».
+ *
+ * NADA SE VENDE DENTRO DE WEË (dueño, 2026-11-23): las tiendas son enlaces externos que se abren con un toque.
  *
  * ESCENAS DE LA HISTORIA. Una página puede enseñar escenas hechas con Weë AI que cualquiera abre y ve a pantalla
  * completa. Se crean con el Filmmaker de WeëStudio (el composer de siempre, «Añadir escena»), no con otro creador.
@@ -35,17 +37,19 @@ import { RellenoDeMarca } from '../components/GradienteDeMarca';
  * nada ni inventa un precio (CLAUDE.md §7).
  */
 const WeePageScreen: React.FC = () => {
-  const { theme } = useTheme();
   const t = useT();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { user } = useAuth();
   const { identidad } = useIdentidadActiva();
+  const { alInicio } = useDireccion();
   const pageId = route.params?.pageId as string;
   const [pagina, setPagina] = useState<WeePage | null | undefined>(undefined);
+  const [presentador, setPresentador] = useState<PresentadorDePagina | null>(null);
   const [sigue, setSigue] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [escena, setEscena] = useState<{ title: string; videoURL: string; posterURL: string } | null>(null);
+  const desplazable = useRef<ScrollView>(null);
 
   useFocusEffect(useCallback(() => {
     let vivo = true;
@@ -57,6 +61,18 @@ const WeePageScreen: React.FC = () => {
     })();
     return () => { vivo = false; };
   }, [pageId, identidad]));
+
+  /* «Presentada por»: la cara se lee por su referencia pública; la página nunca guarda la cuenta. */
+  const presenterRef = pagina?.presenterRef;
+  useEffect(() => {
+    let vivo = true;
+    setPresentador(null);
+    if (!presenterRef) return;
+    void usersService.getByPublicRef(presenterRef).then((perfil) => {
+      if (vivo && perfil) setPresentador({ nombre: perfil.displayName || perfil.username || '', foto: perfil.photoURLThumbnail || perfil.photoURL });
+    }).catch(() => undefined);
+    return () => { vivo = false; };
+  }, [presenterRef]);
 
   const esMia = !!pagina && pagina.ownerAccountId === user?.uid;
   /*
@@ -93,148 +109,88 @@ const WeePageScreen: React.FC = () => {
   };
 
   if (pagina === undefined) {
-    return <SafeAreaView style={[s.pantalla, s.centro, { backgroundColor: theme.colors.background }]}><ActivityIndicator color={theme.colors.accent} /></SafeAreaView>;
+    return <SafeAreaView style={[s.pantalla, s.centro]}><ActivityIndicator color={P.tinta} /></SafeAreaView>;
   }
 
-  const tipo = pagina ? tipoDePagina(pagina.type) : null;
-  const info: [string, string][] = pagina ? [
-    ...tipo!.campos.filter((c) => pagina.details[c.id]).map((c): [string, string] => [t(c.clave), c.opciones ? t(c.opciones.find((o) => o.id === pagina.details[c.id])?.clave ?? '') : pagina.details[c.id]]),
-    ...(pagina.location ? [[t('pages.f_location'), pagina.location] as [string, string]] : []),
-    ...(pagina.contact ? [[t('pages.f_contact'), pagina.contact] as [string, string]] : []),
-  ] : [];
-
   return (
-    <SafeAreaView style={[s.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      <View style={[s.barra, { borderBottomColor: theme.colors.border }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} accessibilityLabel={t('common.back')} style={s.atras}>
-          <IconoDireccional name="arrow-back" size={scale(23)} color={theme.colors.text} />
-        </TouchableOpacity>
-        <Text style={[s.barraTitulo, { color: theme.colors.text }]} numberOfLines={1}>{pagina?.name ?? ''}</Text>
-      </View>
+    <SafeAreaView style={s.pantalla} edges={['top']}>
       {!pagina ? (
-        <View style={[s.centro, { flex: 1 }]}><Text style={{ color: theme.colors.textSecondary }}>{t('pages.err_generic')}</Text></View>
-      ) : (
-        <ScrollView contentContainerStyle={s.dentro}>
-          <CabeceraDePagina
-            pagina={pagina}
-            acciones={(
-              <View style={s.acciones}>
-                {esMia ? (
-                  <TouchableOpacity onPress={() => navigation.navigate('WeePages', { editPageId: pagina.id })} style={[s.boton, { backgroundColor: theme.colors.text }]} accessibilityRole="button">
-                    <Ionicons name="create-outline" size={scale(17)} color={theme.colors.background} />
-                    <Text style={[s.botonTexto, { color: theme.colors.background }]}>{t('pages.edit')}</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity onPress={() => void alternarSeguir()} disabled={ocupado || !identidad} style={[s.boton, sigue ? { borderWidth: 1, borderColor: theme.colors.text } : { backgroundColor: theme.colors.accent }]} accessibilityRole="button" accessibilityState={{ selected: sigue }}>
-                    <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={sigue} />
-                    {ocupado ? <ActivityIndicator color={theme.colors.text} /> : (
-                      <Text style={[s.botonTexto, { color: sigue ? theme.colors.text : '#1F2937' }]}>{t(sigue ? 'pages.following' : 'pages.follow')}</Text>
-                    )}
-                  </TouchableOpacity>
-                )}
-                {esMia && (
-                  <TouchableOpacity onPress={() => navigation.navigate('Boost', { tipo: 'page', id: pagina.id })} style={[s.boton, { backgroundColor: theme.colors.accent }]} accessibilityRole="button">
-                    <RellenoDeMarca radio={BORDER_RADIUS.full} />
-                    <Ionicons name="rocket-outline" size={scale(17)} color="#1F2937" />
-                    <Text style={[s.botonTexto, { color: '#1F2937' }]}>{t('pages.boost')}</Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity onPress={compartir} style={[s.boton, { borderWidth: 1, borderColor: theme.colors.border }]} accessibilityRole="button">
-                  <Ionicons name="share-outline" size={scale(17)} color={theme.colors.text} />
-                  <Text style={[s.botonTexto, { color: theme.colors.text }]}>{t('pages.share')}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          />
-
-          {myWees.disponible && !myWees.cargando && (
-            <TouchableOpacity
-              onPress={alternarMyWees}
-              style={[s.myWees, { borderColor: theme.colors.interactionBorder, backgroundColor: enMyWees ? theme.colors.interactionSoft : 'transparent' }]}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityState={{ selected: enMyWees }}
-              aria-pressed={enMyWees}
-            >
-              <Ionicons name={enMyWees ? 'checkmark-circle' : 'add-circle-outline'} size={scale(18)} color={theme.colors.interaction} />
-              {/* «MyWeës» es marca; puesta, basta su nombre con el visto. Sin poner, «MyWeës · Añadir». */}
-              <Text style={[s.myWeesTexto, { color: theme.colors.interaction }]} numberOfLines={2}>{enMyWees ? t('menu.myWees') : `${t('menu.myWees')} · ${t('mywees.add')}`}</Text>
+        <>
+          <View style={s.barra}>
+            <TouchableOpacity onPress={() => navigation.goBack()} accessibilityRole="button" accessibilityLabel={t('common.back')} style={s.circulo}>
+              <IconoDireccional name="arrow-back" size={22} color={P.tinta} />
             </TouchableOpacity>
-          )}
-
-          {(!!pagina.scenes?.length || esMia) && (
-            <View style={s.seccion}>
-              <View style={{ paddingHorizontal: SPACING.lg, gap: 2 }}>
-                <Text style={[s.bloqueTitulo, { color: theme.colors.text }]}>{t('pages.scenes')}</Text>
-                <Text style={[s.parrafo, { color: theme.colors.textSecondary }]}>{t('pages.scenesHint')}</Text>
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.destacados}>
-                {(pagina.scenes ?? []).map((e) => (
-                  <TouchableOpacity key={e.videoURL} onPress={() => setEscena(e)} accessibilityRole="button" accessibilityLabel={e.title} activeOpacity={0.9} style={[s.escena, { backgroundColor: theme.colors.surface }]}>
-                    <Image source={{ uri: e.posterURL }} style={StyleSheet.absoluteFill} contentFit="cover" />
-                    <View style={s.escenaVelo} />
-                    <View style={s.escenaPlay}><Ionicons name="play" size={scale(20)} color="#0A0A0A" style={{ marginLeft: 2 }} /></View>
-                    <Text style={s.escenaTitulo} numberOfLines={2}>{e.title}</Text>
-                    {/*
-                      PUBLICARLA TAMBIÉN EN EL MURO (2026-11-02). Abre el compositor de siempre con la escena puesta: ahí se
-                      elige el Ẅall general, las secciones o las dos cosas, y publica la cara activa —quien firma se ve arriba—.
-                    */}
-                    {esMia && (
-                      <TouchableOpacity
-                        onPress={() => navigation.navigate('Create', { kind: 'video', sourceSection: 'studio', prefill: { content: `${e.title} · ${pagina.name}`, aiTools: ['WeëStudio'], media: [{ type: 'video', uri: e.videoURL }] } })}
-                        accessibilityRole="button"
-                        accessibilityLabel={t('composer.publish')}
-                        hitSlop={8}
-                        style={s.escenaPublicar}
-                      >
-                        <RellenoDeMarca radio={scale(17)} />
-                        <Ionicons name="paper-plane" size={scale(15)} color="#1F2937" />
-                      </TouchableOpacity>
-                    )}
-                  </TouchableOpacity>
-                ))}
-                {esMia && (
-                  <TouchableOpacity onPress={() => navigation.navigate('Production', {})} accessibilityRole="button" style={[s.escena, s.escenaNueva, { borderColor: theme.colors.border }]}>
-                    <Ionicons name="add-circle-outline" size={scale(28)} color={theme.colors.text} />
-                    <Text style={[s.botonTexto, { color: theme.colors.text, textAlign: 'center' }]}>{t('pages.addScene')}</Text>
-                  </TouchableOpacity>
-                )}
-              </ScrollView>
-            </View>
-          )}
-
-          {(!!pagina.about || info.length > 0) && (
-            <View style={[s.bloque, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
-              <Text style={[s.bloqueTitulo, { color: theme.colors.text }]}>{t('pages.about')}</Text>
-              {!!pagina.about && <Text style={[s.parrafo, { color: theme.colors.text }]}>{pagina.about}</Text>}
-              {info.map(([k, v]) => (
-                <View key={k} style={s.dato}>
-                  <Text style={[s.datoK, { color: theme.colors.textSecondary }]}>{k}</Text>
-                  <Text style={[s.datoV, { color: theme.colors.text }]}>{v}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {!!pagina.featured?.length && (
-            <View style={s.seccion}>
-              <Text style={[s.bloqueTitulo, { color: theme.colors.text, paddingHorizontal: SPACING.lg }]}>{t('pages.featured')}</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.destacados}>
-                {pagina.featured.map((url) => (
-                  <Image key={url} source={{ uri: url }} style={[s.destacado, { backgroundColor: theme.colors.surface }]} contentFit="cover" />
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          <View style={[s.bloque, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}>
-            <Text style={[s.bloqueTitulo, { color: theme.colors.text }]}>{t('pages.wall')}</Text>
-            <View style={s.vacio}>
-              <Ionicons name="newspaper-outline" size={scale(28)} color={theme.colors.textSecondary} />
-              <Text style={[s.parrafo, { color: theme.colors.textSecondary, textAlign: 'center' }]}>{t('pages.wallSoon')}</Text>
-            </View>
           </View>
-        </ScrollView>
+          <View style={[s.centro, { flex: 1 }]}><Text style={[interfazWeePage(15), { color: P.t2 }]}>{t('pages.err_generic')}</Text></View>
+        </>
+      ) : (
+        <View style={{ flex: 1 }}>
+          <ScrollView ref={desplazable} contentContainerStyle={s.dentro}>
+            <PlantillaDePagina
+              pagina={pagina}
+              presentador={presentador}
+              alPulsarPresentador={presenterRef ? () => navigation.navigate('UserProfile', { userId: presenterRef }) : undefined}
+              alAbrirEscena={setEscena}
+              alIrA={(y) => desplazable.current?.scrollTo({ y, animated: true })}
+              extraEscenas={esMia && (
+                <TouchableOpacity onPress={() => navigation.navigate('Production', {})} accessibilityRole="button" style={s.escenaNueva}>
+                  <Ionicons name="add-circle-outline" size={28} color={P.tinta} />
+                  <Text style={[interfazWeePage(14, '600'), { color: P.tinta, textAlign: 'center' }]}>{t('pages.addScene')}</Text>
+                </TouchableOpacity>
+              )}
+              acciones={(
+                <View style={s.acciones}>
+                  {esMia ? (
+                    <TouchableOpacity onPress={() => navigation.navigate('WeePages', { editPageId: pagina.id })} style={[s.boton, s.botonTinta]} accessibilityRole="button">
+                      <Ionicons name="create-outline" size={17} color={P.n0} />
+                      <Text style={[interfazWeePage(14, '600'), { color: P.n0 }]} numberOfLines={1}>{t('pages.edit')}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity onPress={() => void alternarSeguir()} disabled={ocupado || !identidad} style={[s.boton, sigue && s.botonSuperficie]} accessibilityRole="button" accessibilityState={{ selected: sigue }}>
+                      {!sigue && <RellenoDeMarca radio={RADIO_WEEPAGE.pastilla} />}
+                      {ocupado ? <ActivityIndicator color={sigue ? P.tinta : P.sobreMarca} /> : (
+                        <Text style={[interfazWeePage(14, '600'), { color: sigue ? P.tinta : P.sobreMarca }]} numberOfLines={1}>{t(sigue ? 'pages.following' : 'pages.follow')}</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                  {esMia && (
+                    <TouchableOpacity onPress={() => navigation.navigate('Boost', { tipo: 'page', id: pagina.id })} style={s.boton} accessibilityRole="button">
+                      <RellenoDeMarca radio={RADIO_WEEPAGE.pastilla} />
+                      <Ionicons name="rocket-outline" size={17} color={P.sobreMarca} />
+                      <Text style={[interfazWeePage(14, '600'), { color: P.sobreMarca }]} numberOfLines={1}>{t('pages.boost')}</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity onPress={compartir} style={[s.botonIcono, s.botonSuperficie]} accessibilityRole="button" accessibilityLabel={t('pages.share')}>
+                    <Ionicons name="share-outline" size={19} color={P.tinta} />
+                  </TouchableOpacity>
+                </View>
+              )}
+              debajoDeAcciones={myWees.disponible && !myWees.cargando ? (
+                <TouchableOpacity
+                  onPress={alternarMyWees}
+                  style={[s.myWees, enMyWees && { backgroundColor: P.n2 }]}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: enMyWees }}
+                  aria-pressed={enMyWees}
+                >
+                  <Ionicons name={enMyWees ? 'checkmark-circle' : 'add-circle-outline'} size={18} color={P.t2} />
+                  {/* «MyWeës» es marca; puesta, basta su nombre con el visto. Sin poner, «MyWeës · Añadir». */}
+                  <Text style={[interfazWeePage(13, '500'), { color: P.t2, flexShrink: 1 }]} numberOfLines={2}>{enMyWees ? t('menu.myWees') : `${t('menu.myWees')} · ${t('mywees.add')}`}</Text>
+                </TouchableOpacity>
+              ) : null}
+            />
+          </ScrollView>
+          {/* Atrás, flotando sobre la portada como en el boceto. */}
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+            style={[s.circulo, s.flotante, alInicio(16)]}
+          >
+            <IconoDireccional name="arrow-back" size={22} color={P.tinta} />
+          </TouchableOpacity>
+        </View>
       )}
 
       <Modal visible={!!escena} animationType="fade" onRequestClose={() => setEscena(null)} supportedOrientations={['portrait', 'landscape']}>
@@ -243,9 +199,9 @@ const WeePageScreen: React.FC = () => {
             <Video source={{ uri: escena.videoURL }} posterSource={{ uri: escena.posterURL }} usePoster style={StyleSheet.absoluteFill} resizeMode={ResizeMode.CONTAIN} shouldPlay isLooping />
           )}
           <SafeAreaView style={s.visorArriba} edges={['top']}>
-            <Text style={s.visorTitulo} numberOfLines={2}>{escena?.title ?? ''}</Text>
-            <TouchableOpacity onPress={() => setEscena(null)} accessibilityRole="button" accessibilityLabel={t('common.close')} style={s.visorCerrar}>
-              <Ionicons name="close" size={scale(24)} color="#FFFFFF" />
+            <Text style={[interfazWeePage(15, '600'), s.visorTitulo]} numberOfLines={2}>{escena?.title ?? ''}</Text>
+            <TouchableOpacity onPress={() => setEscena(null)} accessibilityRole="button" accessibilityLabel={t('common.close')} style={s.circulo}>
+              <Ionicons name="close" size={24} color={P.tinta} />
             </TouchableOpacity>
           </SafeAreaView>
         </View>
@@ -255,38 +211,23 @@ const WeePageScreen: React.FC = () => {
 };
 
 const s = StyleSheet.create({
-  pantalla: { flex: 1 },
+  pantalla: { flex: 1, backgroundColor: P.n0 },
   centro: { alignItems: 'center', justifyContent: 'center' },
-  barra: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderBottomWidth: StyleSheet.hairlineWidth },
-  atras: { padding: SPACING.xs },
-  barraTitulo: { flex: 1, fontSize: FONT_SIZE.lg, fontWeight: FONT_WEIGHT.bold },
-  dentro: { paddingBottom: scale(120), gap: SPACING.md, width: '100%', maxWidth: 760, alignSelf: 'center' },
-  acciones: { flexDirection: 'row', gap: SPACING.sm, marginTop: SPACING.md },
-  boton: { flex: 1, minHeight: scale(42), borderRadius: BORDER_RADIUS.full, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
-  botonTexto: { fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.semibold },
-  /* «Añadir a MyWeës»: discreto, debajo de las acciones de la página, con el acento de interacción y sitio para el dedo. */
-  myWees: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, maxWidth: '100%', paddingHorizontal: SPACING.md, marginHorizontal: SPACING.lg, marginTop: SPACING.sm, borderRadius: BORDER_RADIUS.full, borderWidth: 1 },
-  myWeesTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium, flexShrink: 1 },
-  bloque: { marginHorizontal: SPACING.lg, borderWidth: StyleSheet.hairlineWidth, borderRadius: BORDER_RADIUS.lg, padding: SPACING.md, gap: SPACING.sm },
-  bloqueTitulo: { fontSize: FONT_SIZE.md, fontWeight: FONT_WEIGHT.bold },
-  parrafo: { fontSize: FONT_SIZE.sm, lineHeight: scale(20) },
-  dato: { gap: 2 },
-  datoK: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold },
-  datoV: { fontSize: FONT_SIZE.sm },
-  seccion: { gap: SPACING.sm },
-  destacados: { gap: SPACING.sm, paddingHorizontal: SPACING.lg },
-  destacado: { width: scale(150), height: scale(190), borderRadius: BORDER_RADIUS.md },
-  vacio: { alignItems: 'center', gap: SPACING.sm, paddingVertical: SPACING.md },
-  escena: { width: scale(170), height: scale(240), borderRadius: BORDER_RADIUS.md, overflow: 'hidden', justifyContent: 'flex-end', padding: SPACING.sm },
-  escenaVelo: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.28)' },
-  escenaPlay: { position: 'absolute', top: '40%', alignSelf: 'center', width: scale(44), height: scale(44), borderRadius: scale(22), backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  escenaPublicar: { position: 'absolute', top: SPACING.sm, right: SPACING.sm, width: scale(34), height: scale(34), borderRadius: scale(17), backgroundColor: MARCA.primario, alignItems: 'center', justifyContent: 'center' },
-  escenaTitulo: { color: '#FFFFFF', fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.bold },
-  escenaNueva: { borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', gap: SPACING.xs },
+  barra: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 },
+  dentro: { paddingBottom: 120 },
+  circulo: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(5,5,5,0.55)', alignItems: 'center', justifyContent: 'center' },
+  flotante: { position: 'absolute', top: 12 },
+  acciones: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
+  boton: { flexGrow: 1, flexBasis: 140, minHeight: 46, borderRadius: RADIO_WEEPAGE.pastilla, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 18 },
+  botonTinta: { backgroundColor: P.tinta },
+  botonSuperficie: { backgroundColor: P.n2 },
+  botonIcono: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  /* «Añadir a MyWeës»: discreto, debajo de las acciones, con sitio para el dedo. */
+  myWees: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, maxWidth: '100%', paddingHorizontal: 14, marginHorizontal: 20, marginTop: 12, borderRadius: RADIO_WEEPAGE.pastilla },
+  escenaNueva: { width: 170, height: 240, borderRadius: RADIO_WEEPAGE.control, borderWidth: 1.5, borderStyle: 'dashed', borderColor: P.n4, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 10 },
   visor: { flex: 1, backgroundColor: '#000000' },
-  visorArriba: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: SPACING.md, gap: SPACING.sm },
-  visorTitulo: { flex: 1, color: '#FFFFFF', fontSize: FONT_SIZE.base, fontWeight: FONT_WEIGHT.bold, paddingVertical: SPACING.sm },
-  visorCerrar: { width: scale(40), height: scale(40), borderRadius: scale(20), backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' },
+  visorArriba: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, gap: 8 },
+  visorTitulo: { flex: 1, color: P.tinta, paddingVertical: 8 },
 });
 
 export default WeePageScreen;

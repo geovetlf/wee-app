@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
 import { IconoWee } from '../icons/IconoWee';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -7,6 +7,7 @@ import { useDireccion } from '../../hooks/useDireccion';
 import { MENU_ITEM } from '../../constants/weeMenu';
 import { FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import HojaDeAlterEgos from '../HojaDeAlterEgos';
 
 /**
  * EL SELECTOR DE IDENTIDAD DEL MENÚ: [ Real | Weë ].
@@ -21,6 +22,9 @@ import { scale } from '../../utils/scale';
  * `setThemeMode()` de `ThemeContext` (Perfil Real = app clara, Perfil Weë = app
  * oscura). Si la cuenta todavía no tiene Perfil Weë, el lado Weë lleva a
  * crearlo, como hacía la fila «Crear mi perfil Weë».
+ *
+ * CON VARIOS ALTER EGOS (2026-11-23): tocar el lado Weë cuando ya está puesto
+ * abre la hoja «Cambiar de cara» (`HojaDeAlterEgos`) con todos los alter egos.
  *
  * El lado puesto se marca con el acento de interacción (violeta): es un estado,
  * no una acción. Cada lado dice el nombre de su perfil —«Perfil Real», «Perfil
@@ -45,7 +49,10 @@ const SelectorDeIdentidad: React.FC<Props> = ({ activa, tieneWee, onElegir }) =>
   const { theme } = useTheme();
   const t = useT();
   const dir = useDireccion();
+  const [hoja, setHoja] = useState(false);
+  const tocar = (id: Identidad) => (id === 'hidi' && activa === 'hidi' && tieneWee ? setHoja(true) : onElegir(id));
   return (
+    <>
     <View style={[styles.carril, dir.contenedor, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
       {LADOS.map((lado) => {
         const puesta = activa === lado.id;
@@ -54,7 +61,7 @@ const SelectorDeIdentidad: React.FC<Props> = ({ activa, tieneWee, onElegir }) =>
         return (
           <Pressable
             key={lado.id}
-            onPress={() => onElegir(lado.id)}
+            onPress={() => tocar(lado.id)}
             accessibilityRole="button"
             accessibilityState={{ selected: puesta }}
             aria-pressed={puesta}
@@ -73,6 +80,8 @@ const SelectorDeIdentidad: React.FC<Props> = ({ activa, tieneWee, onElegir }) =>
         );
       })}
     </View>
+    <HojaDeAlterEgos visible={hoja} onClose={() => setHoja(false)} />
+    </>
   );
 };
 

@@ -14,6 +14,8 @@ interface AvatarDisplayProps {
   backgroundColor?: string;
   borderColor?: string;
   showBorder?: boolean;
+  /** Cuadrado redondeado en vez de círculo: así se dibuja un alter ego (círculo = Perfil Real). */
+  cuadrado?: boolean;
 }
 
 const isValidImageUrl = (url: unknown): url is string =>
@@ -28,11 +30,13 @@ const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
   backgroundColor = '#E5E7EB',
   borderColor = 'transparent',
   showBorder = false,
+  cuadrado = false,
 }) => {
+  const radio = cuadrado ? Math.round(size * 0.29) : size / 2;
   const containerStyle = {
     width: size,
     height: size,
-    borderRadius: size / 2,
+    borderRadius: radio,
     borderWidth: showBorder ? 2 : 0,
     borderColor,
     overflow: 'hidden' as const,
@@ -51,7 +55,7 @@ const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
         <Image
           source={{ uri: imageUrl }}
           placeholder={thumbUrl ? { uri: thumbUrl } : undefined}
-          style={{ width: size, height: size, borderRadius: size / 2 }}
+          style={{ width: size, height: size, borderRadius: radio }}
           contentFit="cover"
           cachePolicy="memory-disk"
           transition={150}

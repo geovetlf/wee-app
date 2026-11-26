@@ -40,7 +40,7 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'Sýna sérfræðinga',
   signOutConfirm: 'Viltu skrá þig út úr Weë?',
   /* Migración de la UI (demo YC) integrada con is/kl, 2026-11-05: traducción de IA, SIN revisión humana nativa. */
-  pages: 'Weë Pages',
+  pages: 'WeëPages',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
   homeWall: 'Heim / Ẅall',
   explore: 'Kanna',

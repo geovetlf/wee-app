@@ -21,6 +21,7 @@ export const notifications = {
   communityPost: '{{nombre}} publicó en {{comunidad}}',
   aCommunity: 'una comunidad',
   generic: '{{nombre}} interactuó contigo',
+  characterNotice: '{{nombre}} te dejó avisos para revisar',
   now: 'ahora',
   markAllRead: 'Marcar todas como leídas',
   all: 'Todas',

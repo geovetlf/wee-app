@@ -581,6 +581,69 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "characterMemories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "personajeId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "huella",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "vector",
+          "vectorConfig": {
+            "dimension": 1024,
+            "flat": {}
+          }
+        }
+      ]
+    },
+    {
+      "collectionGroup": "characterMemories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "personajeId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "creadoEn",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "follows",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "followingId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "cuentaEstado",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "borrarEn",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []

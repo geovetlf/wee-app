@@ -224,6 +224,10 @@ const linking: any = {
               Landing: '',
               Feed: 'feed/:communitySlug?',
               HomeFeed: 'all',
+              /* Prueba aparte del Home con más impacto (2026-11-24): /home/nuevo. El Home de verdad no cambia. */
+              HomeImpacto: 'nuevo',
+              /* Segunda prueba aparte, «Universos» (2026-11-24): /home/universos. */
+              HomeUniversos: 'universos',
             },
           },
           Create: 'create',
@@ -311,12 +315,17 @@ const linking: any = {
        * los enlaces que ya circulan. Ninguna publicación viaja en la dirección: el feed de Weëls carga las suyas.
        */
       Reels: { path: 'weels', alias: ['Reels', 'reels'] },
+      TransformarIdentidad: { path: 'weels/transformar', alias: ['TransformarIdentidad'] },
       WeeCreator: { path: 'weeai', alias: ['WeeCreator'] },
       CrearVideo: { path: 'weeai/video', alias: ['CrearVideo'] },
+      CrearPublicacion: { path: 'weeai/crear', alias: ['CrearPublicacion'] },
       Plantillas: { path: 'weeai/plantillas', alias: ['Plantillas'] },
       Herramientas: { path: 'weeai/herramientas', alias: ['Herramientas'] },
-      Filmmaker: { path: 'weeai/filmmaker', alias: ['Filmmaker'] },
-      FilmmakerTandas: { path: 'weeai/filmmaker/tandas', alias: ['FilmmakerTandas'] },
+      /* Weë Filmmaker ARCHIVADO (2026-11-23): sin la puerta, tampoco tiene enlaces. */
+      ...(FILMMAKER_EN_LA_APP ? {
+        Filmmaker: { path: 'weeai/filmmaker', alias: ['Filmmaker'] },
+        FilmmakerTandas: { path: 'weeai/filmmaker/tandas', alias: ['FilmmakerTandas'] },
+      } : {}),
       Help: { path: 'help', alias: ['Help'] },
       Login: { path: 'login', alias: ['Login'] },
       Register: { path: 'register', alias: ['Register'] },

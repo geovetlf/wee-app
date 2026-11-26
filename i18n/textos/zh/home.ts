@@ -97,4 +97,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: '打开 Weë Brain',
   feedForYou: '为你推荐',
   feedCreativity: '创意',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: '此刻在 Weë',
+  you: '你',
+  guestTitle: '自由表达自我。',
+  guestHint: '以你自己或你的分身身份发布，并在 WeëPages 展示你的作品。',
+  premiere: '首映',
+  presentedBy: '由 {{nombre}} 呈现',
+  viewPage: '查看 WeëPage',
+  wallEmptyTitleWork: 'Ẅall 正在等待第一件作品',
+  wallEmptyHintFaces: '发布你自己或你分身的作品。',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: '等你发现的宇宙',
+  mosaicTitle: '此刻的创作',
 };

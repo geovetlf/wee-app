@@ -20,6 +20,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} publiserte i {{comunidad}}',
   aCommunity: 'et fellesskap',
   generic: '{{nombre}} samhandlet med deg',
+  characterNotice: '{{nombre}} har lagt igjen varsler du bør se på',
   now: 'nå',
   markAllRead: 'Merk alle som lest',
   all: 'Alle',

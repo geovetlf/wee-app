@@ -10,6 +10,7 @@ export const nav = {
   create: 'Crear',
   talk: 'WeeTalk',
   notifications: 'Notificaciones',
+  notificationsUnread: 'Notificaciones, tienes avisos sin leer',
   current: 'sección actual',
   goTo: 'Ir a {{nombre}}',
   weeNavigation: 'Navegación de Weë',

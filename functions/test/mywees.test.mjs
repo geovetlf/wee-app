@@ -162,7 +162,12 @@ check('G2) el hook LEE la identidad (cuenta y perfil activo) y no la cambia', /u
 check('G3) la pantalla y el selector no escriben en ningún servicio: solo leen páginas y proyectos con las funciones que ya existían',
   !/pagesService\.(guardar|seguir)|projectsService\.(create|rename|remove|assignJob)|httpsCallable|setDoc|updateDoc|addDoc|deleteDoc/.test(pantalla + selector)
   && /pagesService\.leer/.test(pantalla) && /projectsService\.get/.test(pantalla) && /pagesService\.mias/.test(selector) && /pagesService\.publicadas/.test(selector) && /projectsService\.list/.test(selector));
-check('G4) no se añade ninguna consulta: el servicio de páginas no cambió sus lecturas', (leer('services/pagesService.ts').match(/getDocs\(/g) || []).length === 2 && !/orderBy|startAfter/.test(sinComentarios(leer('services/pagesService.ts'))));
+/*
+ * F1 del plan de alter egos (2026-11-23): la cuenta salió del documento público de la Página, así que «mis Páginas»
+ * suma UNA lectura —su índice privado, `accounts/{cuenta}/pages`—. Es la única nueva; MyWeës no añade ninguna.
+ */
+check('G4) no se añade ninguna consulta: el servicio de páginas solo suma el índice privado de F1', (leer('services/pagesService.ts').match(/getDocs\(/g) || []).length === 3
+  && /getDocs\(collection\(db, 'accounts', accountUid, 'pages'\)\)/.test(leer('services/pagesService.ts')) && !/orderBy|startAfter/.test(sinComentarios(leer('services/pagesService.ts'))));
 check('G5) navegar sale de `destinoDeAcceso`, no de lo guardado', /destinoDeAcceso\(a\)/.test(pantalla) && /navigation\.navigate\(destino\.ruta, destino\.params\)/.test(pantalla));
 check('G6) restaurar pide confirmación', /confirmAction\(t\('mywees\.restore'\), t\('mywees\.restoreConfirm'\)/.test(pantalla));
 check('G7) reordenar es con botones de subir y bajar, cada uno con su nombre accesible', /mover\(a\.id, -1\)/.test(pantalla) && /mover\(a\.id, 1\)/.test(pantalla) && /mywees\.moveUp/.test(pantalla) && /mywees\.moveDown/.test(pantalla));

@@ -199,6 +199,9 @@ const ARRIBA_DEL_TECLADO = {
  * Las piezas de `components/creator/` y `components/business/` no se pintan
  * nunca solas: viven dentro de `CreatorShell`, que ya acomoda el teclado para
  * toda la pantalla. Pedirles que lo hagan otra vez sería acomodarlo dos veces.
+ * Lo mismo las de `components/personaje/`: solo se pintan dentro de
+ * `CharacterSheetScreen`, que envuelve toda la ficha en `EspacioDeEscritura`
+ * (se comprueba abajo, para que la excepción no quede huérfana).
  */
 const acomoda = (x) =>
   /EspacioDeEscritura/.test(x.src) ||
@@ -210,7 +213,16 @@ const acomoda = (x) =>
   /* Weë Travel (2026-11-06): todas sus pantallas se pintan dentro de `MarcoDeTravel`, que es `CreatorShell`, y sus
      piezas (Campo, selectores) van en línea dentro de ellas, nunca en un Modal: el shell ya acomoda el teclado. */
   x.rel.startsWith('components/travel/') ||
-  x.rel.startsWith('screens/travel/');
+  x.rel.startsWith('screens/travel/') ||
+  x.rel.startsWith('components/personaje/') ||
+  /* Weë Filmmaker ARCHIVADO (2026-11-23, docs/ARCHIVO.md): sin ruta ni puerta, nadie llega a sus fichas. Al retomarlo, sale de aquí. */
+  x.rel.startsWith('components/filmmaker/');
+
+check(
+  'las piezas del personaje viven dentro del acomodo de la ficha',
+  /<EspacioDeEscritura[\s\S]*<AutonomiaDelPersonaje[\s\S]*<\/EspacioDeEscritura>/.test(leer('screens/CharacterSheetScreen.tsx')),
+  'CharacterSheetScreen envuelve la ficha y la autonomía en EspacioDeEscritura'
+);
 
 const desatendidas = superficies.filter((x) => !acomoda(x) && !(x.rel in ARRIBA_DEL_TECLADO));
 

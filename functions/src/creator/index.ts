@@ -4,10 +4,10 @@ import { getFirestore, Timestamp, FieldValue, DocumentReference } from 'firebase
 import { AI_SECRETS, MODEL_SECRETS } from '../secrets';
 import { onCall } from 'firebase-functions/v2/https';
 import { Answer, CreatorJob, ExperienceId, JobResult, JobStep, Question } from './types';
-import { PlannerInput, getPlanner, respuestaPara } from './planner';
+import { PlannerInput, getPlanner, respuestaPara, templatePlanner } from './planner';
 import { BaseDelChat, anotarConsumoDelChat, limitesDelChatActuales, reservarTurnoDelChat } from './chatLimite';
 import { configuracionDeLaSombra, entendimientoRealDelBrain, sombraDelPlan } from './sombra';
-import { TEMPLATES, plainQuestion } from './templates';
+import { TEMPLATES, plainQuestion, preguntasDe } from './templates';
 import { PlanEstimate, QualityChoice, estimatePlan, estimatePlanCredits, holdCredits, settleCredits, ensureAccount, planOptions, pricingMode } from './credits';
 import { assertInputImageUrl, modalityCounts, needsInputImage, stepInputFor, vozSinNarracion } from './inputs';
 import { engine } from '../engine';
@@ -354,7 +354,7 @@ export const creatorChat = onCall(
          */
         const presets = Array.isArray(data.presetAnswers) ? data.presetAnswers : [];
         for (const preset of presets) {
-          const question = TEMPLATES[experienceId].questions.find((q) => q.id === String(preset?.questionId));
+          const question = preguntasDe(TEMPLATES[experienceId]).find((q) => q.id === String(preset?.questionId));
           if (!question) continue;
           // El id de opción manda; si no lo hay, se prueba con lo escrito.
           const bruto = preset?.optionId != null ? String(preset.optionId) : preset?.text != null ? String(preset.text) : undefined;
@@ -470,8 +470,38 @@ export const creatorQuote = onCall({ region: 'us-central1', timeoutSeconds: 30, 
     /* Guest AI Gate (identity/sesion.ts): un invitado no genera; va ANTES de trabajo, Credits y proveedor. */
     exigirCuentaAutenticada(request.auth);
     const uid = request.auth.uid;
-    const data = (request.data || {}) as { jobId?: string; quality?: string };
+    const data = (request.data || {}) as { jobId?: string; quality?: string; experienceId?: string; goal?: string; presetAnswers?: Answer[]; imageUrl?: string };
     const jobId = String(data.jobId || '');
+    /*
+     * WEËAI SENCILLO · EL PRECIO ANTES DE CREAR, SIN ABRIR UN TRABAJO (2026-11-23).
+     *
+     * La pantalla de «crear para publicar» enseña lo que costará mientras la persona elige formato o
+     * duración. Abrir un `creatorJobs` por cada toque gastaría su cupo de conversaciones del día y dejaría
+     * trabajos sueltos; así que, sin `jobId`, se arma el plan con la plantilla (las respuestas llegan todas
+     * elegidas: no hace falta el LLM) y se cotiza con `estimatePlan`, lo mismo que verá `creatorChat` al
+     * crear. No se guarda nada, no se reserva nada y no se llama a ninguna IA.
+     */
+    if (!jobId && data.experienceId) {
+      const experienceId = String(data.experienceId) as ExperienceId;
+      if (!EXPERIENCES.has(experienceId)) throw new EngineError('INVALID_REQUEST', 'Experiencia desconocida.');
+      const template = TEMPLATES[experienceId];
+      const goal = String(data.goal || '').trim().slice(0, 300) || template.defaultGoal;
+      const answers: Answer[] = [];
+      for (const preset of Array.isArray(data.presetAnswers) ? data.presetAnswers.slice(0, 10) : []) {
+        const question = preguntasDe(template).find((q) => q.id === String(preset?.questionId));
+        if (!question) continue;
+        const bruto = preset?.optionId != null ? String(preset.optionId) : preset?.text != null ? String(preset.text) : undefined;
+        const respuesta = respuestaPara(question, bruto);
+        if (respuesta) answers.push({ questionId: question.id, ...respuesta });
+      }
+      const turno = await templatePlanner.next({ experienceId, goal, answers, gateway: { userId: uid, experienceId, goal } as PlannerInput['gateway'] });
+      const modo = await pricingMode();
+      if (!turno.plan) return { jobId: null, quality: null, creditsEstimated: 0, pricing: null, pricingMode: modo };
+      const imageUrl = data.imageUrl ? assertInputImageUrl(data.imageUrl, uid) : undefined;
+      const provisional = { plan: turno.plan, inputImageUrl: imageUrl } as CreatorJob;
+      const estimate = await estimatePlan(turno.plan, uid, undefined, await inputSizeOf(provisional));
+      return { jobId: null, quality: null, creditsEstimated: estimate.total, pricing: { total: estimate.total, steps: estimate.steps, options: null }, pricingMode: modo };
+    }
     if (!jobId) throw new EngineError('INVALID_REQUEST', 'Falta el trabajo.');
     const quality = ['standard', 'high', 'max'].includes(String(data.quality)) ? (data.quality as QualityChoice) : undefined;
 

@@ -128,13 +128,34 @@ export type TipoDeIdentidad = 'real' | 'wee';
  * Los uid de Firebase Auth son alfanuméricos, así que esto no deja fuera a
  * nadie; lo que hace es que la garantía sea una comprobación y no una suposición.
  */
-const FORMA_DE_IDENTIDAD = /^(?:hidi_)?[^_/\s]+$/;
+/*
+ * LA SEGUNDA FORMA DE UN PERFIL WEË (plan de alter egos, F6, 2026-11-23): el
+ * alter ego cuyo `uid` ES su identificador de entidad, opaco (`ent_…`). Es la
+ * misma forma que acepta el servidor (`FORMA_DE_IDENTIDAD` de
+ * functions/src/social/econtact.ts). La FORMA solo dice que el id está bien
+ * escrito; de quién es lo decide el servidor leyendo su entidad.
+ */
+export const PREFIJO_ALTER_EGO = 'ent_';
+
+const FORMA_DE_IDENTIDAD = /^(?:hidi_|ent_)?[^_/\s]+$/;
 
 export const esIdentidadValida = (id?: string | null): boolean =>
   typeof id === 'string' && id.length > 0 && id.length <= 200 && FORMA_DE_IDENTIDAD.test(id);
 
+/** `'wee'` para las dos formas del Perfil Weë (la heredada y la opaca). Es una pista de enrutado, no una propiedad. */
 export const tipoDeIdentidad = (id?: string | null): TipoDeIdentidad =>
-  (typeof id === 'string' && id.startsWith(PREFIJO_PERFIL_WEE) ? 'wee' : 'real');
+  (typeof id === 'string' && (id.startsWith(PREFIJO_PERFIL_WEE) || id.startsWith(PREFIJO_ALTER_EGO)) ? 'wee' : 'real');
+
+/**
+ * ¿Se bloquea la relación entre DOS caras de la misma cuenta? (`misma-persona`, D6 y D6b del 2026-11-23)
+ *
+ *   · Real ↔ Weë: SÍ. Un ẄContact o un seguimiento entre tu Perfil Real y tu alter ego delataría a la persona.
+ *   · Weë ↔ Weë: NO. Tus alter egos se escriben, se siguen y se agregan entre sí como cualquiera.
+ *
+ * Solo tiene sentido cuando las dos son tuyas; con una ajena no hay bloqueo de este tipo.
+ */
+export const bloqueaMismaPersona = (una?: string | null, otra?: string | null): boolean =>
+  !!una && !!otra && (una === otra || tipoDeIdentidad(una) !== tipoDeIdentidad(otra));
 
 /**
  * La agenda es entre PERSONAS.

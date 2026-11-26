@@ -50,4 +50,5 @@ export const avisos: typeof import('../../es/servidor/avisos').avisos = {
   fotoUnica: 'Larawang isang beses lang makikita',
   imagen: '📷 Larawan',
   audio: '🎤 Voice message',
+  paraLaCara: 'Para kay {{destino}}: {{titulo}}',
 };

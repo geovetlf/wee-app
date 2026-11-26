@@ -32,4 +32,5 @@ export const avisos: typeof import('../../es/servidor/avisos').avisos = {
   fotoUnica: 'Mynd sem hverfur',
   imagen: '📷 Mynd',
   audio: '🎤 Hljóð',
+  paraLaCara: 'Viðtakandi: {{destino}} – {{titulo}}',
 };

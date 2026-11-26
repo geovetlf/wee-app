@@ -59,7 +59,8 @@ check('B9) pantalla fija en «Crear» (prop fija); el desplazamiento vertical es
   P.includes('fija') && P.includes('<CajaAnclada alto={topeDeLaCaja}>') && P.includes('enviarDiscreto={enUniverso}') && P.includes('<CajaDePrompt portada') && P.includes('const conScroll = altoMundo > 0 && altoMundo < tituloDeSeccion + FILAS * 64') && P.includes('conScroll ? <ScrollView') && P.indexOf('styles.mundo') < P.indexOf('<CajaAnclada alto={topeDeLaCaja}>') && !/pestana|hubTab/.test(P) && P.includes('<HojaDeTrabajo') && P.includes("navigate('MisCreaciones')") && fs.readFileSync(path.resolve(RAIZ, 'components/filmmaker/HojaDeTrabajo.tsx'), 'utf8').includes('<ProductionList') && P.includes("useProducciones('active'") && P.includes('hubContinue'));
 check('B10) la ruta existe con el diff mínimo y el módulo de la portada navega a ella (no a Production); TabNavigator y la barra inferior no se tocan',
   leer('navigation/MainStackNavigator.tsx').includes('<Stack.Screen name="Filmmaker" component={FilmmakerCrearScreen} />') && leer('App.tsx').includes("Filmmaker: { path: 'weeai/filmmaker'") && leer('navigation/NavegacionGlobal.tsx').includes("Filmmaker: 'WeeAI'")
-  && leer('components/weeai/PortadaWeeAi.tsx').includes("navigation.navigate('Filmmaker')") && !leer('components/weeai/PortadaWeeAi.tsx').includes("navigate('Production')"));
+  /* Filmmaker ARCHIVADO (2026-11-23, docs/ARCHIVO.md) y portada sencilla: la portada ya no lo abre; su ruta sigue, dormida. */
+  && !leer('components/weeai/PortadaWeeAi.tsx').includes("navigate('Production')"));
 check('B11) contraste corregido del diseño: el borde iluminado es #5F6878', /bordeLuz: '#5F6878'/.test(leer('constants/estiloWeeAi.ts')));
 check('B12) textos con clave, no escritos a mano (todo lo visible sale de t(...)); la marca Filmmaker sale de su clave de marca', !/>\s*[A-ZÁÉÍÓÚ][a-záéíóú]{3,}[^<{]*</.test(P.replace(/<Text[^>]*>\{[^}]*\}<\/Text>/g, '')) && P.includes("t('weeai.portadaFilmmaker')"));
 

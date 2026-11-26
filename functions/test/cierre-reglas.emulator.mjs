@@ -6,6 +6,7 @@
  *       antiguas con id automático se siguen leyendo y borrando, pero no se crean más así.
  *   B · follows — el id es el par `{followerId}_{followingId}`, el seguidor es una de las dos caras de quien escribe
  *       (la real o `hidi_<uid>`), nadie se sigue a sí mismo y el documento lleva solo los dos ids y la fecha.
+ *       Desde F3 de alter egos (D6, 2026-11-23) las caras de una misma cuenta SÍ pueden seguirse entre sí.
  *
  * No está en `npm test`: necesita el emulador y Java. Desde la raíz del proyecto:
  *
@@ -116,8 +117,13 @@ console.log('\n── B · follows, atada ──');
   await esperar('21) ni en nombre de otra persona', 'DENIEGA', 'PATCH', `/follows/${BETO}_${CARLA}`, { uid: ANA, body: doc(seguir(BETO, CARLA)) });
   await esperar('22) ni con la cara Weë de otra persona', 'DENIEGA', 'PATCH', `/follows/hidi_${BETO}_${CARLA}`, { uid: ANA, body: doc(seguir(`hidi_${BETO}`, CARLA)) });
   await esperar('23) nadie se sigue a sí mismo', 'DENIEGA', 'PATCH', `/follows/${ANA}_${ANA}`, { uid: ANA, body: doc(seguir(ANA, ANA)) });
-  await esperar('23b) ni su cara real sigue a su Perfil Weë', 'DENIEGA', 'PATCH', `/follows/${ANA}_${WEE_ANA}`, { uid: ANA, body: doc(seguir(ANA, WEE_ANA)) });
-  await esperar('23c) ni su Perfil Weë a su cara real', 'DENIEGA', 'PATCH', `/follows/${WEE_ANA}_${ANA}`, { uid: ANA, body: doc(seguir(WEE_ANA, ANA)) });
+  /*
+   * Decisión del dueño (2026-11-23, F4): el Perfil Real NO sigue a sus alter egos y ningún alter ego sigue al Perfil
+   * Real de su cuenta. Los alter egos sí se siguen entre sí (D6, lo ejecuta `alter-egos-rules`). Seguirse a uno
+   * mismo —el MISMO id— sigue denegado (23).
+   */
+  await esperar('23b) el Perfil Real NO sigue a su Perfil Weë', 'DENIEGA', 'PATCH', `/follows/${ANA}_${WEE_ANA}`, { uid: ANA, body: doc(seguir(ANA, WEE_ANA)) });
+  await esperar('23c) ni su Perfil Weë a su Perfil Real', 'DENIEGA', 'PATCH', `/follows/${WEE_ANA}_${ANA}`, { uid: ANA, body: doc(seguir(WEE_ANA, ANA)) });
   await esperar('24) ni con campos de más (un contador, un nombre…)', 'DENIEGA', 'PATCH', `/follows/${ANA}_${CARLA}`, { uid: ANA, body: doc(seguir(ANA, CARLA, { followers: 9999 })) });
   await esperar('25) ni sin a quién seguir', 'DENIEGA', 'PATCH', `/follows/${ANA}_`, { uid: ANA, body: doc(seguir(ANA, '')) });
   await esperar('26) un follow no se reescribe', 'DENIEGA', 'PATCH', `/follows/${ANA}_${BETO}`, { uid: ANA, body: doc(seguir(ANA, BETO)) });

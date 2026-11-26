@@ -13,8 +13,8 @@ import { useUserProfile } from '../contexts/UserProfileContext';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import CreateSheet, { CreateKind } from './CreateSheet';
 import { MENU_ITEM, MenuItemId, WEE_MENU } from '../constants/weeMenu';
-import SelectorDeIdentidad, { Identidad } from './inicio/SelectorDeIdentidad';
-import TarjetaWeeAi from './inicio/TarjetaWeeAi';
+import { ListaDeCaras } from './HojaDeAlterEgos';
+import { useIdentidadActiva } from '../hooks/useEContact';
 import { abrirPortadaDeWeeAi } from '../navigation/refNavegacion';
 import { IconoWee } from './icons/IconoWee';
 import { MarcaDeCredits } from './CreditsPill';
@@ -105,8 +105,8 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icono, label, active, onPress
 /**
  * Barra lateral de escritorio: el mismo menú que el ☰ en móvil (rediseño del 2026-11-15).
  *
- *   logo · quién soy · [ Real | Weë ] · tarjeta WeëAI
- *   Inicio / Ẅall · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
+ *   logo · quién soy · Tus caras (Real + alter egos) · Tu mundo (ficha, WeëPages, agenda) · tarjeta WeëAI
+ *   Inicio / Ẅall · Weëls · Explorar · Comunidades · Proyectos · WeëPages
  *   MyWeës
  *   Guardados · Historial · Credits · Configuración
  *   Ayuda y soporte
@@ -118,10 +118,11 @@ const Sidebar: React.FC = () => {
   const { formato } = useIdioma();
   const nombreDelIdioma = useNombreDelIdioma();
   const t = useT();
-  const { theme, setThemeMode } = useTheme();
+  const { theme } = useTheme();
   const navigation = useNavigation<any>();
   const { user, logout } = useAuth();
-  const { userProfile, activeProfileType, hasWeeProfile, switchIdentity } = useUserProfile();
+  const { userProfile, activeProfileType } = useUserProfile();
+  const { nombreLista: nombreDeLaAgenda } = useIdentidadActiva();
   // El mismo saldo que lee el cajón: una sola fuente, dos sitios donde se ve.
   const { balance } = useWallet();
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -143,25 +144,11 @@ const Sidebar: React.FC = () => {
   const requireLogin = () => navigation.navigate('Login');
 
   /*
-   * EL SELECTOR DE IDENTIDAD, CON LA LÓGICA DE SIEMPRE. En escritorio el cambio
-   * de perfil vivía en la píldora de la cabecera del Home; ahora vive aquí, igual
-   * que en el cajón: `switchIdentity()` cambia de cara y `setThemeMode()` viste
-   * la app —clara con el Perfil Real, oscura con el Perfil Weë—. Aquí no se
-   * guarda ni se decide ninguna identidad.
+   * «TUS CARAS» Y «TU MUNDO», COMO EN EL CAJÓN (rediseño del 2026-11-23). La lista de caras es la de
+   * `HojaDeAlterEgos`: tocar una cara llama a `switchIdentity(id)` y pone el tema del destino. Debajo, lo de la cara
+   * puesta: la ficha (solo con un alter ego, privada), las WeëPages y su agenda (ËContact o ẄContact).
    */
-  const elegirIdentidad = (destino: Identidad) => {
-    if (!user) return requireLogin();
-    if (destino === 'hidi' && !hasWeeProfile) return navigation.navigate('WeeProfileCreation');
-    if (activeProfileType === destino) return;
-    /* Las dos ramas, escritas: el tema sale del DESTINO —oscuro con el Perfil Weë, claro con el Perfil Real—. */
-    if (destino === 'hidi') {
-      switchIdentity();
-      setThemeMode('dark');
-    } else {
-      switchIdentity();
-      setThemeMode('light');
-    }
-  };
+  const esWee = activeProfileType === 'hidi';
 
   /* Lo que es de una cuenta pide sesión, como antes. */
   const conCuenta = (pantalla: string, params?: object) => () => (user ? navigation.navigate(pantalla, params) : requireLogin());
@@ -226,6 +213,7 @@ const Sidebar: React.FC = () => {
           {user && userProfile ? (
             <AvatarDisplay
               size={44}
+              cuadrado={esWee}
               avatarType={userProfile.avatarType || 'predefined'}
               avatarId={userProfile.avatarId || 'male'}
               photoURL={typeof userProfile.photoURL === 'string' ? userProfile.photoURL : undefined}
@@ -248,18 +236,44 @@ const Sidebar: React.FC = () => {
           <IconoDireccional name="chevron-forward" size={18} color={theme.colors.textSecondary} />
         </TouchableOpacity>
 
-        {/* El selector de identidad, como en el cajón. Sin sesión no se pinta. */}
-        {user && <SelectorDeIdentidad activa={activeProfileType === 'hidi' ? 'hidi' : 'real'} tieneWee={hasWeeProfile} onElegir={elegirIdentidad} />}
+        {/* «Tus caras», como en el cajón. Sin sesión no se pinta. */}
+        {user && (
+          <View style={styles.bloque}>
+            <Text style={[styles.rotulo, { color: theme.colors.textSecondary }]} accessibilityRole="header" numberOfLines={1}>{t('alterEgo.yourFaces')}</Text>
+            <ListaDeCaras />
+          </View>
+        )}
 
-        {/* WeëAI: la tarjeta que abre el centro creativo, donde están las experiencias. */}
-        <TarjetaWeeAi variante="menu" onOpenWeeAi={() => { if (!abrirPortadaDeWeeAi()) navigation.navigate('WeeCreator'); }} />
+        {/* «Tu mundo · <cara puesta>»: la ficha (solo alter ego), las WeëPages y la agenda de la cara puesta. */}
+        {user && (
+          <View style={styles.bloque}>
+            <Text style={[styles.rotulo, { color: theme.colors.textSecondary }]} accessibilityRole="header" numberOfLines={1}>
+              {t('alterEgo.yourWorld', { nombre: userProfile?.displayName || user.displayName || t('common.guest') })}
+            </Text>
+            {esWee && (
+              <SidebarItem
+                icono="perfilWee"
+                label={t('character.entry')}
+                active={isActive('CharacterSheet')}
+                onPress={conCuenta('CharacterSheet')}
+                right={<Text style={[styles.idiomaNombre, { color: theme.colors.textSecondary }]} numberOfLines={1}>{t('alterEgo.private')}</Text>}
+              />
+            )}
+            <Opcion id="pages" onPress={conCuenta('WeePages')} active={isActive('WeePages') || isActive('WeePage')} />
+            <SidebarItem icono="econtact" label={nombreDeLaAgenda} active={isActive('EContact')} onPress={conCuenta('EContact')} />
+          </View>
+        )}
+
+        {/* WeëAI, una fila más (propuesta de Home 0+, 2026-11-23): es una herramienta, no la portada. */}
+        <Opcion id="creator" onPress={() => { if (!abrirPortadaDeWeeAi()) navigation.navigate('WeeCreator'); }} active={isActive('WeeCreator')} />
 
         {/* Menú: las mismas filas y el mismo orden que el cajón, del mismo catálogo. */}
         <View style={styles.nav}>
           {WEE_MENU.map((grupo) => (
             <View key={grupo.items.join('-')} style={styles.nav}>
               {grupo.divisor && <View style={[styles.divisor, { backgroundColor: theme.colors.border }]} />}
-              {grupo.items.map((id) => {
+              {/* WeëPages vive en «Tu mundo» cuando hay sesión: no se repite aquí. */}
+              {grupo.items.filter((id) => !(user && id === 'pages')).map((id) => {
                 const opcion = (
                   <Opcion
                     key={id}
@@ -414,6 +428,9 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE.xs,
   },
   /** La línea que separa un grupo sin nombre del anterior. */
+  /* «Tus caras» y «Tu mundo»: un rótulo pequeño en gris y sus filas. */
+  bloque: { gap: 2 },
+  rotulo: { fontSize: FONT_SIZE.xs, fontWeight: FONT_WEIGHT.semibold, paddingHorizontal: 8, marginBottom: 2 },
   divisor: {
     height: StyleSheet.hairlineWidth,
     marginHorizontal: SPACING.md,

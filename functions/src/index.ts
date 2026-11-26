@@ -2,8 +2,11 @@
 import './opciones';
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as admin from 'firebase-admin';
-import { cuentaDeIdentidad, PerfilDeIdentidad } from './social/econtact';
-import { avisoPush, cuerpoDelMensaje, cupoDeAvisos, datosDelAviso, nombreDeRespaldo, nombreVisible, resumenDeRespuestaDeExpo } from './social/avisos';
+import { PerfilDeIdentidad } from './social/econtact';
+import { cuentaDelPerfilLeido } from './identity/compatibilidad';
+import {
+  avisoPush, cuerpoDelMensaje, cupoDeAvisos, datosDelAviso, nombreDeRespaldo, nombreVisible, resumenDeRespuestaDeExpo, tituloParaLaCara,
+} from './social/avisos';
 
 // Inicializar Firebase Admin solo si no está inicializado
 if (admin.apps.length === 0) {
@@ -35,14 +38,24 @@ async function perfilDeIdentidad(identidad: unknown): Promise<PerfilEncontrado |
 }
 
 /*
- * DE QUÉ CUENTA ES UNA IDENTIDAD. Si es una cara (Perfil Weë), se resuelve con
- * el resolutor canónico —se lee `linkedAccountId`, nunca se deduce quitando un
- * prefijo—. Una cara sin vínculo no es de nadie: null, y no se avisa a nadie.
+ * DE QUÉ CUENTA ES UNA IDENTIDAD. Se LEE, nunca se deduce quitando un prefijo:
+ * lo heredado por su vínculo (`linkedAccountId`) y un alter ego por su entidad
+ * (`cuentaDelPerfilLeido`, la misma regla que `cuentaDeIdentidadLeida`, F4). Una
+ * cara que no resuelve no es de nadie: null, y no se avisa a nadie.
+ *
+ * Devuelve también el NOMBRE de la cara cuando no es el Perfil Real: el push
+ * dice a qué alter ego va (D11), porque el teléfono es de la cuenta.
  */
-async function cuentaDeLaIdentidad(identidad: unknown): Promise<string | null> {
+async function destinatarioDeLaIdentidad(identidad: unknown): Promise<{ cuenta: string; nombreDeLaCara: string | null } | null> {
   const perfil = await perfilDeIdentidad(identidad);
   if (!perfil) return null;
-  return cuentaDeIdentidad(identidad as string, perfil.data() as PerfilDeIdentidad);
+  const cuenta = await cuentaDelPerfilLeido(db, identidad, perfil.data() as PerfilDeIdentidad);
+  if (!cuenta) return null;
+  return { cuenta, nombreDeLaCara: cuenta === identidad ? null : nombreVisible(perfil.data()) };
+}
+
+async function cuentaDeLaIdentidad(identidad: unknown): Promise<string | null> {
+  return (await destinatarioDeLaIdentidad(identidad))?.cuenta ?? null;
 }
 
 /*
@@ -100,10 +113,12 @@ export { brainChat, brainQuote } from './creator/brain';
 export { generateVideo } from './creator/video';
 /* «Crear mundo 3D» (Weë Studio → 3D World): la tercera puerta del conductor, cerrada por `aiSettings/runtime`. */
 export { generateWorld } from './creator/mundo';
-/* Leer un documento, guion o libro (Weë Filmmaker): ruta legacy por el engine, cerrada por `aiSettings/documentos`. */
-export { leerDocumento } from './creator/documentos';
-/* Imágenes del universo y del storyboard (Weë Filmmaker): ruta legacy por el engine, cerrada por `aiSettings/filmmakerImagenes`. */
-export { generarImagenesFilmmaker } from './creator/imagenes';
+/*
+ * ARCHIVADO (decisión del dueño, 2026-11-23): Weë Filmmaker queda dormido hasta terminar la app; ver docs/ARCHIVO.md.
+ * Sus puertas propias NO se exportan (no se despliegan ni cuestan): `leerDocumento` (leer un guion o libro),
+ * `generarImagenesFilmmaker` (universo y storyboard) y, más abajo, `renders`/`renderWorker` (el «Juntar»).
+ * El código sigue en creator/documentos, creator/imagenes y creator/renders. Para retomarlo: volver a exportarlas.
+ */
 export { seedanceCallback } from './engine/webhooks';
 export { evalRun } from './evals';
 
@@ -149,6 +164,11 @@ export { boost, boostSweep } from './boost';
  * hace nacer. Numerar lo que ya existe es la migración, y tiene su propia fase.
  */
 export { nacimientoDeCuenta } from './identity/nacimiento';
+/*
+ * ALTER EGOS (F4 del plan de alter egos, 2026-11-23): crear un Perfil Weë más (gratis, hasta el límite de la cuenta) y
+ * retirar uno (inmediato, con su borrado). Devuelven la cara, nunca la cuenta. Ver `identity/alterEgos.ts`.
+ */
+export { crearAlterEgo, retirarAlterEgo } from './identity/alterEgos';
 // Seguridad de `users` (2026-10-07): la copia pública con lista blanca. NO desplegada: ver ops/despliegue/grupos.json.
 export { espejoDelPerfilPublico } from './identity/perfilPublico';
 
@@ -184,6 +204,38 @@ export { productions } from './productions/puerta';
 export { barridoDeLiquidacion } from './settlement/programado';
 
 /*
+ * AUTONOMÍA DEL PERSONAJE (Perfil Weë) — docs/AUTONOMIA.md.
+ *
+ * `autonomiaPersonaje`: programar (24 h, 3 o 7 días), apagar y ver el estado.
+ * `cicloDeAutonomia`: cada 10 minutos pone al día los pases vivos (cobra cada
+ * bloque al empezar, para el reloj si Weë falla, termina lo cumplido).
+ * Las dos detrás de `aiSettings/autonomia.abierta`, CERRADA por defecto: aunque
+ * se desplieguen, nadie puede programar nada hasta que se abra.
+ */
+export { autonomiaPersonaje, nivelDelPaseAlGuardarLaFicha } from './personajes/servidor';
+export { cicloDeAutonomia } from './personajes/ciclo';
+/*
+ * Las acciones del personaje: responder en WeeTalk a quien le escribe y
+ * responder los comentarios de sus publicaciones. Con la puerta cerrada salen
+ * en la primera línea sin leer nada (cada mensaje de WeeTalk las dispara).
+ */
+export { personajeRespondeWeeTalk, personajeRespondeComentario } from './personajes/acciones';
+// El material del personaje (su libro, su biografía): gratis y sin IA, docs/AUTONOMIA.md § 1b.
+export { procesarMaterialDelPersonaje, materialPersonaje } from './personajes/materialServidor';
+export { encargoDelPersonaje } from './personajes/encargos';
+// La campanita del dueño: lo que el personaje deja en su bandeja enciende el punto rojo (sin IA, sin Credits).
+export { campanitaDelPersonaje } from './personajes/campanita';
+
+/*
+ * ELIMINAR LA CUENTA (encargo del dueño, 2026-11-22; Apple y Google lo exigen).
+ * `eliminarCuenta` DESACTIVA y da 30 días para volver (`reactivarCuenta`);
+ * `borrarCuentasVencidas`, una vez al día, borra del todo las vencidas: las dos
+ * caras —personaje y avatar incluidos— y el usuario de Auth; los registros
+ * contables se quedan. Ver `cuenta/desactivar.ts` y `cuenta/borrado.ts`.
+ */
+export { eliminarCuenta, reactivarCuenta, borrarCuentasVencidas } from './cuenta';
+
+/*
  * WEE MEDIA CLOUD — LA PUERTA DEL CANARY, Y NADA MÁS DE MEDIA CLOUD.
  *
  * Es la ÚNICA Function de Media Cloud desplegable, y no es una API: solo
@@ -203,7 +255,7 @@ export { mediaCanary } from './media/canary';
  * Job Engine (`media.render`). Ni Credits, ni proveedores de IA, ni el conductor. NACE CERRADO: sin `aiSettings/render`
  * nadie puede pedir un render. Desplegarlas es decisión del dueño (workflow).
  */
-export { renders, renderWorker } from './creator/renders';
+// ARCHIVADO (decisión del dueño, 2026-11-23): Weë Filmmaker queda dormido hasta terminar la app; ver docs/ARCHIVO.md. No se exporta mientras dure el archivo: export { renders, renderWorker } from './creator/renders';
 
 // Credit Engine (docs/CREDITS.md): la única puerta para leer y mover Credits
 export {
@@ -284,12 +336,13 @@ export const sendPushNotification = onDocumentCreated(
         return null;
       }
 
-      const cuenta = await cuentaDeLaIdentidad(recipientId);
+      const destinatario = await destinatarioDeLaIdentidad(recipientId);
 
-      if (!cuenta) {
+      if (!destinatario) {
         console.log('Usuario destinatario no encontrado');
         return null;
       }
+      const cuenta = destinatario.cuenta;
 
       const destino = await destinoDelPush(cuenta);
 
@@ -312,7 +365,8 @@ export const sendPushNotification = onDocumentCreated(
 
       const data = datosDelAviso(notification, type, event.params.notificationId);
 
-      const result = await sendExpoPush(pushToken, aviso.title, aviso.body, data);
+      const titulo = tituloParaLaCara(aviso.title, destinatario.nombreDeLaCara, destino.idioma);
+      const result = await sendExpoPush(pushToken, titulo, aviso.body, data);
 
       if (result?.data?.status === 'error') {
         /* Gran Motor S2: sin `message`; en DeviceNotRegistered Expo mete ahí el token del aparato. */
@@ -361,8 +415,8 @@ export const sendMessagePushNotification = onDocumentCreated(
       for (const participantId of participants) {
         if (participantId === senderId) continue;
 
-        const cuenta = await cuentaDeLaIdentidad(participantId);
-        const destino = await destinoDelPush(cuenta);
+        const destinatario = await destinatarioDeLaIdentidad(participantId);
+        const destino = await destinoDelPush(destinatario?.cuenta ?? null);
 
         if (destino) {
           const pushToken = destino.token;
@@ -370,7 +424,8 @@ export const sendMessagePushNotification = onDocumentCreated(
           const idioma = destino.idioma;
           await sendExpoPush(
             pushToken,
-            senderName || nombreDeRespaldo(idioma),
+            /* «Para Lina Shade: Jay» cuando el mensaje va a un alter ego (D11). */
+            tituloParaLaCara(senderName || nombreDeRespaldo(idioma), destinatario?.nombreDeLaCara ?? null, idioma),
             cuerpoDelMensaje(content, idioma),
             { type: 'message', conversationId, senderId }
           );

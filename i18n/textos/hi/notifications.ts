@@ -35,6 +35,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} ने {{comunidad}} में पोस्ट किया',
   aCommunity: 'एक कम्यूनिटी',
   generic: '{{nombre}} की ओर से नई गतिविधि',
+  characterNotice: '{{nombre}} ने आपके लिए देखने के लिए सूचनाएँ छोड़ी हैं',
   now: 'अभी',
   markAllRead: 'सभी को पढ़ी हुई मार्क करें',
   all: 'सभी',

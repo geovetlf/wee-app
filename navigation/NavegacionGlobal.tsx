@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { abrirPortadaDeWeeAi, navegarEnLaRaiz, refNavegacion } from './refNavegacion';
 import BarraInferior, { ALTO_BARRA, DestinoId } from '../components/BarraInferior';
 import CreateSheet, { CreateKind } from '../components/CreateSheet';
+import HojaDeAlterEgos from '../components/HojaDeAlterEgos';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme, TemaOscuro } from '../contexts/ThemeContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
@@ -35,7 +36,10 @@ const SIN_BARRA = new Set([
   'Reels',
   'Settings',
   'WeeProfileCreation',
+  'CharacterSheet',
   'AiAvatar',
+  'EliminarCuenta',
+  'RetirarAlterEgo',
   'EspacioProfesional',
 ]);
 
@@ -53,6 +57,7 @@ const ANIDADAS_SIN_BARRA = new Set(['Conversation']);
 const DESTINO_DE_RUTA: Record<string, DestinoId> = {
   WeeCreator: 'WeeAI',
   CrearVideo: 'WeeAI',
+  CrearPublicacion: 'WeeAI',
   Plantillas: 'WeeAI',
   Herramientas: 'WeeAI',
   Filmmaker: 'WeeAI',
@@ -175,6 +180,8 @@ const NavegacionGlobal: React.FC = () => {
   const { triggerScrollToTop, isScrollingDown } = useScroll();
   const insets = useSafeAreaInsets();
   const [hoja, setHoja] = useState(false);
+  /* La hoja «Cambiar de cara»: la abre la pulsación larga en la pestaña de la cara (con varios alter egos). */
+  const [hojaDeCaras, setHojaDeCaras] = useState(false);
   const { estado, visible } = useBarraInferior();
 
   const rutaRaiz = estado?.routes?.[estado.index]?.name;
@@ -265,6 +272,9 @@ const NavegacionGlobal: React.FC = () => {
      */
     if (destino === 'WeeAI') { abrirPortadaDeWeeAi(); return; }
 
+    /* Weëls (2026-11-24): el visor de siempre, abierto desde el Home con los Weëls ya cargados, como «Weëls» del ☰. Mirar es libre. */
+    if (destino === 'Weels') return irARaiz('Main', { screen: 'Home', params: { screen: 'Landing', params: { openWeels: true } } });
+
     /* Mensajes y el interruptor de cara son de una persona: piden cuenta. */
     if (destino !== 'Home' && !user) return irARaiz('Register');
 
@@ -311,9 +321,10 @@ const NavegacionGlobal: React.FC = () => {
       >
         {/* En WeëAI (de la cuenta, siempre oscura) la barra también va oscura; en el resto manda el perfil. */}
         <MarcoDeLaBarra>
-          <BarraInferior puesto={puesto} onSelect={elegir} sinLeer={sinLeer} />
+          <BarraInferior puesto={puesto} onSelect={elegir} sinLeer={sinLeer} onMantener={() => setHojaDeCaras(true)} />
         </MarcoDeLaBarra>
       </Animated.View>
+      {user && hasWeeProfile && <HojaDeAlterEgos visible={hojaDeCaras} onClose={() => setHojaDeCaras(false)} />}
       <CreateSheet
         visible={hoja}
         onClose={() => setHoja(false)}

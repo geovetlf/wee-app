@@ -27,6 +27,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} birti færslu í samfélaginu {{comunidad}}',
   aCommunity: 'sem þú ert í',
   generic: '{{nombre}} hafði samskipti við þig',
+  characterNotice: '{{nombre}} skildi eftir tilkynningar sem þú þarft að fara yfir',
   now: 'núna',
   markAllRead: 'Merkja allt sem lesið',
   all: 'Allar',

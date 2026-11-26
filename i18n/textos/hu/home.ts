@@ -88,4 +88,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'A Weë Brain megnyitása',
   feedForYou: 'Neked',
   feedCreativity: 'Kreativitás',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Most a Weën',
+  you: 'Te',
+  guestTitle: 'Fejezd ki magad szabadon.',
+  guestHint: 'Posztolj saját magadként vagy az alteregóidként, és mutasd meg a műved a WeëPagesen.',
+  premiere: 'Bemutató',
+  presentedBy: 'Bemutatja: {{nombre}}',
+  viewPage: 'WeëPage megnyitása',
+  wallEmptyTitleWork: 'A Ẅall az első művére vár',
+  wallEmptyHintFaces: 'Ossz meg valamit magadtól vagy az alteregódtól.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Felfedezendő univerzumok',
+  mosaicTitle: 'Most készül',
 };

@@ -19,6 +19,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} objavljuje u {{comunidad}}',
   aCommunity: 'jednoj zajednici',
   generic: '{{nombre}} stupa u interakciju s tobom',
+  characterNotice: '{{nombre}} ti je ostavio obavještenja za pregled',
   now: 'sada',
   markAllRead: 'Označi sve kao pročitano',
   all: 'Sva',

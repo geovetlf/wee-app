@@ -53,7 +53,8 @@ type Documento = Record<string, unknown>;
  * añade es DIFUSIÓN. La puerta que difunde tiene que ser más estricta que la
  * que solo deja leer.
  */
-const sePuedeEnseñar = (post: Documento): boolean => post.isPrivate === false;
+/* Ni lo de una cuenta desactivada (`functions/src/cuenta/desactivar.ts`): mientras lo esté, no se enseña. */
+const sePuedeEnseñar = (post: Documento): boolean => post.isPrivate === false && post.ocultaPorDesactivacion !== true;
 
 /**
  * La fecha, sin hora —una publicación no se fecha al minuto— y escrita como se escribe en el idioma de la página
@@ -124,6 +125,7 @@ const publicacionPublica = (
   videoUrl: texto(post.videoUrl),
   isWeel: post.isWeel === true,
   aiTools: textos(post.aiTools),
+  autonomo: post.autonomo === true,
   fecha: fechaEnEspanol(post.createdAt, locale),
   encuesta: encuestaPublica(post.poll),
   autor: autorPublico(autor),

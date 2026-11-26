@@ -98,4 +98,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'បើក Weë Brain',
   feedForYou: 'សម្រាប់​អ្នក',
   feedCreativity: 'ភាពច្នៃប្រឌិត',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'ឥឡូវនៅលើ Weë',
+  you: 'អ្នក',
+  guestTitle: 'សេរីក្នុងការបញ្ចេញខ្លួនឯង។',
+  guestHint: 'បង្ហោះជាខ្លួនអ្នក ឬជាអាល់ធើអ៊ីហ្គោរបស់អ្នក ហើយបង្ហាញស្នាដៃរបស់អ្នកនៅលើ WeëPages។',
+  premiere: 'ការបញ្ចាំងដំបូង',
+  presentedBy: 'បង្ហាញដោយ {{nombre}}',
+  viewPage: 'មើល WeëPage',
+  wallEmptyTitleWork: 'Ẅall កំពុងរង់ចាំស្នាដៃដំបូង',
+  wallEmptyHintFaces: 'បង្ហោះអ្វីមួយរបស់អ្នក ឬពីអាល់ធើអ៊ីហ្គោរបស់អ្នក។',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'សកលលោកដើម្បីស្វែងរក',
+  mosaicTitle: 'កំពុងបង្កើតឥឡូវ',
 };

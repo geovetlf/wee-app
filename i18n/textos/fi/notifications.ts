@@ -25,6 +25,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} julkaisi yhteisössä: {{comunidad}}',
   aCommunity: 'eräs yhteisö',
   generic: '{{nombre}} oli vuorovaikutuksessa kanssasi',
+  characterNotice: '{{nombre}} jätti sinulle ilmoituksia tarkistettavaksi',
   now: 'nyt',
   markAllRead: 'Merkitse kaikki luetuiksi',
   all: 'Kaikki',

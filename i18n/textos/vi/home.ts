@@ -89,4 +89,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'Mở Weë Brain',
   feedForYou: 'Dành cho bạn',
   feedCreativity: 'Sáng tạo',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Đang có trên Weë',
+  you: 'Bạn',
+  guestTitle: 'Tự do thể hiện bản thân.',
+  guestHint: 'Đăng với tư cách chính bạn hoặc các bản ngã khác của bạn, và giới thiệu tác phẩm trên WeëPages.',
+  premiere: 'Ra mắt',
+  presentedBy: 'Giới thiệu bởi {{nombre}}',
+  viewPage: 'Xem WeëPage',
+  wallEmptyTitleWork: 'Ẅall đang chờ tác phẩm đầu tiên',
+  wallEmptyHintFaces: 'Đăng thứ gì đó của bạn hoặc của bản ngã khác của bạn.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Vũ trụ để khám phá',
+  mosaicTitle: 'Đang được sáng tạo',
 };

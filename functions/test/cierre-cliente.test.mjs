@@ -285,8 +285,12 @@ console.log('\n── D · El identificador del Perfil Weë se compone en un sol
 {
   const contexto = sinComentarios(leer('contexts/UserProfileContext.tsx'));
   check('12) el contexto de perfiles ya no escribe `hidi_${…}` a mano', !/hidi_\$\{/.test(contexto) && !/['"]hidi_['"]\s*\+/.test(contexto));
-  check('12) lo pide a identidadWeeDe, en los cuatro sitios', (contexto.match(/updateUserCache\(identidadWeeDe\(user\.uid\), /g) || []).length === 4
-    && /import \{ identidadWeeDe \} from '\.\.\/utils\/econtactModel';/.test(contexto));
+  /* Con varios alter egos (F6, 2026-11-23) el contexto ya no compone ninguna identidad: cachea cada cara por su `uid`
+   * leído, y la heredada la compone `alterEgosService` con identidadWeeDe. */
+  const servicioDeAlterEgos = sinComentarios(leer('services/alterEgosService.ts'));
+  check('12) lo pide a identidadWeeDe (el servicio de alter egos), y el contexto cachea cada cara por su uid',
+    /identidadWeeDe\(cuenta\)/.test(servicioDeAlterEgos) && /import \{ identidadWeeDe \} from '\.\.\/utils\/econtactModel';/.test(servicioDeAlterEgos)
+    && /for \(const p of perfilesWee\) if \(p\.uid\) updateUserCache\(p\.uid, p\);/.test(contexto));
   const aMano = CLIENTE.filter((f) => f !== 'utils/econtactModel.ts')
     .filter((f) => { const c = sinComentarios(leer(f)); return /hidi_\$\{/.test(c) || /['"]hidi_['"]\s*\+/.test(c); });
   check('12) y nadie más en el cliente lo compone a mano', aMano.length === 0, aMano.join(' '));
@@ -484,9 +488,13 @@ console.log('\n── I · Comunidades: solo las activas, nunca la colección en
   } finally {
     globalThis.console = origConsola;
   }
-  /* El perfil del aviso de ËContact: se usa el primero, así que se pide uno. */
-  const perfilDe = (leer('services/econtactService.ts').match(/const perfilDe = async[\s\S]*?\n\};/) || [''])[0];
-  check('22) perfilDe pide un documento y usa ese', /where\('uid', '==', identidad\), limit\(1\)\)\)/.test(perfilDe) && /snap\.docs\[0\]/.test(perfilDe));
+  /*
+   * El perfil del aviso de ËContact: se usa el primero, así que se pide uno. Desde F1 (2026-11-23) el aviso lo escribe
+   * el servidor y quien lee el perfil es él (`leerPerfil`, social/econtact.ts); el cliente ya no lo lee.
+   */
+  const servidorEC = leer('functions/src/social/econtact.ts');
+  check('22) el perfil del aviso pide un documento y usa ese (en el servidor)', !/const perfilDe = async/.test(leer('services/econtactService.ts'))
+    && /where\('uid', '==', identidad\)\.limit\(1\)\.get\(\)/.test(servidorEC) && /snap\.docs\[0\]\.data\(\)/.test(servidorEC));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nEl cierre del cliente se sostiene');

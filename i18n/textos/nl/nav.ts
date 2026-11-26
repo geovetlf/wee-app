@@ -8,6 +8,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Maken',
   talk: 'WeeTalk',
   notifications: 'Meldingen',
+  notificationsUnread: 'Meldingen, je hebt ongelezen meldingen',
   current: 'huidige sectie',
   goTo: 'Naar {{nombre}}',
   weeNavigation: 'Weë-navigatie',

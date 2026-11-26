@@ -1,4 +1,3 @@
-import { Platform } from 'react-native';
 import { WEE_EXPERIENCES } from './weeExperiences';
 import { MUSIC_GENERACION_VALIDADA } from './musicCapabilities';
 import { FILMMAKER_EN_LA_APP, MUNDO_3D_EN_LA_APP } from './studioExperiences';
@@ -12,8 +11,13 @@ import { FILMMAKER_EN_LA_APP, MUNDO_3D_EN_LA_APP } from './studioExperiences';
  */
 export const RUTA_DE_INICIO = 'WeeCreator';
 
-/** Solo existe en la web: la app móvil no tiene ni la ruta, ni la dirección, ni la píldora. */
-export const VERSION_PROFESIONAL_EN_LA_WEB = Platform.OS === 'web';
+/**
+ * WEË VERSIÓN CREATOR: ARCHIVADA (decisión del dueño, 2026-11-24). Era el escaparate de las experiencias con nombre
+ * propio (Studio, Design, Chef, Music, Fashion, Travel), que ya no existen en Weë: WeëAI es Imagen · Video corto ·
+ * Editar mi foto, dentro de la App. Apagada, no hay píldora App | Creator, ni ruta, ni dirección; el código queda
+ * dormido, como Filmmaker. Antes valía `Platform.OS === 'web'` (solo existía en la web).
+ */
+export const VERSION_PROFESIONAL_EN_LA_WEB: boolean = false;
 
 /** Lo que es de la cuenta: sin sesión, llevan a iniciarla. */
 export const TRABAJO_DE_LA_CUENTA = Object.freeze([

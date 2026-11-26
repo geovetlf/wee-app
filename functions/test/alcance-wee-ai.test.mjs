@@ -56,10 +56,15 @@ check('A8 las listas están congeladas', Object.isFrozen(A.WEE_AI) && Object.isF
  * Music como WEE_AI NO autoriza conectar proveedores ni habilitar generaciones: todo cambio en functions/src/music sale
  * «fuera de alcance» mientras dure una fase con Weë AI cerrada.
  */
+/*
+ * Decisión del 2026-11-22 (autonomía del Perfil Weë, docs/AUTONOMIA.md): `personajes` es WEE_AI —el personaje habla y
+ * encarga por el mismo embudo y con el mismo modelo que Weë Brain— y `cuenta` es OTRO —desactivar y borrar la cuenta
+ * es identidad, no genera con la IA—.
+ */
 const DECIDIDOS = {
-  WEE_AI: ['creator', 'engine', 'gateway', 'runtime', 'planner', 'router', 'registry', 'evals', 'settlement', 'brain', 'orchestrator', 'workflow', 'skills', 'music', 'generateAvatar.ts', 'vertexAI.ts', 'secrets.ts'],
+  WEE_AI: ['creator', 'engine', 'gateway', 'runtime', 'planner', 'router', 'registry', 'evals', 'settlement', 'brain', 'orchestrator', 'workflow', 'skills', 'music', 'personajes', 'generateAvatar.ts', 'vertexAI.ts', 'secrets.ts'],
   COMPARTIDO: ['core', 'credits', 'financial', 'job', 'content', 'media', 'filmmaker', 'productions', 'shots', 'elements', 'index.ts'],
-  OTRO: ['identity', 'moderation', 'payments', 'public', 'social', 'shared', 'boost', 'opciones.ts'],
+  OTRO: ['identity', 'moderation', 'payments', 'public', 'social', 'shared', 'boost', 'cuenta', 'opciones.ts'],
 };
 const todos = fs.readdirSync(path.join(RAIZ, 'functions/src'));
 const sinDecidir = todos.filter((e) => !Object.values(DECIDIDOS).flat().includes(e));

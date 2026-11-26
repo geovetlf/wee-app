@@ -50,6 +50,7 @@ import type { PostPlace } from '../data/places';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
 import { paginaDelMuroGeneral, sobreconsulta } from '../utils/sectionFeed';
 import { paraBuscar } from '../i18n/caja';
+import { perfilDesactivado, visibleParaLosDemas } from '../utils/cuentaDesactivada';
 
 /*
  * Una encuesta dentro de una publicación.
@@ -98,8 +99,17 @@ export interface Post {
 
   // === Cómo lo hice (creaciones con IA) ===
   aiTools?: string[]; // Herramientas de IA usadas (ej. ["Kling", "ElevenLabs"])
+  /** La escribió un personaje con autonomía (IA); lo pone SOLO el servidor. La app la marca «Personaje con IA». */
+  autonomo?: boolean;
   aiPrompt?: string; // Prompt que usó el autor (se puede copiar)
   aiProcess?: string; // Breve explicación del proceso
+  /**
+   * WeëAI sencillo (2026-11-23): la publicación nació en «crear para publicar». Datos, no frases: quien pinta
+   * «Cómo lo hice» los dice en el idioma de quien mira (`utils/publicacionDeWeeAi.ts`). Sin datos técnicos.
+   */
+  weeAi?: { tipo: 'imagen' | 'video' | 'editar'; segundos?: number };
+  /** «Recrear este estilo»: de qué publicación salió la idea y a quién se menciona como inspiración. */
+  estiloDe?: { postId: string; userId: string; nombre: string };
 
   // === NUEVO: Sistema de comunidades ===
   communityId?: string; // ID de la comunidad (requerido para nuevos posts)
@@ -339,6 +349,8 @@ export interface Comment {
   createdAt: Timestamp;
   updatedAt?: Timestamp;
   parentCommentId?: string; // Para respuestas a comentarios
+  /** Lo escribió un personaje con autonomía (IA); lo pone SOLO el servidor. La app lo marca «Personaje con IA». */
+  autonomo?: boolean;
 
   // === NUEVO: Sistema de votación para comentarios ===
   agreementCount?: number;
@@ -369,6 +381,8 @@ class FirestoreService {
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
+        /* Lo de una cuenta desactivada no se enseña (utils/cuentaDesactivada.ts). */
+        if (collectionName === 'posts' && !visibleParaLosDemas(docSnap.data())) return null;
         return { id: docSnap.id, ...docSnap.data() } as T;
       }
       return null;
@@ -411,6 +425,8 @@ class FirestoreService {
       const documents: T[] = [];
 
       querySnapshot.forEach((doc) => {
+        /* Las publicaciones de una cuenta desactivada no salen en ningún listado. */
+        if (collectionName === 'posts' && !visibleParaLosDemas(doc.data())) return;
         documents.push({ id: doc.id, ...(doc.data() as object) } as T);
       });
 
@@ -458,6 +474,8 @@ class FirestoreService {
       const documents: T[] = [];
 
       querySnapshot.forEach((doc) => {
+        /* Las publicaciones de una cuenta desactivada no salen en ningún listado. */
+        if (collectionName === 'posts' && !visibleParaLosDemas(doc.data())) return;
         documents.push({ id: doc.id, ...(doc.data() as object) } as T);
       });
 
@@ -533,6 +551,7 @@ class FirestoreService {
       return onSnapshot(queryRef, (querySnapshot: QuerySnapshot) => {
         const documents: T[] = [];
         querySnapshot.forEach((doc: QueryDocumentSnapshot) => {
+          if (collectionName === 'posts' && !visibleParaLosDemas(doc.data())) return;
           documents.push({ id: doc.id, ...(doc.data() as object) } as T);
         });
         callback(documents);
@@ -869,8 +888,25 @@ const perfilRealPorUid = async (uid: string): Promise<UserProfile | null> => {
  */
 export const COLECCION_PERFILES_PUBLICOS = 'publicProfiles';
 type FiltroDePerfil = { field: 'uid' | 'entityId'; operator: '==' | 'in'; value: string | string[] };
+/** true cuando las reglas desplegadas aún no abren `publicProfiles`: entonces se lee directamente `users`. */
+let publicProfilesCerrada = false;
 const perfilesPublicos = async (filtros: FiltroDePerfil[], limite: number): Promise<UserProfile[]> => {
-  const publicos = await firestoreService.getMany<UserProfile>(COLECCION_PERFILES_PUBLICOS, filtros, undefined, 'desc', limite);
+  /*
+   * Mientras las reglas desplegadas no tengan `publicProfiles` (las de producción aún no la abren), su lectura
+   * falla con permission-denied: eso no puede tumbar el perfil; se cae a `users`, igual que si estuviera vacía.
+   */
+  let publicos: UserProfile[] = [];
+  if (!publicProfilesCerrada) {
+    try {
+      let q: any = collection(db, COLECCION_PERFILES_PUBLICOS);
+      for (const f of filtros) q = query(q, where(f.field, f.operator, f.value));
+      const snap = await getDocs(query(q, limit(limite)));
+      publicos = snap.docs.map((d) => ({ id: d.id, ...(d.data() as object) } as UserProfile));
+    } catch (e: any) {
+      // Sin registrar como error (en desarrollo nativo cada console.error abre una alerta) y sin reintentar.
+      if (e?.code === 'permission-denied') publicProfilesCerrada = true;
+    }
+  }
   if (publicos.length > 0) return publicos;
   return firestoreService.getMany<UserProfile>('users', filtros, undefined, 'desc', limite).catch(() => [] as UserProfile[]);
 };
@@ -1217,8 +1253,9 @@ export const searchUsers = async (searchQuery: string, limitCount = 10, locale?:
     // Solo la cara pública (`publicProfiles`): `users` ya no se lista. Ver `perfilesPublicos`.
     const users = await perfilesPublicos([], 100);
 
-    // Filtrar por displayName que contenga el query (case insensitive)
-    const filtered = users.filter(user =>
+    // Filtrar por displayName que contenga el query (case insensitive).
+    // Una cuenta desactivada no aparece (utils/cuentaDesactivada.ts).
+    const filtered = users.filter(user => !perfilDesactivado(user)).filter(user =>
       paraBuscar(user.displayName).includes(searchLower) ||
       paraBuscar(user.bio).includes(searchLower)
     );
@@ -1267,7 +1304,7 @@ export const searchPosts = async (searchQuery: string, limitCount = 10): Promise
     const posts = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    } as Post));
+    } as Post)).filter(visibleParaLosDemas);
 
     // Filtrar por contenido que contenga el query
     const filtered = posts.filter(post =>
@@ -1297,7 +1334,7 @@ export const getTrendingPosts = async (limitCount = 10): Promise<Post[]> => {
     const posts = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    } as Post));
+    } as Post)).filter(visibleParaLosDemas);
 
     // Ordenar por engagement (likes + comments)
     const sorted = posts.sort((a, b) => {
@@ -1335,6 +1372,7 @@ export const getPopularHashtags = async (limitCount = 10): Promise<PopularHashta
 
     snapshot.docs.forEach(doc => {
       const post = doc.data() as Post;
+      if (!visibleParaLosDemas(post)) return;
       if (post.hashtags && Array.isArray(post.hashtags)) {
         post.hashtags.forEach(tag => {
           const normalizedTag = tag.toLowerCase().trim();
@@ -1374,7 +1412,7 @@ export const getPostsByHashtag = async (hashtag: string, limitCount = 20): Promi
     const posts = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    } as Post));
+    } as Post)).filter(visibleParaLosDemas);
 
     // Filtrar por hashtag
     const filtered = posts.filter(post =>

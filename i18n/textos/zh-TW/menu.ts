@@ -44,7 +44,7 @@ export const menu: typeof import('../es/menu').menu = {
   createWeeProfile: '建立我的 Weë 檔案',
   credits: 'Credits',
   econtact: 'ËContact',
-  pages: 'Weë Pages',
+  pages: 'WeëPages',
   wcontact: 'ËContact',
   communities: '社群',
   weels: 'Weëls',

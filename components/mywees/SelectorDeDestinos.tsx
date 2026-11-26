@@ -21,8 +21,8 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/
 import { scale } from '../../utils/scale';
 
 /**
- * Cuántas Weë Pages públicas se piden para elegir. Es la consulta que ya hace
- * la pantalla de Weë Pages (`pagesService.publicadas`), con su mismo filtro y
+ * Cuántas WeëPages públicas se piden para elegir. Es la consulta que ya hace
+ * la pantalla de WeëPages (`pagesService.publicadas`), con su mismo filtro y
  * sin índice ni regla nueva; aquí solo se pide una tanda algo mayor.
  */
 const TANDA_DE_PAGINAS_PUBLICAS = 50;
@@ -37,7 +37,7 @@ const TANDA_DE_PAGINAS_PUBLICAS = 50;
  *
  * WEË PAGES PÚBLICAS DE OTRAS PERSONAS
  * -----------------------------------
- * Las Weë Pages son públicas por naturaleza. Aquí se pueden elegir de dos maneras,
+ * Las WeëPages son públicas por naturaleza. Aquí se pueden elegir de dos maneras,
  * las dos con lecturas que las reglas ya permiten:
  *
  *  · de la lista de páginas publicadas (`pagesService.publicadas`), que se
@@ -85,7 +85,9 @@ const SelectorDeDestinos: React.FC<Props> = ({ visible, onClose, myWees }) => {
     ]).then(([a, b, c]) => {
       if (!vigente) return;
       setMias(a.status === 'fulfilled' ? a.value : []);
-      setPublicas(b.status === 'fulfilled' ? b.value.filter((p) => p.ownerAccountId !== cuenta) : []);
+      /* El documento público ya no dice de qué cuenta es (F1): las propias se excluyen por id. */
+      const propias = new Set(a.status === 'fulfilled' ? a.value.map((p) => p.id) : []);
+      setPublicas(b.status === 'fulfilled' ? b.value.filter((p) => !propias.has(p.id) && p.ownerAccountId !== cuenta) : []);
       setProyectos(c.status === 'fulfilled' ? c.value : []);
       setFallo(a.status === 'rejected' || b.status === 'rejected' || c.status === 'rejected');
     });
@@ -121,7 +123,7 @@ const SelectorDeDestinos: React.FC<Props> = ({ visible, onClose, myWees }) => {
     setBuscandoEnlace(true);
     try {
       const pagina = await pagesService.leer(idEscrito);
-      /* Solo lo PUBLICADO es público. Un borrador propio se añade desde «Mis Weë Pages». */
+      /* Solo lo PUBLICADO es público. Un borrador propio se añade desde «Mis WeëPages». */
       setPorEnlace(pagina && pagina.status === 'published' ? pagina : false);
     } catch {
       setPorEnlace(false);

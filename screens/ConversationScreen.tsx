@@ -39,6 +39,7 @@ import { SPACING } from '../constants/design';
 import { styles } from './ConversationScreen.styles';
 import { CHAT_THEMES, CHAT_WALLPAPERS, getThemeById, ChatTheme } from '../constants/chatThemes';
 import { InboxStackParamList } from '../navigation/InboxStackNavigator';
+import EtiquetaPersonajeWee from '../components/personaje/EtiquetaPersonajeWee';
 
 type ConvRoute = RouteProp<InboxStackParamList, 'Conversation'>;
 
@@ -261,10 +262,9 @@ const ConversationScreen = () => {
     try {
       /*
        * La foto única va al Storage de Weë, donde se puede borrar; la normal, por
-       * el camino de siempre. La RUTA física es de la CUENTA (`user.uid`), que es
-       * lo único que `storage.rules` deja escribir; el mensaje lo firma la cara
-       * activa (`myUid`), que es atribución. Con el Perfil Weë activo, subir bajo
-       * la cara dejaba la foto denegada por las reglas.
+       * el camino de siempre. Desde los alter egos (F4/F6, 2026-11-23) la RUTA es la de la CARA que
+       * envía (`users/<cara>/weetalk/…`, `myUid`): `storage.rules` la admite para el Real, la heredada y cada
+       * alter ego de la sesión, y así la dirección no delata la cuenta que hay detrás de un alter ego.
        *
        * 'Foto única' y '📷 Imagen' NO son texto de interfaz: son MARCAS DE DATOS que se guardan como `content` del
        * mensaje y del último mensaje de la conversación, y así están en los mensajes de siempre. Nadie las ve tal
@@ -272,7 +272,7 @@ const ConversationScreen = () => {
        * (`claveDeAvisoGuardado` en services/messagesService.ts; `cuerpoDelMensaje` en functions/src/social/avisos.ts).
        * Cambiarlas sería migrar datos. Lo vigila functions/test/i18n-marcas-de-mensaje.test.mjs.
        */
-      const url = viewOnce ? await uploadViewOncePhoto(uri, user.uid, convId) : await uploadMessageImageFromUri(uri, myUid);
+      const url = viewOnce ? await uploadViewOncePhoto(uri, myUid, convId) : await uploadMessageImageFromUri(uri, myUid);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
     } catch (e) {
       notify(t('common.error'), t('weetalk.imageFailed'));
@@ -409,14 +409,13 @@ const ConversationScreen = () => {
     try {
       /*
        * La foto única va al Storage de Weë, donde se puede borrar; la normal, por
-       * el camino de siempre. La RUTA física es de la CUENTA (`user.uid`), que es
-       * lo único que `storage.rules` deja escribir; el mensaje lo firma la cara
-       * activa (`myUid`), que es atribución. Con el Perfil Weë activo, subir bajo
-       * la cara dejaba la foto denegada por las reglas.
+       * el camino de siempre. Desde los alter egos (F4/F6, 2026-11-23) la RUTA es la de la CARA que
+       * envía (`users/<cara>/weetalk/…`, `myUid`): `storage.rules` la admite para el Real, la heredada y cada
+       * alter ego de la sesión, y así la dirección no delata la cuenta que hay detrás de un alter ego.
        *
        * Las marcas 'Foto única' / '📷 Imagen' son datos, no interfaz: ver `confirmSendImage`.
        */
-      const url = viewOnce ? await uploadViewOncePhoto(uri, user.uid, convId) : await uploadMessageImageFromUri(uri, myUid);
+      const url = viewOnce ? await uploadViewOncePhoto(uri, myUid, convId) : await uploadMessageImageFromUri(uri, myUid);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
     } catch (e) {
       notify(t('common.error'), t('weetalk.imageFailed'));
@@ -570,6 +569,9 @@ const ConversationScreen = () => {
                 </Text>
               )}
               <View style={styles.meta}>
+                {item.autonomo ? (
+                  <EtiquetaPersonajeWee style={[styles.time, { color: metaColor }]} />
+                ) : null}
                 <Text style={[styles.time, { color: metaColor }]}>
                   {fmtTime(item.timestamp)}
                 </Text>

@@ -3,7 +3,7 @@ import { Firestore, Timestamp } from 'firebase-admin/firestore';
 import { AssetDoc, PROVEEDOR_WEE, esDeLaCuenta, leerMaterial } from '../content';
 import { MARCA_DE_MATERIAL, rutaDelResultado } from '../content/materializador';
 import { downloadUrlFor } from '../engine/http';
-import { identidadHeredadaEsDeLaCuenta } from '../identity/compatibilidad';
+import { identidadesDeLaCuenta } from '../identity/compatibilidad';
 import { LIMITES_DEL_RENDER, estadoDelRender } from './render';
 import type { AlmacenDelRender } from './renderizador';
 
@@ -172,7 +172,7 @@ export const publicarMontaje = async (
   if (texto.length > LIMITES_DE_LA_PUBLICACION.maxTexto) return { ok: false, motivo: 'invalid_text' };
 
   /* 1 · La cara: una de las de la cuenta, como pide la regla de `posts`. */
-  if (!identidadHeredadaEsDeLaCuenta(p.cara, accountId)) return { ok: false, motivo: 'face_not_allowed' };
+  if (typeof p.cara !== 'string' || !(await identidadesDeLaCuenta(db, accountId)).includes(p.cara)) return { ok: false, motivo: 'face_not_allowed' };
   const cara = p.cara as string;
 
   /* 2 · El render: de la cuenta y HECHO. Lo ajeno contesta lo mismo que lo que no existe. */

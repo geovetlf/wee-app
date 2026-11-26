@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { myWeesStore } from '../services/myWeesStore';
-import { AccesoDeMyWees, PerfilDeMyWees, anadir, contiene, mover, quitar, restaurar } from '../utils/myWees';
+import { AccesoDeMyWees, PerfilDeMyWees, anadir, contiene, mover, perfilDeMyWees, quitar, restaurar } from '../utils/myWees';
 
 /*
  * MYWEËS, PARA LAS PANTALLAS.
@@ -36,9 +36,10 @@ export interface MyWees {
 
 export const useMyWees = (): MyWees => {
   const { user } = useAuth();
-  const { activeProfileType } = useUserProfile();
+  const { activeProfileType, activeIdentityId } = useUserProfile();
   const cuenta = user?.uid ?? null;
-  const perfil: PerfilDeMyWees = activeProfileType === 'hidi' ? 'hidi' : 'real';
+  /* Una lista por cara: el Real, la heredada (clave `.hidi` de siempre) o cada alter ego por su identidad. */
+  const perfil: PerfilDeMyWees = perfilDeMyWees(cuenta, activeProfileType === 'hidi' ? 'hidi' : 'real', activeIdentityId);
 
   const [accesos, setAccesosDeEstado] = useState<AccesoDeMyWees[]>([]);
   /* La lista vigente, también fuera del estado: dos cambios seguidos parten los dos de la última, sin esperar a que React pinte. */

@@ -11,6 +11,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Stvori',
   talk: 'WeeTalk',
   notifications: 'Obavijesti',
+  notificationsUnread: 'Obavijesti: imaš nepročitanih obavijesti',
   current: 'trenutačni odjeljak',
   goTo: 'Idi na {{nombre}}',
   weeNavigation: 'Navigacija aplikacije Weë',

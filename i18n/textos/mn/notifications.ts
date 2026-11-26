@@ -19,6 +19,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} {{comunidad}} дотор нийтэллээ',
   aCommunity: 'нэгэн нийгэмлэг',
   generic: '{{nombre}} тантай харилцлаа',
+  characterNotice: '{{nombre}} танд шалгах мэдэгдэл үлдээлээ',
   now: 'одоо',
   markAllRead: 'Бүгдийг уншсан гэж тэмдэглэх',
   all: 'Бүгд',

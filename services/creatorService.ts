@@ -299,6 +299,18 @@ export const creatorService = {
   /** Cambiar el nivel de calidad antes de crear y ver al momento lo que costaría. */
   quote: (jobId: string, quality?: QualityChoice) => call<QuoteResponse>('creatorQuote', { jobId, ...(quality ? { quality } : {}) }),
 
+  /**
+   * WeëAI sencillo: lo que costaría una creación ANTES de abrir el trabajo. El servidor arma el plan con la plantilla
+   * y lo cotiza igual que al crear; no guarda nada, no reserva nada y no llama a ninguna IA.
+   */
+  quoteBeforeStart: (experienceId: string, goal: string, presetAnswers: Answer[], imageUrl?: string) =>
+    call<{ creditsEstimated: number; pricing: PlanPricing | null; pricingMode?: 'simulated' | 'real' }>('creatorQuote', {
+      experienceId,
+      goal,
+      presetAnswers,
+      ...(imageUrl ? { imageUrl } : {}),
+    }),
+
   /** Ejecuta el plan; el progreso llega por subscribeToJob. */
   run: (jobId: string, locale: string) =>
     call<{ jobId: string; status: JobStatus }>('creatorRun', { jobId, locale }, RUN_TIMEOUT_MS),

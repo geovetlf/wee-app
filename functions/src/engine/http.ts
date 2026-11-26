@@ -302,13 +302,28 @@ const rutaLimpia = (path: string): boolean =>
  * que enseña la app cambian.
  */
 export function direccionDeLaCuenta(url: unknown, cuenta: string): DireccionDeLaCuenta {
+  return direccionBajo(url, !cuenta || /[/\s]/.test(cuenta) ? null : `users/${cuenta}/`);
+}
+
+/**
+ * LA MISMA REGLA PARA LA CARPETA DE UNA WEË PAGE (`pages/<pageId>/`, F1 del plan de alter egos, 2026-11-23): el logo y
+ * la portada de una Página ya no suben a la carpeta de la cuenta, porque su URL pública delataba de qué cuenta era. De
+ * quién es la Página no lo decide esto —lo decide `savePage` con `pages/{pageId}/private/ownership`, y las reglas de
+ * Storage al subir—; esto solo exige que la foto esté en la carpeta de ESA Página, sin trucos.
+ */
+export function direccionDeLaPagina(url: unknown, pageId: string): DireccionDeLaCuenta {
+  return direccionBajo(url, !pageId || /[/\s]/.test(pageId) ? null : `pages/${pageId}/`);
+}
+
+/** `prefijo` null = el dueño de la carpeta no es válido: la dirección es ajena (en el mismo orden de siempre). */
+function direccionBajo(url: unknown, prefijo: string | null): DireccionDeLaCuenta {
   if (typeof url !== 'string' || !esDireccionDelStorageDeWee(url)) return { ok: false, motivo: 'no_es_de_wee' };
   /* El cubo, con la MISMA lectura que usa quien lee: una dirección de otro cubo, o ilegible, tampoco es de Weë. */
   const objeto = objetoDelStorageDeWee(url);
   if (!objeto || objeto === 'fuera_del_cubo') return { ok: false, motivo: 'no_es_de_wee' };
   const { path } = objeto;
   if (!rutaLimpia(path)) return { ok: false, motivo: 'malformada' };
-  if (!cuenta || /[/\s]/.test(cuenta) || !path.startsWith(`users/${cuenta}/`)) return { ok: false, motivo: 'ajena' };
+  if (!prefijo || !path.startsWith(prefijo)) return { ok: false, motivo: 'ajena' };
   const cubo = nombreDelCuboDeWee();
   if (!/^https?:\/\/[^/]+\/v0\/b\//.test(url)) return { ok: true, path, url: `gs://${cubo}/${path.split('/').map(encodeURIComponent).join('/')}` };
   const inicioDeLaConsulta = url.indexOf('?');

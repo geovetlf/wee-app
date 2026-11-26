@@ -10,6 +10,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Креирај',
   talk: 'WeeTalk',
   notifications: 'Обавештења',
+  notificationsUnread: 'Обавештења: имаш непрочитаних обавештења',
   current: 'тренутни одељак',
   goTo: 'Иди на {{nombre}}',
   weeNavigation: 'Weë навигација',

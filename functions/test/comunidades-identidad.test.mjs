@@ -107,7 +107,9 @@ console.log('\n── C · El servidor: patrón de ËContact, sin Credits ni IA 
   const indice = leer('functions/src/index.ts');
   check('todas exportadas en index.ts', esperadas.every((c) => new RegExp(`\\b${c}\\b`).test(indice.slice(indice.indexOf("from './social/comunidades'") - 400, indice.indexOf("from './social/comunidades'")))));
   check('la identidad se comprueba con `users` (cuentaDeIdentidad / decidirIdentidad de ËContact), no con el prefijo',
-    /import \{ cuentaDeIdentidad, decidirIdentidad,[^}]*\} from '\.\/econtact';/.test(fuente) && !/startsWith\('hidi_'\)|'hidi_' \+|`hidi_\$\{/.test(codigo));
+    /* F4: la cuenta se LEE con la frontera (`cuentaDelPerfilLeido`: heredado por su vínculo, alter ego por su entidad). */
+    /import \{ decidirIdentidad,[^}]*\} from '\.\/econtact';/.test(fuente) && /import \{ cuentaDelPerfilLeido \} from '\.\.\/identity\/compatibilidad';/.test(fuente)
+    && /cuentaDelPerfilLeido\(deps\.db\(\), identidad, perfil\)/.test(fuente) && !/startsWith\('hidi_'\)|'hidi_' \+|`hidi_\$\{/.test(codigo));
   check('cada escritura va en una transacción (ninguna fuera)', (codigo.match(/runTransaction\(/g) || []).length === 8 && !/\.(set|update|delete)\(/.test(codigo.replace(/tx\.(set|update|delete|create)\(/g, '').replace(/createHash\('sha256'\)\.update\(/g, '')));
   check('Firestore inyectado (createComunidadesEngine) y la instancia de producción aparte', /export const createComunidadesEngine = \(deps: ComunidadesDeps\)/.test(codigo) && /db: \(\) => getFirestore\(\)/.test(codigo));
   check('los errores viajan como CÓDIGO (sin frases que traducir en el servidor)', [...codigo.matchAll(/new HttpsError\([^,]+,\s*([^,)]+)/g)].every((x) => /^(error\.motivo|'[a-z-]+')$/.test(x[1].trim())));

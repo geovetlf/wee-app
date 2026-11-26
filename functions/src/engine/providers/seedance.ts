@@ -343,6 +343,12 @@ export function peticionEfectivaDeSeedance(
   if (!RATIOS.has(ratio)) ratio = '16:9';
   /* Primer/último cuadro: "adaptive" (obligatorio en 2.5, recomendado en 2.0). Se cotiza su techo. */
   if (capability === 'video.image_to_video') ratio = 'adaptive';
+  /*
+   * Editar un vídeo (omni_reference_task_type "edit"): la documentación oficial de ModelArk exige `ratio: adaptive` y
+   * `duration: -1` —la proporción y la duración son las del vídeo original—. Antes la duración ya salía -1 pero la
+   * proporción viajaba como 16:9 y la tarea se habría rechazado. Se cotiza su techo, como en imagen a vídeo (WITE, 2026-11-26).
+   */
+  if (capability === 'video.reference' && input.taskType === 'edit') ratio = 'adaptive';
   const videos = capability === 'video.reference' ? asList(input.referenceVideos).slice(0, spec.maxReferenceClips) : [];
   const withVideoInput = videos.length > 0;
   /* R22 · con vídeos de referencia se cotiza el techo de entrada del modelo, no lo que declare quien llama. */

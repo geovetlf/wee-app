@@ -13,6 +13,7 @@ import { fluxAdapter } from './providers/flux';
 import { elevenlabsAdapter } from './providers/elevenlabs';
 import { musicPlaceholderAdapter } from './providers/music';
 import { falAdapter, resolutorDeFal } from './providers/fal';
+import { byteplusTextAdapter } from './providers/byteplusText';
 import type { ResolutorDeEstadoDeProveedor } from '../runtime/reconciliacion';
 
 /**
@@ -41,6 +42,7 @@ export const ADAPTERS: Record<string, ProviderAdapter> = {
   'music-pending': musicPlaceholderAdapter,
   /* Agregador: EXCEPCIÓN CONTROLADA del dueño (registry/excepciones.ts). Un proveedor más, reemplazable. */
   fal: falAdapter,
+  'byteplus-text': byteplusTextAdapter,
 };
 
 export const DEFAULT_PROVIDERS: Record<string, ProviderConfig> = {
@@ -62,6 +64,12 @@ export const DEFAULT_PROVIDERS: Record<string, ProviderConfig> = {
    * (§6(e)). Se activa en aiProviders/fal, nunca aquí.
    */
   fal: { enabled: false, priority: 1, note: 'Excepción controlada (2026-10-05). Desactivado: pendiente de la decisión legal del dueño.' },
+  /*
+   * Texto de BytePlus (Seed). DESACTIVADO y fuera de toda cadena por defecto: se enciende en aiProviders/byteplus-text
+   * y se usa solo donde una ruta de Firestore lo pida (p. ej. aiRouting/character.text). Tope de llamadas mientras su
+   * tarifa oficial siga sin confirmar (el coste medido es 0 + `tarifaPendiente`).
+   */
+  'byteplus-text': { enabled: false, priority: 5, limits: { maxCallsPerDay: 1000 }, note: 'Seed 2.0 por ModelArk. Desactivado: tarifa sin confirmar.' },
 };
 
 const chain = (...providers: string[]): ChainLink[] => providers.map((provider) => ({ provider }));

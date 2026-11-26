@@ -18,6 +18,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} heeft iets geplaatst in {{comunidad}}',
   aCommunity: 'een community',
   generic: '{{nombre}} heeft op je gereageerd',
+  characterNotice: '{{nombre}} heeft meldingen voor je achtergelaten om te bekijken',
   now: 'nu',
   markAllRead: 'Alles als gelezen markeren',
   all: 'Alle',

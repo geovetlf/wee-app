@@ -23,6 +23,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Gumawa',
   talk: 'WeeTalk',
   notifications: 'Mga notification',
+  notificationsUnread: 'Mga abiso, may mga hindi ka pa nababasa',
   current: 'kasalukuyang seksyon',
   goTo: 'Pumunta sa {{nombre}}',
   weeNavigation: 'Navigation ng Weë',

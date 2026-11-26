@@ -26,6 +26,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: '建立',
   talk: 'WeeTalk',
   notifications: '通知',
+  notificationsUnread: '通知，你有未讀提醒',
   current: '目前頁面',
   goTo: '前往：{{nombre}}',
   weeNavigation: 'Weë 導覽',

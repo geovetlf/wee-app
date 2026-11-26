@@ -20,6 +20,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} đã đăng trong {{comunidad}}',
   aCommunity: 'một cộng đồng',
   generic: '{{nombre}} đã tương tác với bạn',
+  characterNotice: '{{nombre}} đã để lại thông báo cho bạn xem lại',
   now: 'vừa xong',
   markAllRead: 'Đánh dấu tất cả là đã đọc',
   all: 'Tất cả',

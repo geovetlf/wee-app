@@ -19,6 +19,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} bejegyzést tett közzé itt: {{comunidad}}',
   aCommunity: 'egy közösség',
   generic: '{{nombre}} interakcióba lépett veled',
+  characterNotice: '{{nombre}} értesítéseket hagyott neked átnézésre',
   now: 'most',
   markAllRead: 'Az összes megjelölése olvasottként',
   all: 'Összes',

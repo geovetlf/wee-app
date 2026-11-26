@@ -104,26 +104,37 @@ try {
     console.log(`🧪 Firebase Functions → emulador en ${emulatorHost}`);
   }
 
+  /*
+   * Revisión local SIN tocar producción: Auth y Firestore en los emuladores.
+   *
+   * Solo con un proyecto `demo-*` (los emuladores de Firebase no hablan con
+   * ningún proyecto real cuando el id empieza por `demo-`): con el proyecto de
+   * producción estas variables se ignoran y se avisa, para que nadie mezcle
+   * datos de prueba con usuarios reales. En el teléfono, el host es la IP de la
+   * computadora en la red local.
+   */
+  const esDemo = String(firebaseConfig.projectId || '').startsWith('demo-');
+  const authEmulatorHost = process.env.EXPO_PUBLIC_AUTH_EMULATOR_HOST;
+  const firestoreEmulatorHost = process.env.EXPO_PUBLIC_FIRESTORE_EMULATOR_HOST;
+  if ((authEmulatorHost || firestoreEmulatorHost) && !esDemo) {
+    console.warn('⚠️ Emuladores de Auth/Firestore ignorados: el proyecto no es demo-*.');
+  } else {
+    if (authEmulatorHost && auth) {
+      connectAuthEmulator(auth, `http://${authEmulatorHost}:${Number(process.env.EXPO_PUBLIC_AUTH_EMULATOR_PORT || 9099)}`, { disableWarnings: true });
+      console.log(`🧪 Firebase Auth → emulador en ${authEmulatorHost}`);
+    }
+    if (firestoreEmulatorHost && db) {
+      connectFirestoreEmulator(db, firestoreEmulatorHost, Number(process.env.EXPO_PUBLIC_FIRESTORE_EMULATOR_PORT || 8080));
+      console.log(`🧪 Firebase Firestore → emulador en ${firestoreEmulatorHost}`);
+    }
+  }
+
   // Desarrollo sin bucket real (plan Spark): Storage local con el emulador
   // (npm run functions:emulator arranca functions + storage). En el celular: adb reverse tcp:9199 tcp:9199.
   const storageEmulatorHost = process.env.EXPO_PUBLIC_STORAGE_EMULATOR_HOST;
   if (storageEmulatorHost && storage) {
     connectStorageEmulator(storage, storageEmulatorHost, Number(process.env.EXPO_PUBLIC_STORAGE_EMULATOR_PORT || 9199));
     console.log(`🧪 Firebase Storage → emulador en ${storageEmulatorHost}`);
-  }
-
-  // Desarrollo contra un proyecto de demostración (`demo-…`): Auth y Firestore locales, SOLO si se piden. Sirve
-  // para probar de punta a punta en la web lo que pasa por una callable que necesita sesión —las producciones de
-  // Weë Filmmaker— sin tocar ninguna cuenta ni ningún dato reales. Sin estas variables no cambia nada.
-  const authEmulatorHost = process.env.EXPO_PUBLIC_AUTH_EMULATOR_HOST;
-  if (authEmulatorHost && auth) {
-    connectAuthEmulator(auth, `http://${authEmulatorHost}:${Number(process.env.EXPO_PUBLIC_AUTH_EMULATOR_PORT || 9099)}`, { disableWarnings: true });
-    console.log(`🧪 Firebase Auth → emulador en ${authEmulatorHost}`);
-  }
-  const firestoreEmulatorHost = process.env.EXPO_PUBLIC_FIRESTORE_EMULATOR_HOST;
-  if (firestoreEmulatorHost && db) {
-    connectFirestoreEmulator(db, firestoreEmulatorHost, Number(process.env.EXPO_PUBLIC_FIRESTORE_EMULATOR_PORT || 8080));
-    console.log(`🧪 Firebase Firestore → emulador en ${firestoreEmulatorHost}`);
   }
 
 } catch (error) {

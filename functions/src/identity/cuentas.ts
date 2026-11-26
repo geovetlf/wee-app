@@ -19,24 +19,31 @@
  * ── Qué lo llama, y qué NO ────────────────────────────────────────────────
  *
  * Lo llama `identity/nacimiento.ts`, que es el disparador de las cuentas
- * NUEVAS: al crearse un documento de `users`. Nada más. No hay callable, no hay
- * script y no hay backfill: numerar las cuentas que ya existen es una migración
- * y tiene su propia fase, con su propia autorización.
+ * NUEVAS: al crearse un documento de `users`; y, desde F4 del plan de alter
+ * egos, las puertas `crearAlterEgo` / `retirarAlterEgo` (`identity/alterEgos.ts`),
+ * que hacen nacer bajo demanda la cuenta de quien las usa. No hay script ni
+ * backfill: numerar las cuentas que ya existen es una migración y tiene su
+ * propia fase, con su propia autorización.
  */
 import { randomBytes } from 'node:crypto';
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
 import {
-  AccountId, AlmacenDeCuentas, Azar, ConsultaDeCuentas, CuentaAsegurada, CuentaWee, EntidadAsegurada,
-  EntidadDeCuenta, EntityId, MembresiaDePrincipal, NumeroDeCuenta, PrincipalId, TransaccionDeCuentas,
-  asegurarCuenta, asegurarEntidadDeCaraWee, crearPagina, cuentaWeeValida, entidadDeCuentaValida,
-  normalizarNumeroDeCuenta, resolverCuentaDelPrincipal,
+  AccountId, AlmacenDeCuentas, AlterEgoCreado, AlterEgoRetirado, Azar, ConsultaDeCuentas, CuentaAsegurada, CuentaWee,
+  EntidadAsegurada, EntidadDeCuenta, EntityId, MembresiaDePrincipal, NumeroDeCuenta, PrincipalId, TransaccionDeCuentas,
+  asegurarCuenta, asegurarEntidadDeCaraWee, crearAlterEgo, crearPagina, cuentaWeeValida, entidadDeCuentaValida,
+  limiteDeAlterEgos, normalizarNumeroDeCuenta, resolverCuentaDelPrincipal, retirarAlterEgo,
 } from '../core/account-identity';
+import { DatosDeAlterEgoNuevo, perfilHeredadoLeido, perfilNuevoDeAlterEgo } from './compatibilidad';
 
 export const CUENTAS = 'accounts';
 export const NUMEROS = 'accountNumbers';
 export const ENTIDADES = 'entities';
 export const MIEMBROS = 'members';
 export const OPERACIONES = 'operations';
+export const PERFILES = 'users';
+/** 2.1 · `identitySettings/limites.alterEgosPorCuenta`: la configuración del límite, acotada por el techo del Core. */
+export const AJUSTES_DE_IDENTIDAD = 'identitySettings';
+export const DOC_DE_LIMITES = 'limites';
 
 /** Los bytes al azar de verdad: los del sistema operativo, no un generador cualquiera. */
 export const azarDelSistema: Azar = { bytes: (cuantos) => randomBytes(cuantos) };
@@ -67,6 +74,9 @@ const transaccion = (db: Firestore, tx: Transaction): TransaccionDeCuentas => ({
     tx.create(db.collection(CUENTAS).doc(accountId).collection(OPERACIONES).doc(clave), { entityId, createdAt: at });
   },
   actualizarCuenta: (accountId, campos) => { tx.update(db.collection(CUENTAS).doc(accountId), { ...campos }); },
+  actualizarEntidad: (entityId, campos) => { tx.update(db.collection(ENTIDADES).doc(entityId), { ...campos }); },
+  /* `create`: el id es la entidad recién sorteada; si ya existiera, la transacción falla y se repite. */
+  guardarPerfil: (uid, perfil) => { tx.create(db.collection(PERFILES).doc(uid), { ...perfil }); },
 });
 
 /** El almacén de identidad de cuentas: una transacción de verdad por operación. */
@@ -100,6 +110,39 @@ export const asegurarCaraWeeEnWee = (db: Firestore, accountId: AccountId, perfil
 /** Una Página de la cuenta. Reservado: todavía no hay producto detrás. */
 export const crearPaginaEnWee = (db: Firestore, accountId: AccountId, clave: string, at: number, perfilUid?: string): Promise<EntidadAsegurada> =>
   crearPagina(crearAlmacenDeCuentas(db), azarDelSistema, { accountId, clave, at, perfilUid });
+
+/**
+ * 2.1 · EL LÍMITE DE ALTER EGOS QUE VALE HOY: lo configurado en
+ * `identitySettings/limites.alterEgosPorCuenta`, nunca por encima del techo
+ * del Core. Sin documento o con un valor raro, el de por defecto (5).
+ */
+export const limiteDeAlterEgosEnWee = async (db: Firestore): Promise<number> => {
+  const snap = await db.collection(AJUSTES_DE_IDENTIDAD).doc(DOC_DE_LIMITES).get();
+  return limiteDeAlterEgos(snap.exists ? snap.data()?.alterEgosPorCuenta : undefined);
+};
+
+/**
+ * 2.1 · UN ALTER EGO MÁS EN UNA CUENTA YA NACIDA. SIN CABLEAR: la callable es
+ * de la fase 4, y antes de llamar a esto tendrá que exigir la cuenta válida
+ * (edad, país) y hacerla nacer con `asegurarCuentaEnWee`. Devuelve `{ uid,
+ * entityId, creada }`: nunca la cuenta.
+ */
+export const crearAlterEgoEnWee = async (
+  db: Firestore, accountId: AccountId, clave: string, at: number, datos: DatosDeAlterEgoNuevo,
+): Promise<AlterEgoCreado> => {
+  const [limite, perfilHeredado] = await Promise.all([limiteDeAlterEgosEnWee(db), perfilHeredadoLeido(db, accountId)]);
+  return crearAlterEgo(crearAlmacenDeCuentas(db), azarDelSistema, {
+    accountId, clave, at, limite, perfilHeredado, perfilDe: (entityId) => perfilNuevoDeAlterEgo(entityId, datos, at),
+  });
+};
+
+/**
+ * 2.1 · RETIRAR UN ALTER EGO, en el Core. SIN CABLEAR. El borrado de sus datos
+ * va DESPUÉS, con `planDeBorradoDeUnAlterEgo` (`cuenta/borrado.ts`) y el `uid`
+ * que devuelve esto.
+ */
+export const retirarAlterEgoEnWee = (db: Firestore, accountId: AccountId, entityId: EntityId, clave: string, at: number): Promise<AlterEgoRetirado> =>
+  retirarAlterEgo(crearAlmacenDeCuentas(db), { accountId, entityId, clave, at });
 
 /**
  * LA CUENTA GUARDADA, SI HA NACIDO. Lectura suelta, sin transacción.

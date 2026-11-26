@@ -917,7 +917,8 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
        * (functions/src/creator/chatLimite.ts); nada de creatorRun, del reclamo ni del cobro. Comportamiento exacto en chat-limites (C1–C17, D1–D3). */
       /* + Consolidación W0 (2026-11-06): el tope de la conversación gratuita (6c13cbc5, +19 −1 en index.ts) encima de las dos
        * líneas anteriores → index.ts 299/89 → 318/90; credits.ts y generateAvatar.ts no cambian (64/19 y 155/17). */
-      '64\t19\tfunctions/src/creator/credits.ts|318\t90\tfunctions/src/creator/index.ts|155\t17\tfunctions/src/generateAvatar.ts'
+      /* + WeëAI sencillo (2026-11-23): index.ts 318/90 → 352/94 (creatorQuote sin trabajo y `preguntasDe`; ver puente-pre-f1d F4). */
+      '64\t19\tfunctions/src/creator/credits.ts|352\t94\tfunctions/src/creator/index.ts|155\t17\tfunctions/src/generateAvatar.ts'
     && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')).split(LEGACY_P_NUEVA).length === 2
     /* La rama legacy: la de antes salvo la devolución del demo (B4-03), el registro saneado (Gran Motor P) y el `normalizado` con el que se cotizó (P0 Seedance). */
     && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))).replace(LEGACY_P_NUEVA, LEGACY_P_ANTES)

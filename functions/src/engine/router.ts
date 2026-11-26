@@ -10,6 +10,7 @@ import { classifyError, costeTrasUnFallo, EngineError, motivoDeNoDisponible, noD
 import { camposAjustables, ContextoDeElegibilidad, elegibilidadDeLaCapacidad, elegibleEnAlgunaJurisdiccion, modeloElegible, textoDeElegibilidad } from './elegibilidad';
 import { providerCallsToday, providerUsdToday, usdToday } from './limits';
 import {
+  CapabilityRouting,
   CausaDeDescarte,
   ChainLink,
   EngineRequest,
@@ -120,6 +121,33 @@ export function pickModel(adapter: ProviderAdapter, capability: CapabilityId, qu
   return sorted[0];
 }
 
+/**
+ * UNA RUTA PROPIA PARA UNA FUNCIÓN, SIN TOCAR LA DE TODOS (`prefs.routeKey`).
+ *
+ * `aiRouting/{capacidad}` decide por quién va una capacidad para TODO Weë: cambiar `text.generate` movería a la vez
+ * Weë Chef, Weë Studio y lo demás. Una función que necesite su propio proveedor —hoy, las acciones de los personajes
+ * autónomos (`routeKey: 'character.text'`)— nombra su ruta, y si existe en Firestore (`aiRouting/character.text`,
+ * con `chain` no vacía) esa cadena es la suya. Si no existe, NO cambia nada: la petición sigue exactamente como
+ * venía, con sus `allowedProviders` y su `modelId` (el respaldo de siempre).
+ *
+ * Cuando la ruta propia existe, la elección por nombre de la petición se retira (`allowedProviders`, `modelId`):
+ * la ruta configurada ES la elección, con el modelo de cada eslabón (`chain[i].model`). Todo lo demás —proveedor
+ * activado, clave, capacidad, elegibilidad, límites, interruptores— se comprueba igual que siempre.
+ */
+export const rutaPropia = (config: Pick<EngineConfig, 'routing'>, prefs: RoutingPrefs = {}): CapabilityRouting | undefined => {
+  const clave = typeof prefs.routeKey === 'string' ? prefs.routeKey.trim() : '';
+  if (!clave) return undefined;
+  const ruta = (config.routing as Record<string, CapabilityRouting | undefined>)[clave];
+  return ruta && Array.isArray(ruta.chain) && ruta.chain.length ? ruta : undefined;
+};
+
+/** Las preferencias efectivas: con ruta propia, sin la elección por nombre; sin ella, las de siempre, intactas. */
+export const prefsConRutaPropia = (config: Pick<EngineConfig, 'routing'>, prefs: RoutingPrefs): RoutingPrefs => {
+  if (!rutaPropia(config, prefs)) return prefs;
+  const { allowedProviders: _nombrados, modelId: _fijado, ...resto } = prefs;
+  return resto;
+};
+
 // ── Router ─────────────────────────────────────────────────────────────────
 export interface RouterDeps {
   adapters: Record<string, ProviderAdapter>;
@@ -164,6 +192,9 @@ export function createRouter(deps: RouterDeps) {
   const now = deps.now || (() => Date.now());
 
   const linksFor = (capability: CapabilityId, config: EngineConfig, prefs: RoutingPrefs = {}): { links: ChainLink[]; policy: RoutingPolicy } => {
+    /* Una ruta propia configurada en Firestore manda sobre la cadena de la capacidad (ver `rutaPropia`). */
+    const propia = rutaPropia(config, prefs);
+    if (propia) return { links: propia.chain, policy: propia.policy || config.settings.defaultPolicy };
     const routing = config.routing[capability];
     const policyBase = routing?.policy || config.settings.defaultPolicy;
     /*
@@ -204,7 +235,7 @@ export function createRouter(deps: RouterDeps) {
     const config = preloaded || (await deps.loadConfig());
     const { settings } = config;
     const { capability, input } = request;
-    const prefs: RoutingPrefs = request.prefs || {};
+    const prefs: RoutingPrefs = prefsConRutaPropia(config, request.prefs || {});
     const quality = resolveQuality(request);
     const { links, policy } = linksFor(capability, config, prefs);
     /*

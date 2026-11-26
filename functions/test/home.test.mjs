@@ -1663,10 +1663,10 @@ console.log('\n── O · La navegación inferior, una sola para todo Weë ─�
    * campana estaba en el encabezado y bajó aquí.
    */
   check('133) con rutas que ya existían: las pestañas Home, Inbox y Profile, la hoja Crear y el centro creativo',
-    JSON.stringify(ids.map(([i]) => i)) === JSON.stringify(['Home', 'WeeAI', 'Create', 'Inbox', 'Profile'])
+    JSON.stringify(ids.map(([i]) => i)) === JSON.stringify(['Home', 'Weels', 'Create', 'Inbox', 'Profile'])
     && /if \(destino === 'WeeAI'\) \{ abrirPortadaDeWeeAi\(\); return; \}/.test(global) && /irARaiz\('Main', \{ screen: destino \}\);/.test(global));
-  check('134) y los nombres del rediseño: Inicio · WeëAI · Crear · Mensajes · Mi Weë',
-    JSON.stringify(ids.map(([, e]) => e)) === JSON.stringify(['nav.home', 'nav.weeAi', 'nav.create', 'nav.messages', 'nav.myWee'])
+  check('134) y los nombres (Home 0+, 2026-11-24): Inicio · Weëls · Crear · Mensajes · Mi Weë',
+    JSON.stringify(ids.map(([, e]) => e)) === JSON.stringify(['nav.home', 'menu.weels', 'nav.create', 'nav.messages', 'nav.myWee'])
     && /home: 'Inicio'/.test(leer('i18n/textos/es/nav.ts')) && /weeAi: 'WeëAI'/.test(leer('i18n/textos/es/nav.ts')) && /create: 'Crear'/.test(leer('i18n/textos/es/nav.ts'))
     && /messages: 'Mensajes'/.test(leer('i18n/textos/es/nav.ts')) && /myWee: 'Mi Weë'/.test(leer('i18n/textos/es/nav.ts')));
   /*
@@ -1954,7 +1954,7 @@ console.log('\n── Q · El Home va directo a "Crear publicación" ──');
   check('169) sin sesión, publicar desde el + lleva a registrarse en vez de al compositor', /const crear = \(kind: CreateKind\) => \{\s*setHoja\(false\);\s*if \(!user\) return irARaiz\('Register'\);/.test(leer('navigation/NavegacionGlobal.tsx')));
 
   /* 5: una puerta por pantalla, y un solo compositor de verdad. */
-  check('170) una sola tarjeta de WeëAI en cada pantalla del Home, y ninguna puerta de publicar', (nativo.match(/<TarjetaWeeAi/g) || []).length === 1 && (web.match(/<TarjetaWeeAi/g) || []).length === 1 && !/<ComposerEntry/.test(nativo + web));
+  check('170) ninguna tarjeta de WeëAI en el Home (Home 0+, 2026-11-24), y ninguna puerta de publicar', !/<TarjetaWeeAi/.test(nativo + web) && !/<ComposerEntry/.test(nativo + web));
   check('171) el Home no monta el compositor dentro: solo navega a él', !/import CreateScreen|<CreateScreen/.test(nativo) && !/import CreateScreen|<CreateScreen/.test(web));
   const rutaCrear = pila.slice(pila.indexOf('const CreateWrapper'), pila.indexOf('const CreateWrapper') + 300);
   check('172) "Crear publicación" está registrada una sola vez',

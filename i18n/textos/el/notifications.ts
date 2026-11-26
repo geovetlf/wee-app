@@ -19,6 +19,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} δημοσίευσε σε {{comunidad}}',
   aCommunity: 'μια κοινότητα',
   generic: '{{nombre}} αλληλεπίδρασε μαζί σου',
+  characterNotice: '{{nombre}}: έχεις ειδοποιήσεις για έλεγχο',
   now: 'τώρα',
   markAllRead: 'Σήμανση όλων ως αναγνωσμένων',
   all: 'Όλες',

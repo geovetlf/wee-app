@@ -25,6 +25,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} saqqummiussivoq · {{comunidad}}',
   aCommunity: 'peqatigiiffik',
   generic: '{{nombre}} ilinnut attaveqarpoq',
+  characterNotice: '{{nombre}} misissugassanik nalunaarutinik qimatsivoq',
   now: 'maanna',
   markAllRead: 'Tamaasa atuarsimasutut nalunaaqutsikkit',
   all: 'Tamarmik',

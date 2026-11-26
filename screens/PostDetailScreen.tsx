@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useRef, useEffect } from 'react';
 import MedioNoDisponible from '../components/media/MedioNoDisponible';
+import { visibleParaLosDemas } from '../utils/cuentaDesactivada';
 import {
   View,
   Text,
@@ -1058,7 +1059,8 @@ const PostDetailScreen: React.FC = () => {
     getDoc(doc(db, 'posts', postId))
       .then((snap) => {
         if (cancelled) return;
-        if (!snap.exists()) {
+        /* La de una cuenta desactivada tampoco se abre por enlace (utils/cuentaDesactivada.ts). */
+        if (!snap.exists() || !visibleParaLosDemas(snap.data())) {
           setFailed(true);
           return;
         }

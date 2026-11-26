@@ -30,4 +30,5 @@ export const avisos: typeof import('../../es/servidor/avisos').avisos = {
   fotoUnica: 'एक बार देखने वाली फ़ोटो',
   imagen: '📷 फ़ोटो',
   audio: '🎤 वॉइस मैसेज',
+  paraLaCara: '{{destino}} के लिए: {{titulo}}',
 };

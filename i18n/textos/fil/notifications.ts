@@ -38,6 +38,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: 'Nag-post si {{nombre}} sa {{comunidad}}',
   aCommunity: 'isang komunidad',
   generic: 'Nakipag-interact sa iyo si {{nombre}}',
+  characterNotice: 'May iniwang abiso si {{nombre}} na kailangan mong suriin',
   now: 'ngayon',
   markAllRead: 'Markahan lahat bilang nabasa na',
   all: 'Lahat',

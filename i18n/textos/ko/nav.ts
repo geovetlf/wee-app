@@ -17,6 +17,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: '만들기',
   talk: 'WeeTalk',
   notifications: '알림',
+  notificationsUnread: '알림, 읽지 않은 알림이 있어요',
   current: '현재 섹션',
   goTo: '{{nombre}} 화면으로 이동',
   weeNavigation: 'Weë 내비게이션',

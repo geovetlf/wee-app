@@ -101,4 +101,17 @@ export const home: ConPlurales<typeof import('../es/home').home> = {
   openBrain: 'Открыть Weë Brain',
   feedForYou: 'Для вас',
   feedCreativity: 'Творчество',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Сейчас в Weë',
+  you: 'Вы',
+  guestTitle: 'Выражай себя свободно.',
+  guestHint: 'Публикуйте от своего имени или от имени своих альтер эго и показывайте своё творчество на WeëPages.',
+  premiere: 'Премьера',
+  presentedBy: 'Представляет {{nombre}}',
+  viewPage: 'Открыть WeëPage',
+  wallEmptyTitleWork: 'Ẅall ждёт первую работу',
+  wallEmptyHintFaces: 'Опубликуйте что-то своё или от своего альтер эго.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Вселенные для открытий',
+  mosaicTitle: 'Создаётся прямо сейчас',
 };

@@ -105,4 +105,17 @@ export const home: ConPlurales<typeof import('../es/home').home> = {
   openBrain: 'Oscail Weë Brain',
   feedForYou: 'Duitse',
   feedCreativity: 'Cruthaitheacht',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Anois ar Weë',
+  you: 'Tusa',
+  guestTitle: 'Bí saor chun tú féin a chur in iúl.',
+  guestHint: 'Postáil mar thú féin nó mar do alter egos, agus taispeáin do shaothar ar WeëPages.',
+  premiere: 'Céadléiriú',
+  presentedBy: 'Curtha i láthair ag {{nombre}}',
+  viewPage: 'Féach ar WeëPage',
+  wallEmptyTitleWork: 'Tá an Ẅall ag fanacht lena chéad saothar',
+  wallEmptyHintFaces: 'Postáil rud éigin uait féin nó ó do alter ego.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Cruinneanna le fáil amach',
+  mosaicTitle: 'Á chruthú anois',
 };

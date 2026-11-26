@@ -20,11 +20,15 @@ interface CreatorSidebarProps {
 }
 
 /** Las puertas de la barra lateral: ids de siempre, rótulos por i18n (Weë Brain es marca). */
-const PUERTAS_DE_LA_BARRA: { id: string; clave?: string; marca?: string }[] = [
-  { id: 'studio', clave: 'composer.kindVideo' },
-  { id: 'design', clave: 'composer.kindImage' },
-  { id: 'business', clave: 'weeai.filterFashion' },
-  { id: 'brain', marca: 'Weë Brain' },
+/*
+ * WeëAI sencillo (decisión del dueño, 2026-11-23): la barra lista lo mismo que la portada —Imagen, Video corto y Editar mi
+ * foto—, sin experiencias con nombre propio (ni Moda, ni Weë Brain como sección). Las pantallas de cada experiencia siguen
+ * en su ruta, dormidas; la caja de la portada sigue hablando con Weë Brain.
+ */
+const PUERTAS_DE_LA_BARRA: { id: 'imagen' | 'video' | 'editar'; clave: string; icono: string }[] = [
+  { id: 'imagen', clave: 'publicar.puertaImagen', icono: 'image-outline' },
+  { id: 'video', clave: 'publicar.puertaVideo', icono: 'videocam-outline' },
+  { id: 'editar', clave: 'publicar.puertaEditar', icono: 'brush-outline' },
 ];
 
 const ICONS: Record<string, string> = {
@@ -54,7 +58,6 @@ const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
 
   const goHome = () => navigation.navigate('Main', { screen: 'Home' });
   const goCreator = () => navigation.navigate('WeeCreator');
-  const goSpecialist = (id: string) => navigation.navigate('Specialist', { id });
   const goCredits = () => navigation.navigate(user ? 'CreditStore' : 'Login');
 
   const renderItem = (key: string, icon: string, label: string, onPress: () => void, nested = false) => {
@@ -84,7 +87,7 @@ const CreatorSidebar: React.FC<CreatorSidebarProps> = ({ activeId }) => {
           {renderItem('home', 'home-outline', t('menu.home'), goHome)}
           {renderItem('creator', 'grid-outline', 'Weë AI', goCreator)}
           {/* Las mismas puertas que la portada de WeëAI (decisión del dueño, 2026-11-15/16): Video, Imagen, Moda y Weë Brain. Chef es una categoría de plantillas, Travel está apagada y Music oculta: sin nombres antiguos. */}
-          {PUERTAS_DE_LA_BARRA.map(({ id, clave, marca }) => renderItem(id, ICONS[id] || 'sparkles-outline', marca ?? t(clave as string), () => goSpecialist(id), true))}
+          {PUERTAS_DE_LA_BARRA.map(({ id, clave, icono }) => renderItem(id, icono, t(clave), () => navigation.navigate(user ? 'CrearPublicacion' : 'Login', user ? { tipo: id } : undefined), true))}
           {renderItem('projects', 'folder-open-outline', t('weeai.myProjects'), () => navigation.navigate(user ? 'Projects' : 'Login'), true)}
           {renderItem('creations', 'images-outline', t('creaciones.title'), () => navigation.navigate(user ? 'MisCreaciones' : 'Login'), true)}
         </View>

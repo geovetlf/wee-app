@@ -7,6 +7,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Létrehozás',
   talk: 'WeeTalk',
   notifications: 'Értesítések',
+  notificationsUnread: 'Értesítések, olvasatlan értesítéseid vannak',
   current: 'jelenlegi szakasz',
   goTo: 'Ugrás ide: {{nombre}}',
   weeNavigation: 'Weë-navigáció',

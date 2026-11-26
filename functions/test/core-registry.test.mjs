@@ -111,8 +111,8 @@ console.log('\n── A · El registro real está sano ──');
     errores.map((e) => `${e.where}: ${e.message}`).slice(0, 4).join(' | ') || `${problemas.length} avisos`);
 
   check('2) tiene las tres dimensiones pobladas',
-    /* Doce adaptadores: los once de siempre y fal, la excepción controlada del 2026-10-05. */
-    datos.capabilities.length > 50 && datos.providers.length >= 15 && datos.models.length >= 25 && datos.adapters.length === 12,
+    /* Trece adaptadores: los once de siempre, fal (la excepción controlada del 2026-10-05) y byteplus-text (2026-11-23, desactivado y fuera de las cadenas). */
+    datos.capabilities.length > 50 && datos.providers.length >= 15 && datos.models.length >= 25 && datos.adapters.length === 13,
     `${datos.capabilities.length} cap · ${datos.providers.length} prov · ${datos.models.length} mod · ${datos.adapters.length} adap`);
 }
 

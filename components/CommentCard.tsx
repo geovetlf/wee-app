@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ImageViewer from './ImageViewer';
 import { useTheme } from '../contexts/ThemeContext';
-import { useIdioma } from '../contexts/IdiomaContext';
+import { useIdioma, useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserById } from '../hooks/useUserById';
 import { referenciaPublicaDe } from '../utils/identidadPublica';
@@ -13,6 +13,7 @@ import { getRelativeTime } from '../utils/formatoCorto';
 import AvatarDisplay from './avatars/AvatarDisplay';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, ICON_SIZE } from '../constants/design';
 import { scale } from '../utils/scale';
+import EtiquetaPersonajeWee from './personaje/EtiquetaPersonajeWee';
 
 interface CommentCardProps {
   comment: Comment;
@@ -143,7 +144,7 @@ const CommentCard: React.FC<CommentCardProps> = ({ comment, onProfilePress }) =>
             </Text>
           </TouchableOpacity>
           <Text style={[styles.cuando, { color: theme.colors.textSecondary }]}>
-            {getRelativeTime(fechaDelComentario(), locale)}
+            {comment.autonomo ? <EtiquetaPersonajeWee /> : null}{getRelativeTime(fechaDelComentario(), locale)}
           </Text>
         </View>
 

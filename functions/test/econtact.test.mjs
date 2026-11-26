@@ -334,8 +334,13 @@ check('58) la relación solo la leen sus dos partes', /allow read: if isAuthenti
  * `misIdentidadesHeredadas()`, la frontera de compatibilidad declarada arriba
  * del archivo de reglas. El día que los perfiles se renumeren se cambia ahí.
  */
+/*
+ * F3 del plan de alter egos (2026-11-23): `misIdentidades()` ya no es local del bloque. Es la global, que suma a la
+ * frontera heredada las caras de `accounts/{cuenta}.identidadesWee` (las escribe solo el servidor).
+ */
 check('58b) mis identidades salen de la frontera de compatibilidad, no de un prefijo escrito a mano',
-  /return misIdentidadesHeredadas\(\);/.test(bloque)
+  !/function misIdentidades\(\)/.test(bloque)
+  && /function misIdentidades\(\) \{\s*\n\s*return misIdentidadesHeredadas\(\)\.concat\(identidadesExtraDeLaCuenta\(\)\);/.test(reglas)
   && /function misIdentidadesHeredadas\(\) \{\s*\n\s*return \[request\.auth\.uid, identidadWeeHeredadaDe\(request\.auth\.uid\)\];/.test(reglas)
   && /function identidadWeeHeredadaDe\(uid\) \{\s*\n\s*return 'hidi_' \+ uid;/.test(reglas));
 check('58c) participo si alguna de las dos está en la relación', /resource\.data\.users\.hasAny\(misIdentidades\(\)\)/.test(bloque));
@@ -555,6 +560,8 @@ const { createEContactEngine, decidirAceptacion, idDeContacto: idServidor } = se
 const clonar = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 class FakeRef {
   constructor(db, ruta) { this.db = db; this.path = ruta; this.id = ruta.split('/').pop(); }
+  /* F4: el resolutor lee la entidad de un alter ego por su ruta. */
+  async get() { await null; const d = this.db.leer(this.path); return { exists: d !== undefined, id: this.id, data: () => d }; }
 }
 /*
  * Una consulta por campo, que es como se busca un perfil: los documentos de
@@ -577,7 +584,7 @@ class FakeQuery {
 }
 class FakeColl {
   constructor(db, ruta) { this.db = db; this.path = ruta; }
-  doc(id) { return new FakeRef(this.db, `${this.path}/${id}`); }
+  doc(id) { return new FakeRef(this.db, `${this.path}/${id ?? `auto${++this.db.autoId}`}`); }
   where(campo, _op, valor) { return new FakeQuery(this.db, this.path, campo, valor); }
 }
 class FakeTx {
@@ -592,7 +599,7 @@ class FakeTx {
   create(ref, data) { this.escrituras.push({ path: ref.path, data, crear: true }); }
 }
 class FakeDb {
-  constructor() { this.docs = new Map(); this.versiones = new Map(); this.reintentos = 0; }
+  constructor() { this.docs = new Map(); this.versiones = new Map(); this.reintentos = 0; this.autoId = 0; }
   collection(n) { return new FakeColl(this, n); }
   leer(r) { return this.docs.has(r) ? clonar(this.docs.get(r)) : undefined; }
   version(r) { return this.versiones.get(r) || 0; }
@@ -712,8 +719,9 @@ check('130) corren en us-central1, como el cliente espera', /region: 'us-central
  * `users` a comprobar que ese perfil es de esa cuenta antes de nada.
  */
 check('131) la cuenta sale de request.auth, no del cuerpo', /return request\.auth\.uid as string;/.test(codigoFuncion) && !/data\.(uid|accountUid|myUid)/.test(codigoFuncion));
-check('131b) la identidad propia se comprueba contra users', /resolver\(desdeIdentidad, cuentaDeLaSesion, true\)/.test(codigoFuncion) && /resolver\(comoIdentidad, cuentaDeLaSesion, true\)/.test(codigoFuncion));
-check('131c) y la ajena también tiene que existir', /resolver\(haciaIdentidad, cuentaDeLaSesion, false\)/.test(codigoFuncion) && /resolver\(otraIdentidad, cuentaDeLaSesion, false\)/.test(codigoFuncion));
+/* Desde F1 (2026-11-23) se resuelve con `resolverConPerfil`: la misma comprobación, con el perfil a mano para el aviso. */
+check('131b) la identidad propia se comprueba contra users', /resolverConPerfil\(desdeIdentidad, cuentaDeLaSesion, true\)/.test(codigoFuncion) && /resolverConPerfil\(comoIdentidad, cuentaDeLaSesion, true\)/.test(codigoFuncion));
+check('131c) y la ajena también tiene que existir', /resolverConPerfil\(haciaIdentidad, cuentaDeLaSesion, false\)/.test(codigoFuncion) && /resolverConPerfil\(otraIdentidad, cuentaDeLaSesion, false\)/.test(codigoFuncion));
 check('131d) el perfil se busca por el campo uid, que es lo que las reglas no pueden', /collection\(PERFILES\)\.where\('uid', '==', identidad\)/.test(codigoFuncion));
 check('132) el id del documento lo calcula el servidor', /idDeContacto\(de\.identity, para\.identity\)/.test(codigoFuncion) && !/data\.contactId/.test(codigoFuncion));
 check('133) sin sesión no se hace nada', /if \(!request\.auth\) throw new HttpsError\('unauthenticated'/.test(codigoFuncion));
@@ -907,9 +915,15 @@ check('191) hay tipos propios de ËContact', /'econtact_request'/.test(notis) &&
  * seguidores ya enviadas dirían de pronto algo que nunca pasó.
  */
 check('192) sin mezclarse con el tipo histórico', /'follow'/.test(notis) && !/type: 'follow'[\s\S]{0,200}econtact/.test(notis));
-check('193) el servicio de ËContact los usa', /createEContactRequestNotification/.test(codigoServicio) && /createEContactAcceptedNotification/.test(codigoServicio));
-check('194) y no crea un sistema paralelo', /from '\.\/notificationService'/.test(codigoServicio) && !/collection\(db, 'econtactNotifications'\)/.test(codigoServicio));
-check('195) un aviso que falle no deshace la conexión', /catch \(error\) \{[\s\S]{0,120}no se pudo avisar/i.test(servicio));
+/*
+ * F1 del plan de alter egos (2026-11-23): los avisos de ËContact los escribe el SERVIDOR, en la misma transacción que
+ * la relación. El cliente ya no los crea (ni necesita la cuenta de nadie para hacerlo).
+ */
+check('193) el servidor escribe los dos avisos de ËContact', /avisoDeEContact\('econtact_request'/.test(codigoFuncion) && /avisoDeEContact\('econtact_accepted'/.test(codigoFuncion)
+  && !/createEContactRequestNotification|createEContactAcceptedNotification/.test(codigoServicio));
+check('194) en la colección de avisos de siempre, sin un sistema paralelo', /const AVISOS = 'notifications';/.test(codigoFuncion) && !/econtactNotifications/.test(codigoServicio + codigoFuncion)
+  && !/notificationService/.test(codigoServicio));
+check('195) el aviso va en la MISMA transacción que la relación (los dos o ninguno)', (codigoFuncion.match(/tx\.create\(db\.collection\(AVISOS\)\.doc\(\), avisoDeEContact\(/g) || []).length === 2);
 check('196) la pantalla los sabe decir',
   /notifications\.econtactRequest/.test(pantallaNotis) && /notifications\.econtactAccepted/.test(pantallaNotis)
   && /quiere agregarte a ËContact/.test(read('i18n/textos/es/notifications.ts')) && /aceptó tu solicitud de ËContact/.test(read('i18n/textos/es/notifications.ts')));
@@ -1167,6 +1181,19 @@ for (const c of CRUCES) {
   await rechaza('271) tu Perfil Real no se agrega a tu Perfil Weë', () => engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: ANA, haciaIdentidad: WEE_ANA }), 'misma-persona');
   await rechaza('272) ni al revés', () => engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: WEE_ANA, haciaIdentidad: ANA }), 'misma-persona');
   check('273) y no se ha escrito nada en ningún caso', relacionesDe(db).length === 0);
+  /*
+   * D6 del dueño (F3 de alter egos, 2026-11-23): dos caras Weë de la MISMA cuenta sí se conectan (cada alter ego
+   * tiene su lista); Real ↔ Weë sigue bloqueado (271-272). Hoy solo se puede decidir en puro: la segunda cara Weë
+   * de una cuenta es un `ent_…`, que se resuelve con `cuentaDeIdentidadLeida` cuando F4 lo cablee.
+   */
+  const { decidirSolicitud } = servidor;
+  const cara = (identity, type) => ({ identity, accountUid: ANA, type });
+  check('273b) D6: Weë ↔ Weë de la misma cuenta, sí',
+    decidirSolicitud({ de: cara(WEE_ANA, 'wee'), para: cara('ent_jay00000000000000000000000', 'wee'), existente: null }).ok === true);
+  check('273c) Real ↔ Weë de la misma cuenta, no',
+    decidirSolicitud({ de: cara(ANA, 'real'), para: cara('ent_jay00000000000000000000000', 'wee'), existente: null }).motivo === 'misma-persona');
+  check('273d) y la misma identidad nunca',
+    decidirSolicitud({ de: cara(WEE_ANA, 'wee'), para: cara(WEE_ANA, 'wee'), existente: null }).motivo === 'misma-persona');
 }
 
 {
@@ -1287,7 +1314,14 @@ check('285) las reglas dejan borrar solo a quien participa con UNA DE SUS identi
 
 // ─── Los identificadores históricos siguen funcionando ───────────────────────
 
-check('294) las reglas siguen reconociendo hidi_ como identidad de la cuenta', (reglas.match(/"hidi_" \+ request\.auth\.uid/g) || []).length > 10);
+/*
+ * F3 de alter egos (2026-11-23): la forma heredada se reconoce en `esMia` (vía `identidadWeeHeredadaDe`), que usan
+ * ahora casi todas las reglas; en línea queda en la creación del perfil y en los votos y likes antiguos.
+ */
+check('294) las reglas siguen reconociendo hidi_ como identidad de la cuenta',
+  /function esMia\(id\) \{\s*\n\s*return id == request\.auth\.uid \|\| id == identidadWeeHeredadaDe\(request\.auth\.uid\)/.test(reglas)
+  && (reglas.match(/esMia\(/g) || []).length > 15
+  && (reglas.match(/"hidi_" \+ request\.auth\.uid/g) || []).length >= 6);
 check('295) un Perfil Weë se sigue guardando con profileType hidi', /profileType: 'hidi'/.test(read('services/firestoreService.ts')));
 /* Desde la Fase 11.x-2 el identificador heredado se compone en UN sitio, `identidadWeeDe` (econtactModel), y el servicio lo pide. */
 check('296) y su uid se sigue formando con el prefijo histórico', /export const identidadWeeDe = \(accountUid: string\): string => PREFIJO_PERFIL_WEE \+ accountUid;/.test(read('utils/econtactModel.ts'))
@@ -1309,7 +1343,8 @@ check('300) no hay ninguna migración en el código', !/migrat|migrar|backfill/i
 // ─── Follows y businessFollows, intactos ─────────────────────────────────────
 
 check('301) el seguir antiguo se retiró del cliente (sus datos y sus reglas siguen, 302)', seguirAntiguoRetirado());
-check('302) las reglas de follows siguen aceptando hidi_', /match \/follows\/\{followId\}[\s\S]{0,600}followerId == \("hidi_" \+ request\.auth\.uid\)/.test(reglas));
+/* F3 (2026-11-23): el seguidor es cualquier cara de la cuenta, con `esMia`, que incluye la heredada (294). */
+check('302) las reglas de follows siguen aceptando hidi_', /match \/follows\/\{followId\}[\s\S]{0,1200}function seguidorDeQuienEscribe\(followerId\) \{\s*\n\s*return esMia\(followerId\);/.test(reglas));
 check('303) businessFollows no se ha tocado', /match \/businessFollows\/\{followId\}[\s\S]{0,200}request\.resource\.data\.userId == request\.auth\.uid/.test(reglas));
 check('304) y ninguna pieza de ËContact vuelve a traerlo', !RE_IMPORTA_SEGUIR_ANTIGUO.test(read('services/econtactService.ts') + read('hooks/useEContact.ts') + read('screens/EContactScreen.tsx')));
 check('305) ningún negocio entra en econtacts', !/businessFollows/.test(codigoServicio + codigoFuncion));
@@ -1324,19 +1359,54 @@ check('305) ningún negocio entra en econtacts', !/businessFollows/.test(codigoS
  */
 {
   const avisos = read('services/notificationService.ts');
+  const codigoAvisos = sinComentarios(avisos);
   check('306) el aviso va dirigido a la identidad, no a la cuenta', /Identidad de perfil que recibe/.test(avisos));
-  check('307) y guarda la cuenta de quien recibe', /recipientAccountId\?: string;/.test(avisos));
-  check('308) y con qué cara escribe quien lo genera', /senderProfileType\?: string;/.test(avisos));
+  /* F1 (2026-11-23): el aviso ya no guarda la cuenta de quien recibe; el push la resuelve en el servidor por `recipientId`. */
+  check('307) y ya NO guarda la cuenta de quien recibe', !/recipientAccountId/.test(codigoAvisos) && !/recipientAccountId/.test(codigoServicio));
+  check('308) y con qué cara escribe quien lo genera', /senderProfileType\?: string;/.test(avisos) && /senderProfileType: de\.type/.test(codigoFuncion));
   /*
    * Los dos tipos son propios. `follow` sigue existiendo para las notificaciones
    * de seguidores que ya se enviaron: si ËContact lo reutilizara, esas dirían de
    * pronto algo que nunca pasó.
    */
-  const creadoresEContact = avisos.slice(avisos.indexOf('createEContactRequestNotification'));
-  check('309) los dos tipos de ËContact son propios y no reutilizan follow', /'econtact_request'/.test(creadoresEContact) && /'econtact_accepted'/.test(creadoresEContact) && !/type: 'follow'/.test(creadoresEContact));
+  check('309) los dos tipos de ËContact son propios y no reutilizan follow', /'econtact_request' \| 'econtact_accepted'/.test(codigoFuncion) && !/'follow'/.test(codigoFuncion));
   check('309b) y el tipo follow histórico sigue en pie', /type: 'follow'/.test(avisos));
-  check('310) el servicio los rellena con lo que devolvió el servidor', /recipientAccountId: paraCuenta/.test(codigoServicio) && /hecho\.to\.accountUid/.test(codigoServicio));
-  check('311) y no se manda un aviso por cada cara: uno por transición', (codigoServicio.match(/await avisar\(/g) || []).length === 2);
+  check('310) el cliente ya no recibe ni envía la cuenta de nadie', !/accountUid/.test(codigoServicio) && !/recipientAccountId/.test(codigoServicio));
+  check('311) y no se manda un aviso por cada cara: uno por transición', (codigoFuncion.match(/avisoDeEContact\('econtact_/g) || []).length === 2);
+  const reglasAvisos = (reglas.match(/function camposDeAvisoDeLaApp\(\) \{([\s\S]*?)\}/) || [])[1] || '';
+  check('311b) las reglas ya no dejan al cliente escribir recipientAccountId', !!reglasAvisos && !/recipientAccountId/.test(reglasAvisos)
+    && !/textoDeAviso\('recipientAccountId'/.test(reglas));
+  check('311c) ni crear avisos de ËContact (son del servidor)', /return \['like', 'comment', 'recreate'\];/.test(reglas));
+}
+
+/*
+ * F1 — LA RESPUESTA DE ËCONTACT NO LLEVA NINGUNA CUENTA, Y EL AVISO TAMPOCO. Se EJECUTA el motor: Ana (Perfil Real)
+ * pide conexión al Perfil Weë de Beto, Beto la acepta desde su Perfil Weë. Ni la respuesta ni el aviso pueden traer el
+ * uid de la cuenta de Beto (que es su Perfil Real): eso es lo que unía las dos caras de una persona.
+ */
+{
+  const valores = (o, acc = []) => { if (o && typeof o === 'object') { for (const [k, v] of Object.entries(o)) { acc.push(k); valores(v, acc); } } else acc.push(o); return acc; };
+  const { db, engine } = montar([]);
+  const pedida = await engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: ANA, haciaIdentidad: WEE_BETO });
+  const vp = valores(pedida);
+  check('F1a) requestEContact no devuelve accountUid ni la cuenta de Beto', !vp.includes('accountUid') && !vp.includes(BETO)
+    && pedida.to.identity === WEE_BETO && pedida.to.type === 'wee', JSON.stringify(pedida));
+  const avisos1 = [...db.docs.entries()].filter(([p]) => p.startsWith('notifications/')).map(([, d]) => d);
+  check('F1b) el servidor escribe el aviso de la solicitud, a la IDENTIDAD que recibe', avisos1.length === 1 && avisos1[0].type === 'econtact_request'
+    && avisos1[0].recipientId === WEE_BETO && avisos1[0].senderId === ANA && avisos1[0].senderProfileType === 'real' && avisos1[0].read === false, JSON.stringify(avisos1));
+  check('F1c) y el aviso no lleva recipientAccountId ni la cuenta de Beto', avisos1.length === 1 && !('recipientAccountId' in avisos1[0]) && !valores(avisos1[0]).includes(BETO));
+  const aceptada = await engine.accept({ cuentaDeLaSesion: BETO, comoIdentidad: WEE_BETO, otraIdentidad: ANA });
+  const va = valores(aceptada);
+  check('F1d) acceptEContact tampoco devuelve cuentas', !va.includes('accountUid') && !va.includes(BETO) && aceptada.status === 'accepted', JSON.stringify(aceptada));
+  const avisos2 = [...db.docs.entries()].filter(([p]) => p.startsWith('notifications/')).map(([, d]) => d);
+  const deAceptada = avisos2.find((d) => d.type === 'econtact_accepted');
+  check('F1e) y el aviso de aceptación va a quien la pidió, firmado por la cara que acepta, sin cuenta', avisos2.length === 2 && !!deAceptada
+    && deAceptada.recipientId === ANA && deAceptada.senderId === WEE_BETO && deAceptada.senderProfileType === 'wee'
+    && !('recipientAccountId' in deAceptada) && !valores(deAceptada).includes(BETO));
+  // Una solicitud rechazada no deja aviso: va en la misma transacción.
+  const { db: db2, engine: engine2 } = montar([pendienteEntre(ANA, BETO)]);
+  await engine2.request({ cuentaDeLaSesion: ANA, desdeIdentidad: ANA, haciaIdentidad: BETO }).catch(() => null);
+  check('F1f) si la relación no se escribe, el aviso tampoco', ![...db2.docs.keys()].some((p) => p.startsWith('notifications/')));
 }
 
 // ─── ËContact sigue sin costar Credits ───────────────────────────────────────
@@ -1787,6 +1857,89 @@ ${fuenteEliminar}
   check('409) y borrar sigue siendo solo de quien participa',
     /allow delete: if isAuthenticated\(\) && participo\(\)/.test(bloque));
   check('410) el servicio no toca las reglas ni las rodea', !/firestore\.rules/.test(codigoServicio));
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+console.log('\n── Alter egos (F2) · Las dos formas de un Perfil Weë en el servidor ──');
+// ═════════════════════════════════════════════════════════════════════════════
+/*
+ * La segunda forma es el alter ego opaco: su `uid` ES su identificador de entidad
+ * (`ent_` + 26). La forma solo dice que está bien escrito; de quién es se LEE de
+ * su entidad (`cuentaDeIdentidadLeida`). La copia del cliente (`utils/econtactModel.ts`)
+ * se pone al día en la fase del cliente; aquí se vigila el servidor.
+ */
+{
+  const ALTER = 'ent_0123456789abcdefghjkmnpqrs';
+  check('411) el servidor acepta las dos formas de Perfil Weë y el Real',
+    servidor.esIdentidadValida(WEE_ANA) && servidor.esIdentidadValida(ALTER) && servidor.esIdentidadValida(ANA));
+  check('412) y ninguna lleva `_` propio: ni ent_a_b, ni hidi_ent_x, ni el prefijo solo',
+    !servidor.esIdentidadValida('ent_a_b') && !servidor.esIdentidadValida('hidi_ent_x')
+    && !servidor.esIdentidadValida('ent_') && !servidor.esIdentidadValida('uid_raro') && !servidor.esIdentidadValida('biz_n1'));
+  check('413) ent_ es Weë solo como pista de enrutado; la cuenta no sale de la forma',
+    servidor.tipoDeIdentidad(ALTER) === 'wee' && servidor.tipoDeIdentidad(WEE_ANA) === 'wee' && servidor.tipoDeIdentidad(ANA) === 'real'
+    && servidor.cuentaDeIdentidad(ALTER, { uid: ALTER, profileType: 'hidi' }) === null
+    && servidor.cuentaDeIdentidad(ALTER, { uid: ALTER, profileType: 'real' }) === null
+    && servidor.cuentaDeIdentidad(ALTER, { uid: ALTER, profileType: 'hidi', linkedAccountId: ANA }) === null);
+  check('414) una pareja con un alter ego se une igual, y sin ambigüedad con las otras formas',
+    servidor.idDeContacto(ALTER, WEE_ANA) === servidor.idDeContacto(WEE_ANA, ALTER)
+    && new Set([servidor.idDeContacto(ALTER, ANA), servidor.idDeContacto(ALTER, WEE_ANA), servidor.idDeContacto(ANA, WEE_ANA)]).size === 3);
+  check('415) la heredada se resuelve como siempre en el servidor',
+    servidor.cuentaDeIdentidad(WEE_ANA, perfilWee(ANA)) === ANA && servidor.cuentaDeIdentidad(ANA, perfilReal(ANA)) === ANA);
+  check('416) y nada del servidor de ËContact parte un id por `_`',
+    !/\.split\(\s*(['"`])_\1\s*\)|\.split\(\s*\/_\/\s*\)/.test(read('functions/src/social/econtact.ts').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')));
+}
+
+const compatF4 = lib('identity/compatibilidad.js');
+// ═════════════════════════════════════════════════════════════════════════════
+console.log('\n── Alter egos (F4) · El motor de ËContact con alter egos `ent_` ──');
+// ═════════════════════════════════════════════════════════════════════════════
+/*
+ * Cableado de F4: la cuenta de un alter ego se LEE de su entidad (`cuentaDelPerfilLeido`). Jay y Lina son alter egos
+ * de Ana; Kai es de Beto; Zoe está retirada.
+ */
+{
+  const ent = (n) => `ent_${n.padEnd(26, '0')}`;
+  /* Solo el alfabeto de los ids de entidad (sin i, l, o, u). */
+  const JAY = ent('jay'), LINA = ent('shade'), KAI = ent('kay'), ZOE = ent('zed');
+  const entidad = (id, cuenta, status = 'ACTIVE') => ({
+    contract: '2.1', entityId: id, ownerAccountId: cuenta, entityType: 'WEE_PROFILE', entitySequence: 3,
+    profileRef: { coleccion: 'users', uid: id }, status, createdAt: 1, updatedAt: 1,
+  });
+  const alter = (id) => ({ uid: id, entityId: id, profileType: 'hidi', displayName: id });
+  const montarF4 = (relaciones = []) => {
+    const r = montar(relaciones, [...PERFILES, alter(JAY), alter(LINA), alter(KAI), alter(ZOE)]);
+    r.db.sembrar(`entities/${JAY}`, entidad(JAY, ANA));
+    r.db.sembrar(`entities/${LINA}`, entidad(LINA, ANA));
+    r.db.sembrar(`entities/${KAI}`, entidad(KAI, BETO));
+    r.db.sembrar(`entities/${ZOE}`, entidad(ZOE, ANA, 'RETIRED'));
+    return r;
+  };
+  {
+    const { db, engine } = montarF4();
+    const r = await engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: JAY, haciaIdentidad: BETO });
+    check('417) Ana pide como Jay (ent_) a Beto: se resuelve por la entidad', r.status === 'pending' && leerRelacion(db, JAY, BETO)?.requestedBy === JAY);
+    check('418) y la respuesta no lleva ninguna cuenta', !JSON.stringify(r).includes(ANA) && !('accountUid' in r.from) && !('accountUid' in r.to));
+    const aviso = [...db.docs.entries()].find(([p]) => p.startsWith('notifications/'))?.[1];
+    check('419) el aviso va a la identidad y sale firmado por Jay, sin recipientAccountId', aviso?.recipientId === BETO && aviso.senderId === JAY && !('recipientAccountId' in aviso));
+  }
+  {
+    const { engine } = montarF4();
+    const r = await engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: JAY, haciaIdentidad: LINA });
+    check('420) D6: Jay y Lina (misma cuenta) SÍ pueden conectar', r.status === 'pending');
+    const ok = await engine.accept({ cuentaDeLaSesion: ANA, comoIdentidad: LINA, otraIdentidad: JAY });
+    check('421) y Lina acepta', ok.status === 'accepted');
+  }
+  await rechaza('422) el Perfil Real de Ana no conecta con su propio Jay', () => montarF4().engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: ANA, haciaIdentidad: JAY }), 'misma-persona');
+  await rechaza('423) ni Jay con el Perfil Real de Ana', () => montarF4().engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: JAY, haciaIdentidad: ANA }), 'misma-persona');
+  await rechaza('424) Ana no actúa como Kai (alter ego de Beto)', () => montarF4().engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: KAI, haciaIdentidad: CARO }), 'identidad-ajena');
+  await rechaza('425) un alter ego retirado no es de nadie', () => montarF4().engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: ZOE, haciaIdentidad: BETO }), 'identidad-desconocida');
+  await rechaza('426) un ent_ sin entidad tampoco', () => montarF4().engine.request({ cuentaDeLaSesion: ANA, desdeIdentidad: ANA, haciaIdentidad: ent('nada') }), 'identidad-desconocida');
+  {
+    const { db } = montarF4();
+    const p = alter(JAY);
+    check('427) un perfil ent_ que dice un vínculo con la cuenta no se acepta (el perfil no afirma su dueño)',
+      (await compatF4.cuentaDelPerfilLeido(db, JAY, { ...p, linkedAccountId: ANA })) === null && (await compatF4.cuentaDelPerfilLeido(db, JAY, p)) === ANA);
+  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

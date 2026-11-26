@@ -183,6 +183,31 @@ console.log('\n── B · La frontera con la identidad heredada ──');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+console.log('\n── B2 · La frontera con la segunda forma: alter egos opacos (F2) ──');
+// ════════════════════════════════════════════════════════════════════════════
+{
+  const bd = new FirestoreDeMentira();
+  await cuentas.asegurarCuentaEnWee(bd, CUENTA, AHORA, CUENTA);
+  bd.docs.set(`users/${CUENTA}`, perfilReal());
+  bd.docs.set(`users/${CARA_HEREDADA}`, perfilWee());
+  const alter = await C.crearAlterEgo(cuentas.crearAlmacenDeCuentas(bd), cuentas.azarDelSistema, {
+    accountId: CUENTA, clave: 'alter-1', at: AHORA, limite: 5,
+    perfilDe: (entityId) => compat.perfilNuevoDeAlterEgo(entityId, { displayName: 'Jay Reeds' }, AHORA),
+  });
+  check('13b) el resolutor lee las dos formas: la heredada por su vínculo y el alter ego por su entidad',
+    (await compat.cuentaDeIdentidadLeida(bd, CUENTA)) === CUENTA
+    && (await compat.cuentaDeIdentidadLeida(bd, CARA_HEREDADA)) === CUENTA
+    && (await compat.cuentaDeIdentidadLeida(bd, alter.uid)) === CUENTA);
+  check('13c) un alter ego no hace nacer nada: el disparador lo ignora porque ya nace con entidad',
+    nacimiento.decisionDeNacimiento(bd.docs.get(`users/${alter.uid}`)).accion === 'NADA'
+    && compat.caraDelPerfilGuardado(bd.docs.get(`users/${alter.uid}`)) === null);
+  check('13d) y las caras de la cuenta son las heredadas más los alter egos que guarda',
+    (await compat.identidadesDeLaCuenta(bd, CUENTA)).join() === [CUENTA, CARA_HEREDADA, alter.uid].join());
+  check('13e) el valor guardado de un Perfil Weë sigue saliendo de la MISMA tabla',
+    bd.docs.get(`users/${alter.uid}`).profileType === 'hidi' && !('linkedAccountId' in bd.docs.get(`users/${alter.uid}`)));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 console.log('\n── C · Principal → cuenta: dueño, miembro, ajeno e inactivo ──');
 // ════════════════════════════════════════════════════════════════════════════
 {

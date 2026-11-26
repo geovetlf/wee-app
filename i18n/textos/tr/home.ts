@@ -104,4 +104,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'Weë Brain bölümünü aç',
   feedForYou: 'Sana özel',
   feedCreativity: 'Yaratıcılık',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Şimdi Weë’de',
+  you: 'Sen',
+  guestTitle: 'Kendini özgürce ifade et.',
+  guestHint: 'Kendin olarak ya da alter egoların olarak paylaş, eserini WeëPages’te göster.',
+  premiere: 'Gösterim',
+  presentedBy: 'Sunan: {{nombre}}',
+  viewPage: 'WeëPage’i gör',
+  wallEmptyTitleWork: 'Ẅall ilk eserini bekliyor',
+  wallEmptyHintFaces: 'Kendinden ya da alter egondan bir şey paylaş.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Keşfedilecek evrenler',
+  mosaicTitle: 'Şu an yaratılanlar',
 };

@@ -19,7 +19,7 @@ export const menu: typeof import('../es/menu').menu = {
   createWeeProfile: 'Weë profilimi oluştur',
   credits: 'Credits',
   econtact: 'ËContact',
-  pages: 'Weë Pages',
+  pages: 'WeëPages',
   wcontact: 'ËContact',
   communities: 'Topluluklar',
   weels: 'Weëls',

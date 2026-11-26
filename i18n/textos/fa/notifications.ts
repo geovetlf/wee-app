@@ -20,6 +20,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} در {{comunidad}} پست گذاشت',
   aCommunity: 'یک انجمن',
   generic: '{{nombre}} با شما تعامل کرد',
+  characterNotice: '{{nombre}} برای شما اعلان‌هایی برای بررسی گذاشته است',
   now: 'اکنون',
   markAllRead: 'علامت‌گذاری همه به‌عنوان خوانده‌شده',
   all: 'همه',

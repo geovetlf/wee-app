@@ -37,7 +37,7 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'عرض المتخصصين',
   signOutConfirm: 'هل تريد الخروج من Weë؟',
   /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
-  pages: 'Weë Pages',
+  pages: 'WeëPages',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
   homeWall: 'الرئيسية / Ẅall',
   explore: 'استكشاف',

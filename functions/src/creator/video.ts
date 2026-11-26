@@ -9,7 +9,7 @@ import { loadConfig } from '../engine/config';
 import { asegurarVideoPermitido, hayVideoReal, normalizeVideoRequest, videoApagado, videoEngine, VideoModelPreference, VideoQuality, VideoRequest } from '../engine/video';
 import { creditEngine } from '../credits/creditEngine';
 import { assertRequestId } from '../credits/creditValidation';
-import { priceVideoRequest } from '../credits/aiPricing';
+import { creditosDeUnCoste, priceVideoRequest } from '../credits/aiPricing';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
 import { sanitizeForLog } from '../engine/sanitize';
@@ -25,6 +25,7 @@ import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
 /* Porte de filmmaker/core (2026-11-18): el lote y la cancelación pasan por ESTA misma puerta; el requisito vale el del servidor. */
 import { mismoRequisito, requisitoDelServidor } from './requisitoDelServidor';
 import { generarLote, presupuestarLote } from './lotes';
+import { atenderTransformacion } from '../wite';
 import { canceladaPorLaPersona, cancelarToma } from './cancelacionDeToma';
 import { categoriaDelFallo } from './fallos';
 import { CAPACIDADES_DE_VIDEO, capacidadesConEstado } from '../engine/capacidadesDeVideo';
@@ -193,6 +194,8 @@ interface GenerateVideoInput {
    * vuelve a entrar por esta misma puerta como una toma (`creator/lotes.ts`): no hay cobro del lote.
    */
   produccion?: unknown;
+  /** WITE (Weëls · Transform Your Identity): `{ accion, … }`, lo valida `functions/src/wite`. */
+  transformarIdentidad?: unknown;
   /** FILMMAKER · CANCELAR la toma que dice `plano` (`productionId`, `sceneId`, `unitId`, `take`). No genera ni cobra (`creator/cancelacionDeToma.ts`). */
   cancelar?: boolean;
 }
@@ -388,9 +391,10 @@ const operacionYaReservada = async (uid: string, requestId: string): Promise<boo
   return snap.exists && snap.data()?.userId === uid;
 };
 
-const ownUrls = (values: unknown, uid: string): string[] | undefined => {
+const ownUrls = (values: unknown, uid: string, activosAutorizados: readonly string[] = []): string[] | undefined => {
   if (!Array.isArray(values) || !values.length) return undefined;
-  return values.slice(0, 30).map((value) => assertInputImageUrl(value, uid));
+  /* Un activo autorizado pasa tal cual (lo resuelve ModelArk); cualquier otra cosa tiene que ser de la cuenta en el Storage de Weë. */
+  return values.slice(0, 30).map((value) => (typeof value === 'string' && activosAutorizados.includes(value) ? value : assertInputImageUrl(value, uid)));
 };
 
 /**
@@ -452,7 +456,28 @@ const TARIFA_PROPIA_DE_VIDEO: readonly string[] = ['seedance', 'mock'];
  * sesión, los mismos datos que mandaría la app— sin volver a pasar por la red ni por otra Function. Sin ella, el lote
  * tendría que copiar lo que aquí se decide (porte de filmmaker/core, 2026-11-18).
  */
-const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown> => {
+/**
+ * Opciones que SOLO puede poner el propio servidor (nunca viajan en `data`, así que la app no puede pedirlas):
+ *   · consumoReal → liquidar lo que el proveedor dice que costó (`usage.completion_tokens` → `costUSD`) y no el techo
+ *     cotizado. Lo pide WITE (decisión del dueño, 2026-11-26). Sin ella, todo sigue exactamente como antes.
+ */
+interface OpcionesInternasDeVideo {
+  consumoReal?: boolean;
+  /**
+   * Activos de persona real AUTORIZADOS en BytePlus (`asset://<id>`) que esta llamada puede mandar como referencia.
+   * Solo los pone WITE, leyéndolos de la configuración del servidor para la cuenta y el vídeo concretos; la app no
+   * puede (nunca viajan en `data`). Sin esto, toda referencia tiene que ser un archivo de la cuenta en el Storage de Weë.
+   */
+  activosDePersonaReal?: readonly string[];
+}
+
+/** Lo que se cobra al cerrar: lo reservado, o el consumo real si se pidió y es menor. Nunca más de lo reservado. */
+export const cobroAlCerrar = (reservado: number, consumoReal: boolean, costeUsd: unknown, service: Parameters<typeof creditosDeUnCoste>[0], settings: Parameters<typeof creditosDeUnCoste>[2]): number => {
+  if (!consumoReal || typeof costeUsd !== 'number' || !Number.isFinite(costeUsd) || costeUsd < 0) return reservado;
+  return Math.min(reservado, creditosDeUnCoste(service, costeUsd, settings));
+};
+
+const atenderVideo = async (request: CallableRequest<unknown>, opciones: OpcionesInternasDeVideo = {}): Promise<unknown> => {
   const deadlineAt = Date.now() + PLAZO_DE_VIDEO_MS - RESERVA_PARA_LIQUIDAR_MS;
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
@@ -475,6 +500,19 @@ const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown>
       return data.cotizar === true
         ? await presupuestarLote(uid, data.produccion, lote)
         : await generarLote(uid, data.produccion, data.creditosCotizados, lote);
+    }
+    /*
+     * ── WITE · TRANSFORM YOUR IDENTITY (Weëls, 2026-11-26) ──────────────────
+     *
+     * Por ESTA puerta, como el lote: la edición de vídeo vuelve a entrar aquí con la misma sesión, y el interruptor, la
+     * ruta, la tarifa oficial, el cupo, la reserva y el reembolso son los de siempre. WITE no abre ninguna Function, no
+     * monta ninguna clave más y no pasa por el Core (regla 10): solo añade su puerta (`aiSettings/identityTransform`,
+     * cerrada por defecto), el personaje, el consentimiento, el trabajo y el linaje (`functions/src/wite`).
+     */
+    if (data.transformarIdentidad !== undefined) {
+      const porVideo = (datos: Record<string, unknown>, extra: { activosDePersonaReal?: readonly string[] } = {}): Promise<unknown> =>
+        atenderVideo({ ...request, data: datos }, { consumoReal: true, ...extra });
+      return await atenderTransformacion(uid, data.transformarIdentidad, { porVideo, plazoMs: PLAZO_DE_VIDEO_MS });
     }
     /*
      * ── CANCELAR UNA TOMA ───────────────────────────────────────────────────
@@ -519,7 +557,11 @@ const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown>
     const requestId = deToma?.requestId ? deToma.requestId : assertRequestId(data.requestId);
     const inputImage = deToma ? undefined : data.inputImage || data.inputImageUrl;
     const references = !deToma && data.references
-      ? { images: ownUrls(data.references.images, uid), videos: ownUrls(data.references.videos, uid), audios: ownUrls(data.references.audios, uid) }
+      ? {
+        images: ownUrls(data.references.images, uid, opciones.activosDePersonaReal),
+        videos: ownUrls(data.references.videos, uid, opciones.activosDePersonaReal),
+        audios: ownUrls(data.references.audios, uid),
+      }
       : undefined;
     const videoRequest: VideoRequest = deToma?.peticion ? deToma.peticion : {
       prompt,
@@ -901,12 +943,14 @@ const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown>
           console.error('Content: no se pudo crear el material del vídeo', requestId, sanitizeForLog(error, 300));
         }
       }
-      await creditEngine.completeCredits({ userId: uid, requestId, meta: { generationId: result.generationId, videoUrl: result.output.url } });
+      /* Con consumoReal (solo WITE), se cobra lo que costó de verdad si es menos que lo reservado: el Credit Engine devuelve la diferencia. */
+      const cobrado = cobroAlCerrar(spend.amount, opciones.consumoReal === true, result.costUSD, service, settings);
+      await creditEngine.completeCredits({ userId: uid, requestId, ...(cobrado !== spend.amount ? { finalAmount: cobrado } : {}), meta: { generationId: result.generationId, videoUrl: result.output.url } });
       // El desenlace ya se conoce: se liquida el libro con lo capturado.
       await firestoreLedger
-        .settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: spend.amount })
+        .settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: cobrado })
         .catch((error) => console.error('Weë Studio: no se pudo liquidar el libro', requestId, error));
-      return { generationId: result.generationId, assetId, url: result.output.url, durationSec: result.output.durationSec ?? null, credits: spend.duplicate ? 0 : spend.amount, demo: result.demo, status: 'COMPLETED', duplicate: false };
+      return { generationId: result.generationId, assetId, url: result.output.url, durationSec: result.output.durationSec ?? null, credits: spend.duplicate ? 0 : cobrado, ...(cobrado !== spend.amount ? { reserved: spend.amount } : {}), demo: result.demo, status: 'COMPLETED', duplicate: false };
     } catch (error) {
       // FAILED → reembolso exacto e idempotente
       await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Studio · el video no se pudo generar', source: 'weë-studio' }).catch((refundError) => {
@@ -923,4 +967,5 @@ const atenderVideo = async (request: CallableRequest<unknown>): Promise<unknown>
   }
 };
 
-export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, atenderVideo);
+/* Envuelta: la app nunca puede pasar opciones internas (onCall da como segundo argumento su propio objeto de respuesta). */
+export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, (request) => atenderVideo(request));

@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ficha del personaje — maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!--
+  MAQUETA FIEL a la implementación de screens/CharacterSheetScreen.tsx,
+  components/AutonomiaDelPersonaje.tsx y components/personaje/*.
+  Tokens copiados de components/personaje/estilo.ts; textos en español copiados
+  de i18n/textos/es/character.ts. Los iconos son SVG aproximados a los Ionicons
+  que pinta components/personaje/Iconos.tsx. Datos de ejemplo inventados.
+  ?vista=ficha | autonomia | activar | bandeja | todo (por defecto) · &ancho=390 para capturas
+-->
+<style>
+:root{
+  --fondo:#0A0A0B; --carbon:#111113; --tarjeta:#141416; --superficie:#1A1A1D;
+  --linea:rgba(255,255,255,.08); --lineaMedia:rgba(255,255,255,.14); --lineaFuerte:rgba(255,255,255,.32);
+  --texto:#F5F5F7; --sec:#A1A1AA; --tenue:#8A8A93; --blanco:#fff; --negro:#000; --velo:rgba(255,255,255,.04);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--fondo);color:var(--texto);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+svg{flex:none}
+.barra{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid var(--linea);background:var(--fondo)}
+.atras{width:48px;height:48px;border-radius:24px;display:flex;align-items:center;justify-content:center}
+.barra h1{font-size:13px;line-height:19px;font-weight:500;flex:1;text-align:center}
+.punto{width:8px;height:8px;border-radius:4px;background:#fff}
+.interior{padding:32px 20px 96px;display:flex;justify-content:center}
+@media (min-width:768px){.interior{padding:32px 32px 96px}.barra{padding:8px 24px}}
+.col{width:100%;max-width:760px;display:flex;flex-direction:column;gap:24px}
+.rotulo{font-size:11px;line-height:16px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--tenue)}
+.display{font-size:30px;line-height:36px;font-weight:700;letter-spacing:-.6px;color:#fff}
+.titulo{font-size:22px;line-height:28px;font-weight:600;letter-spacing:-.3px}
+.seccionT{font-size:17px;line-height:24px;font-weight:600;letter-spacing:-.2px}
+.cuerpo{font-size:15px;line-height:22px}
+.peq{font-size:13px;line-height:19px}
+.pf{font-size:13px;line-height:19px;font-weight:500}
+.sec{color:var(--sec)} .ten{color:var(--tenue)}
+.portada{display:flex;flex-direction:column;gap:8px;padding-top:8px}
+.portada p{max-width:560px}
+.tarj{background:#000;border-radius:24px;border:1px solid var(--lineaMedia);padding:24px;display:flex;flex-direction:column;gap:16px}
+.fila{display:flex;align-items:center;gap:8px}
+.entre{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.mono{width:64px;height:64px;border-radius:32px;border:1px solid var(--lineaFuerte);background:var(--carbon);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:#fff;flex:none}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:4px 12px;border-radius:999px;border:1px solid var(--lineaMedia);font-size:13px;line-height:19px}
+.barraP{height:3px;border-radius:999px;background:var(--lineaMedia);overflow:hidden}.barraP i{display:block;height:100%;background:#fff;border-radius:999px}
+.seccion{padding-top:32px;padding-bottom:12px;border-top:1px solid var(--linea)}
+.sCab{display:flex;align-items:center;gap:12px;margin-bottom:12px}.sCab .raya{flex:1;height:1px;background:var(--linea)}
+.sCuerpo{margin-top:24px;display:flex;flex-direction:column;gap:24px}
+.cCab{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px}
+.campo{width:100%;font:400 15px/22px Inter,system-ui;color:var(--texto);background:var(--carbon);border:1px solid var(--lineaMedia);border-radius:12px;padding:12px 16px;min-height:48px}
+.campo.largo{min-height:112px}.campo.foco{border-color:var(--lineaFuerte);background:var(--tarjeta)}
+.campo.vacio{color:var(--tenue)}
+.cont{text-align:right;margin-top:4px;font-size:13px;color:var(--tenue);font-variant-numeric:tabular-nums}
+.op{min-height:48px;padding:0 16px;border-radius:999px;border:1px solid var(--lineaMedia);display:inline-flex;align-items:center;font-size:13px;font-weight:500;color:var(--sec)}
+.op.on{background:#fff;border-color:#fff;color:#0A0A0B}
+.nivel{display:flex;gap:12px;align-items:flex-start;padding:16px;border-radius:18px;border:1px solid var(--linea);background:var(--carbon)}
+.nivel.on{border-color:var(--lineaFuerte);background:var(--superficie)}
+.btn{min-height:52px;border-radius:999px;display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 24px;font-size:15px;font-weight:600;letter-spacing:.1px;text-align:center}
+.btn.p{background:#fff;color:#0A0A0B}.btn.s{border:1px solid var(--lineaFuerte);color:var(--texto)}.btn.off{opacity:.38}
+.cierre{display:flex;flex-direction:column;gap:12px;padding-top:24px;border-top:1px solid var(--linea)}
+.caja{border:1px solid var(--lineaMedia);border-radius:24px;background:var(--tarjeta);padding:24px;display:flex;flex-direction:column;gap:16px}
+.sello{width:40px;height:40px;border-radius:20px;border:1px solid var(--lineaFuerte);background:#000;display:flex;align-items:center;justify-content:center;flex:none}
+.rot{padding:2px 8px;border-radius:999px;border:1px solid var(--lineaMedia);font-size:11px;line-height:16px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--sec);white-space:nowrap}
+.rot.on{background:#fff;border-color:#fff;color:#0A0A0B}
+.cifras{display:flex;flex-wrap:wrap;gap:12px}
+.cifra{flex:1 1 150px;display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:18px;border:1px solid var(--linea);background:var(--carbon)}
+.num{font-size:26px;line-height:32px;font-weight:600;letter-spacing:-.4px;color:#fff;font-variant-numeric:tabular-nums}
+.num small{font-size:15px;font-weight:400;color:var(--tenue)}
+.div{height:1px;background:var(--linea);margin:4px 0}
+.req{padding:12px;border-radius:12px;border:1px solid var(--lineaMedia);background:var(--carbon);align-items:flex-start}
+.aviso{padding:16px;border-radius:18px;border:1px solid var(--linea);background:var(--carbon);display:flex;flex-direction:column;gap:12px}
+.aviso.abierto{border-color:var(--lineaFuerte);background:var(--superficie)}.aviso.res{opacity:.6}
+.borr{border-left:2px solid #fff;padding:4px 0 4px 12px}
+.botones{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}.botones .btn{flex:1 1 140px}
+.pie{display:flex;flex-wrap:wrap;align-items:center;gap:4px 16px}
+[data-v]{display:contents}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-atras" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-identidad" viewBox="0 0 24 24"><path d="M7 19c1-3 1-6 1-8a4 4 0 018 0c0 3 0 6-1 9M12 11c0 3 0 6-1.5 9M4.5 15c.5-1.5.5-3 .5-4a7 7 0 0114 0v1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+    <symbol id="i-caracter" viewBox="0 0 24 24"><path d="M12 3a9 9 0 100 18c1.2 0 1.5-1 1-2s-.2-2 1-2h2a4 4 0 004-4c0-5.5-3.6-10-8-10z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="7.5" cy="12" r="1.2" fill="currentColor"/><circle cx="10" cy="7.5" r="1.2" fill="currentColor"/><circle cx="15" cy="7.5" r="1.2" fill="currentColor"/></symbol>
+    <symbol id="i-mundo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><ellipse cx="12" cy="12" rx="11" ry="4" transform="rotate(-20 12 12)" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-voz" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8.5" cy="10.5" r="1" fill="currentColor"/><circle cx="12" cy="10.5" r="1" fill="currentColor"/><circle cx="15.5" cy="10.5" r="1" fill="currentColor"/></symbol>
+    <symbol id="i-limites" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+    <symbol id="i-nivel" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M4 12h4M12 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="16" cy="7" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="17" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="i-autonomia" viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-reloj" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
+    <symbol id="i-acciones" viewBox="0 0 24 24"><path d="M12 4l9 4.5-9 4.5-9-4.5z M3 13l9 4.5 9-4.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+    <symbol id="i-bandeja" viewBox="0 0 24 24"><path d="M4 13l2.5-8h11L20 13v6H4z M4 13h5a3 3 0 006 0h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+    <symbol id="i-aprobar" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-rechazar" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-delicado" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7.5v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.2" r="1.1" fill="currentColor"/></symbol>
+    <symbol id="i-publicar" viewBox="0 0 24 24"><path d="M19 13v6H5V5h6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M16.5 4.5l3 3L12 15l-3.5.5.5-3.5z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+    <symbol id="i-completo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="currentColor"/><path d="M7.5 12.5l3 3 6-6.5" fill="none" stroke="#0A0A0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-incompleto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-on" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4.5" fill="currentColor"/></symbol>
+    <symbol id="i-off" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+    <symbol id="i-guardar" viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></symbol>
+    <symbol id="i-apagar" viewBox="0 0 24 24"><path d="M12 4v8M7.5 6.8a7 7 0 109 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+    <symbol id="i-bloqueado" viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5" fill="none" stroke="currentColor" stroke-width="1.6"/></symbol>
+  </defs>
+</svg>
+
+<header class="barra">
+  <span class="atras"><svg width="22" height="22" style="color:var(--texto)"><use href="#i-atras"/></svg></span>
+  <h1>Ficha del personaje</h1>
+  <span class="atras"><span class="punto" title="Cambios sin guardar"></span></span>
+</header>
+
+<main class="interior"><div class="col">
+
+<div data-v="ficha">
+  <div class="portada">
+    <span class="rotulo">Perfil Weë</span>
+    <h2 class="display">Dale personalidad a tu personaje</h2>
+    <p class="cuerpo sec">Aquí defines quién es tu personaje y cómo habla. Por ahora lo manejas tú. Más adelante podrás activar que actúe solo con IA, gastando Credits.</p>
+  </div>
+
+  <section class="tarj">
+    <div class="entre"><span class="rotulo">Perfil Weë</span><span class="rotulo">Vista previa</span></div>
+    <div class="fila" style="gap:16px">
+      <div class="mono">J</div>
+      <div style="min-width:0">
+        <div class="display">Jay Reads</div>
+        <div class="peq sec" style="margin-top:4px">Cercano &nbsp;·&nbsp; Medio</div>
+      </div>
+    </div>
+    <p class="cuerpo">Lector incansable que explica libros como si fueran películas.</p>
+    <div class="chips"><span class="chip">Curioso</span><span class="chip">Irónico</span><span class="chip">Paciente</span></div>
+  </section>
+
+  <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:8px">
+    <div class="entre" style="align-items:center"><span class="pf sec">Lo esencial: 4 de 4</span><svg width="16" height="16" style="color:#fff"><use href="#i-completo"/></svg></div>
+    <div class="barraP"><i style="width:100%"></i></div>
+  </div>
+
+  <section class="seccion">
+    <div class="sCab"><span class="rotulo">01</span><span class="raya"></span><svg width="16" height="16" style="color:var(--tenue)"><use href="#i-identidad"/></svg></div>
+    <h3 class="titulo">Identidad</h3>
+    <div class="sCuerpo">
+      <div><div class="cCab"><span class="pf">Nombre del personaje</span><span class="rotulo">Obligatorio</span></div><div class="campo">Jay Reads</div><div class="cont">9 / 60</div></div>
+      <div><div class="cCab"><span class="pf">Quién es</span><span class="rotulo">Obligatorio</span></div><div class="campo largo foco">Lector incansable que explica libros como si fueran películas.</div><div class="cont">63 / 280</div></div>
+    </div>
+  </section>
+
+  <section class="seccion">
+    <div class="sCab"><span class="rotulo">02</span><span class="raya"></span><svg width="16" height="16" style="color:var(--tenue)"><use href="#i-caracter"/></svg></div>
+    <h3 class="titulo">Carácter</h3>
+    <div class="sCuerpo">
+      <div><div class="cCab"><span class="pf">Personalidad</span><span class="rotulo">Obligatorio</span></div><div class="campo largo">Curioso hasta la obsesión, con humor seco. Cree que cada libro es una puerta a otra vida.</div><div class="cont">86 / 800</div></div>
+      <div><div class="cCab"><span class="pf">Rasgos</span><span class="rotulo">Obligatorio</span></div><div class="campo">Curioso, irónico, paciente</div><div class="cont">26 / 200</div></div>
+      <div><div class="pf" style="margin-bottom:8px">Tono de voz</div>
+        <div class="chips"><span class="op on">Cercano</span><span class="op">Formal</span><span class="op">Humorístico</span><span class="op">Poético</span><span class="op">Directo</span><span class="op">Misterioso</span></div></div>
+    </div>
+  </section>
+
+  <section class="seccion">
+    <div class="sCab"><span class="rotulo">03</span><span class="raya"></span><svg width="16" height="16" style="color:var(--tenue)"><use href="#i-mundo"/></svg></div>
+    <h3 class="titulo">Su mundo</h3>
+    <div class="sCuerpo">
+      <div><div class="cCab"><span class="pf">Su historia</span></div><div class="campo largo vacio">De dónde viene, su universo, su obra</div><div class="cont">0 / 1500</div></div>
+      <div><div class="cCab"><span class="pf">Temas favoritos</span></div><div class="campo">Novela negra, ciencia ficción, viajes</div><div class="cont">37 / 240</div></div>
+    </div>
+  </section>
+
+  <section class="seccion">
+    <div class="sCab"><span class="rotulo">04</span><span class="raya"></span><svg width="16" height="16" style="color:var(--tenue)"><use href="#i-voz"/></svg></div>
+    <h3 class="titulo">Su voz</h3>
+    <div class="sCuerpo">
+      <div><div class="cCab"><span class="pf">Ejemplo de cómo habla</span></div><div class="campo largo">«Este libro no se lee: se escucha de noche, con la luz baja.»</div><div class="cont">62 / 600</div></div>
+      <div><div class="cCab"><span class="pf">Cómo saluda en WeeTalk</span></div><div class="campo largo vacio">Lo primero que dice cuando alguien le escribe</div><div class="cont">0 / 300</div></div>
+    </div>
+  </section>
+
+  <section class="seccion">
+    <div class="sCab"><span class="rotulo">05</span><span class="raya"></span><svg width="16" height="16" style="color:var(--tenue)"><use href="#i-limites"/></svg></div>
+    <h3 class="titulo">Sus límites</h3>
+    <div class="sCuerpo">
+      <div><div class="cCab"><span class="pf">Lo que nunca diría ni haría</span></div><div class="campo largo">No hace spoilers sin avisar. No habla de política.</div><div class="cont">50 / 600</div></div>
+    </div>
+  </section>
+
+  <section class="seccion">
+    <div class="sCab"><span class="rotulo">06</span><span class="raya"></span><svg width="16" height="16" style="color:var(--tenue)"><use href="#i-nivel"/></svg></div>
+    <h3 class="titulo">Nivel de autonomía</h3>
+    <p class="peq sec" style="margin-top:4px">Es lo que podrá hacer solo cuando lo actives. Todavía no hace nada por su cuenta.</p>
+    <div class="sCuerpo">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="nivel"><svg width="20" height="20" style="color:var(--tenue)"><use href="#i-off"/></svg><div><div class="cuerpo sec" style="font-weight:500">Básico</div><div class="peq sec" style="margin-top:4px">Responde a lo que le llega. Te pide aprobación para publicar, escribir primero y crear imágenes o vídeos.</div></div></div>
+        <div class="nivel on"><svg width="20" height="20" style="color:#fff"><use href="#i-on"/></svg><div><div class="cuerpo" style="font-weight:500">Medio</div><div class="peq sec" style="margin-top:4px">Publica y crea imágenes por su cuenta, con tope. Te pide aprobación para escribir primero y para los vídeos.</div></div></div>
+        <div class="nivel"><svg width="20" height="20" style="color:var(--tenue)"><use href="#i-off"/></svg><div><div class="cuerpo sec" style="font-weight:500">Alto</div><div class="peq sec" style="margin-top:4px">Actúa solo dentro de sus topes. Solo te consulta en lo delicado: dinero, tus datos personales, salud o conflictos.</div></div></div>
+      </div>
+      <p class="peq sec">Las aprobaciones llegan juntas a una bandeja y caducan a las 24 horas. Lo que caduca no se hace.</p>
+    </div>
+  </section>
+
+  <div class="cierre">
+    <div class="fila"><svg width="18" height="18" style="color:#fff"><use href="#i-completo"/></svg><span class="seccionT">Ficha completa</span></div>
+    <p class="peq sec">Para que hable mejor, añade también su historia, sus temas, lo que nunca diría, un ejemplo de voz y su saludo.</p>
+    <p class="pf">Cambios sin guardar</p>
+    <div class="btn p"><svg width="18" height="18"><use href="#i-guardar"/></svg>Guardar ficha</div>
+  </div>
+</div>
+
+<div data-v="activar">
+  <section class="caja">
+    <div class="fila" style="gap:12px"><span class="sello"><svg width="20" height="20" style="color:#fff"><use href="#i-autonomia"/></svg></span><h3 class="titulo" style="flex:1">Autonomía con IA</h3><span class="rot">Apagada</span></div>
+    <p class="cuerpo sec">Tu personaje puede responder solo en WeeTalk y en los comentarios de sus publicaciones. Cada 24 horas cuestan 30 Credits e incluyen hasta 30 acciones. Lo que encargue a Weë AI se cobra aparte.</p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="fila req"><svg width="16" height="16" style="color:var(--texto);margin-top:2px"><use href="#i-bloqueado"/></svg><span class="peq">Completa y guarda la ficha para poder activarla.</span></div>
+      <div class="pf" style="margin-top:4px">Duración</div>
+      <div class="chips"><span class="op">24 horas</span><span class="op on">3 días</span><span class="op">1 semana</span></div>
+      <p class="peq sec">Hasta 90 Credits en total: 30 al empezar cada día.</p>
+      <div class="btn p off"><svg width="18" height="18"><use href="#i-autonomia"/></svg>Activar · 30 Credits</div>
+    </div>
+  </section>
+</div>
+
+<div data-v="autonomia">
+  <section class="caja">
+    <div class="fila" style="gap:12px"><span class="sello"><svg width="20" height="20" style="color:#fff"><use href="#i-autonomia"/></svg></span><h3 class="titulo" style="flex:1">Autonomía con IA</h3><span class="rot on">Activa</span></div>
+    <p class="cuerpo sec">Tu personaje puede responder solo en WeeTalk y en los comentarios de sus publicaciones. Cada 24 horas cuestan 30 Credits e incluyen hasta 30 acciones. Lo que encargue a Weë AI se cobra aparte.</p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="cifras">
+        <div class="cifra"><div class="fila"><svg width="14" height="14" style="color:var(--tenue)"><use href="#i-reloj"/></svg><span class="rotulo">Tiempo restante</span></div><div class="num">53 h 12 min</div></div>
+        <div class="cifra"><div class="fila"><svg width="14" height="14" style="color:var(--tenue)"><use href="#i-acciones"/></svg><span class="rotulo">Acciones de este día</span></div><div class="num">12<small> / 30</small></div><div class="barraP"><i style="width:40%"></i></div></div>
+      </div>
+      <div class="btn s"><svg width="18" height="18"><use href="#i-apagar"/></svg>Apagar autonomía</div>
+    </div>
+
+    <div data-v="bandeja">
+    <div class="div"></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="fila" style="flex-wrap:wrap"><svg width="18" height="18"><use href="#i-bandeja"/></svg><h4 class="seccionT">Avisos de tu personaje</h4><span class="rot on">Por revisar: 1</span></div>
+      <p class="peq sec">Revísala de una vez, cuando quieras. Lo pendiente caduca a las 24 horas y lo que caduca no se hace.</p>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:4px">
+        <article class="aviso abierto">
+          <div class="fila" style="align-items:flex-start;gap:12px"><svg width="18" height="18" style="margin-top:2px"><use href="#i-publicar"/></svg><div><div class="rotulo">Pide tu aprobación</div><div class="cuerpo" style="font-weight:500;margin-top:2px">Quiere publicar esto</div></div></div>
+          <div class="borr"><p class="cuerpo">Esta semana releí «La invención de Morel». Si nunca lo leíste: es una isla, un hombre solo y una máquina que no debería existir. ¿Alguien más lo tiene en la estantería?</p></div>
+          <div class="pie"><span class="peq sec">hace 2 horas</span><span class="fila" style="gap:4px"><svg width="14" height="14" style="color:var(--sec)"><use href="#i-reloj"/></svg><span class="peq sec">Caduca en 21 h 48 min</span></span></div>
+          <div class="botones"><div class="btn p"><svg width="18" height="18"><use href="#i-aprobar"/></svg>Aprobar</div><div class="btn s"><svg width="18" height="18"><use href="#i-rechazar"/></svg>Rechazar</div></div>
+        </article>
+        <article class="aviso">
+          <div class="fila" style="align-items:flex-start;gap:12px"><svg width="18" height="18" style="margin-top:2px"><use href="#i-delicado"/></svg><div><div class="rotulo">Aviso</div><div class="cuerpo" style="font-weight:500;margin-top:2px">Le hablaron de dinero o pagos</div></div></div>
+          <div class="pie"><span class="peq sec">hace 5 horas</span></div>
+        </article>
+        <article class="aviso res">
+          <div class="fila" style="align-items:flex-start;gap:12px"><svg width="18" height="18" style="margin-top:2px;color:var(--tenue)"><use href="#i-publicar"/></svg><div style="flex:1"><div class="rotulo">Pide tu aprobación</div><div class="cuerpo sec" style="font-weight:500;margin-top:2px">Quiere publicar esto</div></div><span class="rot">Aprobado</span></div>
+          <div class="borr"><p class="cuerpo sec" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">Tres libros para leer en un tren nocturno, de menos a más inquietante. Empiezo por el que menos esperáis…</p></div>
+          <div class="pie"><span class="peq sec">ayer</span></div>
+        </article>
+        <article class="aviso res">
+          <div class="fila" style="align-items:flex-start;gap:12px"><svg width="18" height="18" style="margin-top:2px;color:var(--tenue)"><use href="#i-publicar"/></svg><div style="flex:1"><div class="rotulo">Pide tu aprobación</div><div class="cuerpo sec" style="font-weight:500;margin-top:2px">Quiere publicar esto</div></div><span class="rot">Caducado</span></div>
+          <div class="pie"><span class="peq sec">hace 2 días</span></div>
+        </article>
+      </div>
+    </div>
+    </div>
+  </section>
+</div>
+
+</div></main>
+<script>
+  var q = new URLSearchParams(location.search);
+  var v = q.get('vista') || 'todo';
+  /* Chrome sin ventana no baja de ~500 px de ancho: ?ancho=390 fija el ancho del cuerpo. */
+  if (q.get('ancho')) { document.body.style.width = q.get('ancho') + 'px'; document.body.style.overflow = 'hidden'; }
+  if (v !== 'todo') {
+    document.querySelectorAll('[data-v]').forEach(function (el) {
+      var keep = el.getAttribute('data-v') === v || el.querySelector('[data-v="' + v + '"]');
+      if (!keep) el.style.display = 'none';
+    });
+    if (v === 'bandeja') { // la bandeja sola: se oculta la parte superior de la caja
+      var caja = document.querySelector('[data-v="autonomia"] .caja');
+      Array.from(caja.children).forEach(function (c) { if (!c.matches('[data-v="bandeja"]')) c.style.display = 'none'; });
+      caja.querySelector('.div').style.display = 'none';
+    }
+  }
+</script>
+</body>
+</html>

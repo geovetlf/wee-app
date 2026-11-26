@@ -1,9 +1,9 @@
-import { nombreDeHoyDeHerramienta } from '../utils/sectionFeed';
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { IconoDeTrazo } from './icons/IconoDeTrazo';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
+import { claveDelTipo, herramientaVisible, nombraUnaExperiencia } from '../utils/publicacionDeWeeAi';
 import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { Post } from '../services/firestoreService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -20,17 +20,24 @@ interface HowIMadeItProps {
  * Convierte cada publicación hecha con IA en algo que también enseña.
  */
 const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
-  const t = useT();
+  const { t, formato } = useIdioma();
   const { theme } = useTheme();
   const [promptOpen, setPromptOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   /* Lo guardado no se toca; el nombre de una sección de Weë se pinta con su grafía de hoy (utils/sectionFeed.ts). */
-  const tools = (post.aiTools || []).filter(Boolean).map(nombreDeHoyDeHerramienta);
+  /* Ningún nombre de experiencia a la vista (decisión del dueño, 2026-11-23): lo guardado se pinta como «WeëAI · <qué se hizo>». */
+  const herramienta = herramientaVisible(post.aiTools, post.weeAi ? t(claveDelTipo(post.weeAi.tipo)) : undefined);
+  const tools = herramienta ? [herramienta] : [];
   const prompt = (post.aiPrompt || '').trim();
-  const process = (post.aiProcess || '').trim();
+  /* Un «Cómo lo hice» antiguo que la app escribió con el nombre de la experiencia no se enseña (el dato se queda guardado). */
+  const process = nombraUnaExperiencia(post.aiProcess || '') ? '' : (post.aiProcess || '').trim();
+  /* WeëAI sencillo: «Cómo lo hice» se dice con datos, en el idioma de quien mira; ningún dato técnico. */
+  const weeAi = post.weeAi;
+  const lineaDeWeeAi = weeAi?.segundos ? t('publicar.segundos', { segundos: formato.numero(weeAi.segundos) }) : '';
+  const estiloDe = post.estiloDe;
 
-  if (tools.length === 0 && !prompt && !process) return null;
+  if (tools.length === 0 && !prompt && !process && !weeAi) return null;
 
   const copyPrompt = async () => {
     if (!prompt || !isWeb) return;
@@ -81,6 +88,13 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
             </View>
           ))}
         </View>
+      )}
+
+      {!!lineaDeWeeAi && (
+        <Text style={[styles.processText, { color: theme.colors.textSecondary }]}>{lineaDeWeeAi}</Text>
+      )}
+      {!!estiloDe?.nombre && (
+        <Text style={[styles.processText, { color: theme.colors.textSecondary }]}>{t('publicar.inspiradoEn', { nombre: estiloDe.nombre })}</Text>
       )}
 
       {!!prompt && (

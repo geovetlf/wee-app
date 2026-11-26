@@ -97,4 +97,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'Buka Weë Brain',
   feedForYou: 'Untuk Anda',
   feedCreativity: 'Kreativitas',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Sekarang di Weë',
+  you: 'Kamu',
+  guestTitle: 'Bebas mengekspresikan diri.',
+  guestHint: 'Posting sebagai dirimu atau sebagai alter egomu, dan tampilkan karyamu di WeëPages.',
+  premiere: 'Perdana',
+  presentedBy: 'Dipersembahkan oleh {{nombre}}',
+  viewPage: 'Lihat WeëPage',
+  wallEmptyTitleWork: 'Ẅall menunggu karya pertamanya',
+  wallEmptyHintFaces: 'Posting sesuatu milikmu atau dari alter egomu.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Semesta untuk dijelajahi',
+  mosaicTitle: 'Sedang dibuat sekarang',
 };

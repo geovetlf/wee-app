@@ -26,6 +26,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: 'Phostáil {{nombre}} ar {{comunidad}}',
   aCommunity: 'cheann de na pobail',
   generic: 'D\'idirghníomhaigh {{nombre}} leat',
+  characterNotice: 'D’fhág {{nombre}} fógraí agat le hathbhreithniú',
   now: 'anois',
   markAllRead: 'Marcáil gach ceann mar léite',
   all: 'Gach ceann',

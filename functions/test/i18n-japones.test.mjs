@@ -601,6 +601,9 @@ console.log('\n── J · Traducciones defectuosas ──');
     /* MyWeës (2026-11-15): «Tu espacio» es el rincón personal de accesos (あなたのスペース), no «Tu espacio» de weeai, que es el sitio
        del que la persona sube una foto (空間の写真). */
     'mywees.emptyTitle',
+    /* Ficha del personaje (2026-11-22): «Medio» es el nivel de autonomía (ミドル, en serie con ベーシック), no la duración de un vídeo (標準);
+       «Duración» es el periodo que la autonomía queda encendida, en días (期間), no el largo de un vídeo (長さ). */
+    'character.durationLabel',
   ]);
   const porFrase = new Map();
   for (const [k, v] of JA) {

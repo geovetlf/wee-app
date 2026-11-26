@@ -261,6 +261,9 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['travel.costaRicaName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
     ['travel.islandiaF2', 'WeëTravel (2026-11-06): nombre propio DEMO: el plato «Skyr»'],
     ['travel.baliF2', 'WeëTravel (2026-11-06): nombre propio DEMO: el plato «Satay»'],
+    /* Ficha del personaje (2026-11-22). */
+    ['character.statusLabel', '«Status» es la palabra sueca (SAOL); «Tillstånd» es el estado físico de algo'],
+    ['character.statusLine', '«Status: …», la misma palabra sueca con su hueco'],
   ]);
   const copiadas = SV.filter(([k, v]) => !IGUALES.has(k) && /\p{L}{3,}/u.test(sinLoAjeno(v)) && (ES[k] === v || EN[k] === v));
   check('20) ninguna cadena copiada tal cual del español o del inglés, salvo las que se escriben igual con su porqué',
@@ -497,6 +500,8 @@ console.log('\n── J · Traducciones defectuosas ──');
        (Återställ), no una foto de studio (Restaurera); «Cartel» un letrero de la calle (Skylt), no un póster de studio
        (Affisch); «Subir»/«Bajar» reordenan paradas (Flytta upp/ner), no la grúa de la cámara de studio (Kran upp/ner). */
     'travel.budgetMid', 'travel.viewList', 'travel.catHistory', 'travel.saSolo', 'travel.restore', 'travel.visionSign', 'travel.moveUp', 'travel.moveDown',
+    /* Ficha del personaje (2026-11-22): «Básico»/«Medio» son niveles de autonomía (Grundläggande, Mellan), no el paquete de Credits (Bas) ni el largo de un texto (Halvlång). */
+    'character.levelBasico',
   ]);
   const porFrase = new Map();
   for (const [k, v] of SV) {

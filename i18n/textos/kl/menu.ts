@@ -41,7 +41,7 @@ export const menu: typeof import('../es/menu').menu = {
   showSpecialists: 'Immikkut ilisimasallit takukkit',
   signOutConfirm: 'Weë qimakkusuppiuk?',
   /* Migración de la UI (demo YC) integrada con is/kl, 2026-11-05: traducción de IA, SIN revisión humana nativa. */
-  pages: 'Weë Pages',
+  pages: 'WeëPages',
   /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
   homeWall: 'Aallarnerfik / Ẅall',
   explore: 'Misissuigit',

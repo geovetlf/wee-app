@@ -21,7 +21,7 @@
  *
  * ─── EL ORDEN DEL REDISEÑO (decisión del dueño, 2026-11-15) ──────────────────
  *
- *   Inicio / Ẅall · Weëls · Explorar · Comunidades · Proyectos · Weë Pages
+ *   Inicio / Ẅall · Weëls · Explorar · Comunidades · Proyectos · WeëPages
  *   MyWeës
  *   Guardados · Historial · Credits · Configuración
  *   Ayuda y soporte
@@ -119,7 +119,7 @@ export const MENU_ITEM: Record<MenuItemId, MenuItem> = {
    */
   econtact: { id: 'econtact', icono: 'econtact', clave: 'menu.econtact', emoji: '🤝', label: 'ËContact' },
   /* WeëPages: las Páginas públicas de la cuenta (personajes, empresas, marcas…). Entidades, no caras. */
-  pages: { id: 'pages', icono: 'documento', clave: 'menu.pages', emoji: '📄', label: 'Weë Pages' },
+  pages: { id: 'pages', icono: 'documento', clave: 'menu.pages', emoji: '📄', label: 'WeëPages' },
   communities: { id: 'communities', icono: 'comunidades', clave: 'menu.communities', emoji: '👥', label: 'Comunidades' },
   weels: { id: 'weels', icono: 'weels', clave: 'menu.weels', emoji: '📹', label: 'Weëls' },
   weetalk: { id: 'weetalk', icono: 'weetalk', clave: 'menu.weetalk', emoji: '💬', label: 'WeeTalk' },
@@ -167,7 +167,7 @@ export interface MenuSection {
 /**
  * El orden del menú: las doce entradas, en cuatro grupos.
  *
- *  1. A dónde ir: Inicio / Ẅall, Weëls, Explorar, Comunidades, Proyectos, Weë Pages.
+ *  1. A dónde ir: Inicio / Ẅall, Weëls, Explorar, Comunidades, Proyectos, WeëPages.
  *  2. MyWeës, destacada.
  *  3. Lo tuyo: Guardados, Historial, Credits, Configuración.
  *  4. Ayuda y soporte.

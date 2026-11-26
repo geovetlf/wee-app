@@ -2187,7 +2187,8 @@ console.log('\n── El menú ☰, igual en la app y en la web ──');
   check('M5) Credits aparece una sola vez en cada uno', (limpio(cajon).match(/credits: goCredits/g) || []).length === 1 && (limpio(barra).match(/credits: \{ onPress/g) || []).length === 1);
   check('M5) la barra ya no tiene un "Perfil" suelto además de los dos', !/label="Perfil"/.test(limpio(barra)));
   check('M5) las experiencias salen de su fuente de siempre en el centro creativo; los dos menús llevan a él con la misma tarjeta',
-    /PORTADA_DE_WEEAI/.test(leer3('components/weeai/PortadaWeeAi.tsx')) && !/WEE_EXPERIENCES/.test(cajon) && !/WEE_EXPERIENCES/.test(barra)
+    /* WeëAI sencillo (2026-11-23, decisión del dueño): la portada ya no lista experiencias, solo Imagen, Video corto y Editar mi foto. */
+    /navigation\.navigate\('CrearPublicacion'/.test(leer3('components/weeai/PortadaWeeAi.tsx')) && !/WEE_EXPERIENCES|PORTADA_DE_WEEAI/.test(leer3('components/weeai/PortadaWeeAi.tsx')) && !/WEE_EXPERIENCES/.test(cajon) && !/WEE_EXPERIENCES/.test(barra)
     && /<TarjetaWeeAi variante="menu"/.test(cajon) && /<TarjetaWeeAi variante="menu"/.test(barra));
   check('M5) y ninguno escribe a mano una experiencia', !/Weë Travel|Weë Design|Weë Chef/.test(limpio(cajon) + limpio(barra)));
 
@@ -2295,7 +2296,8 @@ console.log('\n── W · Weë Writer vive dentro de Weë Studio ──');
   check('W3) la tarjeta abre la pantalla de Weë Writer, no su conversación',
     /opens: 'writer', opensSection: true/.test(studio)
     && /if \(action\.opensSection && action\.opens\) \{\s*navigation\.navigate\('Specialist', \{ id: action\.opens \}\);/.test(pantalla));
-  check('W3) que es la misma ruta a la que lleva el centro creativo', /navigation\.navigate\('Specialist', \{ id \}\)/.test(leer4('components/weeai/PortadaWeeAi.tsx')));
+  /* WeëAI sencillo (2026-11-23): la portada ya no abre experiencias; la pantalla del especialista sigue en su ruta, dormida. */
+  check('W3) la ruta de la pantalla del especialista sigue registrada (la portada ya no la abre)', /<Stack\.Screen name="Specialist"/.test(leer4('navigation/MainStackNavigator.tsx')));
   check('W3) y allí sigue estando "Mis documentos"',
     /\{spec\.id === 'writer' && <WriterDocuments \/>\}/.test(pantalla) && /navigation\.navigate\('WriterEditor'/.test(leer4('components/creator/WriterDocuments.tsx')));
   /* Control: solo Writer usa esa marca; las tres áreas de Studio siguen entrando por la conversación. */

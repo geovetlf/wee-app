@@ -7,6 +7,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Δημιουργία',
   talk: 'WeeTalk',
   notifications: 'Ειδοποιήσεις',
+  notificationsUnread: 'Ειδοποιήσεις, έχεις αδιάβαστες ειδοποιήσεις',
   current: 'τρέχουσα ενότητα',
   goTo: 'Μετάβαση σε {{nombre}}',
   weeNavigation: 'Πλοήγηση στο Weë',

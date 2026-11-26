@@ -186,10 +186,23 @@ export const restaurar = (): AccesoDeMyWees[] => [];
 // ─── La clave ───
 
 /**
- * Los dos perfiles, con los nombres que usa `UserProfileContext` (`activeProfileType`): `real` y `hidi`.
- * `hidi` es el identificador guardado del Perfil Weë (heredado; no se renombra).
+ * De qué cara es la lista: `real`, `hidi` (el Perfil Weë heredado, `hidi_<cuenta>`, con la clave de siempre) o la
+ * identidad opaca de un alter ego (`ent_…`, plan de alter egos, 2026-11-23): cada alter ego tiene su MyWeës.
  */
-export type PerfilDeMyWees = 'real' | 'hidi';
+export type PerfilDeMyWees = 'real' | 'hidi' | string;
+
+/** La identidad opaca de un alter ego. Solo filtra la forma: la lista es de este aparato y no da ningún permiso. */
+const FORMA_DE_ALTER_EGO = /^ent_[A-Za-z0-9]{1,64}$/;
+
+/**
+ * La cara con la que se guarda la lista de la cara puesta: el Real es `real`; la heredada (`hidi_<cuenta>`) sigue en
+ * `hidi`, así que su lista de siempre se lee igual; un alter ego `ent_…`, su propia identidad.
+ */
+export const perfilDeMyWees = (cuenta: string | null | undefined, tipo: 'real' | 'hidi', identidad: string | null | undefined): PerfilDeMyWees => {
+  if (tipo !== 'hidi') return 'real';
+  if (typeof identidad === 'string' && FORMA_DE_ALTER_EGO.test(identidad)) return identidad;
+  return 'hidi';
+};
 
 /**
  * La clave de AsyncStorage: una por CUENTA y por PERFIL, con la versión dentro.
@@ -201,7 +214,8 @@ export type PerfilDeMyWees = 'real' | 'hidi';
  */
 export const claveDeMyWees = (cuenta: string | null | undefined, perfil: PerfilDeMyWees): string | null => {
   if (!esTexto(cuenta) || !REF_VALIDA.test(cuenta)) return null;
-  return `wee.mywees.v${VERSION_DE_MYWEES}.${cuenta}.${perfil === 'hidi' ? 'hidi' : 'real'}`;
+  const cara = perfil === 'hidi' ? 'hidi' : typeof perfil === 'string' && FORMA_DE_ALTER_EGO.test(perfil) ? perfil : 'real';
+  return `wee.mywees.v${VERSION_DE_MYWEES}.${cuenta}.${cara}`;
 };
 
 // ─── A dónde lleva ───

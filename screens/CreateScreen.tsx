@@ -28,6 +28,7 @@ import { MURO_GENERAL } from '../utils/sectionFeed';
 import { nombreDeComunidad } from '../utils/comunidadesDeWee';
 import type { Community } from '../services/communityService';
 import { uploadVideoToCloudinary } from '../services/cloudinaryService';
+import { TRANSFORMAR_IDENTIDAD_EN_WEELS } from '../constants/transformarIdentidad';
 import { performAvatarReplacement, uploadImageForSwap, saveFaceSwapResult } from '../services/avatarGenerationService';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
@@ -759,7 +760,7 @@ const CreateScreen: React.FC = () => {
               const blob = await response.blob();
               console.log('✅ Blob creado, tamaño:', blob.size, 'bytes');
 
-              const { fullSize, thumbnail } = await uploadPostImage(blob, user.uid);
+              const { fullSize, thumbnail } = await uploadPostImage(blob, userProfile?.uid || user.uid);
 
               console.log('✅ Imagen full size subida:', fullSize);
               console.log('✅ Thumbnail subido:', thumbnail);
@@ -929,6 +930,12 @@ const CreateScreen: React.FC = () => {
         <Text style={[styles.kindHint, { color: theme.colors.textSecondary }]}>
           {t('composer.weelHint', { segundos: maxVideoDurationSeconds })}
         </Text>
+      )}
+      {/* WITE (2026-11-26): grabarte y ponerte la apariencia de tu personaje. Oculto mientras el flag esté apagado. */}
+      {isWeel && TRANSFORMAR_IDENTIDAD_EN_WEELS && (
+        <TouchableOpacity onPress={() => (navigation as any).navigate('TransformarIdentidad')} accessibilityRole="button" style={styles.entradaWite}>
+          <Text style={[styles.kindHint, { color: tinta, textDecorationLine: 'underline' }]}>{t('weels.witeTitle')}</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -1622,6 +1629,7 @@ const CreateScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  entradaWite: { alignSelf: 'flex-start', paddingVertical: 4 },
   kindHint: {
     fontSize: 12,
     lineHeight: 16,

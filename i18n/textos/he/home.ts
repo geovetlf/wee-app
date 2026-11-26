@@ -109,4 +109,17 @@ export const home: ConPlurales<typeof import('../es/home').home> = {
   openBrain: 'פתיחת Weë Brain',
   feedForYou: 'בשבילך',
   feedCreativity: 'יצירתיות',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'עכשיו ב-Weë',
+  you: 'את/ה',
+  guestTitle: 'להתבטא בחופשיות.',
+  guestHint: 'פרסמו בשמכם או בשם האלטר אגו שלכם, והציגו את היצירה שלכם ב-WeëPages.',
+  premiere: 'בכורה',
+  presentedBy: 'מוצגת על ידי {{nombre}}',
+  viewPage: 'לצפייה ב-WeëPage',
+  wallEmptyTitleWork: 'ה-Ẅall מחכה ליצירה הראשונה',
+  wallEmptyHintFaces: 'פרסמו משהו שלכם או של האלטר אגו שלכם.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'יקומים לגלות',
+  mosaicTitle: 'נוצר עכשיו',
 };

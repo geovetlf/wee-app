@@ -20,6 +20,7 @@ import { nombreDeLaRegion } from '../i18n/formato';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
+import { useDireccion } from '../hooks/useDireccion';
 import ResponsiveLayout from '../components/ResponsiveLayout';
 import { ProfileStackParamList } from '../navigation/ProfileStackNavigator';
 import { confirmAction, notify } from '../utils/notify';
@@ -39,6 +40,8 @@ const SettingsScreen: React.FC = () => {
    */
   const { t, idioma, locale, disponibles } = useIdioma();
   const { theme } = useTheme();
+  /* El rojo de «Eliminar cuenta»: #DC2626 no llega a 4,5:1 sobre el tema oscuro; #F87171 sí. */
+  const rojoDePeligro = theme.dark ? '#F87171' : '#DC2626';
   const { user, logout } = useAuth();
   const { userProfile, realProfile } = useUserProfile();
   const navigation = useNavigation<SettingsNavigationProp>();
@@ -434,6 +437,44 @@ const SettingsScreen: React.FC = () => {
                   </Text>
                 </View>
               </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/*
+          Zona de peligro: eliminar la cuenta. Al final y sobria; el rojo solo
+          en la acción que destruye («Cerrar sesión», arriba, va en el color de
+          texto de siempre). La explicación y la confirmación viven en su pantalla.
+        */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            {t('cuenta.sectionDanger')}
+          </Text>
+
+          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+            <TouchableOpacity
+              style={[styles.settingItem, {
+                backgroundColor: 'transparent',
+                borderBottomWidth: 0,
+              }]}
+              onPress={() => (navigation as any).navigate('EliminarCuenta')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.colors.surface }]}>
+                  <Ionicons name="trash-outline" size={20} color={rojoDePeligro} />
+                </View>
+                <View style={styles.settingText}>
+                  <Text style={[styles.settingTitle, { color: rojoDePeligro }]}>
+                    {t('cuenta.settingsRow')}
+                  </Text>
+                  <Text style={[styles.settingSubtitle, { color: theme.colors.textSecondary }]}>
+                    {t('cuenta.settingsRowHintDesactivar')}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} style={styles.arrow} />
             </TouchableOpacity>
           </View>
         </View>

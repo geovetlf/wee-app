@@ -244,8 +244,12 @@ export const crearModeracion = (deps: ModeracionDeps) => {
     const objetivo = await resolver(db, peticion.targetId);
     if (!objetivo) throw new RechazoDeModeracion('target_not_found');
     const { firmadoPor, ...resuelto } = objetivo;
-    /* Lo propio no se denuncia. Se mira por la entidad, y por la firma heredada cuando no la hay. */
-    if (esContenidoPropio(cuenta.accountId, resuelto) || identidadHeredadaEsDeLaCuenta(firmadoPor, cuenta.accountId)) {
+    /*
+     * Lo propio no se denuncia. Se mira por la entidad, y por la firma de cualquiera de sus caras cuando no la hay: la
+     * heredada por su frontera y los alter egos (F4) por `identidadesWee` de la cuenta que ya se leyó (sin otra lectura).
+     */
+    if (esContenidoPropio(cuenta.accountId, resuelto) || identidadHeredadaEsDeLaCuenta(firmadoPor, cuenta.accountId)
+      || (typeof firmadoPor === 'string' && (cuenta.identidadesWee ?? []).includes(firmadoPor))) {
       throw new RechazoDeModeracion('own_content');
     }
 

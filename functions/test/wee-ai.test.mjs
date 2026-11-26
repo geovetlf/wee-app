@@ -73,8 +73,10 @@ console.log('\n── A · El nombre visible es Weë AI ──');
   check('1) sin la leyenda secundaria debajo del nombre',
     !/Tú eliges el resultado/.test(leer('components/DrawerMenu.tsx'))
     && !/creatorHint|creatorTitles/.test(leer('components/DrawerMenu.tsx')));
-  check('1) y el ☰ y la barra lateral la pintan con la MISMA pieza: la tarjeta de WeëAI, que toma el nombre de su clave',
-    /<TarjetaWeeAi variante="menu"/.test(leer('components/Sidebar.tsx')) && /<TarjetaWeeAi variante="menu"/.test(leer('components/DrawerMenu.tsx'))
+  /* Home 0+ (2026-11-24): WeëAI es una herramienta; en el ☰ y en la barra lateral es una FILA del catálogo, no una tarjeta. */
+  check('1) y el ☰ y la barra lateral la pintan con la MISMA pieza: la fila «creator» del catálogo, que toma el nombre de su clave',
+    /<Opcion id="creator"/.test(leer('components/Sidebar.tsx')) && /fila\('creator', goWeeAi\)/.test(leer('components/DrawerMenu.tsx'))
+    && !/<TarjetaWeeAi/.test(leer('components/Sidebar.tsx')) && !/<TarjetaWeeAi/.test(leer('components/DrawerMenu.tsx'))
     && /t\('nav\.weeAi'\)/.test(leer('components/inicio/TarjetaWeeAi.tsx')) && /weeAi: 'WeëAI'/.test(leer('i18n/textos/es/nav.ts')) && /weeAi: 'WeëAI'/.test(leer('i18n/textos/en/nav.ts')));
 
   /* El marco de las pantallas: la miga de pan por defecto y el rótulo de arriba. */

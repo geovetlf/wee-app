@@ -95,4 +95,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'Abrir Weë Brain',
   feedForYou: 'Para ti',
   feedCreativity: 'Criatividade',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Agora no Weë',
+  you: 'Tu',
+  guestTitle: 'Sê livre para te expressares.',
+  guestHint: 'Publica como tu ou como os teus alter egos, e mostra a tua obra nas WeëPages.',
+  premiere: 'Estreia',
+  presentedBy: 'Apresentada por {{nombre}}',
+  viewPage: 'Ver WeëPage',
+  wallEmptyTitleWork: 'O Ẅall espera a sua primeira obra',
+  wallEmptyHintFaces: 'Publica algo teu ou do teu alter ego.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Universos para descobrir',
+  mosaicTitle: 'O que se está a criar agora',
 };

@@ -227,6 +227,19 @@ export const sistemaDeMedida = (locale: string): 'metrico' | 'imperial' => {
   return region && SIN_SISTEMA_METRICO.includes(region) ? 'imperial' : 'metrico';
 };
 
+/**
+ * Una duración (en milisegundos) como horas y minutos, con las unidades del
+ * locale: «5 h 30 min», «5 Std. 30 Min.»… Se usa para el tiempo que le queda al
+ * pase de autonomía del personaje. Menos de un minuto cuenta como un minuto.
+ */
+export const formatearDuracion = (ms: number, locale: string): string => {
+  const totalMin = Math.max(1, Math.ceil(Math.max(0, ms) / 60_000));
+  const horas = Math.floor(totalMin / 60), minutos = totalMin % 60;
+  const parte = (valor: number, unit: 'hour' | 'minute') => formatearNumero(valor, locale, { style: 'unit', unit, unitDisplay: 'short', maximumFractionDigits: 0 });
+  if (!horas) return parte(minutos, 'minute');
+  return minutos ? `${parte(horas, 'hour')} ${parte(minutos, 'minute')}` : parte(horas, 'hour');
+};
+
 /** Una distancia en metros, escrita como se escribe en ese sitio. */
 export const formatearDistancia = (metros: number, locale: string): string => {
   const imperial = sistemaDeMedida(locale) === 'imperial';

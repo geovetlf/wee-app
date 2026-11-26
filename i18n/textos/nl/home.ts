@@ -91,4 +91,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'Weë Brain openen',
   feedForYou: 'Voor jou',
   feedCreativity: 'Creativiteit',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Nu op Weë',
+  you: 'Jij',
+  guestTitle: 'Wees vrij om je te uiten.',
+  guestHint: 'Post als jezelf of als je alter ego’s, en laat je werk zien op WeëPages.',
+  premiere: 'Première',
+  presentedBy: 'Gepresenteerd door {{nombre}}',
+  viewPage: 'WeëPage bekijken',
+  wallEmptyTitleWork: 'De Ẅall wacht op zijn eerste werk',
+  wallEmptyHintFaces: 'Post iets van jezelf of van je alter ego.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Universums om te ontdekken',
+  mosaicTitle: 'Nu gemaakt',
 };

@@ -61,6 +61,10 @@ import { filmmakerDocumentos } from './filmmakerDocumentos';
 import { filmmakerImagenes } from './filmmakerImagenes';
 import { filmmakerDirector } from './filmmakerDirector';
 import { filmmakerProd } from './filmmakerProd';
+import { character } from './character';
+import { cuenta } from './cuenta';
+import { publicar } from './publicar';
+import { alterEgo } from './alterEgo';
 export const es = {
   common,
   help,
@@ -112,6 +116,10 @@ export const es = {
   filmmakerImagenes,
   filmmakerDirector,
   filmmakerProd,
+  character,
+  cuenta,
+  publicar,
+  alterEgo,
 };
 
 /**

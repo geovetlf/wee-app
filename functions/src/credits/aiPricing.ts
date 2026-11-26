@@ -71,6 +71,14 @@ const creditsOf = (service: CreditService, usd: number, settings: Pick<EngineSet
   return Math.max(getCreditCost(service), atCost);
 };
 
+/**
+ * LOS CREDITS DE UN COSTE YA CONOCIDO (WITE, 2026-11-26: «liquidar el consumo real»). La MISMA fórmula que el precio
+ * —`creditsOf`, con su margen, su modo y su suelo del catálogo—, aplicada al coste que devolvió el proveedor en vez del
+ * techo cotizado. No hay un segundo cálculo de precios: solo se le da nombre público a la función que ya existía.
+ */
+export const creditosDeUnCoste = (service: CreditService, usd: number, settings: Pick<EngineSettings, 'pricingMode' | 'creditsPerUsd' | 'margin'>): number =>
+  creditsOf(service, usd, settings);
+
 // ──────── COSTE DE PROVEEDOR DE CUALQUIER OPERACIÓN (texto, voz, búsqueda, audio) ────────
 
 /**

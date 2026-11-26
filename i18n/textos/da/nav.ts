@@ -20,6 +20,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Opret',
   talk: 'WeeTalk',
   notifications: 'Notifikationer',
+  notificationsUnread: 'Notifikationer, du har ulæste beskeder',
   current: 'aktuel side',
   goTo: 'Gå til {{nombre}}',
   weeNavigation: 'Weë-navigation',

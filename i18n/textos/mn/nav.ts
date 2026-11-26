@@ -7,6 +7,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Үүсгэх',
   talk: 'WeeTalk',
   notifications: 'Мэдэгдэл',
+  notificationsUnread: 'Мэдэгдэл, уншаагүй мэдэгдэл байна',
   current: 'одоогийн хэсэг',
   goTo: 'Очих: {{nombre}}',
   weeNavigation: 'Weë навигац',

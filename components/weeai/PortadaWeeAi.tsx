@@ -1,107 +1,120 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, LayoutChangeEvent } from 'react-native';
+import { View, Text, StyleSheet, LayoutChangeEvent, TouchableOpacity, Platform } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import type { NombreDeIcono } from '../icons/trazosDeWee';
+import { IconoWee } from '../icons/IconoWee';
 import { CabeceraDePortada } from './CabeceraDePortada';
 import { HeroDePortada } from './HeroDePortada';
-import { ModulosDePortada, ModuloDePortada, HUECO_DE_MODULOS } from './ModulosDePortada';
+import { PuertasDePortada, PuertaDePortada, ALTO_DE_PUERTA, HUECO_DE_PUERTAS } from './PuertasDePortada';
 import CajaDePrompt, { AccionDeLaCaja } from '../creator/CajaDePrompt';
 import { CajaAnclada } from '../creator/CajaQueCrece';
-import { useT } from '../../contexts/IdiomaContext';
+import { useIdioma } from '../../contexts/IdiomaContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useResponsive } from '../../hooks/useResponsive';
-import { MUSICA_EN_LA_UI, PORTADA_DE_WEEAI } from '../../constants/weeExperiences';
-import { MUNDO_3D_EN_LA_APP, FILMMAKER_EN_LA_APP } from '../../constants/studioExperiences';
-import { ESPACIO_WEEAI as SPACING } from '../../constants/estiloWeeAi';
-
-/* Qué se ofrece sale de la bandera de siempre (PORTADA_DE_WEEAI); ninguna experiencia ni id se mueve. */
-const HAY_IMAGEN = (PORTADA_DE_WEEAI.puertas as readonly string[]).includes('design');
+import { useDireccion } from '../../hooks/useDireccion';
+import { useBorradores } from '../../hooks/useBorradores';
+import { dejarFotoPendiente } from '../../utils/fotoPendiente';
+import { MAX_WEEL_SEC } from '../../utils/publicacionDeWeeAi';
+import { PORTADA_WEEAI as P, textoPortada, ESPACIO_WEEAI as SPACING } from '../../constants/estiloWeeAi';
 
 const ANCHO_MAXIMO = 760;
 /** Lo que mide la cabecera y lo mínimo que se reserva al hero cuando la caja crece. */
 const ALTO_DE_CABECERA = 56;
 const ALTO_MINIMO_DEL_HERO = 70;
-/** Aire entre la caja y la rejilla. */
+/** Aire entre la caja y las puertas. */
 const AIRE = 12;
-/** Holgura constante entre la última fila y la barra inferior (>= 16 dp en cualquier altura). */
+/** Holgura constante entre lo último y la barra inferior (>= 16 dp en cualquier altura). */
 const HOLGURA_SOBRE_LA_BARRA = 20;
-/** Lo que mide la caja vacía con sus botones (campo de una línea + fila de botones + aire); la rejilla se calcula con lo que queda. */
+/** Lo que mide la caja vacía con sus botones; las puertas y el hero se reparten lo que queda. */
 const ALTO_DE_LA_CAJA_VACIA = 112;
+/** La fila de píldoras discretas (Borradores) cuando hay algo que enseñar. */
+const ALTO_DE_DISCRETOS = 48;
+const ALTO_DE_PUERTAS_EN_FILA = 170;
 
 /**
- * LA PORTADA DE WEËAI v2 — PANTALLA FIJA (2026-11-17): cabecera, hero, la caja común y la rejilla de módulos caben SIEMPRE en una
- * sola pantalla, sin desplazarse. Lo que sobra o falta se reparte entre el hero (que se comprime) y las tarjetas (cuyo alto
- * se ajusta a la altura de la ventana); la caja crece con lo escrito hasta un tope y el texto se desplaza DENTRO de ella.
- * Las plantillas y las herramientas ya no viven aquí: son los módulos «Plantillas» y «Herramientas», cada uno con su pantalla propia
- * (`PantallaDePlantillas`, `ListaDeHerramientas`).
+ * LA PORTADA DE WEËAI SENCILLA (boceto aprobado por el dueño, 2026-11-23) — PANTALLA FIJA: cabecera, hero, la caja común y
+ * TRES puertas para publicar —Imagen, Video corto y Editar mi foto— caben siempre en una pantalla, sin desplazarse.
+ *
+ * Lo que cambia frente a la v2: la rejilla de ocho módulos pasa a tres puertas en filas a lo ancho (en escritorio, en fila);
+ * Filmmaker y Music no aparecen (archivados, docs/ARCHIVO.md) y la caja pierde el botón de Audio. El «+» de la caja ya no está
+ * en «Próximamente»: adjunta una foto y lleva a «Editar mi foto». Escribir y enviar sin elegir nada sigue yendo a Weë Brain;
+ * con Imagen o Video marcados, va a crear eso mismo con la idea ya escrita. Debajo, la píldora discreta de Borradores (solo si
+ * hay alguno; de retos de comunidad no hay datos todavía y no se inventan).
+ *
  * El saldo y la compra viven en la cabecera (`CreditsPill`): aquí no hay precios ni lógica de Credits.
  */
 export const PortadaWeeAi: React.FC = () => {
-  const t = useT();
+  const { t, formato } = useIdioma();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { isDesktop } = useResponsive();
+  const dir = useDireccion();
+  const borradores = useBorradores();
   /* La caja universal: lo escrito y, si se marcó imagen o video, el contexto con el que viaja. Sin marca, Weë Brain. */
   const [texto, setTexto] = useState('');
   const [tipo, setTipo] = useState<null | 'imagen' | 'video'>(null);
   const [medida, setMedida] = useState({ ancho: 0, alto: 0 });
 
   const conCuenta = (fn: () => void) => () => (user ? fn() : navigation.navigate('Login'));
-  const irA = (id: string) => navigation.navigate('Specialist', { id });
-  /* La caja es la misma inteligencia que las demás: solo cambia el experienceId que viaja (Brain, o el de imagen o video si se marcó). */
+  const crear = (tipoDeCreacion: 'imagen' | 'video' | 'editar', idea?: string) => navigation.navigate('CrearPublicacion', { tipo: tipoDeCreacion, ...(idea ? { idea } : {}) });
+  /* La caja es la misma inteligencia que las demás (CLAUDE.md §10): sin marca, Weë Brain; con Imagen o Video, esa creación. */
   const enviar = conCuenta(() => {
     const goal = texto.trim();
     if (!goal) return;
-    const experienceId = tipo === 'imagen' ? 'design' : tipo === 'video' ? 'studio' : 'brain';
     setTexto('');
-    navigation.navigate('CreatorFlow', { experienceId, goal });
+    if (tipo) crear(tipo, goal);
+    else navigation.navigate('CreatorFlow', { experienceId: 'brain', goal });
+  });
+
+  /* El «+»: una foto de la galería → «Editar mi foto». La foto viaja en memoria, nunca en la ruta. */
+  const adjuntarFoto = conCuenta(async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permiso.granted) return;
+      }
+      const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.9, allowsMultipleSelection: false });
+      if (r.canceled || !r.assets?.[0]?.uri) return;
+      dejarFotoPendiente(r.assets[0].uri);
+      crear('editar', texto.trim() || undefined);
+      setTexto('');
+    } catch {
+      /* Sin galería (permiso negado o cancelado): no pasa nada y la portada sigue donde estaba. */
+    }
   });
 
   const acciones: AccionDeLaCaja[] = [
-    { icono: 'add', iconoWee: 'mas', etiqueta: `${t('studio.addLabel')}. ${t('common.comingSoon')}`, alPulsar: () => {}, deshabilitada: true },
+    { icono: 'add', iconoWee: 'mas', etiqueta: t('publicar.adjuntarFoto'), alPulsar: () => { void adjuntarFoto(); } },
   ];
   const accionesDerecha: AccionDeLaCaja[] = [
-    ...(HAY_IMAGEN ? [{ icono: 'image-outline', iconoWee: 'galeria' as NombreDeIcono, etiqueta: t('composer.kindImage'), alPulsar: () => setTipo((v) => (v === 'imagen' ? null : 'imagen')), activa: tipo === 'imagen' }] : []),
-    { icono: 'videocam-outline', iconoWee: 'claqueta' as NombreDeIcono, etiqueta: t('composer.kindVideo'), alPulsar: () => setTipo((v) => (v === 'video' ? null : 'video')), activa: tipo === 'video' },
-    { icono: 'pulse', iconoWee: 'ondas' as NombreDeIcono, etiqueta: `${t('creaciones.kindAudio')}. ${t('common.comingSoon')}`, alPulsar: () => {}, deshabilitada: true },
+    { icono: 'image-outline', iconoWee: 'galeria' as NombreDeIcono, etiqueta: t('publicar.puertaImagen'), alPulsar: () => setTipo((v) => (v === 'imagen' ? null : 'imagen')), activa: tipo === 'imagen' },
+    { icono: 'videocam-outline', iconoWee: 'claqueta' as NombreDeIcono, etiqueta: t('publicar.puertaVideo'), alPulsar: () => setTipo((v) => (v === 'video' ? null : 'video')), activa: tipo === 'video' },
   ];
 
-  /* Cada módulo va a su flujo REAL o queda apagado con «Próximamente»: nada simulado. */
-  const m = {
-    imagen: { id: 'imagen', icono: 'galeria', clave: 'composer.kindImage', textura: 'imagen', alPulsar: HAY_IMAGEN ? () => irA('design') : undefined } as ModuloDePortada,
-    video: { id: 'video', icono: 'claqueta', clave: 'composer.kindVideo', textura: 'video', alPulsar: () => navigation.navigate('CrearVideo') } as ModuloDePortada,
-    audio: { id: 'audio', icono: 'ondas', clave: 'creaciones.kindAudio', textura: 'audio', alPulsar: MUSICA_EN_LA_UI ? () => irA('music') : undefined } as ModuloDePortada,
-    /* Filmmaker: la producción existe (`Production`) pero su puerta está cerrada (`FILMMAKER_EN_LA_APP`): abierta desde 2026-11-17, navega a Production; cerrada, «Próximamente» y sin navegar. */
-    filmmaker: { id: 'filmmaker', icono: 'camaraCine', clave: 'weeai.portadaFilmmaker', textura: 'video', alPulsar: FILMMAKER_EN_LA_APP ? () => navigation.navigate('Filmmaker') : undefined } as ModuloDePortada,
-    texto: { id: 'texto', icono: 'texto', clave: 'composer.kindText', textura: 'texto' } as ModuloDePortada,
-    tresD: { id: 'tresD', icono: 'cubo', clave: 'creaciones.kindModel3d', textura: 'tresD', alPulsar: MUNDO_3D_EN_LA_APP ? () => navigation.navigate('Mundo3D') : undefined } as ModuloDePortada,
-    plantillas: { id: 'plantillas', icono: 'plantillas', clave: 'weeai.portadaPlantillas', textura: 'imagen', alPulsar: () => navigation.navigate('Plantillas') } as ModuloDePortada,
-    herramientas: { id: 'herramientas', icono: 'capas', clave: 'weeai.tools', textura: 'mas', alPulsar: () => navigation.navigate('Herramientas') } as ModuloDePortada,
-  };
+  const puertas: PuertaDePortada[] = [
+    { id: 'imagen', icono: 'galeria', nombre: t('publicar.puertaImagen'), desc: t('publicar.puertaImagenDesc'), alPulsar: conCuenta(() => crear('imagen')) },
+    { id: 'video', icono: 'claqueta', nombre: t('publicar.puertaVideo'), desc: t('publicar.puertaVideoDesc', { segundos: formato.numero(MAX_WEEL_SEC) }), alPulsar: conCuenta(() => crear('video')) },
+    { id: 'editar', icono: 'pincel', nombre: t('publicar.puertaEditar'), desc: t('publicar.puertaEditarDesc'), alPulsar: conCuenta(() => crear('editar')) },
+  ];
 
-  /*
-   * LA MEDIDA (v2, ronda 4): tarjetas SIEMPRE cuadradas e iguales, tres por fila y la última de dos centrada (Imagen · Video · Filmmaker /
-   * Audio · Texto · Plantillas / 3D · Herramientas). El lado es el que da el ancho, o el que deja la altura si es menor: con pantallas bajas
-   * las tarjetas se achican y con las altas sobra sitio para el hero, que ocupa lo que quede arriba (con el arco anclado arriba).
-   */
+  /* El reparto vertical: las puertas tienen su alto; el hero se queda con lo que sobre (con un mínimo) y la caja crece hasta su tope. */
   const ancho = medida.ancho || ANCHO_MAXIMO;
   const alto = isDesktop ? Math.max(medida.alto, 720) : medida.alto || 700;
-  const anchoUtil = ancho - SPACING.md * 2;
-  const modulos = [m.imagen, m.video, m.filmmaker, m.audio, m.texto, m.plantillas, m.tresD, m.herramientas];
-  const ladoPorAncho = Math.floor((anchoUtil - HUECO_DE_MODULOS * 2) / 3);
-  const presupuestoDeRejilla = alto - (isDesktop ? 0 : ALTO_DE_CABECERA) - HOLGURA_SOBRE_LA_BARRA - ALTO_DE_LA_CAJA_VACIA - AIRE * 2 - ALTO_MINIMO_DEL_HERO;
-  const ladoPorAlto = Math.floor((presupuestoDeRejilla - HUECO_DE_MODULOS * 2) / 3);
-  const lado = Math.max(56, Math.min(ladoPorAncho, ladoPorAlto, 132));
-  /* Si las tarjetas son más estrechas que el ancho, el hueco entre ellas se reparte (entre 10 y 24). */
-  const hueco = Math.max(HUECO_DE_MODULOS, Math.min(24, Math.floor((anchoUtil - 3 * lado) / 2)));
-  const altoDeRejilla = 3 * lado + 2 * hueco;
-  /* Hasta dónde crece la caja: lo que queda tras la cabecera, la rejilla, el aire y un hero mínimo. */
-  const topeDeLaCaja = Math.max(130, alto - (isDesktop ? 0 : ALTO_DE_CABECERA) - altoDeRejilla - HOLGURA_SOBRE_LA_BARRA - AIRE * 2 - ALTO_MINIMO_DEL_HERO);
+  const conDiscretos = !!borradores.projectId && borradores.total > 0;
+  const altoDePuertas = isDesktop ? ALTO_DE_PUERTAS_EN_FILA : puertas.length * ALTO_DE_PUERTA + (puertas.length - 1) * HUECO_DE_PUERTAS;
+  const topeDeLaCaja = Math.max(
+    130,
+    alto - (isDesktop ? 0 : ALTO_DE_CABECERA) - altoDePuertas - (conDiscretos ? ALTO_DE_DISCRETOS : 0) - HOLGURA_SOBRE_LA_BARRA - AIRE * 2 - ALTO_MINIMO_DEL_HERO,
+  );
 
   return (
     <View style={styles.raiz} onLayout={(e: LayoutChangeEvent) => { const { width, height } = e.nativeEvent.layout; setMedida((antes) => (Math.abs(antes.ancho - width) > 1 || Math.abs(antes.alto - height) > 1 ? { ancho: Math.round(width), alto: Math.round(height) } : antes)); }}>
       {!isDesktop ? <CabeceraDePortada /> : null}
-      <HeroDePortada ancho={ancho} />
+      {/* En escritorio el marco no reparte la altura (se desplaza): el hero lleva la suya, como en el boceto (330). */}
+      <View style={isDesktop ? styles.heroEscritorio : styles.heroTelefono}>
+        <HeroDePortada ancho={ancho} etiqueta={t('publicar.heroEtiqueta')} titulo={t('publicar.heroTitulo')} sub={t('publicar.heroSub')} />
+      </View>
       <View style={[styles.bloque, { marginBottom: AIRE }]}>
         <CajaAnclada alto={topeDeLaCaja}>
           <CajaDePrompt
@@ -116,9 +129,23 @@ export const PortadaWeeAi: React.FC = () => {
           />
         </CajaAnclada>
       </View>
-      <View style={[styles.bloque, { paddingBottom: HOLGURA_SOBRE_LA_BARRA }]}>
-        <ModulosDePortada modulos={modulos} lado={lado} hueco={hueco} />
+      <View style={[styles.bloque, { paddingBottom: conDiscretos ? 0 : HOLGURA_SOBRE_LA_BARRA }]}>
+        <PuertasDePortada puertas={puertas} enFila={isDesktop} />
       </View>
+      {conDiscretos ? (
+        <View style={[styles.bloque, styles.discretos, dir.contenedor, { paddingBottom: HOLGURA_SOBRE_LA_BARRA }]}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Project', { id: borradores.projectId })}
+            style={[styles.pildora, dir.contenedor]}
+            accessibilityRole="button"
+            accessibilityLabel={t('publicar.borradoresConTotal', { total: formato.numero(borradores.total) })}
+          >
+            <IconoWee name="carpeta" size={15} color={P.tintaSecundaria} />
+            <Text style={[textoPortada(13, '600'), { color: P.tinta }]} numberOfLines={1}>{t('publicar.borradores')}</Text>
+            <Text style={[textoPortada(13, '500'), { color: P.tintaSecundaria }]} numberOfLines={1}>{formato.numero(borradores.total)}</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -126,4 +153,8 @@ export const PortadaWeeAi: React.FC = () => {
 const styles = StyleSheet.create({
   raiz: { flex: 1, width: '100%', maxWidth: ANCHO_MAXIMO, alignSelf: 'center' },
   bloque: { paddingHorizontal: SPACING.md },
+  heroTelefono: { flex: 1, minHeight: ALTO_MINIMO_DEL_HERO },
+  heroEscritorio: { height: 330 },
+  discretos: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, paddingTop: AIRE },
+  pildora: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 13, borderRadius: 999, backgroundColor: P.superficie, borderColor: P.borde, borderWidth: 1 },
 });

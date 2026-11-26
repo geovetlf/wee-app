@@ -124,7 +124,7 @@ console.log('── A · Una notificación se firma con la identidad de quien es
   /*
    * Los avisos con la forma EXACTA que escribe la app (`notificationService.createNotification`: `addDoc` con
    * `read: false` y `createdAt: Timestamp.now()`, sin los campos `undefined`), uno por cada creador que la usa hoy:
-   * el like (antes `useLikes`, retirado el 2026-10-01 sin uso), `useComentarios` (comment) y `econtactService` (econtact_request / econtact_accepted).
+   * el like (antes `useLikes`, retirado el 2026-10-01 sin uso), `useComentarios` (comment). Los de ËContact ya no los crea la app (F1, 2026-11-23).
    */
   const ahora = () => new Date();
   const avatar = { senderAvatar: 'https://res.cloudinary.com/wee/image/upload/v1/avatars/ana.jpg', senderAvatarType: 'custom' };
@@ -138,11 +138,18 @@ console.log('── A · Una notificación se firma con la identidad de quien es
   await esperar('2) y con su Perfil Weë, que también es suyo (un comentario, como useComentarios)', 'PERMITE', 'PATCH', '/notifications/n2', {
     uid: ANA, body: doc(like(WEE_ANA, { type: 'comment', commentId: 'c1', commentContent: 'Qué bueno'.substring(0, 100) })),
   });
-  await esperar('2b) una solicitud de ËContact entre caras Weë, con la cuenta de quien recibe (econtactService)', 'PERMITE', 'PATCH', '/notifications/n2b', {
-    uid: ANA, body: doc({ type: 'econtact_request', recipientId: `hidi_${BETO}`, senderId: WEE_ANA, senderName: 'Ana Weë', senderAvatarType: 'predefined', senderAvatarId: 'av3', recipientAccountId: BETO, senderProfileType: 'wee', read: false, createdAt: ahora() }),
+  /*
+   * F1 del plan de alter egos (2026-11-23): los avisos de ËContact los escribe el SERVIDOR (requestEContact /
+   * acceptEContact) y ningún cliente escribe `recipientAccountId`, que unía la identidad que recibe con su cuenta.
+   */
+  await esperar('2b) una solicitud de ËContact escrita por el cliente: ya NO (la escribe el servidor)', 'DENIEGA', 'PATCH', '/notifications/n2b', {
+    uid: ANA, body: doc({ type: 'econtact_request', recipientId: `hidi_${BETO}`, senderId: WEE_ANA, senderName: 'Ana Weë', senderAvatarType: 'predefined', senderAvatarId: 'av3', senderProfileType: 'wee', read: false, createdAt: ahora() }),
   });
-  await esperar('2c) y la aceptación, desde la cuenta', 'PERMITE', 'PATCH', '/notifications/n2c', {
-    uid: ANA, body: doc({ type: 'econtact_accepted', recipientId: BETO, senderId: ANA, senderName: 'Ana', recipientAccountId: BETO, senderProfileType: 'real', read: false, createdAt: ahora() }),
+  await esperar('2c) ni la aceptación', 'DENIEGA', 'PATCH', '/notifications/n2c', {
+    uid: ANA, body: doc({ type: 'econtact_accepted', recipientId: BETO, senderId: ANA, senderName: 'Ana', senderProfileType: 'real', read: false, createdAt: ahora() }),
+  });
+  await esperar('2c-bis) ni un aviso de los que sí crea la app con la cuenta de quien recibe (recipientAccountId)', 'DENIEGA', 'PATCH', '/notifications/n2cb', {
+    uid: ANA, body: doc(like(ANA, { recipientAccountId: BETO })),
   });
   await esperar('2d) una vista previa de 100 emojis cortada como la corta la app (substring(0, 100)) cabe', 'PERMITE', 'PATCH', '/notifications/n2d', {
     uid: ANA, body: doc(like(ANA, { postContent: '🎬'.repeat(100).substring(0, 100) })),
@@ -544,6 +551,31 @@ console.log('\n── J · El país de la cuenta se fija en el registro (jurisdi
   check('75) después no se cambia: nadie «se muda» para cambiar de ruta', (await escribir('/users/perfilFede', FEDE, { country: 'US' })) >= 400);
   check('76) ni se borra', (await escribir('/users/perfilFede', FEDE, { country: null })) >= 400);
   check('77) y el resto del perfil se sigue editando sin tocar el país', (await escribir('/users/perfilFede', FEDE, { bio: 'hola' })) < 400);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+console.log('\n── K · Weë Pages: la cuenta dueña no está en el documento público (F1, 2026-11-23) ──');
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  const leerDoc = (ruta, uid) => pedir('GET', ruta, { uid });
+  await sembrar('/pages/pgBorrador', { type: 'character', name: 'Jay Reeds', handle: 'jay.reeds', status: 'draft' });
+  await sembrar('/pages/pgBorrador/private/ownership', { ownerAccountId: ANA, pageId: 'pgBorrador' });
+  await sembrar('/pages/pgPublicada', { type: 'character', name: 'Lina', handle: 'lina', status: 'published' });
+  await sembrar('/pages/pgPublicada/private/ownership', { ownerAccountId: ANA, pageId: 'pgPublicada' });
+  await sembrar('/pages/pgAntigua', { type: 'brand', name: 'Antigua', handle: 'antigua', status: 'draft', ownerAccountId: ANA });
+  await sembrar(`/accounts/${ANA}/pages/pgBorrador`, { pageId: 'pgBorrador' });
+
+  check('78) su cuenta lee el borrador por el privado (get)', (await leerDoc('/pages/pgBorrador', ANA)) < 400);
+  check('79) otra cuenta no', (await leerDoc('/pages/pgBorrador', BETO)) >= 400);
+  check('80) la publicada la lee cualquiera', (await leerDoc('/pages/pgPublicada', BETO)) < 400);
+  check('81) la propiedad la lee solo su cuenta', (await leerDoc('/pages/pgPublicada/private/ownership', ANA)) < 400
+    && (await leerDoc('/pages/pgPublicada/private/ownership', BETO)) >= 400);
+  check('82) una Página antigua (campo público) se sigue leyendo por su dueña', (await leerDoc('/pages/pgAntigua', ANA)) < 400 && (await leerDoc('/pages/pgAntigua', BETO)) >= 400);
+  check('83) el índice de Páginas de la cuenta lo lee solo ella', (await leerDoc(`/accounts/${ANA}/pages/pgBorrador`, ANA)) < 400
+    && (await leerDoc(`/accounts/${ANA}/pages/pgBorrador`, BETO)) >= 400);
+  check('84) nadie escribe la propiedad desde el cliente', (await escribir('/pages/pgBorrador/private/ownership', BETO, { ownerAccountId: BETO })) >= 400
+    && (await escribir('/pages/pgBorrador/private/ownership', ANA, { ownerAccountId: ANA })) >= 400);
+  check('85) ni el índice', (await escribir(`/accounts/${ANA}/pages/pgOtra`, ANA, { pageId: 'pgOtra' })) >= 400);
 }
 
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');

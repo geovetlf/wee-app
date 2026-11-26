@@ -22,4 +22,9 @@ config.resolver.blockList = [
   projectDir('design'),
 ];
 
+/* TEMPORAL-CAPTURAS: no versionar. */
+const realNM = require('fs').realpathSync(path.join(__dirname, 'node_modules'));
+config.watchFolders = [...(config.watchFolders || []), realNM];
+config.resolver.nodeModulesPaths = [...(config.resolver.nodeModulesPaths || []), realNM];
+
 module.exports = config;

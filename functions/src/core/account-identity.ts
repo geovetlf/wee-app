@@ -51,12 +51,27 @@ import {
  */
 
 /**
- * La versión del contrato de identidad de CUENTA. Es `2.0` porque sustituye a
+ * La versión del contrato de identidad de CUENTA. Fue `2.0` porque sustituyó a
  * la convención de la Fase 10 —identificador de entidad formado con el número
  * de la cuenta y una serie correlativa de números— por identificadores opacos.
  * Vive aquí, y no en `contracts.ts`, hasta que la sustitución se apruebe.
+ *
+ * Es `2.1` desde el plan de alter egos (2026-11-23): una cuenta puede tener
+ * varios Perfiles Weë (`crearAlterEgo`), de la secuencia 3 en adelante cabe un
+ * Perfil Weë además de una Página, la cuenta guarda `identidadesWee` y
+ * `weeProfileEntityIds`, y una entidad puede quedar `RETIRED`. Es un cambio
+ * compatible: todo lo escrito con `2.0` sigue siendo válido y se sigue leyendo.
+ * Lo NUEVO se escribe con `2.1`.
  */
-export const ACCOUNT_IDENTITY_CONTRACT_VERSION = '2.0' as const;
+export const ACCOUNT_IDENTITY_CONTRACT_VERSION = '2.1' as const;
+
+/** Las versiones que los lectores aceptan: la de hoy y la anterior, compatible. */
+export const VERSIONES_LEIDAS_DEL_CONTRATO_DE_CUENTA: readonly string[] = Object.freeze(['2.0', '2.1']);
+
+export type VersionDelContratoDeCuenta = '2.0' | typeof ACCOUNT_IDENTITY_CONTRACT_VERSION;
+
+const versionLeida = (v: unknown): boolean =>
+  typeof v === 'string' && VERSIONES_LEIDAS_DEL_CONTRATO_DE_CUENTA.includes(v);
 
 /* ── El principal: quién está autenticado ───────────────────────────────── */
 
@@ -184,6 +199,9 @@ export type EstadoDeCuenta = 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
 
 export const ESTADOS_DE_CUENTA: readonly EstadoDeCuenta[] = Object.freeze(['ACTIVE', 'SUSPENDED', 'CLOSED'] as const);
 
+/** Los estados de una entidad. `RETIRED` llega con 2.1: un alter ego que su dueño retiró. */
+export const ESTADOS_DE_ENTIDAD: readonly EntityStatus[] = Object.freeze(['ACTIVE', 'SUSPENDED', 'DELETED', 'RETIRED'] as const);
+
 /**
  * LA CUENTA. Un documento por cuenta, que escribe solo el servidor.
  *
@@ -194,7 +212,7 @@ export const ESTADOS_DE_CUENTA: readonly EstadoDeCuenta[] = Object.freeze(['ACTI
  * entre ellas y no con las del resto del mundo.
  */
 export interface CuentaWee {
-  contract: typeof ACCOUNT_IDENTITY_CONTRACT_VERSION;
+  contract: VersionDelContratoDeCuenta;
   /** Opaco. Hoy, el uid del principal que la fundó. */
   accountId: AccountId;
   /** Nueve dígitos. Inmutable desde que se asigna. */
@@ -204,9 +222,25 @@ export interface CuentaWee {
   foundingPrincipalId: PrincipalId;
   /** La entidad del Perfil Real. Nace con la cuenta. */
   realProfileEntityId: EntityId;
-  /** La del Perfil Weë, si ya existe. */
+  /**
+   * La del PRIMER Perfil Weë, el de la secuencia 2, si ya existe. Es la ranura
+   * de la cara heredada y se conserva aunque se retire, para que la secuencia 2
+   * no se vuelva a dar. Los alter egos nuevos NO la ocupan: van en las listas.
+   */
   weeProfileEntityId?: EntityId;
-  /** La siguiente secuencia libre para una Página. Nunca baja. */
+  /**
+   * 2.1 · Los `users.uid` de los Perfiles Weë VIVOS de la cuenta: el heredado,
+   * si lo hay, y los alter egos opacos. Es lo que leerán las reglas para saber
+   * de quién es una cara sin mirar ningún prefijo. Solo lo escribe el servidor.
+   */
+  identidadesWee?: readonly string[];
+  /** 2.1 · Las entidades de esos mismos Perfiles Weë vivos. */
+  weeProfileEntityIds?: readonly EntityId[];
+  /**
+   * La siguiente secuencia libre de la cuenta a partir de la 3. Nunca baja.
+   * Desde 2.1 es el contador COMÚN de toda entidad ≥3 —Páginas y alter egos—;
+   * el nombre del campo no cambia porque ya está escrito en los datos.
+   */
   nextPageSequence: number;
   createdAt: number;
   updatedAt: number;
@@ -228,7 +262,7 @@ export interface ReferenciaDePerfil {
  * sirve para CREAR, y lo guardado es lo que manda al leer.
  */
 export interface EntidadDeCuenta extends EntityRef {
-  contract: typeof ACCOUNT_IDENTITY_CONTRACT_VERSION;
+  contract: VersionDelContratoDeCuenta;
   entityId: EntityId;
   ownerAccountId: AccountId;
   entityType: EntityType;
@@ -252,7 +286,7 @@ export type EstadoDeMembresia = 'ACTIVE' | 'INVITED' | 'REVOKED';
  * empresa tenga dueño, administrador y contable, no hay que inventar nada.
  */
 export interface MembresiaDePrincipal {
-  contract: typeof ACCOUNT_IDENTITY_CONTRACT_VERSION;
+  contract: VersionDelContratoDeCuenta;
   accountId: AccountId;
   principalId: PrincipalId;
   role: RolDeCuenta;
@@ -268,15 +302,26 @@ export interface MembresiaDePrincipal {
 
 const esEntero = (v: unknown): v is number => Number.isSafeInteger(v);
 
+/** Un `users.uid` que puede viajar en una lista de la cuenta: texto corto, sin barras ni espacios. */
+const esUidDePerfil = (v: unknown): v is string =>
+  typeof v === 'string' && v.length > 0 && v.length <= 200 && !/[/\s]/.test(v);
+
+/* Las listas de 2.1 son opcionales (una cuenta 2.0 no las tiene) y, si están, sin repetidos y acotadas. */
+const listaValida = (l: unknown, valido: (v: unknown) => boolean): boolean =>
+  l === undefined
+  || (Array.isArray(l) && l.length <= TECHO_DE_ALTER_EGOS_POR_CUENTA + 1 && l.every(valido) && new Set(l).size === l.length);
+
 export const cuentaWeeValida = (c: CuentaWee | undefined): boolean =>
   !!c && typeof c === 'object'
-  && c.contract === ACCOUNT_IDENTITY_CONTRACT_VERSION
+  && versionLeida(c.contract)
   && esIdDeCuenta(c.accountId)
   && esNumeroDeCuentaCanonico(c.accountNumber)
   && (ESTADOS_DE_CUENTA as readonly string[]).includes(c.status)
   && esIdDePrincipal(c.foundingPrincipalId)
   && esIdDeEntidad(c.realProfileEntityId)
   && (c.weeProfileEntityId === undefined || esIdDeEntidad(c.weeProfileEntityId))
+  && listaValida(c.identidadesWee, esUidDePerfil)
+  && listaValida(c.weeProfileEntityIds, esIdDeEntidad)
   && esEntero(c.nextPageSequence) && c.nextPageSequence >= PRIMERA_SECUENCIA_DE_PAGE
   && esEntero(c.createdAt) && esEntero(c.updatedAt);
 
@@ -291,7 +336,8 @@ export const referenciaDePerfilValida = (r: ReferenciaDePerfil | undefined): boo
  */
 export const entidadDeCuentaValida = (e: EntidadDeCuenta | undefined): boolean =>
   !!e && typeof e === 'object'
-  && e.contract === ACCOUNT_IDENTITY_CONTRACT_VERSION
+  && versionLeida(e.contract)
+  && (ESTADOS_DE_ENTIDAD as readonly string[]).includes(e.status)
   && esIdDeEntidad(e.entityId)
   && esIdDeCuenta(e.ownerAccountId)
   && esTipoDeEntidad(e.entityType)
@@ -305,7 +351,7 @@ export const entidadDeCuentaValida = (e: EntidadDeCuenta | undefined): boolean =
 
 export const membresiaValida = (m: MembresiaDePrincipal | undefined): boolean =>
   !!m && typeof m === 'object'
-  && m.contract === ACCOUNT_IDENTITY_CONTRACT_VERSION
+  && versionLeida(m.contract)
   && esIdDeCuenta(m.accountId) && esIdDePrincipal(m.principalId)
   && (ROLES_DE_CUENTA as readonly string[]).includes(m.role)
   && ['ACTIVE', 'INVITED', 'REVOKED'].includes(m.status)
@@ -340,6 +386,13 @@ export interface TransaccionDeCuentas {
   guardarEntidad(entidad: EntidadDeCuenta): void;
   guardarOperacion(accountId: AccountId, clave: string, entityId: EntityId, at: number): void;
   actualizarCuenta(accountId: AccountId, campos: Partial<CuentaWee>): void;
+  /** 2.1 · Cambia campos de una entidad que ya existe (retirar un alter ego). */
+  actualizarEntidad(entityId: EntityId, campos: Partial<EntidadDeCuenta>): void;
+  /**
+   * 2.1 · Crea el documento del perfil de un alter ego. Falla si ya existía: el
+   * id es el de la entidad recién sorteada, así que un choque repite la transacción.
+   */
+  guardarPerfil(uid: string, perfil: Readonly<Record<string, unknown>>): void;
 }
 
 export interface AlmacenDeCuentas {
@@ -578,6 +631,247 @@ export const crearPagina = async (
     tx.guardarOperacion(datos.accountId, datos.clave, entityId, datos.at);
     tx.actualizarCuenta(datos.accountId, { nextPageSequence: secuencia + 1, updatedAt: datos.at });
     return { entidad, creada: true };
+  });
+};
+
+/* ── Alter egos: más Perfiles Weë en la misma cuenta (contrato 2.1) ─────── */
+
+/**
+ * CUÁNTOS PERFILES WEË PUEDE TENER UNA CUENTA.
+ *
+ * Por defecto 1 (decisión del dueño, 2026-11-26: «por el momento solo un Perfil Weë»; sustituye al 5 de D1, 2026-11-23).
+ * Una cuenta = su Perfil Real + UN Perfil Weë. Las cuentas que ya tengan más los conservan: el límite solo frena el
+ * siguiente que se cree. Se puede bajar o subir en
+ * la configuración del servidor (`identitySettings/limites.alterEgosPorCuenta`),
+ * pero NUNCA por encima del techo de aquí: la configuración puede cerrar, no
+ * abrir más de lo que el código permite. El mismo patrón que la capacidad de
+ * un canary. La cara heredada, si existe, cuenta para el límite.
+ */
+export const ALTER_EGOS_POR_CUENTA_POR_DEFECTO = 1;
+export const TECHO_DE_ALTER_EGOS_POR_CUENTA = 10;
+
+/** Lo configurado → el límite que vale. Lo que no sea un entero ≥0 vale el de por defecto; lo que pase del techo, el techo. */
+export const limiteDeAlterEgos = (configurado: unknown): number => {
+  if (!Number.isSafeInteger(configurado) || (configurado as number) < 0) return ALTER_EGOS_POR_CUENTA_POR_DEFECTO;
+  return Math.min(configurado as number, TECHO_DE_ALTER_EGOS_POR_CUENTA);
+};
+
+/** Por qué no se pudo crear o retirar un alter ego. Sin datos dentro: ni la cuenta, ni el número. */
+export type MotivoDeAlterEgo =
+  | 'cuenta-no-nacida'
+  | 'cuenta-inactiva'
+  | 'limite-alcanzado'
+  | 'clave-de-otra-operacion'
+  | 'perfil-invalido'
+  | 'alter-ego-ajeno';
+
+export class AlterEgoRechazado extends Error {
+  constructor(public readonly motivo: MotivoDeAlterEgo) {
+    super(`alter ego: ${motivo}`);
+    this.name = 'AlterEgoRechazado';
+  }
+}
+
+/** Lo que devuelve crear un alter ego. NUNCA la cuenta, su número ni su secuencia. */
+export interface AlterEgoCreado {
+  /** El `users.uid` del alter ego: es su identificador de entidad. */
+  uid: string;
+  entityId: EntityId;
+  /** false cuando la misma clave ya lo había creado. */
+  creada: boolean;
+}
+
+export interface AlterEgoRetirado {
+  uid: string;
+  entityId: EntityId;
+  /** false cuando ya estaba retirado (o la misma clave ya lo retiró). */
+  retirada: boolean;
+}
+
+/** Una clave de idempotencia que puede ser id de documento. */
+const claveValida = (v: unknown): v is string =>
+  typeof v === 'string' && v.length > 0 && v.length <= 200 && !/[/\s]/.test(v) && v !== '.' && v !== '..';
+
+/** Las operaciones de retirada van en su propio espacio de claves: la misma clave no puede crear y retirar. */
+const claveDeRetirada = (clave: string): string => `retirada-${clave}`;
+
+/** Campos que nunca pueden viajar en el documento PÚBLICO de un alter ego. */
+const CAMPOS_PROHIBIDOS_EN_EL_PERFIL = Object.freeze(['linkedAccountId', 'ownerAccountId', 'accountId', 'accountNumber', 'entitySequence']);
+
+/**
+ * LO QUE LA CUENTA YA TIENE: sus Perfiles Weë vivos, según la cuenta 2.1 y su
+ * ranura de la secuencia 2. Si la cara heredada está viva y aún no figura en
+ * las listas (una cuenta 2.0), se añade aquí: cuenta para el límite.
+ *
+ * `perfilHeredado` es el `uid` de esa cara LEÍDO de los datos por quien llama
+ * —la frontera de compatibilidad—, para las cuentas cuya cara no tiene entidad
+ * todavía. El Core no lo compone ni lo interpreta.
+ */
+const perfilesWeeVivos = async (
+  tx: TransaccionDeCuentas,
+  cuenta: CuentaWee,
+  perfilHeredado: string | undefined,
+): Promise<{ identidades: string[]; entidades: EntityId[] }> => {
+  const identidades = [...(cuenta.identidadesWee ?? [])];
+  const entidades = [...(cuenta.weeProfileEntityIds ?? [])];
+  if (cuenta.weeProfileEntityId) {
+    const primera = await tx.leerEntidad(cuenta.weeProfileEntityId);
+    if (primera && primera.ownerAccountId === cuenta.accountId && primera.entityType === 'WEE_PROFILE'
+      && primera.status === 'ACTIVE' && primera.profileRef) {
+      if (!identidades.includes(primera.profileRef.uid)) identidades.unshift(primera.profileRef.uid);
+      if (!entidades.includes(primera.entityId)) entidades.unshift(primera.entityId);
+    }
+  } else if (perfilHeredado && esUidDePerfil(perfilHeredado) && perfilHeredado !== cuenta.accountId
+    && !identidades.includes(perfilHeredado)) {
+    identidades.unshift(perfilHeredado);
+  }
+  return { identidades, entidades };
+};
+
+/**
+ * UN PERFIL WEË MÁS (un alter ego) EN LA CUENTA. Gratis (D3).
+ *
+ * En UNA transacción, idempotente por `clave` como `crearPagina`:
+ *   1. comprueba el límite (la cara heredada viva cuenta);
+ *   2. toma la secuencia del contador común `nextPageSequence` (≥3, nunca se reutiliza);
+ *   3. crea la entidad WEE_PROFILE, ACTIVE, con `profileRef.uid == entityId`;
+ *   4. crea `users/{entityId}` con el perfil que construye `perfilDe`;
+ *   5. añade el uid a `identidadesWee` y la entidad a `weeProfileEntityIds`.
+ *
+ * El perfil lo construye quien llama (`perfilDe(entityId)`), porque los
+ * valores guardados de `users` son de la frontera de compatibilidad, no del
+ * Core. Lo que el Core SÍ exige: que el perfil diga `uid` y `entityId` iguales
+ * al identificador sorteado y que no lleve ningún vínculo con la cuenta —el
+ * documento de `users` se lee en público—.
+ *
+ * `weeProfileEntityId` no se toca: es la ranura de la secuencia 2.
+ */
+export const crearAlterEgo = async (
+  almacen: AlmacenDeCuentas,
+  azar: Azar,
+  datos: {
+    accountId: AccountId;
+    clave: string;
+    at: number;
+    /** Ya resuelto con `limiteDeAlterEgos`; aun así se vuelve a acotar aquí. */
+    limite: number;
+    perfilDe: (entityId: EntityId) => Readonly<Record<string, unknown>>;
+    perfilHeredado?: string;
+  },
+): Promise<AlterEgoCreado> => {
+  if (!esIdDeCuenta(datos.accountId)) throw new Error('crearAlterEgo: cuenta inválida');
+  if (!claveValida(datos.clave)) throw new Error('crearAlterEgo: hace falta una clave de idempotencia válida');
+  if (!esEntero(datos.at)) throw new Error('crearAlterEgo: instante inválido');
+  if (typeof datos.perfilDe !== 'function') throw new Error('crearAlterEgo: falta quién construye el perfil');
+  const limite = limiteDeAlterEgos(datos.limite);
+
+  return almacen.enTransaccion(async (tx) => {
+    const cuenta = await tx.leerCuenta(datos.accountId);
+    if (!cuenta) throw new AlterEgoRechazado('cuenta-no-nacida');
+
+    const hecha = await tx.leerOperacion(datos.accountId, datos.clave);
+    if (hecha) {
+      const entidad = await tx.leerEntidad(hecha.entityId);
+      if (!entidad || entidad.ownerAccountId !== datos.accountId || entidad.entityType !== 'WEE_PROFILE' || !entidad.profileRef) {
+        throw new AlterEgoRechazado('clave-de-otra-operacion');
+      }
+      return Object.freeze({ uid: entidad.profileRef.uid, entityId: entidad.entityId, creada: false });
+    }
+    if (cuenta.status !== 'ACTIVE') throw new AlterEgoRechazado('cuenta-inactiva');
+
+    const { identidades, entidades } = await perfilesWeeVivos(tx, cuenta, datos.perfilHeredado);
+    if (identidades.length >= limite) throw new AlterEgoRechazado('limite-alcanzado');
+
+    const secuencia = Math.max(cuenta.nextPageSequence, PRIMERA_SECUENCIA_DE_PAGE);
+    const entityId = idDeEntidadDesdeBytes(azar.bytes(LARGO_SORTEADO_DEL_ID_DE_ENTIDAD));
+    if (!entityId) throw new Error('crearAlterEgo: no se pudo formar el identificador');
+
+    const perfil = datos.perfilDe(entityId);
+    if (!perfil || typeof perfil !== 'object' || Array.isArray(perfil)
+      || perfil.uid !== entityId || perfil.entityId !== entityId
+      || CAMPOS_PROHIBIDOS_EN_EL_PERFIL.some((k) => k in perfil)) {
+      throw new AlterEgoRechazado('perfil-invalido');
+    }
+
+    const entidad: EntidadDeCuenta = Object.freeze({
+      contract: ACCOUNT_IDENTITY_CONTRACT_VERSION,
+      entityId,
+      ownerAccountId: datos.accountId,
+      entityType: 'WEE_PROFILE' as const,
+      entitySequence: secuencia,
+      profileRef: Object.freeze({ coleccion: 'users' as const, uid: entityId }),
+      status: 'ACTIVE' as const,
+      createdAt: datos.at,
+      updatedAt: datos.at,
+    });
+    if (!entidadDeCuentaValida(entidad)) throw new Error('crearAlterEgo: la entidad no cumple el contrato');
+
+    tx.guardarEntidad(entidad);
+    tx.guardarPerfil(entityId, perfil);
+    tx.guardarOperacion(datos.accountId, datos.clave, entityId, datos.at);
+    tx.actualizarCuenta(datos.accountId, {
+      contract: ACCOUNT_IDENTITY_CONTRACT_VERSION,
+      nextPageSequence: secuencia + 1,
+      identidadesWee: [...identidades, entityId],
+      weeProfileEntityIds: [...entidades, entityId],
+      updatedAt: datos.at,
+    });
+    return Object.freeze({ uid: entityId, entityId, creada: true });
+  });
+};
+
+/**
+ * RETIRAR UN ALTER EGO. INMEDIATO (decisión del dueño D10): sin los 30 días de
+ * la cuenta.
+ *
+ * En el Core, en una transacción idempotente por `clave`:
+ *   · la entidad pasa a `RETIRED` y deja de resolver como identidad;
+ *   · sale de `identidadesWee` y de `weeProfileEntityIds`, así que el hueco del
+ *     límite se libera en ese mismo commit;
+ *   · su secuencia NO se reutiliza: `nextPageSequence` no baja.
+ *
+ * Lo que NO hace: borrar sus datos (publicaciones, ficha, material, Storage,
+ * ẄContacts…). Eso es de la fase 4 y tiene su contrato en
+ * `cuenta/borrado.ts` → `planDeBorradoDeUnAlterEgo`, que se ejecuta DESPUÉS de
+ * este commit con el `uid` que devuelve esta función. Si la cara retirada es
+ * la heredada, la fase 4 tiene además que quitarle el vínculo guardado en su
+ * perfil, porque la identidad heredada se resuelve por ese vínculo.
+ */
+export const retirarAlterEgo = async (
+  almacen: AlmacenDeCuentas,
+  datos: { accountId: AccountId; entityId: EntityId; clave: string; at: number },
+): Promise<AlterEgoRetirado> => {
+  if (!esIdDeCuenta(datos.accountId)) throw new Error('retirarAlterEgo: cuenta inválida');
+  if (!esIdDeEntidad(datos.entityId)) throw new AlterEgoRechazado('alter-ego-ajeno');
+  if (!claveValida(datos.clave)) throw new Error('retirarAlterEgo: hace falta una clave de idempotencia válida');
+  if (!esEntero(datos.at)) throw new Error('retirarAlterEgo: instante inválido');
+  const clave = claveDeRetirada(datos.clave);
+
+  return almacen.enTransaccion(async (tx) => {
+    const cuenta = await tx.leerCuenta(datos.accountId);
+    if (!cuenta) throw new AlterEgoRechazado('cuenta-no-nacida');
+    const hecha = await tx.leerOperacion(datos.accountId, clave);
+    const entidad = await tx.leerEntidad(datos.entityId);
+    /* Ajena, inexistente o que no es un Perfil Weë: la misma respuesta, para no confirmar que existe. */
+    if (!entidad || entidad.ownerAccountId !== datos.accountId || entidad.entityType !== 'WEE_PROFILE' || !entidad.profileRef) {
+      throw new AlterEgoRechazado('alter-ego-ajeno');
+    }
+    const uid = entidad.profileRef.uid;
+    if (hecha) {
+      if (hecha.entityId !== datos.entityId) throw new AlterEgoRechazado('clave-de-otra-operacion');
+      return Object.freeze({ uid, entityId: entidad.entityId, retirada: false });
+    }
+    if (entidad.status === 'RETIRED') return Object.freeze({ uid, entityId: entidad.entityId, retirada: false });
+
+    tx.actualizarEntidad(entidad.entityId, { contract: ACCOUNT_IDENTITY_CONTRACT_VERSION, status: 'RETIRED', updatedAt: datos.at });
+    tx.guardarOperacion(datos.accountId, clave, entidad.entityId, datos.at);
+    tx.actualizarCuenta(datos.accountId, {
+      contract: ACCOUNT_IDENTITY_CONTRACT_VERSION,
+      identidadesWee: (cuenta.identidadesWee ?? []).filter((x) => x !== uid),
+      weeProfileEntityIds: (cuenta.weeProfileEntityIds ?? []).filter((x) => x !== entidad.entityId),
+      updatedAt: datos.at,
+    });
+    return Object.freeze({ uid, entityId: entidad.entityId, retirada: true });
   });
 };
 

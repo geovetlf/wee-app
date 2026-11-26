@@ -28,4 +28,5 @@ export const avisos: typeof import('../../es/servidor/avisos').avisos = {
   fotoUnica: 'صورة لمرة واحدة',
   imagen: '📷 صورة',
   audio: '🎤 رسالة صوتية',
+  paraLaCara: 'إلى {{destino}}: {{titulo}}',
 };

@@ -134,7 +134,7 @@
       [
         "@react-native-google-signin/google-signin",
         {
-          "iosUrlScheme": "com.googleusercontent.apps.600935858829-f92ar5236mquqjdnpumddlpkp87qqfdm"
+          "iosUrlScheme": "com.googleusercontent.apps.546769059837-dnbs4q376nuj3dunrdfm6nt8og65v1cg"
         }
       ],
       "react-native-compressor",
@@ -150,7 +150,7 @@
         }
       ]
     ],
-    "owner": "giacomogonzales20",
+    "owner": "weeapp",
     "updates": {
       "enabled": false
     },

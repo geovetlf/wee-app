@@ -38,6 +38,8 @@ export interface Message {
   viewOnce?: boolean;       // true = photo disappears after viewing
   viewOnceOpened?: boolean;  // true = recipient already opened it
   ephemeral?: boolean;      // true = message sent in vanish mode
+  /** Lo escribió un personaje con autonomía (IA); lo pone SOLO el servidor. La app lo marca «Personaje con IA». */
+  autonomo?: boolean;
 }
 
 export interface ParticipantData {

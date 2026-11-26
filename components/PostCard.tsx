@@ -63,6 +63,8 @@ import { getCachedAspectRatio, setCachedAspectRatio, fetchAndCacheAspectRatio } 
 import { getCachedVideoAspectRatio, setCachedVideoAspectRatio, fetchAndCacheVideoAspectRatio, proporcionDeLaMedida } from '../utils/videoDimensionCache';
 import { nombreDeComunidad } from '../utils/comunidadesDeWee';
 import { MARCA } from '../constants/marca';
+import { puedeRecrear } from '../utils/publicacionDeWeeAi';
+import EtiquetaPersonajeWee from './personaje/EtiquetaPersonajeWee';
 
 // Enable LayoutAnimation on Android (not on web)
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -189,7 +191,7 @@ const PostCard: React.FC<PostCardProps> = ({
   /* Monocromo (2026-11-16): la tinta del tema reemplaza al verde, al rojo y al dorado de los estados; el dorado→naranja queda para las acciones principales. */
   const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
   const { user } = useAuth();
-  const { userProfile: activeProfile, realProfile, weeProfile } = useUserProfile();
+  const { userProfile: activeProfile, realProfile, weeProfile, alterEgos = [] } = useUserProfile();
   const navigation = useNavigation<PostCardNavigationProp>();
   const isFocused = useIsFocused();
 
@@ -1166,7 +1168,9 @@ const PostCard: React.FC<PostCardProps> = ({
    * publicación que se VE: en un repost, la original. El servidor lo comprueba
    * igual; aquí solo se evita ofrecer un botón que no va a servir.
    */
-  const puedeDenunciar = ![user?.uid, realProfile?.uid, weeProfile?.uid].filter(Boolean).includes(displayPost.userId);
+  /* Ninguna cara propia se denuncia a sí misma: ni el Real ni CUALQUIERA de los alter egos de la cuenta. */
+  const puedeDenunciar = ![user?.uid, realProfile?.uid, weeProfile?.uid].filter(Boolean).includes(displayPost.userId)
+    && !alterEgos.some((a) => a.uid === displayPost.userId);
   const displayAuthor = isRepost && originalPost ? postAuthor : postAuthor;
 
   // Si es un repost y todavía está cargando el original, mostrar loading
@@ -1371,7 +1375,7 @@ const PostCard: React.FC<PostCardProps> = ({
             </Text>
             <View style={styles.metaRow}>
               <Text style={[styles.timestamp, { color: theme.colors.textSecondary }]}>
-                {getRelativeTime(post.createdAt.toDate(), locale)}
+                {post.autonomo ? <EtiquetaPersonajeWee /> : null}{getRelativeTime(post.createdAt.toDate(), locale)}
               </Text>
               {/*
                 El contexto: de dónde viene esta publicación. La comunidad lleva a
@@ -1450,6 +1454,22 @@ const PostCard: React.FC<PostCardProps> = ({
         {!!(displayPost.videoUrl && onVideoPress) && renderMedia()}
         {/* Debajo de la publicación entera, también del vídeo: no se mezcla con la descripción. */}
         <HowIMadeIt post={displayPost} />
+        {/* «Recrear este estilo» (WeëAI sencillo, 2026-11-23): solo si se hizo con WeëAI y su autor dejó su idea a la vista. */}
+        {puedeRecrear(displayPost) && displayPost.id ? (
+          <TouchableOpacity
+            onPress={() => (navigation as any).navigate('CrearPublicacion', {
+              tipo: displayPost.weeAi?.tipo === 'video' ? 'video' : 'imagen',
+              idea: (displayPost.aiPrompt || '').trim(),
+              estiloDe: { postId: displayPost.id, autorId: displayPost.userId, nombre: postAuthor?.displayName || t('common.user') },
+            })}
+            style={[styles.recrear, { backgroundColor: MARCA.velo(0.14), borderColor: MARCA.velo(0.5) }]}
+            accessibilityRole="button"
+            accessibilityLabel={t('publicar.recrearEstilo')}
+          >
+            <IconoDeTrazo name="repeat" size={scale(16)} color={MARCA.primarioTexto} />
+            <Text style={[styles.recrearTexto, { color: MARCA.primarioTexto }]} numberOfLines={1}>{t('publicar.recrearEstilo')}</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {/*
@@ -1618,6 +1638,9 @@ const PostCard: React.FC<PostCardProps> = ({
 };
 
 const styles = StyleSheet.create({
+  /* «Recrear este estilo»: la píldora crema del Ẅall (su identidad clara), a la derecha, bajo «Cómo lo hice». */
+  recrear: { alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 40, paddingHorizontal: 14, borderRadius: 999, borderWidth: 1, marginTop: SPACING.sm, maxWidth: '100%' },
+  recrearTexto: { fontSize: scale(14), fontWeight: '600', flexShrink: 1 },
   container: {
     marginBottom: SPACING.sm,
     borderRadius: BORDER_RADIUS.lg,

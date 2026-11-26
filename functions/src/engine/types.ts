@@ -40,6 +40,12 @@ export interface RoutingPrefs {
   allowedProviders?: string[];
   /** Modelo concreto elegido por un motor de dominio (Weë Video Engine). */
   modelId?: string;
+  /**
+   * Ruta propia de la función que llama (`aiRouting/{routeKey}` en Firestore, p. ej. `character.text`). Si existe
+   * con cadena, sustituye a la de la capacidad y retira `allowedProviders`/`modelId`; si no, no cambia nada
+   * (`rutaPropia` en router.ts).
+   */
+  routeKey?: string;
 }
 
 export interface EngineContext {

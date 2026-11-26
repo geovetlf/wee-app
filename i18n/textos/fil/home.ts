@@ -112,4 +112,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'Buksan ang Weë Brain',
   feedForYou: 'Para sa iyo',
   feedCreativity: 'Pagkamalikhain',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Ngayon sa Weë',
+  you: 'Ikaw',
+  guestTitle: 'Malayang ipahayag ang sarili mo.',
+  guestHint: 'Mag-post bilang ikaw o bilang iyong mga alter ego, at ipakita ang iyong obra sa WeëPages.',
+  premiere: 'Premiere',
+  presentedBy: 'Handog ni {{nombre}}',
+  viewPage: 'Tingnan ang WeëPage',
+  wallEmptyTitleWork: 'Naghihintay ang Ẅall ng unang obra',
+  wallEmptyHintFaces: 'Mag-post ng sarili mong gawa o mula sa iyong alter ego.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Mga uniberso na matutuklasan',
+  mosaicTitle: 'Ginagawa ngayon',
 };

@@ -87,4 +87,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'Weë Brain нээх',
   feedForYou: 'Танд',
   feedCreativity: 'Бүтээлч байдал',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Одоо Weë-д',
+  you: 'Та',
+  guestTitle: 'Өөрийгөө чөлөөтэй илэрхийл.',
+  guestHint: 'Өөрийнхөөрөө эсвэл альтер эгогоороо нийтэлж, бүтээлээ WeëPages дээр үзүүлээрэй.',
+  premiere: 'Нээлт',
+  presentedBy: 'Танилцуулсан: {{nombre}}',
+  viewPage: 'WeëPage үзэх',
+  wallEmptyTitleWork: 'Ẅall анхны бүтээлээ хүлээж байна',
+  wallEmptyHintFaces: 'Өөрийн эсвэл альтер эгогийнхоо бүтээлийг нийтлээрэй.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Нээх ертөнцүүд',
+  mosaicTitle: 'Одоо бүтээгдэж буй',
 };

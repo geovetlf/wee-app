@@ -1,3 +1,7 @@
+/*
+ * GENERADO — NO EDITAR A MANO. Serbio en alfabeto LATINO, producido por scripts/i18n-sr-latn.mjs a partir del cirílico
+ * (i18n/textos/sr/). Cualquier corrección se hace en el cirílico y se vuelve a generar.
+ */
 /* PROVISIONAL: inglés SIN traducir y SIN revisión nativa (ver CLAVES-I18N). */
 /*
  * WEË FILMMAKER — Screens wired to the real production (2026-11-18): saving, universe images, Production and Join.

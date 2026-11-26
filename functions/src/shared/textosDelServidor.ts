@@ -29,7 +29,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "أرسل إليك رسالة",
     "fotoUnica": "صورة لمرة واحدة",
     "imagen": "📷 صورة",
-    "audio": "🎤 رسالة صوتية"
+    "audio": "🎤 رسالة صوتية",
+    "paraLaCara": "إلى {{destino}}: {{titulo}}"
   },
   "bs": {
     "likeTitulo": "Novo sviđanje",
@@ -54,7 +55,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Šalje ti poruku",
     "fotoUnica": "Jednokratna fotografija",
     "imagen": "📷 Slika",
-    "audio": "🎤 Audio"
+    "audio": "🎤 Audio",
+    "paraLaCara": "Za {{destino}}: {{titulo}}"
   },
   "ca": {
     "likeTitulo": "Nou m'agrada",
@@ -79,7 +81,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "T'ha enviat un missatge",
     "fotoUnica": "Foto única",
     "imagen": "📷 Imatge",
-    "audio": "🎤 Àudio"
+    "audio": "🎤 Àudio",
+    "paraLaCara": "Per a {{destino}}: {{titulo}}"
   },
   "cnr": {
     "likeTitulo": "Novo sviđanje",
@@ -104,7 +107,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Šalje ti poruku",
     "fotoUnica": "Jednokratna fotografija",
     "imagen": "📷 Slika",
-    "audio": "🎤 Audio"
+    "audio": "🎤 Audio",
+    "paraLaCara": "Za {{destino}}: {{titulo}}"
   },
   "da": {
     "likeTitulo": "Nyt like",
@@ -129,7 +133,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Sendte dig en besked",
     "fotoUnica": "Engangsfoto",
     "imagen": "📷 Foto",
-    "audio": "🎤 Talebesked"
+    "audio": "🎤 Talebesked",
+    "paraLaCara": "Til {{destino}}: {{titulo}}"
   },
   "de": {
     "likeTitulo": "Neues Like",
@@ -154,7 +159,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Hat dir eine Nachricht geschickt",
     "fotoUnica": "Einmal-Foto",
     "imagen": "📷 Foto",
-    "audio": "🎤 Sprachnachricht"
+    "audio": "🎤 Sprachnachricht",
+    "paraLaCara": "Für {{destino}}: {{titulo}}"
   },
   "de-CH": {
     "likeTitulo": "Neues Like",
@@ -179,7 +185,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Hat dir eine Nachricht geschickt",
     "fotoUnica": "Einmal-Foto",
     "imagen": "📷 Foto",
-    "audio": "🎤 Sprachnachricht"
+    "audio": "🎤 Sprachnachricht",
+    "paraLaCara": "Für {{destino}}: {{titulo}}"
   },
   "el": {
     "likeTitulo": "Νέο «Μου αρέσει»",
@@ -204,7 +211,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Σου έστειλε μήνυμα",
     "fotoUnica": "Φωτογραφία μίας προβολής",
     "imagen": "📷 Εικόνα",
-    "audio": "🎤 Ήχος"
+    "audio": "🎤 Ήχος",
+    "paraLaCara": "Για {{destino}}: {{titulo}}"
   },
   "en": {
     "likeTitulo": "New like",
@@ -229,7 +237,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Sent you a message",
     "fotoUnica": "One-time photo",
     "imagen": "📷 Photo",
-    "audio": "🎤 Voice message"
+    "audio": "🎤 Voice message",
+    "paraLaCara": "For {{destino}}: {{titulo}}"
   },
   "es": {
     "likeTitulo": "Nuevo like",
@@ -254,7 +263,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Te envió un mensaje",
     "fotoUnica": "Foto única",
     "imagen": "📷 Imagen",
-    "audio": "🎤 Audio"
+    "audio": "🎤 Audio",
+    "paraLaCara": "Para {{destino}}: {{titulo}}"
   },
   "fa": {
     "likeTitulo": "پسند جدید",
@@ -279,7 +289,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "برای شما پیام فرستاد",
     "fotoUnica": "عکس یک‌بار قابل‌مشاهده",
     "imagen": "📷 تصویر",
-    "audio": "🎤 صدا"
+    "audio": "🎤 صدا",
+    "paraLaCara": "برای {{destino}}: {{titulo}}"
   },
   "fi": {
     "likeTitulo": "Uusi tykkäys",
@@ -304,7 +315,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Lähetti sinulle viestin",
     "fotoUnica": "Kertakatselukuva",
     "imagen": "📷 Kuva",
-    "audio": "🎤 Ääni"
+    "audio": "🎤 Ääni",
+    "paraLaCara": "Vastaanottaja: {{destino}} – {{titulo}}"
   },
   "fil": {
     "likeTitulo": "Bagong like",
@@ -329,7 +341,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Nagpadala sa iyo ng mensahe",
     "fotoUnica": "Larawang isang beses lang makikita",
     "imagen": "📷 Larawan",
-    "audio": "🎤 Voice message"
+    "audio": "🎤 Voice message",
+    "paraLaCara": "Para kay {{destino}}: {{titulo}}"
   },
   "fr": {
     "likeTitulo": "Nouveau j’aime",
@@ -354,7 +367,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "T’a envoyé un message",
     "fotoUnica": "Photo unique",
     "imagen": "📷 Image",
-    "audio": "🎤 Audio"
+    "audio": "🎤 Audio",
+    "paraLaCara": "Pour {{destino}} : {{titulo}}"
   },
   "ga": {
     "likeTitulo": "Togha nua",
@@ -379,7 +393,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Sheol teachtaireacht chugat",
     "fotoUnica": "Grianghraf aonuaire",
     "imagen": "📷 Íomhá",
-    "audio": "🎤 Fuaim"
+    "audio": "🎤 Fuaim",
+    "paraLaCara": "Do {{destino}}: {{titulo}}"
   },
   "he": {
     "likeTitulo": "לייק חדש",
@@ -404,7 +419,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "שלחו לך הודעה",
     "fotoUnica": "תמונה חד-פעמית",
     "imagen": "📷 תמונה",
-    "audio": "🎤 אודיו"
+    "audio": "🎤 אודיו",
+    "paraLaCara": "אל {{destino}}: {{titulo}}"
   },
   "hi": {
     "likeTitulo": "आपकी पोस्ट किसी को पसंद आई",
@@ -429,7 +445,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "आपको एक मैसेज मिला है",
     "fotoUnica": "एक बार देखने वाली फ़ोटो",
     "imagen": "📷 फ़ोटो",
-    "audio": "🎤 वॉइस मैसेज"
+    "audio": "🎤 वॉइस मैसेज",
+    "paraLaCara": "{{destino}} के लिए: {{titulo}}"
   },
   "hr": {
     "likeTitulo": "Novo sviđanje",
@@ -454,7 +471,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Šalje ti poruku",
     "fotoUnica": "Jednokratna fotografija",
     "imagen": "📷 Slika",
-    "audio": "🎤 Zvuk"
+    "audio": "🎤 Zvuk",
+    "paraLaCara": "Za {{destino}}: {{titulo}}"
   },
   "hu": {
     "likeTitulo": "Új kedvelés",
@@ -479,7 +497,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Üzenetet küldött neked",
     "fotoUnica": "Egyszer megtekinthető fotó",
     "imagen": "📷 Kép",
-    "audio": "🎤 Hang"
+    "audio": "🎤 Hang",
+    "paraLaCara": "Címzett: {{destino}} – {{titulo}}"
   },
   "id": {
     "likeTitulo": "Suka baru",
@@ -504,7 +523,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Mengirimi Anda pesan",
     "fotoUnica": "Foto sekali lihat",
     "imagen": "📷 Gambar",
-    "audio": "🎤 Audio"
+    "audio": "🎤 Audio",
+    "paraLaCara": "Untuk {{destino}}: {{titulo}}"
   },
   "is": {
     "likeTitulo": "Nýtt „líkar við“",
@@ -529,7 +549,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Sendi þér skilaboð",
     "fotoUnica": "Mynd sem hverfur",
     "imagen": "📷 Mynd",
-    "audio": "🎤 Hljóð"
+    "audio": "🎤 Hljóð",
+    "paraLaCara": "Viðtakandi: {{destino}} – {{titulo}}"
   },
   "it": {
     "likeTitulo": "Nuovo Mi piace",
@@ -554,7 +575,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Ti ha inviato un messaggio",
     "fotoUnica": "Foto singola",
     "imagen": "📷 Immagine",
-    "audio": "🎤 Audio"
+    "audio": "🎤 Audio",
+    "paraLaCara": "Per {{destino}}: {{titulo}}"
   },
   "ja": {
     "likeTitulo": "新しいいいね",
@@ -579,7 +601,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "メッセージが届きました",
     "fotoUnica": "1回限りの写真",
     "imagen": "📷 画像",
-    "audio": "🎤 音声"
+    "audio": "🎤 音声",
+    "paraLaCara": "{{destino}} 宛て：{{titulo}}"
   },
   "kl": {
     "likeTitulo": "Nuannarisaq nutaaq",
@@ -604,7 +627,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Ilinnut oqariartuummik nassiussivoq",
     "fotoUnica": "Ataasiarlugu takuneqarsinnaasoq",
     "imagen": "📷 Assi",
-    "audio": "🎤 Nipi"
+    "audio": "🎤 Nipi",
+    "paraLaCara": "{{destino}}: {{titulo}}"
   },
   "km": {
     "likeTitulo": "ការចូលចិត្ត​ថ្មី",
@@ -629,7 +653,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "បាន​ផ្ញើ​សារ​មក​អ្នក",
     "fotoUnica": "រូបថត​មើល​បាន​តែ​ម្តង",
     "imagen": "📷 រូបភាព",
-    "audio": "🎤 សំឡេង"
+    "audio": "🎤 សំឡេង",
+    "paraLaCara": "ជូន {{destino}}៖ {{titulo}}"
   },
   "ko": {
     "likeTitulo": "새로운 좋아요",
@@ -654,7 +679,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "메시지를 보냈어요",
     "fotoUnica": "한 번만 볼 수 있는 사진",
     "imagen": "📷 이미지",
-    "audio": "🎤 오디오"
+    "audio": "🎤 오디오",
+    "paraLaCara": "{{destino}}에게: {{titulo}}"
   },
   "mn": {
     "likeTitulo": "Шинэ лайк",
@@ -679,7 +705,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Танд мессеж илгээлээ",
     "fotoUnica": "Нэг удаагийн зураг",
     "imagen": "📷 Зураг",
-    "audio": "🎤 Аудио"
+    "audio": "🎤 Аудио",
+    "paraLaCara": "Хүлээн авагч: {{destino}} – {{titulo}}"
   },
   "ms": {
     "likeTitulo": "Suka baharu",
@@ -704,7 +731,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Menghantar mesej kepada anda",
     "fotoUnica": "Foto sekali lihat",
     "imagen": "📷 Imej",
-    "audio": "🎤 Audio"
+    "audio": "🎤 Audio",
+    "paraLaCara": "Untuk {{destino}}: {{titulo}}"
   },
   "nb": {
     "likeTitulo": "Nytt likerklikk",
@@ -729,7 +757,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Sendte deg en melding",
     "fotoUnica": "Engangsbilde",
     "imagen": "📷 Bilde",
-    "audio": "🎤 Lyd"
+    "audio": "🎤 Lyd",
+    "paraLaCara": "Til {{destino}}: {{titulo}}"
   },
   "nl": {
     "likeTitulo": "Nieuwe vind-ik-leuk",
@@ -754,7 +783,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Heeft je een bericht gestuurd",
     "fotoUnica": "Eenmalige foto",
     "imagen": "📷 Afbeelding",
-    "audio": "🎤 Audio"
+    "audio": "🎤 Audio",
+    "paraLaCara": "Voor {{destino}}: {{titulo}}"
   },
   "pl": {
     "likeTitulo": "Nowe polubienie",
@@ -779,7 +809,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Masz nową wiadomość",
     "fotoUnica": "Zdjęcie jednorazowe",
     "imagen": "📷 Obraz",
-    "audio": "🎤 Audio"
+    "audio": "🎤 Audio",
+    "paraLaCara": "Do: {{destino}} – {{titulo}}"
   },
   "pt": {
     "likeTitulo": "Nova curtida",
@@ -804,7 +835,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Enviou uma mensagem para você",
     "fotoUnica": "Foto única",
     "imagen": "📷 Imagem",
-    "audio": "🎤 Áudio"
+    "audio": "🎤 Áudio",
+    "paraLaCara": "Para {{destino}}: {{titulo}}"
   },
   "pt-PT": {
     "likeTitulo": "Novo gosto",
@@ -829,7 +861,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Enviou-te uma mensagem",
     "fotoUnica": "Foto única",
     "imagen": "📷 Imagem",
-    "audio": "🎤 Mensagem de voz"
+    "audio": "🎤 Mensagem de voz",
+    "paraLaCara": "Para {{destino}}: {{titulo}}"
   },
   "ro": {
     "likeTitulo": "Apreciere nouă",
@@ -854,7 +887,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Ți-a trimis un mesaj",
     "fotoUnica": "Fotografie cu afișare unică",
     "imagen": "📷 Imagine",
-    "audio": "🎤 Audio"
+    "audio": "🎤 Audio",
+    "paraLaCara": "Pentru {{destino}}: {{titulo}}"
   },
   "ru": {
     "likeTitulo": "Новая оценка",
@@ -879,7 +913,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Отправил(а) вам сообщение",
     "fotoUnica": "Одноразовое фото",
     "imagen": "📷 Изображение",
-    "audio": "🎤 Аудио"
+    "audio": "🎤 Аудио",
+    "paraLaCara": "Кому: {{destino}} – {{titulo}}"
   },
   "sr": {
     "likeTitulo": "Нови лајк",
@@ -904,7 +939,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Стигла ти је порука",
     "fotoUnica": "Једнократна фотографија",
     "imagen": "📷 Слика",
-    "audio": "🎤 Аудио"
+    "audio": "🎤 Аудио",
+    "paraLaCara": "За {{destino}}: {{titulo}}"
   },
   "sr-Latn": {
     "likeTitulo": "Novi lajk",
@@ -929,7 +965,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Stigla ti je poruka",
     "fotoUnica": "Jednokratna fotografija",
     "imagen": "📷 Slika",
-    "audio": "🎤 Audio"
+    "audio": "🎤 Audio",
+    "paraLaCara": "Za {{destino}}: {{titulo}}"
   },
   "sv": {
     "likeTitulo": "Ny gillamarkering",
@@ -954,7 +991,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Du har fått ett meddelande",
     "fotoUnica": "Engångsfoto",
     "imagen": "📷 Foto",
-    "audio": "🎤 Röstmeddelande"
+    "audio": "🎤 Röstmeddelande",
+    "paraLaCara": "Till {{destino}}: {{titulo}}"
   },
   "tr": {
     "likeTitulo": "Yeni beğeni",
@@ -979,7 +1017,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Sana mesaj gönderdi",
     "fotoUnica": "Tek seferlik fotoğraf",
     "imagen": "📷 Görsel",
-    "audio": "🎤 Ses"
+    "audio": "🎤 Ses",
+    "paraLaCara": "{{destino}} için: {{titulo}}"
   },
   "vi": {
     "likeTitulo": "Lượt thích mới",
@@ -1004,7 +1043,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "Đã gửi cho bạn một tin nhắn",
     "fotoUnica": "Ảnh xem một lần",
     "imagen": "📷 Hình ảnh",
-    "audio": "🎤 Âm thanh"
+    "audio": "🎤 Âm thanh",
+    "paraLaCara": "Gửi {{destino}}: {{titulo}}"
   },
   "zh": {
     "likeTitulo": "新的赞",
@@ -1029,7 +1069,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "给你发了一条消息",
     "fotoUnica": "一次性照片",
     "imagen": "📷 图片",
-    "audio": "🎤 语音"
+    "audio": "🎤 语音",
+    "paraLaCara": "致 {{destino}}：{{titulo}}"
   },
   "zh-TW": {
     "likeTitulo": "新的讚",
@@ -1054,7 +1095,8 @@ export const AVISOS: Readonly<Record<string, Readonly<Record<string, string>>>> 
     "teEnvioUnMensaje": "傳了一則訊息給你",
     "fotoUnica": "一次性照片",
     "imagen": "📷 圖片",
-    "audio": "🎤 語音"
+    "audio": "🎤 語音",
+    "paraLaCara": "致 {{destino}}：{{titulo}}"
   }
 };
 

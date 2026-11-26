@@ -34,11 +34,18 @@
  */
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+/*
+ * F4: de quién es una identidad se decide con la frontera de compatibilidad, que también sabe leer los alter egos
+ * (`ent_…`) por su entidad. La frontera importa de aquí las formas heredadas; las dos solo se usan dentro de
+ * funciones, así que el ciclo de módulos es inocuo.
+ */
+import { cuentaDelPerfilLeido } from '../identity/compatibilidad';
 
 const OPTS = { region: 'us-central1' as const, timeoutSeconds: 30 };
 
 const COLECCION = 'econtacts';
 const PERFILES = 'users';
+const AVISOS = 'notifications';
 
 // ─── Las identidades ─────────────────────────────────────────────────────────
 
@@ -58,14 +65,33 @@ export const PREFIJO_PERFIL_WEE = 'hidi_';
  */
 export type TipoDeIdentidad = 'real' | 'wee';
 
-/** Una identidad no lleva `_` propio: solo el que trae su prefijo. Ver el modelo. */
-const FORMA_DE_IDENTIDAD = /^(?:hidi_)?[^_/\s]+$/;
+/**
+ * La segunda forma de un Perfil Weë (plan de alter egos, F2, 2026-11-23): el
+ * alter ego cuyo `uid` ES su identificador de entidad, opaco (`ent_…`). Es el
+ * mismo prefijo que `PREFIJO_DE_ID_DE_ENTIDAD` del Core. La FORMA solo dice que
+ * el id está bien escrito; de quién es se LEE (`cuentaDeIdentidadLeida`).
+ */
+export const PREFIJO_ALTER_EGO = 'ent_';
+
+/**
+ * Una identidad no lleva `_` propio: solo el que trae su prefijo (`hidi_` o
+ * `ent_`). Ver el modelo. Nada en el servidor parte un id de pareja por `_`:
+ * `idDeContacto` solo une, y lo vigila `econtact.test.mjs`.
+ */
+const FORMA_DE_IDENTIDAD = /^(?:hidi_|ent_)?[^_/\s]+$/;
 
 export const esIdentidadValida = (id?: unknown): boolean =>
   typeof id === 'string' && id.length > 0 && id.length <= 200 && FORMA_DE_IDENTIDAD.test(id);
 
+/**
+ * `'wee'` o `'real'` según la FORMA. Es una PISTA DE ENRUTADO, no una
+ * afirmación: dice por qué camino mirar (una cara Weë no puede ser su propia
+ * cuenta), y el tipo de verdad sale de `users.profileType`. Un `ent_` es
+ * `'wee'` por lo mismo: nunca se trata como un Perfil Real que fuera su cuenta.
+ * La propiedad jamás sale de aquí (ver `identity/compatibilidad.ts`).
+ */
 export const tipoDeIdentidad = (id?: string | null): TipoDeIdentidad =>
-  (typeof id === 'string' && id.startsWith(PREFIJO_PERFIL_WEE) ? 'wee' : 'real');
+  (typeof id === 'string' && (id.startsWith(PREFIJO_PERFIL_WEE) || id.startsWith(PREFIJO_ALTER_EGO)) ? 'wee' : 'real');
 
 export const esIdentidadDePersona = (id?: string | null): boolean => esIdentidadValida(id);
 
@@ -79,6 +105,10 @@ export interface PerfilDeIdentidad {
  * De qué cuenta es esta identidad, según su documento de `users`. null si no se
  * puede afirmar. Se exige que el documento exista y que diga lo mismo que el uid:
  * para el Perfil Weë, el prefijo y `linkedAccountId` tienen que coincidir.
+ *
+ * Síncrona y SOLO para lo heredado. Un alter ego opaco (`ent_…`) no lleva
+ * vínculo en su perfil —el perfil es público— y aquí da null: su cuenta se lee
+ * de su entidad con `cuentaDeIdentidadLeida` (`identity/compatibilidad.ts`).
  */
 export const cuentaDeIdentidad = (
   id?: string | null,
@@ -193,11 +223,16 @@ export const decidirIdentidad = (args: {
   perfil: PerfilDeIdentidad | null | undefined;
   cuentaDeLaSesion: string;
   debeSerMia: boolean;
+  /**
+   * La cuenta YA LEÍDA por el servidor (`cuentaDelPerfilLeido`, F4), que sabe resolver también un alter ego por su
+   * entidad. Sin ella se usa el resolutor síncrono, que solo entiende lo heredado.
+   */
+  cuenta?: string | null;
 }): Decision => {
   const { identidad, perfil, cuentaDeLaSesion, debeSerMia } = args;
 
   if (!esIdentidadDePersona(identidad as string)) return { ok: false, motivo: 'identidad-invalida' };
-  const cuenta = cuentaDeIdentidad(identidad as string, perfil);
+  const cuenta = 'cuenta' in args ? args.cuenta ?? null : cuentaDeIdentidad(identidad as string, perfil);
   if (!cuenta) return { ok: false, motivo: 'identidad-desconocida' };
   if (debeSerMia && cuenta !== cuentaDeLaSesion) return { ok: false, motivo: 'identidad-ajena' };
   return { ok: true };
@@ -206,10 +241,20 @@ export const decidirIdentidad = (args: {
 /**
  * ¿Se puede abrir una solicitud entre estas dos identidades ya resueltas?
  *
- * La comprobación que importa es la última: dos identidades de la MISMA cuenta no
- * se conectan entre sí. El Perfil Real y el Perfil Weë de una persona son esa
- * misma persona, y agregarse a uno mismo no es una conexión.
+ * La misma identidad nunca se conecta consigo misma. Entre dos identidades de la
+ * MISMA cuenta:
+ *   · Real ↔ Weë sigue bloqueado: el Perfil Real es la persona, y agregarse a uno
+ *     mismo no es una conexión (además, la agenda pública del Real uniría la cara
+ *     Weë con la cuenta).
+ *   · Weë ↔ Weë SÍ se permite (decisión D6 del dueño, 2026-11-23, F3 del plan de
+ *     alter egos): cada alter ego es un personaje con su propia lista de ẄContacts
+ *     y «cada alter ego puede escribir a otro», sin que se vea que son de la misma
+ *     cuenta. Desde F4 los `ent_…` se resuelven por su entidad (`cuentaDelPerfilLeido`).
+ * El tipo aquí es el de una identidad YA comprobada contra `users` (`decidirIdentidad`).
  */
+const entreCarasPropiasSeBloquea = (a: IdentidadResuelta, b: IdentidadResuelta): boolean =>
+  !(a.type === 'wee' && b.type === 'wee');
+
 export const decidirSolicitud = (args: {
   de: IdentidadResuelta;
   para: IdentidadResuelta;
@@ -217,7 +262,7 @@ export const decidirSolicitud = (args: {
 }): Decision => {
   const { de, para, existente } = args;
   if (de.identity === para.identity) return { ok: false, motivo: 'misma-persona' };
-  if (de.accountUid === para.accountUid) return { ok: false, motivo: 'misma-persona' };
+  if (de.accountUid === para.accountUid && entreCarasPropiasSeBloquea(de, para)) return { ok: false, motivo: 'misma-persona' };
   if (existente) return { ok: false, motivo: 'ya-existe' };
   return { ok: true };
 };
@@ -267,36 +312,105 @@ export interface EContactDeps {
   sello: (ms: number) => unknown;
 }
 
+/**
+ * Una identidad tal y como sale hacia el cliente: SIN la cuenta.
+ *
+ * La cuenta de la otra persona no se devuelve nunca (F1 del plan de alter egos, 2026-11-23). Antes `to`/`from`
+ * llevaban `accountUid`, el cliente lo guardaba en `notifications.recipientAccountId`, y cualquiera que conectara con
+ * un Perfil Weë se llevaba el uid de la cuenta que lo controla —es decir, su Perfil Real—.
+ */
+export interface IdentidadPublica {
+  identity: string;
+  type: TipoDeIdentidad;
+}
+
 export interface ResultadoRelacion {
   contactId: string;
   status: 'pending' | 'accepted';
   users: string[];
-  from: IdentidadResuelta;
-  to: IdentidadResuelta;
+  from: IdentidadPublica;
+  to: IdentidadPublica;
 }
+
+/** Lo que el perfil de quien avisa pone en el aviso: nombre y avatar, como los avisos de siempre. */
+interface PerfilLeido extends PerfilDeIdentidad {
+  displayName?: unknown;
+  avatarType?: unknown;
+  avatarId?: unknown;
+  photoURL?: unknown;
+}
+
+/** Una identidad resuelta, con su perfil a mano para escribir el aviso. Solo vive en el servidor. */
+interface IdentidadConPerfil extends IdentidadResuelta {
+  perfil: PerfilLeido;
+}
+
+const publica = (r: IdentidadResuelta): IdentidadPublica => ({ identity: r.identity, type: r.type });
+
+const recorta = (v: unknown, max: number): string | undefined =>
+  typeof v === 'string' && v.length > 0 ? v.slice(0, max) : undefined;
+
+/**
+ * EL AVISO A LA OTRA PERSONA lo escribe el servidor, en la MISMA transacción que la relación (F1, 2026-11-23).
+ *
+ * Antes lo escribía el cliente con lo que le devolvía la callable, y para eso necesitaba la cuenta de quien recibe. Va
+ * dirigido a la IDENTIDAD que recibe (`recipientId`), que es lo único que leen la campanita y el push
+ * (`sendPushNotification` resuelve la cuenta en el servidor con `cuentaDeIdentidadLeida`). No lleva `recipientAccountId`.
+ * Mismos campos y límites que `avisoConLaFormaDeLaApp` en `firestore.rules`.
+ */
+export const avisoDeEContact = (
+  tipo: 'econtact_request' | 'econtact_accepted',
+  para: IdentidadResuelta,
+  de: IdentidadResuelta & { perfil?: PerfilLeido | null },
+  sello: unknown
+): Record<string, unknown> => {
+  const perfil = de.perfil || {};
+  const aviso: Record<string, unknown> = {
+    type: tipo,
+    recipientId: para.identity,
+    senderId: de.identity,
+    senderName: recorta(perfil.displayName, 200) || 'Weë',
+    senderAvatar: recorta(perfil.photoURL, 2048),
+    senderAvatarType: recorta(perfil.avatarType, 20),
+    senderAvatarId: recorta(perfil.avatarId, 100),
+    senderProfileType: de.type,
+    read: false,
+    createdAt: sello,
+  };
+  for (const k of Object.keys(aviso)) if (aviso[k] === undefined) delete aviso[k];
+  return aviso;
+};
 
 export const createEContactEngine = (deps: EContactDeps) => {
   /** El documento de `users` de una identidad. Se busca por el campo, no por el id. */
-  const leerPerfil = async (identidad: string): Promise<PerfilDeIdentidad | null> => {
+  const leerPerfil = async (identidad: string): Promise<PerfilLeido | null> => {
     const snap = await deps.db().collection(PERFILES).where('uid', '==', identidad).limit(1).get();
-    return snap.empty ? null : (snap.docs[0].data() as PerfilDeIdentidad);
+    return snap.empty ? null : (snap.docs[0].data() as PerfilLeido);
   };
 
-  /** Comprueba una identidad contra `users` y devuelve de qué cuenta es. */
-  const resolver = async (
+  /** Comprueba una identidad contra `users` y devuelve de qué cuenta es (solo para uso interno del servidor). */
+  const resolverConPerfil = async (
     identidad: unknown,
     cuentaDeLaSesion: string,
     debeSerMia: boolean
-  ): Promise<IdentidadResuelta> => {
+  ): Promise<IdentidadConPerfil> => {
     if (!esIdentidadDePersona(identidad as string)) throw new EContactError('identidad-invalida');
     const perfil = await leerPerfil(identidad as string);
-    const decision = decidirIdentidad({ identidad, perfil, cuentaDeLaSesion, debeSerMia });
+    /* Lo heredado por su vínculo; un alter ego por su entidad (F4). La cuenta NUNCA sale hacia el cliente. */
+    const cuenta = await cuentaDelPerfilLeido(deps.db(), identidad, perfil);
+    const decision = decidirIdentidad({ identidad, perfil, cuentaDeLaSesion, debeSerMia, cuenta });
     if (!decision.ok) throw new EContactError(decision.motivo);
     return {
       identity: identidad as string,
-      accountUid: cuentaDeIdentidad(identidad as string, perfil) as string,
+      accountUid: cuenta as string,
       type: tipoDeIdentidad(identidad as string),
+      perfil: perfil as PerfilLeido,
     };
+  };
+
+  const resolver = async (identidad: unknown, cuentaDeLaSesion: string, debeSerMia: boolean): Promise<IdentidadResuelta> => {
+    const { perfil: _perfil, ...resuelta } = await resolverConPerfil(identidad, cuentaDeLaSesion, debeSerMia);
+    return resuelta;
   };
 
   return {
@@ -317,8 +431,8 @@ export const createEContactEngine = (deps: EContactDeps) => {
       const { cuentaDeLaSesion, desdeIdentidad, haciaIdentidad } = args;
 
       // La mía tiene que ser mía. La otra solo tiene que existir y ser de persona.
-      const de = await resolver(desdeIdentidad, cuentaDeLaSesion, true);
-      const para = await resolver(haciaIdentidad, cuentaDeLaSesion, false);
+      const de = await resolverConPerfil(desdeIdentidad, cuentaDeLaSesion, true);
+      const para = await resolverConPerfil(haciaIdentidad, cuentaDeLaSesion, false);
 
       const contactId = idDeContacto(de.identity, para.identity);
       const db = deps.db();
@@ -332,15 +446,18 @@ export const createEContactEngine = (deps: EContactDeps) => {
         if (!decision.ok) throw new EContactError(decision.motivo);
 
         const users = de.identity < para.identity ? [de.identity, para.identity] : [para.identity, de.identity];
+        const sello = deps.sello(deps.ahora());
         tx.create(ref, {
           users,
           status: 'pending',
           requestedBy: de.identity,
           requestedTo: para.identity,
-          createdAt: deps.sello(deps.ahora()),
+          createdAt: sello,
         });
+        // El aviso a quien la recibe, en la misma operación: si la relación no se escribe, el aviso tampoco.
+        tx.create(db.collection(AVISOS).doc(), avisoDeEContact('econtact_request', para, de, sello));
 
-        return { contactId, status: 'pending' as const, users, from: de, to: para };
+        return { contactId, status: 'pending' as const, users, from: publica(de), to: publica(para) };
       });
     },
 
@@ -359,9 +476,10 @@ export const createEContactEngine = (deps: EContactDeps) => {
     }): Promise<ResultadoRelacion> => {
       const { cuentaDeLaSesion, comoIdentidad, otraIdentidad } = args;
 
-      const yo = await resolver(comoIdentidad, cuentaDeLaSesion, true);
-      const otro = await resolver(otraIdentidad, cuentaDeLaSesion, false);
-      if (yo.accountUid === otro.accountUid) throw new EContactError('misma-persona');
+      const yo = await resolverConPerfil(comoIdentidad, cuentaDeLaSesion, true);
+      const otro = await resolverConPerfil(otraIdentidad, cuentaDeLaSesion, false);
+      // Real ↔ Weë de la misma cuenta, no; Weë ↔ Weë, sí (D6, ver `decidirSolicitud`).
+      if (yo.accountUid === otro.accountUid && entreCarasPropiasSeBloquea(yo, otro)) throw new EContactError('misma-persona');
 
       const contactId = idDeContacto(yo.identity, otro.identity);
       const db = deps.db();
@@ -375,15 +493,18 @@ export const createEContactEngine = (deps: EContactDeps) => {
         const decision = decidirAceptacion({ doc, yo: yo.identity, otro: otro.identity });
         if (!decision.ok) throw new EContactError(decision.motivo);
 
-        tx.update(ref, { status: 'accepted', respondedAt: deps.sello(deps.ahora()) });
+        const sello = deps.sello(deps.ahora());
+        tx.update(ref, { status: 'accepted', respondedAt: sello });
+        // Quien la pidió se entera de que ya estáis conectados, en la misma operación.
+        tx.create(db.collection(AVISOS).doc(), avisoDeEContact('econtact_accepted', otro, yo, sello));
 
         return {
           contactId,
           status: 'accepted' as const,
           users: doc.users as string[],
-          // Quien acepta es `yo`; la solicitud la había abierto `otro`.
-          from: otro,
-          to: yo,
+          // Quien acepta es `yo`; la solicitud la había abierto `otro`. Sin cuentas: solo identidades.
+          from: publica(otro),
+          to: publica(yo),
         };
       });
     },

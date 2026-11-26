@@ -21,6 +21,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} ha publicat a {{comunidad}}',
   aCommunity: 'una comunitat',
   generic: '{{nombre}} ha interactuat amb tu',
+  characterNotice: '{{nombre}} t’ha deixat avisos per revisar',
   now: 'ara',
   markAllRead: 'Marca-les totes com a llegides',
   all: 'Totes',

@@ -22,6 +22,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} a publié dans {{comunidad}}',
   aCommunity: 'une communauté',
   generic: '{{nombre}} a interagi avec toi',
+  characterNotice: '{{nombre}} t’a laissé des avis à vérifier',
   now: 'maintenant',
   markAllRead: 'Tout marquer comme lu',
   all: 'Toutes',

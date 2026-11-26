@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Modal, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../contexts/UserProfileContext';
 import { useDireccion } from '../../hooks/useDireccion';
 import AvatarDisplay from '../avatars/AvatarDisplay';
+import { ListaDeCaras } from '../HojaDeAlterEgos';
 
 const isWeb = Platform.OS === 'web';
 
@@ -32,48 +33,33 @@ const CARAS: readonly { id: Identidad; clave: string }[] = [
  *   - ENTRAR en creator no cambia nada: esta pieza solo actúa cuando la persona
  *     toca una de las dos caras. Montarla no llama a nada.
  *   - Nunca crea perfiles. Sin Perfil Weë solo enseña la cara puesta.
+ *   - Con varios alter egos (2026-11-23) la lista es la de `HojaDeAlterEgos`, en
+ *     modo «solo cambiar»: ni crear ni borrar desde Creator.
  *   - Recargar /creator conserva lo elegido aquí por `RecuerdoDelPerfil`, que ya
  *     guarda la cara puesta mientras se está en creator y la olvida al salir.
  *   - Publicar es de la versión app: aquí no hay nada social.
  */
 const IdentidadEnCreator: React.FC<{ onAjustes: () => void }> = ({ onAjustes }) => {
-  const { theme, setThemeMode } = useTheme();
+  const { theme } = useTheme();
   const t = useT();
   const dir = useDireccion();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { userProfile, activeProfileType, hasWeeProfile, switchIdentity } = useUserProfile();
+  const { userProfile, activeProfileType, hasWeeProfile } = useUserProfile();
   const [abierto, setAbierto] = useState(false);
-
-  /*
-   * Un toque, un cambio (como el selector de la cabecera de la app): se recuerda
-   * el destino pedido hasta que llega, para que dos toques seguidos no se anulen.
-   */
-  const pedida = useRef<Identidad | null>(null);
-  useEffect(() => {
-    if (pedida.current === activeProfileType) pedida.current = null;
-  }, [activeProfileType]);
-
-  const elegir = useCallback((destino: Identidad) => {
-    const efectiva = pedida.current ?? activeProfileType;
-    setAbierto(false);
-    if (efectiva === destino) return;
-    pedida.current = destino;
-    switchIdentity();
-    setThemeMode(destino === 'hidi' ? 'dark' : 'light');
-  }, [activeProfileType, switchIdentity, setThemeMode]);
 
   if (!user) return null;
 
   const puesta = CARAS.find((c) => c.id === activeProfileType) ?? CARAS[0];
   const nombre = userProfile?.displayName || user.displayName || t(puesta.clave);
-  const etiquetaPuesta = t('menu.profileActive', { perfil: t(puesta.clave) });
+  const etiquetaPuesta = t('menu.profileActive', { perfil: activeProfileType === 'hidi' && userProfile?.displayName ? userProfile.displayName : t(puesta.clave) });
 
   const avatar = (tam: number) => (
     <AvatarDisplay
       size={tam}
       avatarType={userProfile?.avatarType || 'predefined'}
       avatarId={userProfile?.avatarId || 'male'}
+      cuadrado={activeProfileType === 'hidi'}
       photoURL={userProfile?.photoURL}
       photoURLThumbnail={userProfile?.photoURLThumbnail}
       backgroundColor={theme.colors.accent}
@@ -112,31 +98,8 @@ const IdentidadEnCreator: React.FC<{ onAjustes: () => void }> = ({ onAjustes }) 
             </View>
             {hasWeeProfile && (
               <View style={[styles.caras, { borderTopColor: theme.colors.border }]}>
-                {CARAS.map((c) => {
-                  const activa = c.id === activeProfileType;
-                  return (
-                    <Pressable
-                      key={c.id}
-                      onPress={() => elegir(c.id)}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected: activa }}
-                      accessibilityLabel={t(activa ? 'menu.profileActive' : 'menu.switchToProfile', { perfil: t(c.clave) })}
-                      style={(e: any) => [
-                        styles.fila,
-                        activa && { backgroundColor: theme.colors.glow },
-                        !activa && e.hovered && { backgroundColor: theme.colors.surface },
-                        isWeb && ({ cursor: 'pointer' } as object),
-                      ] as any}
-                    >
-                      <Ionicons
-                        name={activa ? 'radio-button-on' : 'radio-button-off'}
-                        size={18}
-                        color={activa ? theme.colors.accentDark : theme.colors.textSecondary}
-                      />
-                      <Text style={[styles.filaTexto, dir.texto, { color: theme.colors.text }, activa && styles.filaActiva]}>{t(c.clave)}</Text>
-                    </Pressable>
-                  );
-                })}
+                {/* Tocar una cara la pone (el mismo `switchIdentity(id)` y el tema del destino) y cierra el panel. */}
+                <ListaDeCaras soloCambiar onCambiada={() => setAbierto(false)} />
               </View>
             )}
             <View style={[styles.caras, { borderTopColor: theme.colors.border }]}>

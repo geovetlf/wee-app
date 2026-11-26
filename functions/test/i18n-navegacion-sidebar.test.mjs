@@ -121,8 +121,8 @@ console.log('\n── B · Los otros textos de la barra ──');
       ES(clave) + ' / ' + EN(clave));
   }
 
-  check('12) el desplegable de especialistas ya no existe: la tarjeta de WeëAI se anuncia con sus claves (nombre y lema)',
-    /<TarjetaWeeAi variante="menu"/.test(LATERAL) && !/creatorOpen|hideSpecialists|showSpecialists/.test(LATERAL)
+  check('12) el desplegable de especialistas ya no existe: WeëAI es una fila del catálogo (Home 0+, 2026-11-24) y la tarjeta conserva sus claves (nombre y lema)',
+    /<Opcion id="creator"/.test(LATERAL) && !/creatorOpen|hideSpecialists|showSpecialists/.test(LATERAL)
     && /t\('nav\.weeAi'\)/.test(leer('components/inicio/TarjetaWeeAi.tsx')) && /t\('home\.weeAiTagline'\)/.test(leer('components/inicio/TarjetaWeeAi.tsx'))
     && ES('home.weeAiTagline') === 'Crea, desarrolla y transforma tus ideas' && EN('home.weeAiTagline') !== ES('home.weeAiTagline'),
     ES('home.weeAiTagline') + ' / ' + EN('home.weeAiTagline'));
@@ -180,9 +180,10 @@ console.log('\n── D · Ni claves duplicadas, ni catálogo tocado ──');
     /t\('nav\.weeAi'\)/.test(leer('components/inicio/TarjetaWeeAi.tsx')) && ES('nav.weeAi') === 'WeëAI' && EN('nav.weeAi') === 'WeëAI');
 
   check('18) las rutas de la barra no cambiaron',
-    /navigation\.navigate\('WeeProfileCreation'\)/.test(LATERAL)
-    /* La agenda ya no es una fila: se entra desde Mi Weë, que la enlaza. Las experiencias, desde el centro creativo. */
-    && !/EContact/.test(LATERAL) && /navigate\('EContact'\)/.test(leer('screens/ProfileScreen.tsx'))
+    /* Alter egos (2026-11-23): crear una cara sale de la lista de caras común (`HojaDeAlterEgos`); la agenda de la cara
+     * puesta vuelve a la barra, dentro de «Tu mundo», y sigue también en Mi Weë. */
+    /<ListaDeCaras \/>/.test(LATERAL) && /navegarEnLaRaiz\('WeeProfileCreation'\)/.test(leer('components/HojaDeAlterEgos.tsx'))
+    && /conCuenta\('EContact'\)/.test(LATERAL) && /navigate\('EContact'\)/.test(leer('screens/ProfileScreen.tsx'))
     && /conCuenta\('SavedPosts'\)/.test(LATERAL)
     && /navigation\.navigate\('Settings'\)/.test(LATERAL)
     && /navigation\.navigate\('Help'\)/.test(LATERAL)
@@ -190,7 +191,8 @@ console.log('\n── D · Ni claves duplicadas, ni catálogo tocado ──');
   check('19) ni la lógica: sesión e identidad siguen igual; el cambio de perfil es el de siempre (switchIdentity + tema)',
     /onPress=\{handleLogout\}/.test(LATERAL) && /onPress=\{requireLogin\}/.test(LATERAL)
     && /user \? goTab\('Profile'\) : requireLogin\(\)/.test(LATERAL)
-    && /switchIdentity\(\);\s*setThemeMode\('dark'\);/.test(LATERAL) && /switchIdentity\(\);\s*setThemeMode\('light'\);/.test(LATERAL));
+    /* Con varias caras el cambio vive en la hoja común: el mismo switchIdentity y el tema del destino. */
+    && /switchIdentity\(id\);\s*setThemeMode\('dark'\);/.test(leer('components/HojaDeAlterEgos.tsx')) && /switchIdentity\('real'\);\s*setThemeMode\('light'\);/.test(leer('components/HojaDeAlterEgos.tsx')));
   /* Mismo orden de siempre; «Mis creaciones» (Fase 11) entra justo detrás de «Mis proyectos», dentro de Weë Creator. */
   check('19) y el orden de las opciones es el mismo',
     /* WeëPages (2026-11-02) va junto a la agenda: las Páginas son de la cuenta, no un sitio que explorar. */
@@ -202,7 +204,7 @@ console.log('\n── D · Ni claves duplicadas, ni catálogo tocado ──');
    * identidad activa y los nombres de las experiencias son de Weë.
    */
   check('20) el nombre de la agenda sigue viniendo de la identidad activa, allí donde se ofrece (MyWeës); la barra ya no la lleva',
-    !/nombreLista|econtact/i.test(LATERAL)
+    /const \{ nombreLista: nombreDeLaAgenda \} = useIdentidadActiva\(\);/.test(LATERAL) && !/t\(nombreDeLaAgenda\)/.test(LATERAL)
     && /const \{ nombreLista \} = useIdentidadActiva\(\);/.test(leer('components/mywees/SelectorDeDestinos.tsx')) && !/t\(nombreLista\)/.test(leer('components/mywees/SelectorDeDestinos.tsx')));
   check('20) y los nombres de las experiencias se pintan crudos, del catálogo, allí donde se ofrecen (MyWeës); la barra ya no las lista',
     !/exp\.name/.test(LATERAL)

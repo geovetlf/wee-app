@@ -94,4 +94,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'Weë Brainを開く',
   feedForYou: 'あなたへのおすすめ',
   feedCreativity: 'クリエイティブ',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'いまのWeë',
+  you: 'あなた',
+  guestTitle: '自由に、自分を表現しよう。',
+  guestHint: '自分として、またはオルターエゴとして投稿し、作品をWeëPagesで見せましょう。',
+  premiere: '初公開',
+  presentedBy: '{{nombre}} がお届け',
+  viewPage: 'WeëPageを見る',
+  wallEmptyTitleWork: 'Ẅallは最初の作品を待っています',
+  wallEmptyHintFaces: 'あなた自身かオルターエゴの作品を投稿しましょう。',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: '見つけたい世界',
+  mosaicTitle: 'いま生まれている作品',
 };

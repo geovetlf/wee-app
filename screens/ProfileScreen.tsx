@@ -867,6 +867,20 @@ const ProfileScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
+          {/* Ficha del personaje: solo en el Perfil Weë propio */}
+          {hasWeeProfile && activeProfileType === 'hidi' && (
+            <TouchableOpacity
+              style={[styles.weeProfileButton, { borderColor: theme.colors.accent }]}
+              onPress={() => (navigation as any).navigate('CharacterSheet')}
+              activeOpacity={0.8}
+            >
+              <IconoDeTrazo name="sparkles-outline" size={18} color={theme.colors.accent} />
+              <Text style={[styles.weeProfileButtonText, { color: theme.colors.accent }]}>
+                {t('character.entry')}
+              </Text>
+            </TouchableOpacity>
+          )}
+
           {/* Botón Crear perfil Weë - solo si no existe */}
           {!hasWeeProfile && activeProfileType === 'real' && (
             <TouchableOpacity

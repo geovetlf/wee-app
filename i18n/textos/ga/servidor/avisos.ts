@@ -31,4 +31,5 @@ export const avisos: typeof import('../../es/servidor/avisos').avisos = {
   fotoUnica: 'Grianghraf aonuaire',
   imagen: '📷 Íomhá',
   audio: '🎤 Fuaim',
+  paraLaCara: 'Do {{destino}}: {{titulo}}',
 };

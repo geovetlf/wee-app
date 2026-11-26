@@ -40,8 +40,6 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 import { sembrarMuro } from '../utils/semillaDelMuro';
 import PestanasDeInicio, { AtajoDeInicio } from '../components/inicio/PestanasDeInicio';
-import TarjetaWeeAi from '../components/inicio/TarjetaWeeAi';
-import { abrirPortadaDeWeeAi } from '../navigation/refNavegacion';
 import { HomeFeedId, filterBySections, seccionesDelFeed } from '../utils/feedFilters';
 import { useScrollDeBarra } from '../hooks/useScrollDeBarra';
 import { RellenoDeMarca } from '../components/GradienteDeMarca';
@@ -402,25 +400,6 @@ const LandingScreen: React.FC = () => {
     (navigation as any).navigate('ExploreCommunities');
   };
 
-  /* Weë Brain y el centro creativo son rutas de la pila principal: HomeStack → TabNavigator → MainStack. */
-  const irAlPrincipal = (pantalla: string, params?: object) => {
-    const mainNavigation = navigation.getParent()?.getParent();
-    if (mainNavigation) (mainNavigation as any).navigate(pantalla, params);
-    else (navigation as any).navigate(pantalla, params);
-  };
-
-  /*
-   * WeëAI en el Home: el nombre, el lema, el chip de Weë Brain y la puerta
-   * «¿Qué quieres crear hoy?». La puerta ABRE Weë Brain —que no tiene ruta
-   * propia: se entra por `Specialist { id: 'brain' }`— y no lleva texto ni
-   * adjuntos (components/inicio/TarjetaWeeAi.tsx).
-   */
-  const renderWeeAi = () => (
-    <View style={styles.weeAiSlot}>
-      <TarjetaWeeAi variante="portada" onOpenWeeAi={() => { if (!abrirPortadaDeWeeAi()) irAlPrincipal('WeeCreator'); }} />
-    </View>
-  );
-
   /*
    * Aquí vivían `renderCategories` y `renderCommunityCategories` (con sus
    * categorías, estados y estilos): dos bloques de comunidades que NINGUNA vista
@@ -664,7 +643,6 @@ const LandingScreen: React.FC = () => {
   // Home = solo lo esencial: WeëAI → pastillas → creado por la comunidad. Los atajos van fijos arriba, con la cabecera.
   const listHeader = useMemo(() => (
     <>
-      {renderWeeAi()}
       {/* Boost: UNA publicación promocionada de otra cuenta, si el servidor tiene alguna para ti (docs/BOOST.md). */}
       <PromotedSlot pintar={(p, abrir) => <PostCard post={p} onPress={abrir} onComment={handleComment} onPrivateMessage={handlePrivateMessage} isVisible variante="muro" />} />
     </>
@@ -820,11 +798,6 @@ const LandingScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   /* El sitio de la tarjeta de WeëAI en el Home. */
-  weeAiSlot: {
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.md,
-    paddingBottom: SPACING.xs,
-  },
   weelsSection: {
     paddingTop: SPACING.lg,
     paddingBottom: SPACING.md,

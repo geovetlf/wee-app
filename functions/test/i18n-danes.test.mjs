@@ -312,6 +312,9 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['weeai.cl_retro', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
     ['weeai.cl_minimal', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
     ['weeai.scene', '«Scene» es la palabra danesa (portada de WeëAI, 2026-11-15)'],
+    /* Ficha del personaje (2026-11-22). */
+    ['character.statusLabel', '«Status» es la palabra danesa (Retskrivningsordbogen); «Tilstand» es el estado físico de algo'],
+    ['character.statusLine', '«Status: …», la misma palabra danesa con su hueco'],
   ]);
   const copiadas = DA.filter(([k, v]) => !IGUALES.has(k) && /\p{L}{3,}/u.test(sinLoAjeno(v)) && (ES[k] === v || EN[k] === v));
   if (process.env.DETALLE) console.log(copiadas.map(([k, v]) => `${k} = ${v}`).join('\n'));
@@ -588,6 +591,10 @@ console.log('\n── K · Traducciones defectuosas ──');
        studio (Restaurer); «Cartel» un letrero de la calle (Skilt), no un póster de studio (Plakat); «Subir»/«Bajar» reordenan
        paradas (Flyt op/ned), no la grúa de la cámara de studio (Kran op/ned). */
     'travel.viewList', 'travel.saSolo', 'travel.budgetMid', 'travel.restore', 'travel.visionSign', 'travel.moveUp', 'travel.moveDown',
+    /* Ficha del personaje (2026-11-22): «Básico» es el nivel de autonomía (Grundlæggende), no el paquete de Credits (Basis). */
+    'character.levelBasico',
+    /* «Medio» es el nivel de autonomía (Mellem), no el largo de un texto de studio (Mellemlang). */
+   
   ]);
   /*
    * Los PASOS de un plan de Weë AI (`plan.<experiencia>Paso…`) se escriben en infinitivo sin «at» («Forbedre fotoet»),

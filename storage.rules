@@ -2,20 +2,56 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    // ─── LAS CARAS DE UNA CUENTA (F3 del plan de alter egos, 2026-11-23) ───
+    //
+    // LÍMITE: como mucho 2 `firestore.get/exists` DISTINTOS por petición
+    // (repetir el mismo documento se cachea y no cuenta; medido en F0). Cada
+    // regla de abajo anota cuántos usa. Ninguna puede pasar de 2.
+    //
+    // De quién es un alter ego opaco (`ent_…`) se LEE, nunca sale de la forma:
+    //   · `entities/{ent}` (WEE_PROFILE, ACTIVE, ownerAccountId == sesión), o
+    //   · `accounts/{cuenta}.identidadesWee`, que escribe solo el servidor.
+    // La cara heredada `hidi_<uid>` se sigue componiendo desde la sesión (sin leer).
+    function caraHeredadaDeLaSesion() {
+      return 'hidi_' + request.auth.uid;
+    }
+    // 1 lectura: entities/{id}.
+    function esAlterEgoDeLaSesion(id) {
+      let entidad = /databases/(default)/documents/entities/$(id);
+      // La forma de `FORMA_DE_ID_DE_ENTIDAD` (core/account-identity.ts): solo filtra; la propiedad la da la entidad.
+      return id.matches('^ent_[0-9abcdefghjkmnpqrstvwxyz]{26}$')
+        && firestore.exists(entidad)
+        && firestore.get(entidad).data.entityType == 'WEE_PROFILE'
+        && firestore.get(entidad).data.status == 'ACTIVE'
+        && firestore.get(entidad).data.ownerAccountId == request.auth.uid;
+    }
+    // 0 lecturas para la cuenta y la heredada; 1 (entities/{id}) para un alter ego.
+    function esCaraDeLaSesion(id) {
+      return request.auth.uid == id || id == caraHeredadaDeLaSesion() || esAlterEgoDeLaSesion(id);
+    }
+    // 1 lectura: accounts/{cuenta}. Lista vacía si la cuenta no tiene el documento.
+    function alterEgosDeLaCuenta() {
+      let cuenta = /databases/(default)/documents/accounts/$(request.auth.uid);
+      return firestore.exists(cuenta) ? firestore.get(cuenta).data.get('identidadesWee', []) : [];
+    }
+
     // === Imágenes de posts (legacy — nuevas subidas van a Cloudinary) ===
+    // Las de un alter ego van a SU carpeta, nunca a la de la cuenta (F3): la URL
+    // pública no delata la cuenta. Lecturas: 0 (cuenta o heredada) · 1 (alter ego: entities).
     match /images/posts/{userId}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null
-                   && request.auth.uid == userId
+                   && esCaraDeLaSesion(userId)
                    && request.resource.size < 5 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
 
     // === Imágenes de perfil (legacy — nuevas subidas van a Cloudinary) ===
+    // Igual que las de posts. Lecturas: 0 (cuenta o heredada) · 1 (alter ego: entities).
     match /images/profile/{userId}/{fileName} {
       allow read: if true;
       allow write: if request.auth != null
-                   && request.auth.uid == userId
+                   && esCaraDeLaSesion(userId)
                    && request.resource.size < 2 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
     }
@@ -74,6 +110,19 @@ service firebase.storage {
                    && request.resource.contentType.matches('image/.*');
     }
 
+    // === WITE · el vídeo ORIGINAL de «Transform Your Identity» (Weëls, 2026-11-26) ===
+    // Lo sube la propia cuenta y se conserva intacto: es la fuente de la transformación y del linaje.
+    // Solo mp4/mov y como mucho 200 MB, el límite oficial de un vídeo de referencia en ModelArk.
+    // Borrar lo hace el servidor (deleteAsset o la eliminación de la cuenta), nunca la app.
+    match /users/{userId}/identity-sources/{fileName} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.size < 200 * 1024 * 1024
+                    && request.resource.contentType.matches('video/(mp4|quicktime)');
+      allow update, delete: if false;
+    }
+
     // === Documentos que la persona sube para que Weë los lea (Filmmaker: guion, libro) ===
     // Solo la dueña los lee y los escribe; el servidor los borra al terminar. Límite de 20 MB (el del lector).
     match /users/{userId}/creator-documents/{fileName} {
@@ -98,20 +147,88 @@ service firebase.storage {
     // la conversación —se comprueba en Firestore desde aquí— y la BORRA el
     // servidor (`burnViewOnce`) cuando quien la recibe la abre. Antes iba a
     // Cloudinary, donde Weë no puede borrar nada, y se quedaba para siempre.
+    //
+    // Con alter egos (F3): participa la cuenta, su cara heredada o un alter ego
+    // de `accounts.identidadesWee`. Lecturas: conversations/{id} + accounts/{cuenta}
+    // = 2, JUSTO en el límite (la cuenta solo se lee si las dos primeras no bastan).
+    // La regla de lectura de abajo no puede añadir ninguna otra.
+    //
+    // F4: la foto sube a la carpeta de la CARA que la manda (`users/<cara>/weetalk/…`),
+    // no a la de la cuenta, para que la dirección no delate la cuenta de un alter ego.
+    // Escribir: `esCaraDeLaSesion` = 0 lecturas (cuenta o heredada) · 1 (alter ego:
+    // entities). La carpeta de la cuenta sigue valiendo para las apps de antes.
+    // Leer: sin cambios; quien la manda también es participante.
     function participaEn(conversationId) {
       let conversacion = /databases/(default)/documents/conversations/$(conversationId);
       // `exists` primero: una conversación que no existe deniega sin error de evaluación.
       return firestore.exists(conversacion)
         && (request.auth.uid in firestore.get(conversacion).data.participants
-            || ("hidi_" + request.auth.uid) in firestore.get(conversacion).data.participants);
+            || caraHeredadaDeLaSesion() in firestore.get(conversacion).data.participants
+            || firestore.get(conversacion).data.participants.hasAny(alterEgosDeLaCuenta()));
     }
     match /users/{userId}/weetalk/{conversationId}/{fileName} {
       allow read: if request.auth != null
                   && (request.auth.uid == userId || participaEn(conversationId));
       allow write: if request.auth != null
-                   && request.auth.uid == userId
+                   && esCaraDeLaSesion(userId)
                    && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
+    }
+
+    // === El material del personaje del Perfil Weë (docs/AUTONOMIA.md § 1b) ===
+    // Su dueño sube el libro, la biografía o las características de su personaje.
+    // Es GRATIS: el servidor (`procesarMaterialDelPersonaje`) saca el texto sin IA,
+    // lo indexa y BORRA el original. Por eso aquí solo se crea: nadie lo lee, nadie
+    // lo sobrescribe y lo borra el servidor. El cupo (5 archivos) lo cuenta el servidor.
+    //   · el perfil tiene que ser el Perfil Weë de esta sesión, de verdad (se lee en Firestore);
+    //   · 20 MB como mucho, y solo PDF, DOCX, EPUB, TXT o MD (la extensión la fija la ruta;
+    //     el tipo de contenido lo deja vacío algún navegador, y el servidor lo vuelve a comprobar);
+    //   · el dueño declara que tiene derecho a usar el contenido (metadato `derechos`).
+    //   · con alter egos (F3): el heredado o uno de `accounts.identidadesWee`.
+    //     Lecturas: users/{perfilId} (+ accounts/{cuenta} solo si no es el heredado) = 2 como mucho.
+    function esMiPersonaje(perfilId) {
+      let perfil = /databases/(default)/documents/users/$(perfilId);
+      return (perfilId == ("hidi_" + request.auth.uid) || perfilId in alterEgosDeLaCuenta())
+        && firestore.exists(perfil)
+        && firestore.get(perfil).data.uid == perfilId
+        && firestore.get(perfil).data.profileType == 'hidi';
+    }
+    match /users/{perfilId}/character-material/{archivo} {
+      allow read: if false;
+      allow update, delete: if false;
+      allow create: if request.auth != null
+                    && archivo.matches('^[A-Za-z0-9_-]{6,64}[.](pdf|docx|epub|txt|md)$')
+                    && esMiPersonaje(perfilId)
+                    && request.resource.size > 0
+                    && request.resource.size <= 20 * 1024 * 1024
+                    && (request.resource.contentType == null
+                        || request.resource.contentType.matches('application/(pdf|epub[+]zip|zip|octet-stream|vnd[.]openxmlformats-officedocument[.]wordprocessingml[.]document)|text/(plain|markdown|x-markdown)'))
+                    && request.resource.metadata.derechos == 'si'
+                    && request.resource.metadata.nombre is string
+                    && request.resource.metadata.nombre.size() <= 200;
+    }
+
+    // === Logo y portada de una Weë Page (F1 del plan de alter egos, 2026-11-23) ===
+    // Antes subían a la carpeta de la CUENTA (`users/<cuenta>/creator-inputs`), y
+    // la URL pública de la foto de una Página delataba de qué cuenta era. Ahora
+    // tienen su carpeta, `pages/<pageId>/`, y la propiedad se comprueba en
+    // Firestore, en `pages/{pageId}/private/ownership` (la escribe `savePage`).
+    // Lo que la Página enseña es la URL de descarga CON TOKEN, que no pasa por
+    // estas reglas; leer y listar por el SDK, solo la cuenta dueña. Las fotos
+    // antiguas, en la carpeta de la cuenta, siguen sirviendo por su URL.
+    function esDuenaDeLaPagina(pageId) {
+      let propiedad = /databases/(default)/documents/pages/$(pageId)/private/ownership;
+      return firestore.exists(propiedad)
+        && firestore.get(propiedad).data.ownerAccountId == request.auth.uid;
+    }
+    match /pages/{pageId}/{archivo} {
+      allow read: if request.auth != null && esDuenaDeLaPagina(pageId);
+      allow update, delete: if false;
+      allow create: if request.auth != null
+                    && archivo.matches('^(logo|cover)-[A-Za-z0-9_-]{4,64}[.](jpg|png|webp)$')
+                    && esDuenaDeLaPagina(pageId)
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
     }
 
     // Sin catch-all — cualquier otra ruta queda denegada por defecto.

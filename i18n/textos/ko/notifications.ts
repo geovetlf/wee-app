@@ -33,6 +33,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} 님이 {{comunidad}}에 게시물을 올렸어요',
   aCommunity: '어떤 커뮤니티',
   generic: '{{nombre}} 님이 나와 소통했어요',
+  characterNotice: '{{nombre}} 님이 확인할 알림을 남겼어요',
   now: '방금',
   markAllRead: '모두 읽음으로 표시',
   all: '전체',

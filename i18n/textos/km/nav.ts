@@ -10,6 +10,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'បង្កើត',
   talk: 'WeeTalk',
   notifications: 'ការជូនដំណឹង',
+  notificationsUnread: 'ការ​ជូន​ដំណឹង អ្នក​មាន​ការ​ជូន​ដំណឹង​មិន​ទាន់​អាន',
   current: 'ផ្នែក​បច្ចុប្បន្ន',
   goTo: 'ទៅកាន់ {{nombre}}',
   weeNavigation: 'ការរុករក​របស់ Weë',

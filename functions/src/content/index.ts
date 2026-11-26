@@ -669,6 +669,32 @@ export const anotarVariantesDelResultado = async (
   return anotadas;
 };
 
+/**
+ * DE DÓNDE SALIÓ UN MATERIAL DERIVADO (WITE, 2026-11-26). La puerta del vídeo crea la ficha del resultado sin saber
+ * que era una transformación; quien la orquestó añade aquí el original del que partió, su trabajo y una marca de
+ * contenido sintético. Solo sobre material de la MISMA cuenta, y solo si el original también es suyo: el linaje nunca
+ * puede apuntar a material ajeno. Nunca borra procedencia que ya estuviera.
+ */
+export const anotarOrigenDelDerivado = async (
+  accountId: string,
+  assetId: string,
+  origen: { sourceAssetIds: readonly string[]; jobId: string; metadata?: Readonly<Record<string, string | number | boolean>> },
+): Promise<boolean> => {
+  const doc = await leerMaterial(assetId);
+  if (!doc || !materialEsDeLaCuenta(doc, accountId) || doc.status === 'deleted') return false;
+  for (const id of origen.sourceAssetIds) {
+    const fuente = await leerMaterial(id);
+    if (!fuente || !materialEsDeLaCuenta(fuente, accountId)) return false;
+  }
+  const previos = doc.provenance?.sourceAssetIds ?? [];
+  await assets().doc(assetId).set({
+    provenance: { ...doc.provenance, sourceAssetIds: [...new Set([...previos, ...origen.sourceAssetIds])], jobId: doc.provenance?.jobId ?? origen.jobId },
+    metadata: { ...(doc.metadata ?? {}), ...(origen.metadata ?? {}) },
+    updatedAt: ahora(),
+  }, { merge: true });
+  return true;
+};
+
 /** Para las pruebas y el inventario: la marca de tiempo de Firestore, en milisegundos. */
 export const milisegundos = (v: unknown): number | undefined =>
   v instanceof Timestamp ? v.toMillis() : typeof v === 'number' ? v : undefined;

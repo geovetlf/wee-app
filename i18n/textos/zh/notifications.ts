@@ -29,6 +29,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} 在 {{comunidad}} 发了动态',
   aCommunity: '某个社区',
   generic: '{{nombre}} 和你互动了',
+  characterNotice: '{{nombre}} 给你留了待查看的提醒',
   now: '刚刚',
   markAllRead: '全部标为已读',
   all: '全部',

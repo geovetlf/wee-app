@@ -25,6 +25,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} memposting di {{comunidad}}',
   aCommunity: 'sebuah komunitas',
   generic: '{{nombre}} berinteraksi dengan Anda',
+  characterNotice: '{{nombre}} meninggalkan pemberitahuan untuk Anda tinjau',
   now: 'baru saja',
   markAllRead: 'Tandai semua sudah dibaca',
   all: 'Semua',

@@ -5,6 +5,9 @@ import { createStackNavigator } from '@react-navigation/stack';
 import LandingScreen from '../screens/LandingScreen';
 import WebLandingScreen from '../screens/WebLandingScreen';
 import HomeScreen from '../screens/HomeScreen';
+/* PRUEBA aparte del Home con más impacto (2026-11-24): solo se abre por su dirección; el Home de verdad no cambia. */
+import HomeImpactoScreen from '../screens/HomeImpactoScreen';
+import HomeUniversosScreen from '../screens/HomeUniversosScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
 import CommunitiesManagementScreen from '../screens/CommunitiesManagementScreen';
 
@@ -15,6 +18,8 @@ export type HomeStackParamList = {
   Landing: { openWeels?: boolean; weelsCommunitySlug?: string; initialPostId?: string } | undefined;
   Feed: { communityId?: string | null; communitySlug?: string | null } | undefined;
   HomeFeed: undefined;
+  HomeImpacto: undefined;
+  HomeUniversos: undefined;
   Notifications: undefined;
   ExploreCommunities: { query?: string; create?: boolean } | undefined;
 };
@@ -62,6 +67,14 @@ const HomeStackNavigator: React.FC = () => {
       <Stack.Screen
         name="Landing"
         component={LandingComponent}
+      />
+      <Stack.Screen
+        name="HomeImpacto"
+        component={HomeImpactoScreen}
+      />
+      <Stack.Screen
+        name="HomeUniversos"
+        component={HomeUniversosScreen}
       />
       <Stack.Screen
         name="Feed"

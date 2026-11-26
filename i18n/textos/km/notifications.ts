@@ -21,6 +21,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} បាន​បង្ហោះ​ក្នុង {{comunidad}}',
   aCommunity: 'សហគមន៍​មួយ',
   generic: '{{nombre}} បាន​ធ្វើ​អន្តរកម្ម​ជាមួយ​អ្នក',
+  characterNotice: '{{nombre}} បាន​ទុក​ការ​ជូន​ដំណឹង​ឲ្យ​អ្នក​ពិនិត្យ',
   now: 'ឥឡូវនេះ',
   markAllRead: 'សម្គាល់​ទាំងអស់​ថា​បាន​អាន',
   all: 'ទាំងអស់',

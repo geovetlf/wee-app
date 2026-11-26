@@ -93,4 +93,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'باز کردن Weë Brain',
   feedForYou: 'برای شما',
   feedCreativity: 'خلاقیت',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'اکنون در Weë',
+  you: 'شما',
+  guestTitle: 'آزادانه خودت را بیان کن.',
+  guestHint: 'با نام خودتان یا با آلتر اگوهایتان منتشر کنید و اثرتان را در WeëPages نشان دهید.',
+  premiere: 'اکران نخست',
+  presentedBy: 'با معرفی {{nombre}}',
+  viewPage: 'دیدن WeëPage',
+  wallEmptyTitleWork: 'Ẅall منتظر نخستین اثر است',
+  wallEmptyHintFaces: 'چیزی از خودتان یا از آلتر اگویتان منتشر کنید.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'جهان‌هایی برای کشف',
+  mosaicTitle: 'در حال خلق شدن',
 };

@@ -434,7 +434,7 @@ console.log('\n── J · El menú Burger ──');
    * aquí es que sigue siendo así —una lista, no una lista escrita a mano— y que
    * Travel entra en esa lista.
    */
-  check('49) las experiencias se recorren desde su fuente única en el centro creativo; el menú recorre su catálogo y ya no las lista', /PORTADA_DE_WEEAI/.test(leer('components/weeai/PortadaWeeAi.tsx')) && /WEE_MENU\.map\(/.test(menu) && !/WEE_EXPERIENCES/.test(menu));
+  check('49) las experiencias se recorren desde su fuente única en el centro creativo; el menú recorre su catálogo y ya no las lista', /* WeëAI sencillo (2026-11-23, decisión del dueño): la portada ya no lista experiencias (ni Travel): solo Imagen, Video corto y Editar mi foto. */ !/PORTADA_DE_WEEAI|WEE_EXPERIENCES|travel/i.test(soloCodigo(leer('components/weeai/PortadaWeeAi.tsx'))) && /WEE_MENU\.map\(/.test(menu) && !/WEE_EXPERIENCES/.test(menu));
   check('49) y no hay ninguna entrada de Travel escrita a mano', !/travel/i.test(soloCodigo(menu)));
   check('49) la barra lateral hace lo mismo', /WEE_MENU\.map\(/.test(barra) && !/WEE_EXPERIENCES/.test(barra) && !/travel/i.test(soloCodigo(barra)));
 
@@ -466,7 +466,7 @@ console.log('\n── J · El menú Burger ──');
   check('52) las otras seis no se movieron de sitio', orden.filter((id) => id !== 'travel').join(',') === 'brain,studio,design,music,chef,business');
 
   // La ruta: la de siempre, con su identificador.
-  check('53) el centro creativo abre la pantalla de especialista, y el menú lleva al centro creativo', /navigation\.navigate\('Specialist', \{ id \}\)/.test(leer('components/weeai/PortadaWeeAi.tsx')) && /navigateRoot\('WeeCreator'\)/.test(menu));
+  check('53) el centro creativo abre la pantalla de especialista, y el menú lleva al centro creativo', /* WeëAI sencillo: la portada ya no abre especialistas (su ruta sigue, dormida). */ /navigation\.navigate\('CrearPublicacion'/.test(leer('components/weeai/PortadaWeeAi.tsx')) && /navigateRoot\('WeeCreator'\)/.test(menu));
   check('53) y esa ruta existe una sola vez', (rutas.match(/<Stack\.Screen name="Specialist"/g) || []).length === 1);
   /* El menú sigue abriendo la portada de siempre; el workspace (2026-11-06) es la única ruta propia y se entra desde ella. */
   check('53) el menú no abre otra portada de Travel: la única ruta propia es el workspace', (rutas.match(/name="Travel"/g) || []).length === 1 && !/TravelHome/.test(rutas) && !/navigateRoot\('Travel'/.test(menu));

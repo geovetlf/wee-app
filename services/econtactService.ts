@@ -47,24 +47,22 @@
  * Los seguimientos (`follows`) son otro sistema: su cliente (`followsService`/`useFollow`) no lo usaba nadie y se
  * retiró en el cierre del 2026-10-01; la colección y su regla siguen (firestore.rules → follows).
  */
-import { collection, deleteDoc, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { auth, db, functions } from '../config/firebase';
-import { notificationService } from './notificationService';
 import type { Traductor } from '../i18n/traducir';
 import { mensajeDelServidor } from '../i18n/servidor';
 import {
   EContactDoc,
   ErrorDeEContact,
   EstadoEntre,
-  PerfilDeIdentidad,
   contactosDe,
   contarContactos,
   elOtro,
   esIdentidadDePersona,
   estadoEntre,
+  bloqueaMismaPersona,
   identidadEsDeLaCuenta,
-  identidadesDeCuenta,
   idDeContacto,
   nombreDeLista,
   puedeAceptar,
@@ -72,8 +70,8 @@ import {
   puedeEliminar,
   solicitudesEnviadas,
   solicitudesRecibidas,
-  tipoDeIdentidad,
 } from '../utils/econtactModel';
+import { esCaraMia, misCaras } from '../utils/misCaras';
 
 const COLECCION = 'econtacts';
 
@@ -101,11 +99,17 @@ export const mensajeDeEContact = (error: unknown, t: Traductor | ((clave: string
 /** La cuenta de quien está usando Weë. null si no hay sesión. */
 const miCuenta = (): string | null => auth?.currentUser?.uid || null;
 
-/** Las identidades de persona que puede usar esta sesión. */
-const misIdentidades = (): string[] => identidadesDeCuenta(miCuenta());
+/** Las identidades de persona que puede usar esta sesión: el Real, la heredada y sus alter egos (`utils/misCaras.ts`). */
+const misIdentidades = (): string[] => misCaras(miCuenta());
 
 /** ¿Esta identidad es de mi sesión? Comprobación local; la que manda es la del servidor. */
-const esMia = (identidad?: string | null): boolean => identidadEsDeLaCuenta(identidad, miCuenta());
+const esMia = (identidad?: string | null): boolean => identidadEsDeLaCuenta(identidad, miCuenta()) || esCaraMia(identidad, miCuenta());
+
+/**
+ * `misma-persona` (D6/D6b): entre dos caras TUYAS, Real ↔ Weë se bloquea y Weë ↔ Weë no. Con una ajena, nunca.
+ */
+const bloqueadaPorMismaPersona = (yo?: string | null, otra?: string | null): boolean =>
+  esMia(otra) && bloqueaMismaPersona(yo, otra);
 
 const exigirIdentidadPropia = (comoIdentidad: string): string => {
   if (!miCuenta()) throw new ErrorDeEContact('econtact.errSignIn', 'Inicia sesión para usar ËContact.');
@@ -163,66 +167,22 @@ const relacionesDe = async (identidad: string): Promise<EContactDoc[]> => {
   return snap.docs.map((d) => d.data() as EContactDoc);
 };
 
-type PerfilLeido = PerfilDeIdentidad & {
-  displayName?: string;
-  avatarType?: string;
-  avatarId?: string;
-  photoURL?: string;
-};
-
-/**
- * El documento de `users` de una identidad. Se busca por el campo `uid`.
- *
- * Se usa el primero y solo el primero, así que se pide uno: sin `orderBy`, Firestore ordena por el id del documento
- * con y sin `limit`, de modo que `limit(1)` devuelve exactamente el mismo que antes era `docs[0]`.
- */
-const perfilDe = async (identidad: string): Promise<PerfilLeido | null> => {
-  const snap = await getDocs(query(collection(db, 'users'), where('uid', '==', identidad), limit(1)));
-  return (snap.docs[0]?.data() as PerfilLeido | undefined) || null;
-};
-
 /*
- * EL AVISO A LA OTRA PERSONA, por el sistema de notificaciones de siempre.
+ * EL AVISO A LA OTRA PERSONA YA NO LO ESCRIBE EL CLIENTE (F1 del plan de alter egos, 2026-11-23).
  *
- * Va dirigido a la IDENTIDAD que recibe, no a su cuenta: quien te escribe al
- * Perfil Weë te escribe a ese perfil, y ahí es donde tiene que aparecer. Se
- * guarda también la cuenta, que es lo que hace falta para un push y no se puede
- * deducir del uid del perfil.
- *
- * Nunca hace fallar la operación: si la conexión se hizo y el aviso no sale, la
- * conexión sigue hecha. Al revés sería peor.
+ * Lo escribe el servidor en la misma transacción que la relación (`avisoDeEContact`,
+ * functions/src/social/econtact.ts), dirigido a la IDENTIDAD que recibe. Para escribirlo desde aquí hacía falta la
+ * cuenta de la otra persona, que la callable devolvía y acababa en `notifications.recipientAccountId`: quien conectaba
+ * con un Perfil Weë se llevaba el uid de la cuenta que lo controla. Ahora la respuesta no trae ninguna cuenta.
  */
-const avisar = async (
-  tipo: 'solicitud' | 'aceptada',
-  paraIdentidad: string,
-  paraCuenta: string | undefined,
-  desdeIdentidad: string
-): Promise<void> => {
-  try {
-    const mio = await perfilDe(desdeIdentidad);
-    const nombre = mio?.displayName || 'Alguien';
-    const avatar = { type: mio?.avatarType, id: mio?.avatarId, url: mio?.photoURL };
-    const extra = {
-      recipientAccountId: paraCuenta,
-      senderProfileType: tipoDeIdentidad(desdeIdentidad),
-    };
-    if (tipo === 'solicitud') {
-      await notificationService.createEContactRequestNotification(paraIdentidad, desdeIdentidad, nombre, avatar, extra);
-    } else {
-      await notificationService.createEContactAcceptedNotification(paraIdentidad, desdeIdentidad, nombre, avatar, extra);
-    }
-  } catch (error) {
-    console.warn('ËContact: no se pudo avisar a la otra persona', error);
-  }
-};
 
-/** Lo que devuelven las dos callables del servidor. */
+/** Lo que devuelven las dos callables del servidor: identidades, nunca cuentas. */
 interface RespuestaRelacion {
   contactId: string;
   status: 'pending' | 'accepted';
   users: string[];
-  from: { identity: string; accountUid: string; type: string };
-  to: { identity: string; accountUid: string; type: string };
+  from: { identity: string; type: string };
+  to: { identity: string; type: string };
 }
 
 const llamar = async (nombre: 'requestEContact' | 'acceptEContact', datos: Record<string, string>) => {
@@ -252,8 +212,8 @@ export const econtactService = {
   enviarSolicitud: async (comoIdentidad: string, otraIdentidad: string): Promise<void> => {
     const yo = exigirIdentidadPropia(comoIdentidad);
     const otra = exigirIdentidadAjena(otraIdentidad);
-    const hecho = await llamar('requestEContact', { fromIdentity: yo, toIdentity: otra });
-    await avisar('solicitud', hecho.to.identity, hecho.to.accountUid, hecho.from.identity);
+    // El aviso a la otra persona lo escribe el servidor en la misma operación.
+    await llamar('requestEContact', { fromIdentity: yo, toIdentity: otra });
   },
 
   /**
@@ -266,9 +226,8 @@ export const econtactService = {
   aceptarSolicitud: async (comoIdentidad: string, otraIdentidad: string): Promise<void> => {
     const yo = exigirIdentidadPropia(comoIdentidad);
     const otra = exigirIdentidadAjena(otraIdentidad);
-    const hecho = await llamar('acceptEContact', { asIdentity: yo, otherIdentity: otra });
-    // Quien la pidió se entera de que ya estáis conectados.
-    await avisar('aceptada', hecho.from.identity, hecho.from.accountUid, hecho.to.identity);
+    // Quien la pidió se entera de que ya estáis conectados: el aviso lo escribe el servidor en la misma operación.
+    await llamar('acceptEContact', { asIdentity: yo, otherIdentity: otra });
   },
 
   /** Decir que no a una solicitud recibida: la relación deja de existir. */
@@ -308,8 +267,8 @@ export const econtactService = {
   estadoCon: async (comoIdentidad: string, otraIdentidad: string): Promise<EstadoEntre> => {
     if (!esMia(comoIdentidad) || !esIdentidadDePersona(otraIdentidad)) return 'ninguno';
     if (comoIdentidad === otraIdentidad) return 'ninguno';
-    // Las dos caras de una misma cuenta no se conectan entre sí.
-    if (esMia(otraIdentidad)) return 'ninguno';
+    // Tu Perfil Real y tus alter egos no se conectan entre sí; tus alter egos, entre ellos, sí (D6).
+    if (bloqueadaPorMismaPersona(comoIdentidad, otraIdentidad)) return 'ninguno';
     return estadoEntre(await leerDoc(comoIdentidad, otraIdentidad), comoIdentidad);
   },
 

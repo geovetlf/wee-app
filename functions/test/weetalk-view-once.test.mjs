@@ -70,7 +70,7 @@ const mundo = ({ participants = ['uAna', 'uBea'], mensajes = {}, fallaBorrado = 
     },
     ahora: () => 1_700_000_500_000,
   };
-  return { quemador: weetalk.crearQuemador(puertos), docs, objetos, diario };
+  return { quemador: weetalk.crearQuemador(puertos), docs, objetos, diario, puertos };
 };
 
 const unica = (extra = {}) => ({ type: 'image', viewOnce: true, senderId: 'uAna', imageUrl: URL_WEE, ...extra });
@@ -273,6 +273,60 @@ console.log('\n── F · S1: solo se borra la foto única de SU remitente, en 
   const fuente = leer('functions/src/social/weetalk.ts');
   check('42) `borrarObjeto` se llama UNA vez y solo detrás de `enSuSitio`', (fuente.match(/p\.borrarObjeto\(/g) || []).length === 1 && /if \(enSuSitio\) \{\s*\n\s*try \{\s*\n\s*await p\.borrarObjeto\(ref\.objectKey\)/.test(fuente));
   check('42) y el prefijo se construye entero antes de comparar', /const prefijo = `users\/\$\{senderId\}\/weetalk\/\$\{conversationId\}\/`;/.test(fuente) && /objectKey\.startsWith\(prefijo\)/.test(fuente) && !/includes\(senderId\)|startsWith\(senderId\)/.test(fuente));
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+console.log('\n── G · F4: la foto en la carpeta de la CARA, y los alter egos ──');
+// ════════════════════════════════════════════════════════════════════════════
+/*
+ * Desde F4 la foto única sube a `users/<cara que firma>/weetalk/…` (la dirección ya no delata la cuenta de un alter
+ * ego); la carpeta de la cuenta sigue valiendo mientras el cliente no cambie (F6). Jay es un alter ego de Alice.
+ */
+{
+  const JAY = 'ent_jay' + '0'.repeat(23);
+  const urlDe = (clave) => `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/${encodeURIComponent(clave)}?alt=media&token=t`;
+  const DE_JAY = `users/${JAY}/weetalk/c1/photo.jpg`;
+  const DE_ALICE = 'users/alice/weetalk/c1/photo.jpg';
+  const escenario = ({ sender, clave, abre, identidades }) => {
+    const m = mundo({
+      participants: [JAY, 'bob'], mensajes: { m1: { type: 'image', viewOnce: true, senderId: sender, imageUrl: urlDe(clave) } },
+      objetos: [DE_JAY, DE_ALICE], cuentas: { [JAY]: 'alice' },
+    });
+    if (identidades) m.quemador = weetalk.crearQuemador({ ...mPuertos(m), identidadesDeLaCuenta: async (u) => identidades[u] || [u] });
+    return m;
+  };
+  /* Los puertos del mundo, para añadirles el de las caras de la cuenta. */
+  const mPuertos = (m) => m.puertos;
+
+  check('43) claveDeFotoUnica acepta la carpeta de un alter ego y la de la cara heredada',
+    weetalk.claveDeFotoUnica(DE_JAY, JAY, 'c1') && weetalk.claveDeFotoUnica('users/hidi_alice/weetalk/c1/f.jpg', 'hidi_alice', 'c1')
+    && !weetalk.claveDeFotoUnica('users/ent_corto/weetalk/c1/f.jpg', 'ent_corto', 'c1'));
+  {
+    const m = escenario({ sender: JAY, clave: DE_JAY });
+    const r = await m.quemador.quemar('bob', 'c1', 'm1');
+    check('44) Jay manda desde SU carpeta, Bob la abre: se borra ese objeto y ningún otro', r.status === 'quemada' && r.pendingPhysicalDeletion === false
+      && !m.objetos.has(DE_JAY) && m.objetos.has(DE_ALICE));
+  }
+  {
+    const m = escenario({ sender: JAY, clave: DE_ALICE });
+    const r = await m.quemador.quemar('bob', 'c1', 'm1');
+    check('45) compatibilidad: Jay con la foto en la carpeta de su CUENTA (cliente de antes) también se borra', r.pendingPhysicalDeletion === false && !m.objetos.has(DE_ALICE));
+  }
+  {
+    const m = escenario({ sender: 'bob', clave: DE_JAY, identidades: { alice: ['alice', 'hidi_alice', JAY] } });
+    const r = await m.quemador.quemar('alice', 'c1', 'm1');
+    check('46) Bob apuntando a la carpeta de Jay no borra nada', m.objetos.has(DE_JAY) && r.pendingPhysicalDeletion === true);
+  }
+  {
+    const m = escenario({ sender: JAY, clave: DE_JAY, identidades: { alice: ['alice', 'hidi_alice', JAY] } });
+    check('47) Alice participa por su alter ego (identidadesDeLaCuenta) y, como la mandó Jay, no la «abre»: es_tuya',
+      (await motivo(() => m.quemador.quemar('alice', 'c1', 'm1'))) === 'es_tuya');
+    check('48) sin el puerto de las caras, Alice ni siquiera participa (Jay no es heredada)',
+      (await motivo(() => escenario({ sender: JAY, clave: DE_JAY }).quemador.quemar('alice', 'c1', 'm1'))) === 'no_participas');
+  }
+  const reglas = leer('storage.rules');
+  check('49) storage.rules: escribe en la carpeta de cualquier cara de la sesión (esCaraDeLaSesion), lee igual que antes',
+    /match \/users\/\{userId\}\/weetalk\/\{conversationId\}\/\{fileName\} \{[\s\S]*?allow write: if request\.auth != null\s*&& esCaraDeLaSesion\(userId\)/.test(reglas));
 }
 
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nWeeTalk: la foto única desaparece de verdad, solo cuando la ve quien debe, y solo la foto que es');

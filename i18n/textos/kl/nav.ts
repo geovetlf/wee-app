@@ -15,6 +15,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Pilersitsigit',
   talk: 'WeeTalk',
   notifications: 'Nalunaarutit',
+  notificationsUnread: 'Nalunaarutit, atuarsimanngisannik nalunaarutiqarputit',
   current: 'immikkoortoq ammasoq',
   goTo: 'Ingerlaffigiuk: {{nombre}}',
   weeNavigation: 'Aqqutissiuut · Weë',

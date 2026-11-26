@@ -235,11 +235,12 @@ console.log('\n── F · Nada más se movió ──');
   check('25) y el nombre se sigue pintando crudo', /\{nombre\}\s*<\/Text>/.test(C.tag) && !/t\(nombre\)/.test(C.tag));
 
   /* La barra inferior: mismos destinos, mismo orden, misma forma. */
-  check('26) control: los cinco destinos y su orden son los del rediseño: Inicio · WeëAI · Crear · Mensajes · Mi Weë',
-    /'Home' \| 'WeeAI' \| 'Create' \| 'Inbox' \| 'Profile'/.test(C.barra)
-    && C.barra.indexOf("id: 'Home'") < C.barra.indexOf("id: 'WeeAI'") && C.barra.indexOf("id: 'WeeAI'") < C.barra.indexOf("id: 'Create'")
+  /* Home 0+ (2026-11-24): Weëls ocupa el hueco de WeëAI; WeëAI sigue siendo destino (enciende su tema) pero sin botón. */
+  check('26) control: los cinco botones y su orden: Inicio · Weëls · Crear · Mensajes · Mi Weë',
+    /'Home' \| 'Weels' \| 'WeeAI' \| 'Create' \| 'Inbox' \| 'Profile'/.test(C.barra) && !C.barra.includes("id: 'WeeAI'")
+    && C.barra.indexOf("id: 'Home'") < C.barra.indexOf("id: 'Weels'") && C.barra.indexOf("id: 'Weels'") < C.barra.indexOf("id: 'Create'")
     && C.barra.indexOf("id: 'Create'") < C.barra.indexOf("id: 'Inbox'") && C.barra.indexOf("id: 'Inbox'") < C.barra.indexOf("id: 'Profile'")
-    && ES('nav.weeAi') === 'WeëAI' && ES('nav.messages') === 'Mensajes' && ES('nav.myWee') === 'Mi Weë' && EN('nav.messages') === 'Messages');
+    && ES('menu.weels') === 'Weëls' && ES('nav.messages') === 'Mensajes' && ES('nav.myWee') === 'Mi Weë' && EN('nav.messages') === 'Messages');
   check('26) y cada destino sigue diciendo si está puesto (la última pestaña dice a qué cara cambia)',
     C.barra.includes("`${rotulo(destino)}, ${t('nav.current')}` : rotulo(destino)") && C.barra.includes("t('menu.switchToProfile'"));
 

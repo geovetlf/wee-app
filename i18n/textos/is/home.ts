@@ -95,4 +95,17 @@ export const home: typeof import('../es/home').home = {
   openBrain: 'Opna Weë Brain',
   feedForYou: 'Fyrir þig',
   feedCreativity: 'Sköpun',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Núna á Weë',
+  you: 'Þú',
+  guestTitle: 'Tjáðu þig frjálst.',
+  guestHint: 'Birtu sem þú sjálf eða sem hliðarsjálfin þín, og sýndu verkin þín á WeëPages.',
+  premiere: 'Frumsýning',
+  presentedBy: 'Kynnt af {{nombre}}',
+  viewPage: 'Skoða WeëPage',
+  wallEmptyTitleWork: 'Ẅall bíður eftir fyrsta verkinu',
+  wallEmptyHintFaces: 'Birtu eitthvað eftir þig eða hliðarsjálfið þitt.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Heimar til að uppgötva',
+  mosaicTitle: 'Skapað núna',
 };

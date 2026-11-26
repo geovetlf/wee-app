@@ -168,7 +168,7 @@ console.log('\n── Fronteras de autorización ──');
   const reglas = read('firestore.rules');
 
   check('una notificación no se puede firmar con la identidad de otra persona',
-    /allow create: if isAuthenticated\(\) &&\s*\n\s*\(request\.resource\.data\.senderId == request\.auth\.uid/.test(reglas),
+    /allow create: if isAuthenticated\(\) &&\s*\n\s*esMia\(request\.resource\.data\.senderId\)/.test(reglas), // F3: cualquier cara de la cuenta
     'dispara un push de verdad con `senderName` tal cual');
 
   /*
@@ -179,10 +179,14 @@ console.log('\n── Fronteras de autorización ──');
   {
     const avisos = reglas.slice(reglas.indexOf('match /notifications/{notificationId}'), reglas.indexOf('match /creatorInterests/'));
     check('un aviso tiene la forma de los que manda la app, y ninguna otra (cada uno es un push)',
-      /request\.resource\.data\.senderId == \("hidi_" \+ request\.auth\.uid\)\) &&\s*\n\s*avisoConLaFormaDeLaApp\(\);/.test(avisos)
-      && /return \['like', 'comment', 'econtact_request', 'econtact_accepted'\];/.test(avisos)
+      /* F3 de alter egos (2026-11-23): firma cualquier cara de la cuenta (`esMia`) y no se avisa a ninguna (`misIdentidades`). */
+      /esMia\(request\.resource\.data\.senderId\) &&\s*\n\s*avisoConLaFormaDeLaApp\(\);/.test(avisos)
+      /* + 'recreate' (WeëAI sencillo, 2026-11-23, decisión del dueño): «Recrear este estilo» avisa al autor con la misma forma. */
+      /* − econtact_* y sin `recipientAccountId` (F1 del plan de alter egos, 2026-11-23): los escribe el servidor. */
+      && /return \['like', 'comment', 'recreate'\];/.test(avisos)
+      && !/'recipientAccountId'/.test(avisos)
       && /aviso\.keys\(\)\.hasOnly\(camposDeAvisoDeLaApp\(\)\)/.test(avisos)
-      && /!\(aviso\.recipientId in misIdentidadesHeredadas\(\)\)/.test(avisos)
+      && /!\(aviso\.recipientId in misIdentidades\(\)\)/.test(avisos)
       && /aviso\.read == false/.test(avisos) && /aviso\.createdAt is timestamp/.test(avisos)
       && /textoDeAviso\('postContent', 400\) && textoDeAviso\('commentContent', 400\)/.test(avisos));
     check('y el destinatario solo la marca como leída',
@@ -321,7 +325,8 @@ console.log('\n── Fronteras de autorización ──');
       && (weetalk.match(/p\.borrarObjeto\(/g) || []).length === 1
       && /if \(enSuSitio\) \{\s*\n\s*try \{\s*\n\s*await p\.borrarObjeto\(ref\.objectKey\)/.test(weetalk));
     check('y la cuenta del remitente se resuelve con el resolutor canónico, sin recortar prefijos',
-      /cuentaDeIdentidad\(senderId, d\.data\(\) as PerfilDeIdentidad\)/.test(weetalk)
+      /* F4: el canónico que también lee los alter egos (`cuentaDelPerfilLeido`: heredado por vínculo, alter ego por entidad). */
+      /cuentaDelPerfilLeido\(db, senderId, d\.data\(\) as PerfilDeIdentidad\)/.test(weetalk)
       && !/replace\(\/\^hidi_|slice\(5\)|split\('hidi_'\)/.test(weetalk));
     check('y nunca con una comparación débil ni con una identidad que llegue en la petición',
       !/includes\(senderId\)|startsWith\(senderId\)|request\.data\.(senderId|uid|userId)/.test(weetalk)
@@ -359,7 +364,7 @@ console.log('\n── Lo de la cuenta, fuera del perfil público ──');
     /* El VALOR del token no se escribe en el registro (un aviso de estado sin el token sí puede). */
     && !/console\.(log|warn|error)\([^\n]*,\s*token\s*\)/.test(push.replace(/\/\*[\s\S]*?\*\//g, '')));
   check('el servidor lo lee de pushTokens/{cuenta} resuelta con el resolutor canónico',
-    /collection\('pushTokens'\)\.doc\(cuenta\)/.test(indice) && /cuentaDeIdentidad\(identidad as string, perfil\.data\(\) as PerfilDeIdentidad\)/.test(indice)
+    /collection\('pushTokens'\)\.doc\(cuenta\)/.test(indice) && /cuentaDelPerfilLeido\(db, identidad, perfil\.data\(\) as PerfilDeIdentidad\)/.test(indice)
     && !/\.pushToken\b/.test(indice) && !/replace\(\/\^hidi_/.test(indice));
   check('las reglas no dejan escribir campos de cuenta en users, ni al crear ni al actualizar',
     /function accountFields\(\) \{\s*\n\s*return \['email', 'realName', 'birthDate', 'gender', 'pushToken', 'pushTokenUpdatedAt'\];/.test(reglas)
