@@ -136,7 +136,7 @@ check('G12 · nunca más de lo reservado', V.cobroAlCerrar(50, true, 5, 'ai_vide
 check('G13 · sin la opción interna, todo sigue como antes', V.cobroAlCerrar(484, false, 0.81, 'ai_video_advanced', ajustes) === 484);
 check('G14 · coste desconocido: se cobra lo reservado, no se inventa', V.cobroAlCerrar(484, true, undefined, 'ai_video_advanced', ajustes) === 484);
 const videoSrcG = sinComentarios(leer('functions/src/creator/video.ts')).replace(/\s+/g, ' ');
-check('G15 · la opción interna solo la pone WITE; la app no puede pasarla', videoSrcG.includes('atenderVideo({ ...request, data: datos }, { consumoReal: true, ...extra })') && videoSrcG.includes('(request) => atenderVideo(request))'));
+check('G15 · la opción interna solo la pone WITE, con la marca privada; la app no puede fabricarla', videoSrcG.includes('atenderVideo({ ...request, data: datos }, { [MARCA_INTERNA]: true, consumoReal: true, ...extra })') && videoSrcG.includes("const MARCA_INTERNA: unique symbol = Symbol('opcionesInternasDeVideo');") && videoSrcG.includes('[MARCA_INTERNA] === true ? (x as OpcionesInternasDeVideo) : {}') && videoSrcG.includes('}, atenderVideo);'));
 check('G16 · el Credit Engine no se toca: se usa su finalAmount', videoSrcG.includes('...(cobrado !== spend.amount ? { finalAmount: cobrado } : {})'));
 check('G17 · la puerta elige el modelo de edición, por defecto el más barato', M.leerPuertaDeWite({ abierto: true }).modelo === 'SEEDANCE_2_0_MINI' && M.leerPuertaDeWite({ abierto: true, modelo: 'SEEDANCE_2_5' }).modelo === 'SEEDANCE_2_5' && M.leerPuertaDeWite({ abierto: true, modelo: 'kling' }).modelo === 'SEEDANCE_2_0_MINI');
 check('G18 · otra resolución solo 360p o 480p', M.validarPeticion({ ...buena, resolucion: '720p' }).motivo === 'resolution_unavailable' && M.validarPeticion({ ...buena, resolucion: '480p' }).ok);
@@ -152,7 +152,7 @@ check('H3 · puerta cerrada o sin mapa: ningún activo', Object.keys(M.leerPuert
 const nva = normalizeVideoRequest(W.peticionDeVideo({ ...buena, sourceUrl: 'https://s/v.mp4', cambiarRopa: false }, 'https://s/i.png', 'SEEDANCE_2_0_MINI', '480p', 'asset://abc123'), {});
 check('H4 · con activo, el vídeo que viaja al proveedor es el asset://, no la URL', JSON.stringify(nva.input.referenceVideos) === '["asset://abc123"]');
 const vs = sinComentarios(leer('functions/src/creator/video.ts')).replace(/\s+/g, ' ');
-check('H5 · la puerta del vídeo solo deja pasar los activos que le da WITE por dentro (nunca desde data)', vs.includes('activosAutorizados.includes(value) ? value : assertInputImageUrl(value, uid)') && vs.includes('ownUrls(data.references.videos, uid, opciones.activosDePersonaReal)') && vs.includes('(request) => atenderVideo(request))'));
+check('H5 · la puerta del vídeo solo deja pasar los activos que le da WITE por dentro (nunca desde data)', vs.includes('activosAutorizados.includes(value) ? value : assertInputImageUrl(value, uid)') && vs.includes('ownUrls(data.references.videos, uid, opciones.activosDePersonaReal)') && vs.includes('const opciones = opcionesInternas(crudas);'));
 check('H6 · el audio de referencia nunca acepta activos', vs.includes('audios: ownUrls(data.references.audios, uid), }') || vs.includes('audios: ownUrls(data.references.audios, uid) }'));
 const ix = sinComentarios(leer('functions/src/wite/index.ts'));
 check('H7 · el activo usado queda registrado con el consentimiento del trabajo', ix.includes('consentimiento: { ...peticion.consentimiento, at, activoDePersonaReal: activo }'));
@@ -167,7 +167,7 @@ check('D2 · WITE no monta claves ni llama a proveedores (del adaptador solo lee
 check('D3 · WITE no pasa por el Core Runtime (regla 10)', !/from '\.\.\/runtime/.test(witeSrc) && !/conductorDeWee|pedirMedio/.test(witeSrc));
 const videoSrc = sinComentarios(leer('functions/src/creator/video.ts'));
 check('D4 · entra por generateVideo, que se reinvoca a sí misma', /transformarIdentidad !== undefined/.test(videoSrc) && /atenderTransformacion\(uid, data\.transformarIdentidad, \{ porVideo/.test(videoSrc));
-check('D5 · la reentrada es la misma puerta (atenderVideo)', /porVideo = \(datos: Record<string, unknown>, extra: \{ activosDePersonaReal\?: readonly string\[\] \} = \{\}\): Promise<unknown> =>\s*atenderVideo\(\{ \.\.\.request, data: datos \}, \{ consumoReal: true, \.\.\.extra \}\)/.test(videoSrc));
+check('D5 · la reentrada es la misma puerta (atenderVideo), con la marca interna', /porVideo = \(datos: Record<string, unknown>, extra: \{ activosDePersonaReal\?: readonly string\[\] \} = \{\}\): Promise<unknown> =>\s*atenderVideo\(\{ \.\.\.request, data: datos \}, \{ \[MARCA_INTERNA\]: true, consumoReal: true, \.\.\.extra \}\)/.test(videoSrc));
 check('D6 · el Content Core solo enlaza material de la misma cuenta', /anotarOrigenDelDerivado[\s\S]{0,700}materialEsDeLaCuenta\(fuente, accountId\)/.test(leer('functions/src/content/index.ts')));
 const app = sinComentarios(leer('services/witeService.ts') + leer('screens/TransformarIdentidadScreen.tsx'));
 check('D7 · la app no habla con proveedores', !/bytepluses|seedance|elevenlabs|ARK_|api\.|fetch\('http/i.test(app));

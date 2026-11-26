@@ -461,7 +461,14 @@ const TARIFA_PROPIA_DE_VIDEO: readonly string[] = ['seedance', 'mock'];
  *   · consumoReal → liquidar lo que el proveedor dice que costó (`usage.completion_tokens` → `costUSD`) y no el techo
  *     cotizado. Lo pide WITE (decisión del dueño, 2026-11-26). Sin ella, todo sigue exactamente como antes.
  */
+/**
+ * LA MARCA de las opciones internas: un `Symbol` del módulo, que nada fuera de este archivo puede fabricar. `onCall` llama a
+ * `atenderVideo` con SU segundo argumento (el objeto de respuesta de la callable): sin esta marca, ese objeto —o cualquier
+ * otra cosa— nunca cuenta como opciones. Así la exportación sigue siendo `onCall({...}, atenderVideo)`.
+ */
+const MARCA_INTERNA: unique symbol = Symbol('opcionesInternasDeVideo');
 interface OpcionesInternasDeVideo {
+  readonly [MARCA_INTERNA]: true;
   consumoReal?: boolean;
   /**
    * Activos de persona real AUTORIZADOS en BytePlus (`asset://<id>`) que esta llamada puede mandar como referencia.
@@ -477,7 +484,12 @@ export const cobroAlCerrar = (reservado: number, consumoReal: boolean, costeUsd:
   return Math.min(reservado, creditosDeUnCoste(service, costeUsd, settings));
 };
 
-const atenderVideo = async (request: CallableRequest<unknown>, opciones: OpcionesInternasDeVideo = {}): Promise<unknown> => {
+/** Las opciones solo si llevan la marca; si no (p. ej. el objeto de respuesta que pasa `onCall`), ninguna. */
+const opcionesInternas = (x: unknown): Partial<OpcionesInternasDeVideo> =>
+  x && typeof x === 'object' && (x as Record<symbol, unknown>)[MARCA_INTERNA] === true ? (x as OpcionesInternasDeVideo) : {};
+
+const atenderVideo = async (request: CallableRequest<unknown>, crudas?: unknown): Promise<unknown> => {
+  const opciones = opcionesInternas(crudas);
   const deadlineAt = Date.now() + PLAZO_DE_VIDEO_MS - RESERVA_PARA_LIQUIDAR_MS;
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
@@ -511,7 +523,7 @@ const atenderVideo = async (request: CallableRequest<unknown>, opciones: Opcione
      */
     if (data.transformarIdentidad !== undefined) {
       const porVideo = (datos: Record<string, unknown>, extra: { activosDePersonaReal?: readonly string[] } = {}): Promise<unknown> =>
-        atenderVideo({ ...request, data: datos }, { consumoReal: true, ...extra });
+        atenderVideo({ ...request, data: datos }, { [MARCA_INTERNA]: true, consumoReal: true, ...extra });
       return await atenderTransformacion(uid, data.transformarIdentidad, { porVideo, plazoMs: PLAZO_DE_VIDEO_MS });
     }
     /*
@@ -967,5 +979,4 @@ const atenderVideo = async (request: CallableRequest<unknown>, opciones: Opcione
   }
 };
 
-/* Envuelta: la app nunca puede pasar opciones internas (onCall da como segundo argumento su propio objeto de respuesta). */
-export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, (request) => atenderVideo(request));
+export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, atenderVideo);
