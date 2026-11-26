@@ -15,7 +15,7 @@ import { IconoWee } from '../components/icons/IconoWee';
 import { Rotulo, Chip, FilaDeChips, BotonPrincipal, BotonSecundario, TarjetaDePrecio, Aviso } from '../components/crear/PiezasDeCrear';
 import { PORTADA_WEEAI as P, textoPortada, ESPACIO_WEEAI as SP } from '../constants/estiloWeeAi';
 import {
-  witeService, PersonajeDeWite, PeticionDeWite, SujetoDeWite, TrabajoDeWite, EstadoDeWite,
+  witeService, ModoDeWite, PersonajeDeWite, PeticionDeWite, SujetoDeWite, TrabajoDeWite, EstadoDeWite,
   BYTES_MAXIMOS_DE_WITE, DURACION_MAXIMA_DE_WITE, DURACION_MINIMA_DE_WITE,
 } from '../services/witeService';
 
@@ -77,6 +77,7 @@ const claveDelMotivo = (motivo?: string, code?: string): string => {
   if (motivo === 'too_short' || motivo === 'too_long') return 'weels.witeVideoLength';
   if (motivo === 'too_big' || motivo === 'bad_format' || motivo === 'needs_video') return 'weels.witeVideoFormat';
   if (motivo === 'demo_not_publishable') return 'weels.witeDemoNotice';
+  if (motivo === 'mode_unavailable') return 'weels.witeErrMode';
   if (/real|face|portrait|rostro/i.test(`${motivo ?? ''}`)) return 'weels.witeErrRealFace';
   if (code === 'RATE_LIMITED') return 'weels.witeErrLimit';
   if (code === 'INSUFFICIENT_CREDITS' || motivo === 'insufficient_credits') return 'weels.witeNoBalance';
@@ -106,6 +107,8 @@ const TransformarIdentidadScreen: React.FC = () => {
   const [personajes, setPersonajes] = useState<PersonajeDeWite[] | null>(null);
   const [characterId, setCharacterId] = useState<string | null>(null);
   const [sujeto, setSujeto] = useState<SujetoDeWite>('unico');
+  /* «cara» por defecto: es lo más barato para la persona y para Weë (decisión del dueño, 2026-11-26). */
+  const [modo, setModo] = useState<ModoDeWite>('cara');
   const [cambiarRopa, setCambiarRopa] = useState(false);
   const [soyYo, setSoyYo] = useState(false);
   const [losDemas, setLosDemas] = useState(false);
@@ -146,10 +149,10 @@ const TransformarIdentidadScreen: React.FC = () => {
   }, []);
 
   const peticion = useMemo<PeticionDeWite | null>(() => (video?.url && characterId ? {
-    requestId, sourceUrl: video.url, sourceDurationSec: video.segundos, characterId, sujeto, cambiarRopa, audio: 'original',
+    requestId, sourceUrl: video.url, sourceDurationSec: video.segundos, characterId, sujeto, modo, cambiarRopa: modo === 'completo' && cambiarRopa, audio: 'original',
     ...(resolucion ? { resolucion } : {}),
     consentimiento: { soyLaPersonaTransformada: soyYo, losDemasNoSeModifican: losDemas },
-  } : null), [video, characterId, sujeto, cambiarRopa, soyYo, losDemas, requestId, resolucion]);
+  } : null), [video, characterId, sujeto, modo, cambiarRopa, soyYo, losDemas, requestId, resolucion]);
 
   /* El precio, del servidor, en el paso de confirmar y con el consentimiento dado. */
   useEffect(() => {
@@ -221,6 +224,8 @@ const TransformarIdentidadScreen: React.FC = () => {
     seguirTrabajo(witeService.idDelTrabajo(peticion.requestId));
     try {
       const r = await witeService.ejecutar(peticion, precio.credits);
+      /* Terminó: se vuelve a leer el trabajo, por si el oyente se perdió algún cambio mientras tanto. */
+      if (r.status !== 'REJECTED' && typeof r.jobId === 'string') seguirTrabajo(r.jobId);
       if (r.status === 'REJECTED') {
         setFase('confirmar');
         setAviso(claveDelMotivo(r.reason, r.code));
@@ -418,9 +423,13 @@ const TransformarIdentidadScreen: React.FC = () => {
         {SIN_LUGAR.map((s) => <Chip key={s.id} radio texto={t(s.clave)} puesta={sujeto === s.id} onPress={() => setSujeto(s.id)} />)}
       </FilaDeChips>
 
-      <Rotulo texto={t('weels.witeStepLook')} extra={t('weels.witePrimaryMode')} />
-      <Text style={[styles.nota, dir.texto]}>{t('weels.witeLookFixed')}</Text>
-      {opcion({ titulo: t('weels.witeChangeClothes'), puesta: cambiarRopa, rol: 'checkbox', onPress: () => setCambiarRopa((v) => !v) })}
+      <Rotulo texto={t('weels.witeStepLook')} />
+      <View accessibilityRole="radiogroup" accessibilityLabel={t('weels.witeStepLook')} style={styles.grupo}>
+        {opcion({ titulo: t('weels.witeModeFace'), nota: t('weels.witeModeFaceHint'), puesta: modo === 'cara', onPress: () => setModo('cara') })}
+        {opcion({ titulo: t('weels.witePrimaryMode'), nota: t('weels.witeLookFixed'), puesta: modo === 'completo', onPress: () => setModo('completo') })}
+      </View>
+      {/* La ropa solo puede cambiar cuando cambia la persona entera. */}
+      {modo === 'completo' ? opcion({ titulo: t('weels.witeChangeClothes'), puesta: cambiarRopa, rol: 'checkbox', onPress: () => setCambiarRopa((v) => !v) }) : null}
 
       <Rotulo texto={t('weels.witeStepAudio')} />
       {opcion({ titulo: t('weels.witeAudioOriginal'), nota: t('weels.witeAudioOriginalHint'), puesta: true, onPress: () => undefined })}
@@ -444,6 +453,7 @@ const TransformarIdentidadScreen: React.FC = () => {
       <View style={styles.resumen}>
         {video ? fila(t('weels.witeStepVideo'), t('weels.witeSeconds', { segundos: formato.numero(video.segundos) }), 'video') : null}
         {personaje ? fila(t('weels.witeStepCharacter'), personaje.nombre, 'personaje', personaje.imagen) : null}
+        {fila(t('weels.witeStepLook'), t(modo === 'cara' ? 'weels.witeModeFace' : 'weels.witePrimaryMode'), 'ajustes')}
         {fila(t('weels.witeStepSubject'), t(CLAVE_DEL_SUJETO[sujeto]), 'ajustes')}
         {fila(t('weels.witeStepAudio'), t('weels.witeAudioOriginal'), 'ajustes')}
       </View>
@@ -605,6 +615,7 @@ const styles = StyleSheet.create({
   opcion: { flexDirection: 'row', alignItems: 'center', gap: SP.md, padding: SP.md, borderRadius: 14, backgroundColor: P.superficie, borderWidth: 1, borderColor: P.borde },
   opcionPuesta: { borderColor: P.tinta },
   opcionTitulo: { ...textoPortada(15, '600'), color: P.tinta },
+  grupo: { gap: 10 },
   resumen: { borderRadius: 16, backgroundColor: P.superficie, borderWidth: 1, borderColor: P.borde, overflow: 'hidden' },
   filaResumen: { flexDirection: 'row', alignItems: 'center', gap: SP.md, paddingHorizontal: SP.md, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: P.borde },
   miniatura: { width: 36, height: 48, borderRadius: 8, backgroundColor: P.superficieAlta },

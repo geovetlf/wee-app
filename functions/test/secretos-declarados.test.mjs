@@ -39,7 +39,7 @@ import { fileURLToPath } from 'node:url';
 const intentosDeRed = [];
 globalThis.fetch = async (url) => { intentosDeRed.push(`fetch ${String(url).slice(0, 60)}`); throw new Error('secretos-declarados: red cortada'); };
 net.Socket.prototype.connect = function (...a) { intentosDeRed.push(`socket ${JSON.stringify(a[0])?.slice(0, 60)}`); throw new Error('secretos-declarados: red cortada'); };
-for (const k of ['GOOGLE_APPLICATION_CREDENTIALS', 'FIREBASE_CONFIG', 'GOOGLE_CLOUD_PROJECT', 'K_SERVICE', 'FUNCTION_TARGET', 'FAL_KEY']) delete process.env[k];
+for (const k of ['GOOGLE_APPLICATION_CREDENTIALS', 'FIREBASE_CONFIG', 'GOOGLE_CLOUD_PROJECT', 'K_SERVICE', 'FUNCTION_TARGET', 'FAL_KEY', 'WAVESPEED_API_KEY']) delete process.env[k];
 process.env.GCLOUD_PROJECT = 'demo-secretos-declarados';
 process.env.METADATA_SERVER_DETECTION = 'none';
 
@@ -62,7 +62,8 @@ const EXISTEN_EN_GET_WEE = Object.freeze([
   'MINIMAX_API_KEY', 'OPENAI_API_KEY', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'SEEDANCE_CALLBACK_TOKEN',
 ]);
 /** Los llaveros DORMIDOS: nombrados en `secrets.ts` y sin declarar (ver 2). Activar uno = pasarlo a la lista de arriba en el mismo cambio que crea el secreto. */
-const DORMIDAS = Object.freeze(['FAL_KEY']);
+/* WAVESPEED_API_KEY (WITE, decisión del dueño del 2026-11-26): dormida como FAL_KEY hasta que exista en get-wee. */
+const DORMIDAS = Object.freeze(['FAL_KEY', 'WAVESPEED_API_KEY']);
 /* Ningún valor de verdad al alcance de la suite (condición 6 del dueño, 2026-11-07): antes de cargar nada se quitan del
    entorno TODOS los nombres de clave, no solo FAL_KEY; así ni la carga del código ni el censor (3b) pueden leer uno. */
 for (const k of [...EXISTEN_EN_GET_WEE, ...DORMIDAS]) delete process.env[k];
@@ -119,7 +120,7 @@ check('3 · sin declararla, leer FAL_KEY no lanza ni inventa un valor', S.secret
   delete process.env.FAL_KEY;
   check('3b · el censor de registros sigue cubriendo los tres llaveros: un valor de FAL_KEY en el entorno se censura (y, con el entorno limpio, no ve ninguno)',
     antes.length === 0 && despues.length === 1 && despues[0] === deMentira
-    && /PROVIDER_SECRET_NAMES, \.\.\.MEDIA_SECRET_NAMES, \.\.\.FAL_SECRET_NAMES/.test(secretsTs));
+    && /PROVIDER_SECRET_NAMES, \.\.\.MEDIA_SECRET_NAMES, \.\.\.FAL_SECRET_NAMES, \.\.\.WAVESPEED_SECRET_NAMES/.test(secretsTs));
 }
 {
   const { ADAPTERS, DEFAULT_PROVIDERS } = require(path.join(FUNCIONES, 'lib/engine/registry.js'));
@@ -161,11 +162,11 @@ const auditarNombres = (llaveros, autorizadas) => {
     autorizadasSinNombrar: autorizadas.filter((n) => !unicas.includes(n)).sort(),
   };
 };
-const LLAVEROS = ['FAL_SECRET_NAMES', 'MEDIA_SECRET_NAMES', 'PROVIDER_SECRET_NAMES'];
+const LLAVEROS = ['FAL_SECRET_NAMES', 'MEDIA_SECRET_NAMES', 'PROVIDER_SECRET_NAMES', 'WAVESPEED_SECRET_NAMES'];
 const llaverosExportados = Object.keys(S).filter((k) => /_SECRET_NAMES$/.test(k)).sort();
 const llaveros = Object.fromEntries(llaverosExportados.map((k) => [k, [...S[k]]]));
 const nombresDeLlaveros = auditarNombres(llaveros, [...EXISTEN_EN_GET_WEE, ...DORMIDAS]);
-check('7 · NOMBRES: secrets.ts exporta los tres llaveros conocidos y nombra exactamente las 11 autorizadas más las dormidas, sin repetir ninguna',
+check('7 · NOMBRES: secrets.ts exporta los cuatro llaveros conocidos y nombra exactamente las 11 autorizadas más las dormidas, sin repetir ninguna',
   JSON.stringify(llaverosExportados) === JSON.stringify(LLAVEROS)
   && !nombresDeLlaveros.duplicadas.length && !nombresDeLlaveros.noAutorizadas.length && !nombresDeLlaveros.autorizadasSinNombrar.length,
   [`llaveros: ${llaverosExportados.join(', ')}`, ...Object.entries(nombresDeLlaveros).filter(([, v]) => v.length).map(([k, v]) => `${k}: ${v.join(', ')}`)].join(' · '));

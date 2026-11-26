@@ -98,6 +98,27 @@ export async function fetchBytes(url: string, options: FetchOptions): Promise<{ 
   }
 }
 
+/**
+ * SUBE BYTES CRUDOS CON UN PUT a la dirección de subida que dio un proveedor (p. ej. la de WaveSpeed). Sin cabecera de
+ * autorización salvo la que el proveedor devolvió con la dirección: esa dirección ya lleva su propia firma.
+ */
+export async function putBytes(url: string, bytes: Buffer, options: { headers?: Record<string, string>; timeoutMs?: number; provider: string }): Promise<void> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 180_000);
+  try {
+    const response = await fetch(url, { method: 'PUT', headers: { ...(options.headers || {}) }, body: new Uint8Array(bytes), signal: controller.signal });
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      throw new ProviderError(`${options.provider}: la subida respondió ${response.status}: ${sanitizeForLog(text)}`, options.provider, response.status, response.status >= 500);
+    }
+  } catch (error) {
+    if (error instanceof ProviderError) throw error;
+    throw new ProviderError(`${options.provider}: ${sanitizeForLog(error)}`, options.provider);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Espera a que una tarea asíncrona termine (video, imagen en cola…). */

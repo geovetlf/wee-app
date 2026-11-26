@@ -33,6 +33,42 @@ App: sigue el trabajo en vivo (onSnapshot), enseña antes/después, «Usar este 
      → compositor de Weëls con el resultado puesto (videoAssetId) → la persona publica
 ```
 
+### 2.1 Los dos modos y WaveSpeed (decisión del dueño, 2026-11-26: «Ambos modos»)
+
+La persona elige en el paso de ajustes qué cambia. Por defecto se marca «Solo la cara», que es lo más barato:
+
+| Modo | Qué hace | Proveedor y modelo | Tarifa publicada (2026-11-26) | Servicio de Credits |
+|---|---|---|---|---|
+| **cara** | Solo el rostro; pelo, cuerpo y ropa se quedan | WaveSpeed `wavespeed-ai/video-face-swap` | 0,01 USD/s (mínimo 3 s) → 10 s = 0,10 USD | `ai_identity_face` |
+| **completo** | La persona entera, con movimiento, escena y luz | WaveSpeed `wavespeed-ai/wan-2.2/animate` (`mode: replace`, 480p) | 0,04 USD/s (mínimo 3 s) → 10 s = 0,40 USD | `ai_identity_full` |
+
+- **Quién transforma** lo dice `aiSettings/identityTransform.proveedor`. Por defecto es `wavespeed`; `seedance` sigue
+  disponible, pero solo sabe hacer «completo». Pedir un modo que el proveedor no sabe hacer devuelve `mode_unavailable`;
+  nunca se cambia de modo a escondidas.
+- **Por dónde pasa:**
+  1. WITE reserva los Credits.
+  2. Llama al WEË AI ENGINE con `video.reference` y `allowedProviders: ['wavespeed']`.
+  3. El motor lo apunta en `aiGenerations` y respeta el interruptor del vídeo y los topes de `aiProviders/wavespeed`.
+  4. El adaptador (`engine/providers/wavespeed.ts`) sube el original y el retrato desde el Storage de Weë a WaveSpeed:
+     nunca pasa la URL con el testigo de descarga de la persona.
+  5. Crea UNA tarea, sin reintentar el POST, y consulta su estado hasta el final.
+  6. Copia el resultado al Storage de Weë, porque WaveSpeed lo borra a los 7 días.
+  7. FFmpeg le devuelve el audio original.
+  8. Se cobra el consumo real, nunca más de lo reservado, o se devuelve todo si algo falla.
+- **Fuera de toda cadena:** WaveSpeed no es respaldo de nada. Solo lo alcanza WITE, porque lo pide por su nombre.
+- **Clave:** `WAVESPEED_API_KEY`, en un llavero DORMIDO (`secrets.ts`, como `FAL_KEY`). Sin ella, WITE contesta
+  `not_available` en cuanto Weë tiene vídeo real. Para activarla en get-wee, en el mismo cambio:
+  1. Crear el secreto en Secret Manager.
+  2. Declararlo con `defineSecret`.
+  3. Montarlo en `generateVideo`.
+  4. Añadirlo a `secretos-declarados.test.mjs`.
+- **Condiciones de WaveSpeed** (Términos §8.3 y §12.2, AUP): exigen el consentimiento de toda persona identificable y
+  prohíben los deepfakes sin consentimiento o para engañar. WITE ya pide las dos afirmaciones, deja usar solo los Perfiles
+  Weë de la propia cuenta y etiqueta el resultado como sintético.
+- **Verificado en el emulador (2026-11-26):** «cara» y «completo» recorren el camino entero. Sin clave, el motor entregó
+  una muestra; la reserva (10 y 40 Credits) se devolvió entera y la muestra no se puede publicar. Falta el canario con
+  la clave real (gasto autorizado: hasta 2 USD).
+
 Lo que **no** se creó: ninguna Function nueva, ningún secreto montado de más, ningún router ni cola paralelos, ninguna
 biblioteca de personajes, ningún sistema de Credits ni Media Core paralelo, nada en el Core Runtime (regla 10). La app no
 habla con ningún proveedor.

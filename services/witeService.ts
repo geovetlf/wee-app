@@ -46,12 +46,16 @@ export interface TrabajoDeWite {
   error: { code: string; reason?: string } | null;
 }
 
+/** «cara» solo cambia el rostro; «completo», a la persona entera. El precio de cada uno lo da el servidor. */
+export type ModoDeWite = 'cara' | 'completo';
+
 export interface PeticionDeWite {
   requestId: string;
   sourceUrl: string;
   sourceDurationSec: number;
   characterId: string;
   sujeto: SujetoDeWite;
+  modo: ModoDeWite;
   cambiarRopa: boolean;
   audio: 'original' | 'personaje';
   /** Otra resolución, pedida después de ver un resultado (con su coste aparte). */

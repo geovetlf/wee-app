@@ -110,3 +110,20 @@ autorizado) y descargar los pesos oficiales.
 - El canario con gasto autorizado: qué modelo edita, si conserva a los demás, el coste real y la tasa de fallos.
 - La detección del protagonista con Gemini sobre un fotograma: hasta tenerla, el controlador no puede elegir 360p.
 - La verificación de identidad, la etiqueta sintética obligatoria y la procedencia, antes de ofrecerlo al público.
+
+## 6. Alternativas más baratas investigadas (2026-11-26) [precios publicados; nada probado]
+
+Coste del proveedor para un clip de **10 s a 480p**. Las páginas de precios se consultaron el 2026-11-26.
+
+| Opción | Qué reemplaza | Precio publicado | 5 s | 10 s | 15 s | Notas |
+|---|---|---|---|---|---|---|
+| **Cambio de cara** (WaveSpeed `video-face-swap`) | Solo la cara. Pelo, cuerpo y ropa se quedan | 0,01 USD/s, mínimo 3 s | 0,05 | **0,10** | 0,15 | Mantiene el movimiento de los labios. Hasta 10 min de vídeo. Condiciones de uso por revisar |
+| **Wan 2.2 Animate Replace** (fal / WaveSpeed) | La persona entera, con escena y luz | 0,04 USD por segundo de vídeo a 480p | 0,20 | **0,40** | 0,60 | fal cuenta los fotogramas a 16 fps: un vídeo de 30 fps cuesta casi el doble si no se baja antes a 16 fps con FFmpeg. fal retira el modelo el **2027-01-04**; WaveSpeed lo sigue ofreciendo al mismo precio |
+| Seedance 2.0 mini (BytePlus, ya implementado) | La persona entera | Fórmula de tokens | 0,27 | 0,53 | 0,79 | Rechaza caras reales en el original sin un activo de persona real autorizado |
+| Wan 2.2 Animate Mix (Alibaba, internacional) | La persona entera | std 0,18 / pro 0,26 USD/s | 0,90 | 1,80 | 2,70 | Oficial, pero el más caro |
+| GPU propia con Wan-Animate | La persona entera | ≈ 0,18–0,27 USD por 5 s en H100 caliente (§3) | — | — | — | Solo compensa con mucho volumen |
+
+**Lectura:**
+- **El cambio de cara** es la única opción que cumple el objetivo de ≤ 0,25 USD con 10–15 s.
+- **Wan Replace** es la opción barata de cambio completo, siempre que el vídeo se baje antes a 16 fps.
+- **Decisión del dueño (2026-11-26): «Ambos modos».** Implementado con WaveSpeed (`engine/providers/wavespeed.ts`, solo WITE y solo por su nombre): ver docs/WITE.md §2.1.

@@ -14,6 +14,7 @@ import { elevenlabsAdapter } from './providers/elevenlabs';
 import { musicPlaceholderAdapter } from './providers/music';
 import { falAdapter, resolutorDeFal } from './providers/fal';
 import { byteplusTextAdapter } from './providers/byteplusText';
+import { wavespeedAdapter } from './providers/wavespeed';
 import type { ResolutorDeEstadoDeProveedor } from '../runtime/reconciliacion';
 
 /**
@@ -27,6 +28,10 @@ import type { ResolutorDeEstadoDeProveedor } from '../runtime/reconciliacion';
  * Video: SOLO la familia Seedance (BytePlus ModelArk). No hay Kling, Runway,
  * Veo ni otro modelo de video como respaldo: si Seedance falla, el error se
  * maneja y se reembolsa; el modo demo solo entra cuando no hay clave.
+ *
+ * ÚNICA EXCEPCIÓN (decisión del dueño, 2026-11-26): WaveSpeed, solo para WITE (Transformar identidad en Weëls). No
+ * está en ninguna cadena: solo lo alcanza quien lo nombra en `prefs.allowedProviders`, y eso lo hace únicamente
+ * `functions/src/wite`. Nunca es el respaldo de Seedance ni de nada.
  */
 export const ADAPTERS: Record<string, ProviderAdapter> = {
   mock: mockAdapter,
@@ -43,6 +48,8 @@ export const ADAPTERS: Record<string, ProviderAdapter> = {
   /* Agregador: EXCEPCIÓN CONTROLADA del dueño (registry/excepciones.ts). Un proveedor más, reemplazable. */
   fal: falAdapter,
   'byteplus-text': byteplusTextAdapter,
+  /* Solo WITE, y solo por su nombre (ver arriba). */
+  wavespeed: wavespeedAdapter,
 };
 
 export const DEFAULT_PROVIDERS: Record<string, ProviderConfig> = {
@@ -70,6 +77,11 @@ export const DEFAULT_PROVIDERS: Record<string, ProviderConfig> = {
    * tarifa oficial siga sin confirmar (el coste medido es 0 + `tarifaPendiente`).
    */
   'byteplus-text': { enabled: false, priority: 5, limits: { maxCallsPerDay: 1000 }, note: 'Seed 2.0 por ModelArk. Desactivado: tarifa sin confirmar.' },
+  /*
+   * WaveSpeed: activado, pero fuera de toda cadena (solo WITE lo nombra). Sin WAVESPEED_API_KEY no se considera. Tope de
+   * llamadas y de gasto diario hasta medirlo; los dos se cambian en aiProviders/wavespeed.
+   */
+  wavespeed: { enabled: true, priority: 9, limits: { maxCallsPerDay: 300, maxUsdPerDay: 20 }, note: 'Solo WITE (2026-11-26): cambio de cara y sustitución completa.' },
 };
 
 const chain = (...providers: string[]): ChainLink[] => providers.map((provider) => ({ provider }));

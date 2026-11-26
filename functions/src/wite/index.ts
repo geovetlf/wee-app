@@ -21,12 +21,20 @@ import { normalizeVideoRequest, videoApagado, hayVideoReal, VideoRequest } from 
 import { referenciaDesdeUrlDeWee, crearMaterialDesdeUrl, anotarOrigenDelDerivado, retirarMaterial } from '../content';
 import { saveGeneratedFile, storageBucket } from '../engine/http';
 import { SEEDANCE_MODEL_IDS, specOf } from '../engine/providers/seedance';
-import { priceVideoRequest } from '../credits/aiPricing';
+import { creditosDeUnCoste, priceVideoRequest } from '../credits/aiPricing';
+import { CreditService } from '../credits/creditCosts';
+import { creditEngine } from '../credits/creditEngine';
+import { usageTransactionId } from '../credits/creditTransactions';
+import { ensureAccount } from '../creator/credits';
+import { engine } from '../engine';
+import { limiter } from '../engine/limits';
+import { firestoreLedger } from '../engine/ledger';
+import { MODELO_CARA, MODELO_COMPLETO, costeDeWaveSpeed, wavespeedAdapter } from '../engine/providers/wavespeed';
 import { loadCostOverrides } from '../credits/creditCosts';
 import { promptDeSustitucionDeIdentidad } from '../creator/prompts';
 import { sanitizeForLog } from '../engine/sanitize';
 import {
-  BYTES_MAXIMOS, COLECCION_WITE, DOC_DE_LA_PUERTA, ETAPAS_DE_WITE, EstadoDeWite, ModeloDeEdicion, PeticionDeWite, duracionValida, esRutaDeOriginal,
+  BYTES_MAXIMOS, COLECCION_WITE, DOC_DE_LA_PUERTA, ETAPAS_DE_WITE, EstadoDeWite, MODOS_POR_PROVEEDOR, ModeloDeEdicion, PeticionDeWite, ProveedorDeWite, duracionValida, esRutaDeOriginal,
   activoParaElOriginal, esTerminal, idDelOriginal, idDelTrabajo, leerPuertaDeWite, puedePasar, puertaAbiertaPara, requestIdDelVideo, revisarResultado, validarPeticion,
 } from './modelo';
 import { DecisionDeCalidad, RasgosDelVideo, decidirResolucion } from './calidad';
@@ -69,6 +77,8 @@ export const peticionDeVideo = (p: PeticionDeWite, referencia: string, modelo: M
 
 interface Preparada {
   peticion: PeticionDeWite; personaje: PaqueteDeIdentidad; objectKey: string; credits: number; usd: number; service: string;
+  /** Quién transforma; con Seedance, `modelo` es su familia; con WaveSpeed, `modelId` es el modelo del modo. */
+  proveedor: ProveedorDeWite;
   modelId: string; modelo: ModeloDeEdicion; decision: DecisionDeCalidad; sonda: SondaDeWite | null; rasgos: RasgosDelVideo; duracionSec: number;
   /** El activo de persona real autorizado para este original, o null. */
   activo: string | null;
@@ -102,6 +112,10 @@ const preparar = async (accountId: string, crudo: unknown, medios: MediosDeWite)
     cambiosPorSegundo: sonda ? await medios.cambiosPorSegundo(peticion.sourceUrl, duracionSec).catch(() => undefined) : undefined,
   };
 
+  /* El modo tiene que saberlo hacer quien transforma: nunca se cambia de modo a escondidas. */
+  if (!MODOS_POR_PROVEEDOR[puerta.proveedor].includes(peticion.modo)) return { ok: false, r: rechazo('mode_unavailable') };
+  if (puerta.proveedor === 'wavespeed') return prepararParaWaveSpeed(peticion, personaje, ref.objectKey, sonda, rasgos, duracionSec, puerta.modelo);
+
   /* Una sola resolución, antes del render: la del controlador, o la siguiente si la persona la pidió y existe. */
   const modelo = puerta.modelo;
   const modelId = SEEDANCE_MODEL_IDS[modelo];
@@ -120,8 +134,102 @@ const preparar = async (accountId: string, crudo: unknown, medios: MediosDeWite)
   const price = priceVideoRequest(normalizado, settings);
   return {
     ok: true,
-    p: { peticion, personaje, objectKey: ref.objectKey, credits: price.credits, usd: price.usd, service: price.service, modelId: normalizado.modelId, modelo, decision, sonda, rasgos, duracionSec, activo },
+    p: { peticion, personaje, objectKey: ref.objectKey, credits: price.credits, usd: price.usd, service: price.service, proveedor: 'seedance', modelId: normalizado.modelId, modelo, decision, sonda, rasgos, duracionSec, activo },
   };
+};
+
+/** El servicio del Credit Engine de cada modo (catálogo en credits/creditCosts.ts). */
+export const SERVICIO_POR_MODO: Readonly<Record<PeticionDeWite['modo'], CreditService>> = Object.freeze({ cara: 'ai_identity_face', completo: 'ai_identity_full' });
+/** El modelo de WaveSpeed de cada modo. */
+export const MODELO_DE_WAVESPEED: Readonly<Record<PeticionDeWite['modo'], string>> = Object.freeze({ cara: MODELO_CARA, completo: MODELO_COMPLETO });
+
+/**
+ * WAVESPEED: el precio es el de su tarifa publicada por los segundos MEDIDOS del original (redondeados hacia arriba,
+ * mínimo 3 s), pasado por la misma fórmula de Credits de todo Weë (`creditosDeUnCoste`: margen, modo y suelo del
+ * catálogo). «cara» no tiene resolución que elegir (conserva la del original); «completo» va a 480p, la más barata.
+ */
+const prepararParaWaveSpeed = async (
+  peticion: PeticionDeWite, personaje: PaqueteDeIdentidad, objectKey: string, sonda: SondaDeWite | null, rasgos: RasgosDelVideo,
+  duracionSec: number, modelo: ModeloDeEdicion,
+): Promise<{ ok: true; p: Preparada } | { ok: false; r: Respuesta }> => {
+  const { settings } = await loadConfig();
+  if (videoApagado(settings) && hayVideoReal()) return { ok: false, r: rechazo('video_disabled') };
+  /* Con vídeo real en Weë pero sin la clave de WaveSpeed, no hay quien lo haga: se dice antes de cobrar nada. */
+  if (!wavespeedAdapter.isConfigured() && hayVideoReal()) return { ok: false, r: rechazo('not_available') };
+  if (peticion.resolucion) return { ok: false, r: rechazo('resolution_unavailable') };
+  const decision: DecisionDeCalidad = peticion.modo === 'cara'
+    ? { resolucion: 'fuente', preferidaPorElProducto: '480p', motivos: ['cara_conserva_la_resolucion_del_original'], siguiente: null }
+    : { resolucion: '480p', preferidaPorElProducto: '480p', motivos: ['la_mas_barata_del_modelo'], siguiente: null };
+  await loadCostOverrides();
+  const modelId = MODELO_DE_WAVESPEED[peticion.modo];
+  const usd = costeDeWaveSpeed(modelId, duracionSec, decision.resolucion === 'fuente' ? '480p' : decision.resolucion);
+  const service = SERVICIO_POR_MODO[peticion.modo];
+  return {
+    ok: true,
+    p: { peticion, personaje, objectKey, credits: creditosDeUnCoste(service, usd, settings), usd, service, proveedor: 'wavespeed', modelId, modelo, decision, sonda, rasgos, duracionSec, activo: null },
+  };
+};
+
+/**
+ * UN RENDER POR WAVESPEED, CON EL DINERO DE WEË: cupo → reserva → WEË AI ENGINE (que lo apunta en `aiGenerations` con
+ * su coste) → cobro del consumo real (nunca más de lo reservado) → o reembolso exacto si algo falla. Es el mismo
+ * patrón que la puerta del vídeo, sin duplicar el Credit Engine: solo lo llama. Devuelve la misma forma que
+ * `porVideo`, así que el resto de WITE (audio original, material, calidad) no distingue de dónde vino.
+ */
+const transformarPorWaveSpeed = async (accountId: string, p: Preparada, jobId: string, sourceAssetId: string): Promise<Respuesta> => {
+  const { settings } = await loadConfig();
+  const requestId = requestIdDelVideo(p.peticion.requestId);
+  await limiter.reserve(accountId, { video: 1 }, settings.limits, requestId);
+  await ensureAccount(accountId);
+  const spend = await creditEngine.spendCredits({
+    userId: accountId, service: p.service as CreditService, amount: p.credits, requestId,
+    reason: 'Weë · Transformar identidad', source: 'weë-studio',
+    meta: { model: p.modelId, estimatedUsd: p.usd, wite: { jobId, modo: p.peticion.modo, duracionSec: p.duracionSec } },
+  });
+  /* El trabajo es determinista por requestId: una reserva repetida aquí es otra invocación de lo mismo. No se paga dos veces. */
+  if (spend.duplicate) throw new EngineError('DUPLICATE_REQUEST');
+  const devolver = async (motivo: string) => {
+    await creditEngine.refundCredits({ userId: accountId, requestId, reason: motivo, source: 'weë-studio' })
+      .catch((e) => console.error('WITE: no se pudo reembolsar', requestId, sanitizeForLog(e, 200)));
+    await firestoreLedger.settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: 0 })
+      .catch((e) => console.error('WITE: no se pudo liquidar el libro', requestId, sanitizeForLog(e, 200)));
+  };
+  try {
+    const result = await engine.generate({
+      userId: accountId, experienceId: 'weels', goal: 'Transformar identidad', requestId, jobId,
+      creditTransactionId: usageTransactionId(requestId),
+      capability: 'video.reference',
+      input: {
+        video: p.peticion.sourceUrl, image: p.personaje.referenciaVisual, durationSec: p.duracionSec,
+        resolution: p.decision.resolucion === 'fuente' ? '480p' : p.decision.resolucion, modo: p.peticion.modo,
+      },
+      /* Por su NOMBRE: WaveSpeed no está en ninguna cadena, y así nunca entra como respaldo de nada. */
+      prefs: { allowedProviders: ['wavespeed'], modelId: p.modelId, durationSec: p.duracionSec },
+    });
+    if (result.demo) {
+      /* Una muestra no se cobra: se devuelve la reserva entera y la persona puede mirarla, nunca publicarla. */
+      await devolver('Reembolso por generación fallida');
+      return { status: 'COMPLETED', url: result.output.url ?? null, assetId: null, durationSec: result.output.durationSec ?? null, credits: 0, demo: true, generationId: result.generationId };
+    }
+    /* El resultado, como material de la cuenta (lo retira WITE si consigue la versión con el audio original). */
+    const material = await crearMaterialDesdeUrl({
+      ownerAccountId: accountId, url: result.output.url ?? '', kind: 'video',
+      ...(result.output.durationSec ? { durationSec: result.output.durationSec } : {}),
+      provenance: { createdAt: Date.now(), generationId: result.generationId, requestId, jobId, provider: result.provider, model: result.modelId, capability: 'video.reference', sourceAssetIds: [sourceAssetId] },
+      metadata: { experiencia: 'weels', wite: 'intermedio' },
+    }).catch((e) => { console.error('WITE: no se pudo crear la ficha del resultado', jobId, sanitizeForLog(e, 200)); return null; });
+    const cobrado = Math.min(spend.amount, creditosDeUnCoste(p.service as CreditService, result.costUSD, settings));
+    await creditEngine.completeCredits({ userId: accountId, requestId, ...(cobrado !== spend.amount ? { finalAmount: cobrado } : {}), meta: { generationId: result.generationId, videoUrl: result.output.url } });
+    await firestoreLedger.settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: cobrado })
+      .catch((e) => console.error('WITE: no se pudo liquidar el libro', requestId, sanitizeForLog(e, 200)));
+    return {
+      status: 'COMPLETED', url: result.output.url ?? null, assetId: material?.assetId ?? null, durationSec: result.output.durationSec ?? null,
+      credits: cobrado, ...(cobrado !== spend.amount ? { reserved: spend.amount } : {}), demo: false, generationId: result.generationId,
+    };
+  } catch (error) {
+    await devolver('Weë · la transformación no se pudo hacer');
+    throw error;
+  }
 };
 
 const avanzar = async (jobId: string, a: EstadoDeWite, extra: Respuesta = {}): Promise<boolean> => {
@@ -169,7 +277,7 @@ const ejecutar = async (accountId: string, crudo: unknown, ctx: ContextoDeWite):
   const medios = ctx.medios ?? mediosDeWee();
   const prep = await preparar(accountId, crudo, medios);
   if (!prep.ok) return prep.r;
-  const { peticion, personaje, objectKey, credits, modelId, modelo, decision, sonda, rasgos, duracionSec, activo } = prep.p;
+  const { peticion, personaje, objectKey, credits, modelId, modelo, decision, sonda, rasgos, duracionSec, activo, proveedor } = prep.p;
   /* Se ejecuta por lo que se enseñó: si el precio cambió, no se reserva nada y se vuelve a cotizar. */
   if (Number((crudo as Respuesta).creditosCotizados) !== credits) return rechazo('price_changed', { credits });
 
@@ -190,10 +298,10 @@ const ejecutar = async (accountId: string, crudo: unknown, ctx: ContextoDeWite):
       characterId: personaje.characterId,
       characterOwnerId: personaje.ownerAccountId,
       characterVersion: personaje.version,
-      provider: 'seedance',
-      model: modelo,
+      provider: proveedor,
+      model: proveedor === 'seedance' ? modelo : modelId,
       modelVersion: modelId,
-      transformacion: { modo: 'full_character_replacement', sujeto: peticion.sujeto, cambiarRopa: peticion.cambiarRopa },
+      transformacion: { modo: peticion.modo === 'cara' ? 'face_swap' : 'full_character_replacement', modoVisible: peticion.modo, sujeto: peticion.sujeto, cambiarRopa: peticion.cambiarRopa },
       audio: { modo: peticion.audio },
       /* Lo que se midió y lo que se decidió con ello: una resolución, antes del render. */
       analisis: {
@@ -261,7 +369,7 @@ const ejecutar = async (accountId: string, crudo: unknown, ctx: ContextoDeWite):
   const video = peticionDeVideo(peticion, personaje.referenciaVisual as string, modelo, decision.resolucion, activo ?? peticion.sourceUrl);
   let resultado: Respuesta;
   try {
-    resultado = (await ctx.porVideo({
+    resultado = proveedor === 'wavespeed' ? await transformarPorWaveSpeed(accountId, prep.p, jobId, original.assetId) : (await ctx.porVideo({
       prompt: video.prompt,
       requestId: requestIdDelVideo(peticion.requestId),
       references: { images: video.references?.images, videos: video.references?.videos },
@@ -288,7 +396,7 @@ const ejecutar = async (accountId: string, crudo: unknown, ctx: ContextoDeWite):
    * se retira para que no aparezcan dos en «Mis creaciones». Si FFmpeg no puede, se entrega el intermedio y se avisa.
    */
   const avisosExtra: string[] = [];
-  const metadataDelResultado = { experiencia: 'weels', sintetico: true, transformacion: 'identity_replacement', personaje: personaje.characterId, resolucion: decision.resolucion };
+  const metadataDelResultado = { experiencia: 'weels', sintetico: true, transformacion: peticion.modo === 'cara' ? 'face_swap' : 'identity_replacement', personaje: personaje.characterId, resolucion: decision.resolucion };
   let salida = { url: (resultado.url as string | null) ?? null, assetId: (resultado.assetId as string | null) ?? null, durationSec: (resultado.durationSec as number | null) ?? null };
   if (resultado.demo !== true && typeof resultado.url === 'string') {
     const sondaDelResultado = await medios.sondear(resultado.url).catch(() => null);
@@ -303,7 +411,7 @@ const ejecutar = async (accountId: string, crudo: unknown, ctx: ContextoDeWite):
           kind: 'video',
           ...(sondaDelResultado?.duracionSec !== undefined ? { durationSec: sondaDelResultado.duracionSec } : {}),
           provenance: {
-            createdAt: Date.now(), jobId, requestId: requestIdDelVideo(peticion.requestId), provider: 'seedance', model: modelId, capability: 'video.reference',
+            createdAt: Date.now(), jobId, requestId: requestIdDelVideo(peticion.requestId), provider: proveedor, model: modelId, capability: 'video.reference',
             ...(typeof resultado.generationId === 'string' ? { generationId: resultado.generationId } : {}),
             sourceAssetIds: [original.assetId],
           },
@@ -402,7 +510,7 @@ export const atenderTransformacion = async (accountId: string, datos: unknown, c
       if (!prep.ok) return prep.r;
       /* El importe es el MÁXIMO que se reserva; al terminar se cobra el consumo real si es menor. */
       return {
-        status: 'QUOTED', allowed: true, credits: prep.p.credits, resolucion: prep.p.decision.resolucion, siguiente: prep.p.decision.siguiente,
+        status: 'QUOTED', allowed: true, credits: prep.p.credits, resolucion: prep.p.decision.resolucion, siguiente: prep.p.decision.siguiente, modo: prep.p.peticion.modo,
         etapas: ETAPAS_DE_WITE.map(({ id, estado }) => ({ id, estado })),
       };
     }

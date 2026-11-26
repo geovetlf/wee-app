@@ -1384,7 +1384,9 @@ service cloud.firestore {
     // Los escribe solo el servidor (functions/src/wite, por generateVideo); la cuenta dueña lee los suyos.
     // Ni el estado, ni la decisión, ni el consentimiento se pueden tocar desde la app.
     match /identityTransformJobs/{jobId} {
-      allow read: if isAuthenticated() && resource.data.accountId == request.auth.uid;
+      // `resource == null`: la app empieza a escuchar su trabajo ANTES de que el servidor lo cree (un documento que no
+      // existe no enseña nada); sin esto el oyente moría con permission-denied y la pantalla se quedaba «En cola».
+      allow read: if isAuthenticated() && (resource == null || resource.data.accountId == request.auth.uid);
       allow write: if false;
     }
 

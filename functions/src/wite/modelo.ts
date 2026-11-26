@@ -85,6 +85,12 @@ export interface PuertaDeWite {
   cuentas: readonly string[] | null;
   modelo: ModeloDeEdicion;
   /**
+   * Quién transforma (decisión del dueño, 2026-11-26: «Ambos modos»). `wavespeed` —por defecto— ofrece los dos modos:
+   * «cara» (solo el rostro) y «completo» (la persona entera, Wan 2.2 Animate). `seedance` solo sabe «completo» y exige
+   * activos de persona real. Se cambia en `aiSettings/identityTransform.proveedor`, sin desplegar.
+   */
+  proveedor: ProveedorDeWite;
+  /**
    * Activos de persona real autorizados en BytePlus, por cuenta y por vídeo original:
    * `{ <accountId>: { <nombre del archivo en identity-sources>: 'asset://<id>' } }`. Los apunta el dueño en Firestore
    * después de que la PERSONA haya pasado la verificación de BytePlus y subido ese mismo vídeo a su grupo de activos.
@@ -124,18 +130,33 @@ export const MODELOS_DE_EDICION = ['SEEDANCE_2_0_MINI', 'SEEDANCE_2_0_FAST', 'SE
 export type ModeloDeEdicion = (typeof MODELOS_DE_EDICION)[number];
 export const MODELO_POR_DEFECTO: ModeloDeEdicion = 'SEEDANCE_2_0_MINI';
 
+export const PROVEEDORES_DE_WITE = ['wavespeed', 'seedance'] as const;
+export type ProveedorDeWite = (typeof PROVEEDORES_DE_WITE)[number];
+export const PROVEEDOR_POR_DEFECTO: ProveedorDeWite = 'wavespeed';
+
+/** Los dos modos que ve la persona. «cara» solo cambia el rostro; «completo», a la persona entera. */
+export const MODOS_DE_WITE = ['cara', 'completo'] as const;
+export type ModoDeWite = (typeof MODOS_DE_WITE)[number];
+/** Qué modos sabe hacer cada proveedor. Pedir uno que no sabe es un rechazo, nunca un cambio silencioso de modo. */
+export const MODOS_POR_PROVEEDOR: Readonly<Record<ProveedorDeWite, readonly ModoDeWite[]>> = Object.freeze({
+  wavespeed: ['cara', 'completo'],
+  seedance: ['completo'],
+});
+
 /** Falla cerrada: sin documento, con forma rara o sin `abierto === true`, cerrada. `cuentas` ausente = todas. */
 export const leerPuertaDeWite = (doc: unknown): PuertaDeWite => {
-  const cerrada: PuertaDeWite = { abierta: false, cuentas: null, modelo: MODELO_POR_DEFECTO, activosDePersonaReal: {} };
+  const cerrada: PuertaDeWite = { abierta: false, cuentas: null, modelo: MODELO_POR_DEFECTO, proveedor: PROVEEDOR_POR_DEFECTO, activosDePersonaReal: {} };
   if (!doc || typeof doc !== 'object') return cerrada;
   const d = doc as Record<string, unknown>;
   if (d.abierto !== true) return cerrada;
   /* Un modelo desconocido no abre nada raro: se queda el de por defecto. */
   const modelo = MODELOS_DE_EDICION.includes(d.modelo as ModeloDeEdicion) ? (d.modelo as ModeloDeEdicion) : MODELO_POR_DEFECTO;
   const activosDePersonaReal = leerActivos(d.activosDePersonaReal);
-  if (d.cuentas === undefined) return { abierta: true, cuentas: null, modelo, activosDePersonaReal };
+  /* Un proveedor desconocido tampoco: el de por defecto. */
+  const proveedor = PROVEEDORES_DE_WITE.includes(d.proveedor as ProveedorDeWite) ? (d.proveedor as ProveedorDeWite) : PROVEEDOR_POR_DEFECTO;
+  if (d.cuentas === undefined) return { abierta: true, cuentas: null, modelo, proveedor, activosDePersonaReal };
   if (!Array.isArray(d.cuentas) || !d.cuentas.every((c) => typeof c === 'string')) return cerrada;
-  return { abierta: true, cuentas: d.cuentas as string[], modelo, activosDePersonaReal };
+  return { abierta: true, cuentas: d.cuentas as string[], modelo, proveedor, activosDePersonaReal };
 };
 export const puertaAbiertaPara = (p: PuertaDeWite, accountId: string): boolean => p.abierta && (p.cuentas === null || p.cuentas.includes(accountId));
 
@@ -157,6 +178,8 @@ export interface PeticionDeWite {
   sourceDurationSec: number;
   characterId: string;
   sujeto: SujetoDeWite;
+  /** «cara» o «completo». Sin decirlo, «completo» (lo que hacía WITE antes de los modos). */
+  modo: ModoDeWite;
   cambiarRopa: boolean;
   audio: ModoDeAudio;
   /** Otra resolución pedida DESPUÉS de ver un resultado (con su coste aparte). Sin ella decide el controlador. */
@@ -166,7 +189,8 @@ export interface PeticionDeWite {
 }
 
 export type MotivoDeRechazo =
-  | 'bad_request' | 'needs_video' | 'too_short' | 'too_long' | 'bad_subject' | 'needs_consent' | 'character_voice_unavailable' | 'resolution_unavailable';
+  | 'bad_request' | 'needs_video' | 'too_short' | 'too_long' | 'bad_subject' | 'needs_consent' | 'character_voice_unavailable' | 'resolution_unavailable'
+  | 'mode_unavailable';
 
 export type Validada = { ok: true; peticion: PeticionDeWite } | { ok: false; motivo: MotivoDeRechazo };
 
@@ -189,6 +213,8 @@ export const validarPeticion = (crudo: unknown): Validada => {
   /* La voz del personaje no existe todavía en Weë (ETAPAS_DE_WITE · audio_identity_engine): se dice, no se finge. */
   if (audio === 'personaje') return { ok: false, motivo: 'character_voice_unavailable' };
   if (d.resolucion !== undefined && d.resolucion !== '360p' && d.resolucion !== '480p') return { ok: false, motivo: 'resolution_unavailable' };
+  const modo = d.modo === undefined ? 'completo' : d.modo;
+  if (!MODOS_DE_WITE.includes(modo as ModoDeWite)) return { ok: false, motivo: 'bad_request' };
   const c = (d.consentimiento || {}) as Record<string, unknown>;
   if (c.soyLaPersonaTransformada !== true || c.losDemasNoSeModifican !== true) return { ok: false, motivo: 'needs_consent' };
   return {
@@ -199,7 +225,9 @@ export const validarPeticion = (crudo: unknown): Validada => {
       sourceDurationSec: Math.round(segundos * 10) / 10,
       characterId: d.characterId,
       sujeto: d.sujeto as SujetoDeWite,
-      cambiarRopa: d.cambiarRopa === true,
+      modo: modo as ModoDeWite,
+      /* En «cara» la ropa nunca cambia: el modelo solo toca el rostro. */
+      cambiarRopa: modo === 'completo' && d.cambiarRopa === true,
       audio: 'original',
       ...(d.resolucion ? { resolucion: d.resolucion as '360p' | '480p' } : {}),
       consentimiento: { soyLaPersonaTransformada: true, losDemasNoSeModifican: true },

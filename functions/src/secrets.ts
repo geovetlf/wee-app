@@ -163,6 +163,18 @@ export const FAL_SECRET_REFS: Partial<Record<FalSecretName, ReturnType<typeof de
 /** Para la opción `secrets` de la función que, el día que se active, llame a fal. Hoy no la usa ninguna. */
 export const FAL_SECRETS: ReturnType<typeof defineSecret>[] = [];
 
+/* ── WaveSpeed (WITE): su propio llavero, DORMIDO como el de fal ────────────── */
+
+/**
+ * LA CLAVE DE WAVESPEED: NOMBRADA, SIN DECLARAR Y SIN MONTAR (decisión del dueño del 2026-11-26: WITE con «Cara» y
+ * «Completo»). Mismo motivo y mismo procedimiento que `FAL_KEY` (arriba): declararla con `defineSecret` antes de que
+ * exista en Secret Manager rompería el despliegue de TODAS las funciones. Hoy el adaptador (`engine/providers/
+ * wavespeed.ts`) la lee por `env()`: en local, del entorno del emulador; sin ella, `isConfigured()` es falso y WITE
+ * contesta que no está disponible. ACTIVARLA en get-wee = crear el secreto, declararlo aquí, montarlo en
+ * `generateVideo` y añadirlo a `functions/test/secretos-declarados.test.mjs`, en el mismo cambio.
+ */
+export const WAVESPEED_SECRET_NAMES = ['WAVESPEED_API_KEY'] as const;
+
 /**
  * Valor de un secreto desde Secret Manager. Solo funciona dentro de una función
  * con ese secreto declarado; fuera (pruebas, scripts) devuelve undefined en vez
@@ -197,7 +209,7 @@ export function secretValue(name: string): string | undefined {
 export function knownSecretValues(): string[] {
   const values: string[] = [];
   /* LOS LLAVEROS. Una credencial de almacén o de fal en un registro es tan grave como una de un modelo. */
-  for (const name of [...PROVIDER_SECRET_NAMES, ...MEDIA_SECRET_NAMES, ...FAL_SECRET_NAMES]) {
+  for (const name of [...PROVIDER_SECRET_NAMES, ...MEDIA_SECRET_NAMES, ...FAL_SECRET_NAMES, ...WAVESPEED_SECRET_NAMES]) {
     const fromEnv = process.env[name];
     if (fromEnv && fromEnv.trim().length >= 8) values.push(fromEnv.trim());
     const fromManager = secretValue(name);

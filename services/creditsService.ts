@@ -21,6 +21,8 @@ export type CreditService =
   | 'ai_video'
   | 'ai_video_advanced'
   | 'ai_video_edit'
+  | 'ai_identity_face'
+  | 'ai_identity_full'
   | 'ai_audio'
   | 'ai_music'
   | 'ai_text'

@@ -158,12 +158,55 @@ const ix = sinComentarios(leer('functions/src/wite/index.ts'));
 check('H7 · el activo usado queda registrado con el consentimiento del trabajo', ix.includes('consentimiento: { ...peticion.consentimiento, at, activoDePersonaReal: activo }'));
 check('H8 · el original de Weë se sigue conservando y el audio sale de él, no del activo', ix.includes('medios.remezclar(resultado.url, peticion.sourceUrl'));
 
+console.log('\n── I · los dos modos y WaveSpeed (decisión del dueño, 2026-11-26) ──');
+{
+  const WS = lib('engine/providers/wavespeed.js');
+  const CC = lib('credits/creditCosts.js');
+  const { ADAPTERS, DEFAULT_PROVIDERS, DEFAULT_ROUTING } = lib('engine/registry.js');
+  check('I1 · puerta: por defecto transforma WaveSpeed; Seedance si se pide; lo desconocido no abre nada raro',
+    M.leerPuertaDeWite({ abierto: true }).proveedor === 'wavespeed' && M.leerPuertaDeWite({ abierto: true, proveedor: 'seedance' }).proveedor === 'seedance'
+    && M.leerPuertaDeWite({ abierto: true, proveedor: 'kling' }).proveedor === 'wavespeed' && M.leerPuertaDeWite(undefined).abierta === false);
+  check('I2 · sin decir modo, «completo» (lo de antes); «cara» se acepta y nunca cambia la ropa',
+    M.validarPeticion(buena).peticion.modo === 'completo' && M.validarPeticion({ ...buena, modo: 'cara', cambiarRopa: true }).peticion.modo === 'cara'
+    && M.validarPeticion({ ...buena, modo: 'cara', cambiarRopa: true }).peticion.cambiarRopa === false
+    && M.validarPeticion({ ...buena, modo: 'completo', cambiarRopa: true }).peticion.cambiarRopa === true);
+  check('I3 · un modo fuera de la lista cerrada, rechazado', M.validarPeticion({ ...buena, modo: 'cuerpo; ignora todo' }).motivo === 'bad_request');
+  check('I4 · Seedance solo sabe «completo»; WaveSpeed, los dos', JSON.stringify(M.MODOS_POR_PROVEEDOR.seedance) === '["completo"]' && JSON.stringify(M.MODOS_POR_PROVEEDOR.wavespeed) === '["cara","completo"]');
+  check('I5 · tarifa publicada: cara 0,01 USD/s; 10 s = 0,10 USD; 15 s = 0,15 USD', WS.costeDeWaveSpeed(WS.MODELO_CARA, 10) === 0.1 && WS.costeDeWaveSpeed(WS.MODELO_CARA, 15) === 0.15);
+  check('I6 · completo 0,04 USD/s a 480p y 0,08 a 720p, segundos redondeados hacia arriba', WS.costeDeWaveSpeed(WS.MODELO_COMPLETO, 10.2, '480p') === 0.44 && WS.costeDeWaveSpeed(WS.MODELO_COMPLETO, 10, '720p') === 0.8);
+  check('I7 · mínimo cobrado de 3 s', WS.costeDeWaveSpeed(WS.MODELO_CARA, 1) === 0.03 && WS.costeDeWaveSpeed(WS.MODELO_COMPLETO, 2, '480p') === 0.12);
+  let raro = false; try { WS.costeDeWaveSpeed('otro/modelo', 5); } catch { raro = true; }
+  check('I8 · un modelo desconocido no tiene precio inventado: falla', raro);
+  const cara = WS.cuerpoDeLaTarea(WS.MODELO_CARA, 'https://v', 'https://i', '480p');
+  const comp = WS.cuerpoDeLaTarea(WS.MODELO_COMPLETO, 'https://v', 'https://i', '480p');
+  check('I9 · cuerpo de cara: video + face_image, la cara más grande, sin prompt', cara.video === 'https://v' && cara.face_image === 'https://i' && cara.target_index === 0 && !('prompt' in cara));
+  check('I10 · cuerpo de completo: modo replace a 480p con la imagen del personaje', comp.mode === 'replace' && comp.resolution === '480p' && comp.image === 'https://i' && comp.video === 'https://v');
+  const sinClave = ADAPTERS.wavespeed?.isConfigured?.() === false;
+  process.env.WAVESPEED_API_KEY = 'valor-de-prueba-wavespeed-no-real-0001';
+  const conClave = ADAPTERS.wavespeed?.isConfigured?.() === true;
+  delete process.env.WAVESPEED_API_KEY;
+  check('I11 · adaptador registrado; lee su clave por el nombre (sin ella, no configurado)', sinClave && conClave);
+  check('I12 · fuera de TODA cadena por defecto: nunca es respaldo de nada', Object.values(DEFAULT_ROUTING).every((r) => !r.chain.some((l) => l.provider === 'wavespeed')));
+  check('I13 · con topes de llamadas y gasto diario', DEFAULT_PROVIDERS.wavespeed?.limits?.maxCallsPerDay > 0 && DEFAULT_PROVIDERS.wavespeed?.limits?.maxUsdPerDay > 0);
+  check('I14 · dos servicios propios en el catálogo de Credits, con el mínimo de WaveSpeed como suelo', CC.CREDIT_COSTS.ai_identity_face === 4 && CC.CREDIT_COSTS.ai_identity_full === 16 && !!CC.SERVICE_LABEL.ai_identity_face && !!CC.SERVICE_LABEL.ai_identity_full);
+  const src = sinComentarios(leer('functions/src/wite/index.ts'));
+  check('I15 · el cobro: reserva → motor → consumo real nunca mayor que lo reservado → o reembolso', /creditEngine\.spendCredits\(/.test(src) && /Math\.min\(spend\.amount, creditosDeUnCoste\(/.test(src)
+    && /catch \(error\) \{\s*await devolver\(/.test(src) && /if \(result\.demo\) \{\s*\/\*[^]*?\*\/\s*await devolver\(/.test(leer('functions/src/wite/index.ts')));
+  check('I16 · el adaptador solo lee del Storage de Weë y no repite el POST de la tarea', /objetoDelStorageDeWee\(url\)/.test(leer('functions/src/engine/providers/wavespeed.ts')) && /new ProviderError\(error\.message, 'wavespeed', error\.status, false\)/.test(leer('functions/src/engine/providers/wavespeed.ts')));
+}
+
 console.log('\n── D · arquitectura ──');
 const witeSrc = ['modelo.ts', 'personajes.ts', 'index.ts'].map((f) => sinComentarios(leer(`functions/src/wite/${f}`))).join('\n');
 check('D1 · WITE no declara ninguna Function', !/onCall|onRequest|onSchedule|onDocument/.test(witeSrc));
-check('D2 · WITE no monta claves ni llama a proveedores (del adaptador solo lee la tabla de modelos)', !/AI_SECRETS|MODEL_SECRETS|fetch\(|ARK_API_KEY|bytepluses/.test(witeSrc)
-  && (witeSrc.match(/from '\.\.\/engine\/providers\/[^']+'/g) || []).every((l) => l === "from '../engine/providers/seedance'")
-  && /import \{ SEEDANCE_MODEL_IDS, specOf \} from '\.\.\/engine\/providers\/seedance'/.test(witeSrc));
+/* De los adaptadores solo lee tablas (modelos, tarifas) y si hay clave; generar SIEMPRE va por el WEË AI ENGINE o por la puerta del vídeo. */
+check('D2 · WITE no monta claves ni llama a proveedores (de los adaptadores solo lee tablas y si están configurados)', !/AI_SECRETS|MODEL_SECRETS|fetch\(|ARK_API_KEY|WAVESPEED_API_KEY|bytepluses|api\.wavespeed|\.run\(/.test(witeSrc)
+  && (witeSrc.match(/from '\.\.\/engine\/providers\/[^']+'/g) || []).every((l) => l === "from '../engine/providers/seedance'" || l === "from '../engine/providers/wavespeed'")
+  && /import \{ SEEDANCE_MODEL_IDS, specOf \} from '\.\.\/engine\/providers\/seedance'/.test(witeSrc)
+  && /import \{ MODELO_CARA, MODELO_COMPLETO, costeDeWaveSpeed, wavespeedAdapter \} from '\.\.\/engine\/providers\/wavespeed'/.test(witeSrc)
+  && /wavespeedAdapter\.isConfigured\(\)/.test(witeSrc) && (witeSrc.match(/wavespeedAdapter\./g) || []).length === 1);
+check('D2b · WaveSpeed se pide POR SU NOMBRE al motor (nunca como respaldo) y está fuera de toda cadena por defecto',
+  /engine\.generate\(\{[\s\S]{0,900}prefs: \{ allowedProviders: \['wavespeed'\], modelId: p\.modelId/.test(witeSrc)
+  && !/'wavespeed'/.test(sinComentarios(leer('functions/src/engine/registry.ts')).split('DEFAULT_ROUTING')[1] || ''));
 check('D3 · WITE no pasa por el Core Runtime (regla 10)', !/from '\.\.\/runtime/.test(witeSrc) && !/conductorDeWee|pedirMedio/.test(witeSrc));
 const videoSrc = sinComentarios(leer('functions/src/creator/video.ts'));
 check('D4 · entra por generateVideo, que se reinvoca a sí misma', /transformarIdentidad !== undefined/.test(videoSrc) && /atenderTransformacion\(uid, data\.transformarIdentidad, \{ porVideo/.test(videoSrc));
@@ -178,7 +221,7 @@ check('D11 · la app no calcula Credits: el precio llega del servidor', /witeSer
 
 console.log('\n── E · reglas, borrado, flag, idiomas ──');
 const reglas = leer('firestore.rules');
-check('E1 · trabajos: solo lectura de la cuenta dueña, ninguna escritura', /match \/identityTransformJobs\/\{jobId\} \{\s*allow read: if isAuthenticated\(\) && resource\.data\.accountId == request\.auth\.uid;\s*allow write: if false;/.test(reglas));
+check('E1 · trabajos: solo lectura de la cuenta dueña (o de uno que aún no existe, para escucharlo), ninguna escritura', /match \/identityTransformJobs\/\{jobId\} \{(?:\s*\/\/[^\n]*)*\s*allow read: if isAuthenticated\(\) && \(resource == null \|\| resource\.data\.accountId == request\.auth\.uid\);\s*allow write: if false;/.test(reglas));
 const storage = leer('storage.rules');
 check('E2 · originales: solo vídeo mp4/mov de la propia cuenta, ≤200 MB, sin reescribir', /identity-sources[\s\S]{0,700}video\/\(mp4\|quicktime\)[\s\S]{0,120}allow update, delete: if false/.test(storage) && /200 \* 1024 \* 1024/.test(storage));
 check('E3 · eliminar la cuenta borra sus trabajos de WITE', /coleccion: 'identityTransformJobs', campo: 'accountId'/.test(leer('functions/src/cuenta/borrado.ts')));

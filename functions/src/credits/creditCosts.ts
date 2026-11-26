@@ -32,6 +32,10 @@ export const CREDIT_COSTS = {
   ai_video_advanced: 300,  // Seedance 2.5 a 720p: USD 2.31
   ai_video_max: 740,       // Seedance 2.5 a 1080p: USD 5.69
   ai_video_edit: 20,       // Montaje propio con ffmpeg (no es IA)
+  // WITE (Transformar identidad en Weëls), por WaveSpeed (wavespeed.ai, 2026-11-26). El suelo es el mínimo que cobra
+  // WaveSpeed (3 s) con el margen por defecto; cada clip se cotiza por sus segundos medidos (wite/precio.ts).
+  ai_identity_face: 4,     // Cambio de cara: USD 0.01 por segundo → 3 s = USD 0.03
+  ai_identity_full: 16,    // Sustitución completa (Wan 2.2 Animate, 480p): USD 0.04 por segundo → 3 s = USD 0.12
   // Audio
   ai_audio: 20,            // ElevenLabs: USD 0.10 por 1 000 caracteres
   ai_transcribe: 2,        // Gemini 3.5 Transcribe: ≈ USD 0.005 por minuto
@@ -142,6 +146,8 @@ export const SERVICE_LABEL: Record<CreditService, string> = {
   ai_video_advanced: 'Video avanzado',
   ai_video_max: 'Video de máxima calidad',
   ai_video_edit: 'Montaje de video',
+  ai_identity_face: 'Transformar identidad · cara',
+  ai_identity_full: 'Transformar identidad · completa',
   ai_audio: 'Generación de voz',
   ai_transcribe: 'Transcripción y subtítulos',
   ai_music: 'Generación de música',
