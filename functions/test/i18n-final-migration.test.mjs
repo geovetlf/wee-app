@@ -282,14 +282,14 @@ console.log('\n── G · Los filtros: identificador ≠ etiqueta ──');
 
   /* 36 · Las etiquetas visibles, con la grafía aprobada de producto. */
   check('36) las seis marcas llevan la grafía aprobada',
-    ['Weë Studio', 'Weë Travel', 'Weë Music', 'Weë Chef', 'Weë Design', 'Weë Business']
+    ['WeëStudio', 'WeëTravel', 'WeëMusic', 'WeëChef', 'WeëDesign', 'WeëFashion']
       .every((n) => FILTROS.includes(`label: '${n}' }`)));
   check('36) y no queda ninguna de las viejas',
     !/WeeStudio|WeeTravel|WeeMusic|WeeChef|WeeDesign|WEEBusiness/.test(FILTROS));
 
   /* 37 · "Todo" sigue siendo la única que es interfaz, y sigue siendo clave. */
-  check('37) solo "Todo" lleva clave, y el catálogo no traduce',
-    (FILTROS.match(/clave: '/g) || []).length === 1
+  check('37) de las secciones solo "Todo" lleva clave; las dos pastillas del Home (Para ti, Creatividad) llevan la suya, y el catálogo no traduce',
+    (FILTROS.match(/clave: '/g) || []).length === 3 && /clave: 'home\.feedForYou'/.test(FILTROS) && /clave: 'home\.feedCreativity'/.test(FILTROS)
     && /\{ id: 'all', label: 'Todo', clave: 'home\.filterAll' \}/.test(FILTROS)
     && !/\bt\(/.test(soloCodigo(FILTROS)));
 }
@@ -442,8 +442,9 @@ console.log('\n── J · El diccionario, cuadrado de punta a punta ──');
   for (const m of modEn) {
     for (const [k, v] of Object.entries(enT[m])) {
       if (!String(v).trim()) vacias.push(m + '.' + k);
-      /* Las marcas de Weë, y los préstamos que en inglés también llevan tilde. */
-      const sinMarcas = String(v).replace(/Weë|Weël|Weëls|Wäll|ËContacts?|ẄContacts?|Résumé|café/g, '');
+      /* Las marcas de Weë, los préstamos que en inglés también llevan tilde y los topónimos que el inglés escribe con la
+         suya (lugares DEMO de Weë Travel, 2026-11-06: Monte Albán, Torre de Belém, Reikiavik «Reykjavík»). */
+      const sinMarcas = String(v).replace(/Weë|Weël|Weëls|Wäll|ËContacts?|ẄContacts?|Résumé|café|Albán|Belém|Reykjavík/g, '');
       if (ACENTOS.test(sinMarcas)) conAcento.push(m + '.' + k + ' = ' + v);
     }
   }

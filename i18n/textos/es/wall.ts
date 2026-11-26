@@ -1,5 +1,5 @@
 /*
- * El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * El Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Este archivo es el MOLDE: de él sale el tipo que tiene que cumplir el resto
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
@@ -65,7 +65,7 @@ export const wall = {
   statComments: 'comentarios',
   commentImageFailed: 'No se pudo subir la imagen. Inténtalo de nuevo.',
   commentSendFailed: 'No se pudo enviar el comentario. Inténtalo de nuevo.',
-  shareText: '{{contenido}}\n\nCreado en Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nCreado en Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Mira esta publicación en Weë',
   commentsWithCount: 'Comentarios ({{total}})',
   agreeWithComment: 'De acuerdo con este comentario',
@@ -74,4 +74,22 @@ export const wall = {
   hidePrompt: 'Ocultar prompt',
   copyPrompt: 'Copiar prompt',
   promptCopied: 'Copiado',
+  demoBadge: 'Demo',
+  demoBadgeLabel: 'Contenido de demostración',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Todavía no hay publicaciones en el Ẅall',
+  immersiveError: 'No pudimos cargar el Ẅall',
+  immersiveEnd: 'Ya lo has visto todo',
+  agreePost: 'De acuerdo',
+  disagreePost: 'En desacuerdo',
+  mute: 'Silenciar',
+  unmute: 'Activar sonido',
+  moreOptions: 'Más opciones',
+  seeMore: 'Ver más',
+  seeLess: 'Ver menos',
+  openPost: 'Abrir publicación',
+  imageOf: 'Imagen {{numero}} de {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Fuego',
+  reactionLaugh: 'Risa',
 };

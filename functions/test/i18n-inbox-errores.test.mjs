@@ -58,22 +58,36 @@ console.log('\n── A · La bandeja vacía de WeeTalk ──');
 
   /* 4 y 5 · Y dicen lo que tienen que decir. */
   check('4) en español: ' + ES('weetalk.noConversationsHint'),
-    ES('weetalk.noConversationsHint') === 'Toca "Privado" en cualquier publicación para iniciar una conversación anónima');
+    ES('weetalk.noConversationsHint') === 'Abre el menú ⋮ de cualquier publicación y elige "Enviar por WeeTalk" para empezar una conversación privada');
   check('5) en inglés: ' + EN('weetalk.noConversationsHint'),
-    EN('weetalk.noConversationsHint') === 'Tap "Private" on any post to start an anonymous conversation');
+    EN('weetalk.noConversationsHint') === 'Open the ⋮ menu on any post and choose "Send via WeeTalk" to start a private conversation');
 
   /*
-   * 6 · "PRIVADO" NO ES UNA CLAVE DE OTRO SITIO.
+   * 6 · LA PISTA CITA UN CONTROL QUE EXISTE (corregido el 2026-11-05).
    *
-   * Se buscó: en toda la interfaz de Weë no hay ningún control que se llame
-   * así, ni una clave que lo nombre. Es una palabra dentro de la frase, y como
-   * tal se traduce con ella —"Private"— y va entre comillas en los dos idiomas.
+   * Antes decía «Toca "Privado"…», pero en Weë no hay ningún control llamado
+   * así: era herencia de HideTok, igual que lo de «conversación anónima» (la
+   * conversación se abre con la identidad activa). Lo que de verdad abre un chat
+   * desde una publicación es la opción «Enviar por WeeTalk» del menú ⋮ de
+   * `PostCard` (`wall.sendByWeeTalk`, icono `ellipsis-vertical`). La pista la
+   * cita con las MISMAS letras que pinta ese menú, en cada uno de los idiomas.
    */
   const conControl = ['components/PostCard.tsx', 'components/CommentCard.tsx', 'components/CreateSheet.tsx']
     .filter((p) => /'Privado'|"Privado"|>Privado</.test(leer(p)));
-  check('6) no existe ningún control llamado "Privado" del que colgarse', conControl.length === 0, conControl.join(' '));
-  check('6) así que va entrecomillada dentro de la frase, en los dos idiomas',
-    /"Privado"/.test(esT.weetalk.noConversationsHint) && /"Private"/.test(enT.weetalk.noConversationsHint));
+  check('6) sigue sin existir ningún control llamado "Privado"', conControl.length === 0, conControl.join(' '));
+  const TARJETA = leer('components/PostCard.tsx');
+  check('6) el menú ⋮ de la publicación ofrece «Enviar por WeeTalk» y abre el chat',
+    /name="ellipsis-vertical"/.test(TARJETA) && /\{t\('wall\.sendByWeeTalk'\)\}/.test(TARJETA)
+    && /onPress=\{enviarDesdeElMenu\}/.test(TARJETA) && /onPrivateMessage\(displayPost\.userId/.test(TARJETA));
+  const IDIOMAS = fs.readdirSync(new URL('../../i18n/textos/', import.meta.url), { withFileTypes: true })
+    .filter((d) => d.isDirectory() && fs.existsSync(new URL(`../../i18n/textos/${d.name}/weetalk.ts`, import.meta.url))).map((d) => d.name);
+  const sinBoton = IDIOMAS.filter((l) => {
+    const tx = textosDe(l);
+    return !String(tx.weetalk?.noConversationsHint ?? '').includes(String(tx.wall?.sendByWeeTalk ?? '\u0000'))
+      || !String(tx.weetalk?.noConversationsHint ?? '').includes('⋮');
+  });
+  check(`6) en los ${IDIOMAS.length} idiomas la pista cita el menú ⋮ y su «${'wall.sendByWeeTalk'}» con las mismas letras`,
+    IDIOMAS.length >= 42 && sinBoton.length === 0, sinBoton.join(' '));
 
   /* 7 · Lo que escribe la gente se sigue pintando crudo. */
   check('7) los mensajes y los nombres no pasan por el traductor',
@@ -174,7 +188,10 @@ console.log('\n── C · Sin sistemas paralelos, sin idiomas clavados ──')
   check('23) el aviso del voto existe una sola vez en todo el diccionario', repetidas === 1, String(repetidas));
   check('23) y la explicación de la bandeja, también',
     Object.entries(esT).filter(([, m]) =>
-      Object.values(m).some((v) => /Toca "Privado"/.test(String(v)))).length === 1);
+      Object.values(m).some((v) => /elige "Enviar por WeeTalk" para empezar una conversación privada/.test(String(v)))).length === 1);
+  check('23) y ningún texto en español sigue citando el botón "Privado" que no existe',
+    Object.entries(esT).filter(([, m]) =>
+      Object.values(m).some((v) => /Toca "Privado"/.test(String(v)))).length === 0);
 
   /* 24 · Ni un idioma clavado en ninguno de los dos archivos. */
   check('24) no se fuerza ningún idioma',

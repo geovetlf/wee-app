@@ -9,7 +9,7 @@ import type {
  * Weë Video Engine desde la app: una petición abstracta de video, sin nada del
  * proveedor. El servidor elige la versión de Seedance, reserva los Credits y
  * contesta de una de dos formas: el video ya hecho y guardado en Weë Storage, o
- * que ModelArk lo ACEPTÓ y lo está haciendo. Weë Studio (CreatorFlow) sigue
+ * que ModelArk lo ACEPTÓ y lo está haciendo. WeëStudio (CreatorFlow) sigue
  * usando creatorChat/creatorRun, que por dentro llaman a este mismo motor.
  */
 export interface VideoReferences {
@@ -110,6 +110,11 @@ const llamarPorLaToma = async <T,>(datos: Record<string, unknown>, timeout: numb
   }
 };
 
+export interface CapacidadesParaLaApp {
+  readonly status: 'CAPABILITIES';
+  readonly models: readonly { readonly modeloId: string; readonly variantes?: { readonly max?: number }; readonly options?: { readonly semilla?: string; readonly variantes?: { readonly max?: number } }; readonly available: { readonly referencias: boolean; readonly fotogramas: boolean; readonly extender: boolean; readonly editar: boolean } }[];
+}
+
 export const videoService = {
   generateVideo: async (input: GenerateVideoInput): Promise<GenerateVideoResult> => {
     const requestId = input.requestId || newRequestId('video');
@@ -119,6 +124,9 @@ export const videoService = {
     return result.data.status === 'ACCEPTED' ? { ...result.data, requestId } : result.data;
   },
 
+  /** Solo leer: qué entradas (referencias, fotogramas, extender, editar) puede usar hoy cada modelo. Datos del código del servidor: ni cupo, ni reserva, ni proveedor. */
+  capacidades: () => llamarPorLaToma<CapacidadesParaLaApp>({ capacidades: true }, 20_000),
+
   /** Solo mirar: si esa toma se puede, cuánto costaría y qué tomas tiene ya el plano. Ni reserva ni cupo. */
   quoteTake: (plano: PlanoDeToma): Promise<ResultadoDeToma<CotizacionDeToma>> =>
     llamarPorLaToma<CotizacionDeToma>({ plano, cotizar: true }, 60_000),
@@ -126,4 +134,26 @@ export const videoService = {
   /** Generar ESA toma por el precio que se enseñó. Si el precio cambió, el servidor no la genera y lo dice. */
   generateTake: (plano: PlanoDeToma & { take: number }, creditosCotizados: number): Promise<ResultadoDeToma<RespuestaDeGeneracion>> =>
     llamarPorLaToma<RespuestaDeGeneracion>({ plano, creditosCotizados }, 120_000),
+
+  /** Solo mirar: el presupuesto de varias unidades de una producción (en orden de línea de tiempo): qué se genera, qué ya está, qué no se puede y por qué, y el total en Credits. */
+  quoteBatch: (lote: LoteDeProduccion): Promise<ResultadoDeToma<PresupuestoDeLote>> =>
+    llamarPorLaToma<PresupuestoDeLote>({ produccion: lote, cotizar: true }, 60_000),
+
+  /** Generar el lote por el total que se enseñó. Cada unidad es una toma con su reserva; al primer fallo se para y lo ya empezado sigue. */
+  generateBatch: (lote: LoteDeProduccion, creditosCotizados: number): Promise<ResultadoDeToma<ResultadoDeLote>> =>
+    llamarPorLaToma<ResultadoDeLote>({ produccion: lote, creditosCotizados }, 25 * 60 * 1000),
+
+  /** Parar una toma que todavía se puede parar; lo ya aceptado por el proveedor contesta «take_accepted» (no se simula). */
+  cancelTake: (plano: PlanoDeToma & { take: number }): Promise<ResultadoDeToma<{ status: 'CANCELLED' | 'NOT_CANCELLED'; reason?: string }>> =>
+    llamarPorLaToma({ plano, cancelar: true }, 60_000),
 };
+
+/** Una producción y las unidades (planos) que se piden juntas. Sin «units», todas las de la producción. */
+export interface LoteDeProduccion { readonly productionId: string; readonly revision: number; readonly quality: CalidadDeToma; readonly units?: readonly string[] }
+export interface UnidadDePresupuesto { readonly sceneId: string; readonly unitId: string; readonly action: 'generate' | 'done' | 'in_flight' | 'blocked'; readonly reason?: string; readonly take?: number; readonly credits?: number }
+export interface PresupuestoDeLote {
+  readonly status: 'QUOTED_BATCH'; readonly productionId: string; readonly revision: number; readonly units: readonly UnidadDePresupuesto[];
+  readonly total: { readonly credits: number; readonly units: number }; readonly skipped: { readonly done: number; readonly inFlight: number; readonly blocked: number };
+  readonly balance: number | null; readonly enough: boolean;
+}
+export interface ResultadoDeLote { readonly status: string; readonly results?: readonly { readonly sceneId: string; readonly unitId: string; readonly take: number; readonly status: string; readonly reason?: string }[]; readonly stoppedAt?: unknown; readonly reason?: string }

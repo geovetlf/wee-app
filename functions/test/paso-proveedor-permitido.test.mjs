@@ -46,11 +46,19 @@ console.log('\n─── A. El transporte. EJECUTADO ───');
  * y no se lee el TypeScript, que no se puede ejecutar tal cual.
  */
 const compilado = leer('functions/lib/creator/index.js');
-const trozo = compilado.slice(
-  compilado.indexOf('const familiaDelPaso = stepInput.allowedProviders;'),
-  compilado.indexOf('const stepCtx = ')
-);
+/* Desde las correcciones 1–5 vive en `entradaDelPaso` (la comparten la ruta previa y el bucle): termina en su return. */
+const inicioPrefs = compilado.indexOf('const familiaDelPaso = stepInput.allowedProviders;');
+const finPrefs = inicioPrefs < 0 ? -1 : compilado.indexOf('return { input, prefs };', inicioPrefs);
+const trozo = inicioPrefs >= 0 && finPrefs > inicioPrefs ? compilado.slice(inicioPrefs, finPrefs) : '';
 check('la construcción de prefs se encontró en el compilado', trozo.length > 100 && trozo.includes('allowedProviders'));
+/* El extractor no puede quedarse con una copia equivocada: la construcción existe UNA vez, dentro de `entradaDelPaso`,
+   y el bucle de creatorRun (y la ruta previa) la piden a esa función en lugar de rehacerla. */
+const inicioEntrada = compilado.indexOf('const entradaDelPaso = ');
+check('y está UNA sola vez, dentro de entradaDelPaso, que usan el bucle y la ruta previa',
+  compilado.indexOf('const familiaDelPaso = stepInput.allowedProviders;', inicioPrefs + 1) < 0
+  && inicioEntrada >= 0 && inicioEntrada < inicioPrefs && compilado.indexOf('\n};', inicioEntrada) > finPrefs
+  && /const \{ input, prefs \} = \(0, exports\.entradaDelPaso\)\(job, next, previous\);|const \{ input, prefs \} = entradaDelPaso\(job, next, previous\);/.test(compilado)
+  && /entradaDelPaso\)?\(job, step, previous\)/.test(compilado));
 
 const construirPrefs = new Function('stepInput', `${trozo}\nreturn prefs;`);
 

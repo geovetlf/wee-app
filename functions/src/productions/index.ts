@@ -4,8 +4,9 @@ import type { AspectRatio } from '../core/creative';
 import { puedeReferenciar } from '../core/element';
 import type { FichaDeMaterial, MotivoDeNoReferenciar } from '../core/element';
 import { leerMaterial } from '../content';
+import { preferenciasRechazadas } from './preferenciasAlGuardar';
 import {
-  FILMMAKER_MODEL_VERSION, FORMA_DE_ID, FilmmakerProduction, FormatPresetId, LIMITES, PRESETS, ProductionScene,
+  FILMMAKER_MODEL_VERSION, FORMA_DE_ID, FilmmakerProduction, FormatPresetId, LIMITES, PRESETS, ProductionReference, ProductionScene,
   ResolutionTarget, canonico, configuracionDePreset, produccionVacia,
 } from '../filmmaker/modelo';
 import { FilmmakerIssue, Params, integridad } from '../filmmaker/validacion';
@@ -484,6 +485,9 @@ const politica = async (
   if (vinculos.length) {
     return rechazo('element_binding_not_supported', vinculos.map((r) => problema('element_binding_not_supported', r, { until: 'F3' })));
   }
+  /* Lo que la persona elige del modelo (modelo preferido, variantes, semilla): contra las capacidades de ese modelo. */
+  const malasPreferencias = preferenciasRechazadas(despues).map((m) => problema('production_invalid', m.path, { reason: m.reason, ...m.parameters }));
+  if (malasPreferencias.length) return rechazo('production_invalid', malasPreferencias);
   const reservados = despues.scenes.filter((s) => reservado(s.id));
   if (reservados.length) return rechazo('id_not_storable', reservados.map((s) => problema('id_not_storable', `scenes.${s.id}`)));
 
@@ -515,6 +519,11 @@ export interface PeticionDeCreacion {
   readonly preset?: unknown;
   /** O una producción entera, como borrador. Lo uno o lo otro. */
   readonly production?: unknown;
+  /**
+   * Convergencia (2026-11-18): las referencias con las que nace, YA convertidas en material de la cuenta
+   * (`referenciasAlCrear.ts`). Se añaden a las de la producción; opcional.
+   */
+  readonly references?: readonly ProductionReference[];
   readonly at: number;
 }
 
@@ -571,6 +580,10 @@ export const crearProduccion = async (p: PeticionDeCreacion, deps: DepsDeProducc
   const productionId = p.productionId;
   const inicial = produccionInicial(p, productionId);
   if (!inicial.ok) return inicial;
+  if (p.references && p.references.length) {
+    const ya = Array.isArray(inicial.prod.references) ? (inicial.prod.references as readonly unknown[]) : [];
+    inicial.prod = { ...inicial.prod, references: aJson([...ya, ...p.references]) };
+  }
   const rota = integridad(inicial.prod);
   if (rota.length) return rechazo('production_invalid', rota);
   const prod = inicial.prod as unknown as FilmmakerProduction;

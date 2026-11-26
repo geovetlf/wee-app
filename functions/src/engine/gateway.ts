@@ -252,6 +252,10 @@ export const crearEjecutorDelMotor = (deps: EjecutorDeps): AdapterExecutor => {
       const config = await deps.config();
       /* El interruptor de la IA (H0 #19): como si todos los proveedores estuvieran desactivados, antes de despachar. */
       if (config.settings.iaDetenida === true) return rechazo('PROVIDER_UNAVAILABLE', 'provider_disabled', { iaDetenida: true });
+      /* El interruptor del vídeo (X2): apagado, ningún vídeo sale hacia un proveedor real (solo el interno, de muestra), tampoco por el conductor. */
+      if (String(capability).startsWith('video.') && impl.provider.type !== 'internal' && config.settings.videoHabilitado !== true) {
+        return rechazo('PROVIDER_UNAVAILABLE', 'provider_disabled', { videoApagado: true });
+      }
       const providerConfig = config.providers[adapter.id];
       if (providerConfig?.enabled === false) return rechazo('PROVIDER_UNAVAILABLE', 'provider_disabled');
       /* Las jurisdicciones, solo si el modelo tiene reglas territoriales; un fallo al leerlas falla cerrado. */

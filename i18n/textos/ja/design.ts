@@ -1,5 +1,5 @@
 /*
- * JAPONÉS — Weë Design: la cabecera, la caja, las categorías con sus puntos de partida, los ajustes y de qué es cada creación.
+ * JAPONÉS — WeëDesign: la cabecera, la caja, las categorías con sus puntos de partida, los ajustes y de qué es cada creación.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -87,12 +87,24 @@ export const design: typeof import('../es/design').design = {
   valWarm: '暖かい光',
   valStudioLight: 'スタジオ照明',
 
+  kindProduct: '商品',
   kindInterior: 'インテリア',
   kindArchitecture: '建築',
   kindBoat: '船',
   kindFurniture: '家具',
+  sampleShoe: 'レザースニーカー',
+  sampleGuitar: 'エレキギター',
   sampleLivingRoom: '明るいリビング',
   samplePineHouse: '松林の家',
   sampleYacht: '15メートルのヨット',
   sampleArmchair: '木製のアームチェア',
+  /* ── La portada de la demo YC (héroe, creación rápida, Design Studio, explorar) ── */
+  heroLead: '思いのままに',
+  heroAccent: 'デザイン。',
+  brandingTitle: 'ブランディング',
+  objects3dTitle: '3Dオブジェクト',
+  designStudioTitle: 'デザインスタジオ',
+  designStudioSub: 'AIでプロ品質のデザインを作成・編集・可視化できます。',
+  openStudio: 'スタジオを開く',
+  fashionHint: '服やコレクションなどをデザインできます。',
 };

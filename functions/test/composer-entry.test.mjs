@@ -54,9 +54,13 @@ const cuerpoDe = (fuente, arranque) => {
 };
 
 const PUERTA = 'components/creator/ComposerEntry.tsx';
+/*
+ * Rediseño del 2026-11-15: el Home ya no monta la puerta de publicar. Desde el Home —nativo y web, que comparten la
+ * barra global— se publica con el +, que abre la hoja Crear de siempre. Esa es ahora LA superficie que se vigila: una
+ * para las dos portadas, porque es una sola pieza. La puerta (`ComposerEntry`) se conserva y se sigue probando abajo.
+ */
 const SUPERFICIES = [
-  { nombre: 'Home', archivo: 'screens/LandingScreen.tsx', handler: 'const handleCompose =', invitado: /handleRegister\(\)/ },
-  { nombre: 'portada web', archivo: 'screens/WebLandingScreen.tsx', handler: 'const handleCompose =', invitado: /navigate\('Register'\)/ },
+  { nombre: 'el + de la barra (Home nativo y web)', archivo: 'navigation/NavegacionGlobal.tsx', handler: 'const crear =', invitado: /irARaiz\('Register'\)/ },
 ];
 
 console.log('\n── A · Una puerta, y una sola ──');
@@ -74,9 +78,10 @@ console.log('\n── A · Una puerta, y una sola ──');
     const codigo = soloCodigo(leer(s.archivo));
     // Puede traerse además el tipo `ComposerKind` de la misma puerta: es la
     // fuente única de con qué intenciones se abre el compositor.
-    const importa = /import ComposerEntry(?:, \{[^}]*\})? from '[^']*ComposerEntry'/.test(codigo);
-    const pinta = /<ComposerEntry\b/.test(codigo);
-    check(`2-5) ${s.nombre} usa la puerta compartida`, importa && pinta, importa ? (pinta ? '' : 'la importa pero no la pinta') : 'ni la importa');
+    /* La pieza compartida de publicar es la hoja Crear (el + de siempre) o, donde se monte, la puerta. */
+    const importa = /import (?:ComposerEntry|CreateSheet)(?:, \{[^}]*\})? from '[^']*(?:ComposerEntry|CreateSheet)'/.test(codigo);
+    const pinta = /<(?:ComposerEntry|CreateSheet)\b/.test(codigo);
+    check(`2-5) ${s.nombre} usa la pieza compartida de publicar`, importa && pinta, importa ? (pinta ? '' : 'la importa pero no la pinta') : 'ni la importa');
   }
 
   /*
@@ -131,7 +136,7 @@ console.log('\n── B · Es una puerta, no un compositor ──');
   const compositor = leer('screens/CreateScreen.tsx');
   const CONTROLES = ['Cámara', 'Foto o vídeo', 'ËContact', 'Ubicación', 'Encuesta'];
   /* En el compositor la puerta de foto y vídeo se llama Multimedia; en los atajos sigue diciendo Foto o vídeo. */
-  const EN_EL_COMPOSITOR = { 'Foto o vídeo': 'Multimedia' };
+  const EN_EL_COMPOSITOR = { 'Foto o vídeo': 'Galería', 'Ubicación': 'Lugar' };
   check('12) los cinco controles están en CreateScreen', CONTROLES.every((c) => compositor.includes(`texto="${EN_EL_COMPOSITOR[c] || c}"`)));
   /*
    * La puerta los NOMBRA —son sus cinco atajos y cada uno lleva su nombre para
@@ -172,7 +177,7 @@ console.log('\n── C · A dónde lleva, y con quién ──');
      * mismo, o llamando al ayudante que esa pantalla tenga para ello. Lo que se
      * comprueba es que el handler LLEVE, no cómo se escribe la llamada.
      */
-    const alCompositor = /navigate\('Create'|irAlCompositor\(/;
+    const alCompositor = /navigate\('Create'|irAlCompositor\(|irARaiz\('Create'/;
     check(`8) ${s.nombre}: la puerta lleva al compositor de siempre`, alCompositor.test(handler), handler ? '' : 'no encuentro el handler');
     check(`9) ${s.nombre}: sin sesión no se llega a publicar`, /!user/.test(handler) && s.invitado.test(handler));
     // 10) Con sesión, y solo con sesión, se abre CreateScreen.
@@ -188,11 +193,16 @@ console.log('\n── C · A dónde lleva, y con quién ──');
    * un solo nivel se queda en la pestaña y deja a la persona en una pantalla
    * vacía. Por eso hay que subir dos: al padre del padre.
    */
-  for (const archivo of ['screens/LandingScreen.tsx', 'screens/WebLandingScreen.tsx']) {
+  /* La portada web conserva su botón «Crear» del muro vacío, que sube dos niveles; el Home nativo ya no navega al compositor. */
+  for (const archivo of ['screens/WebLandingScreen.tsx']) {
     const codigo = soloCodigo(leer(archivo));
     const sube = /navigation\.getParent\(\)[\s\S]{0,160}\?\.getParent\(\)[\s\S]{0,200}navigate\('Create'/.test(codigo);
     check(`10b) ${archivo.split('/').pop()} sube hasta el navegador que tiene el compositor`, sube);
   }
+  /* Y el + no depende de en qué navegador esté: navega en la RAÍZ, que es donde vive el compositor de verdad. */
+  check('10b) el + de la barra navega en la raíz, donde está el compositor de verdad',
+    /const irARaiz = \(pantalla: string, params\?: object\) => \{\s*navegarEnLaRaiz\(pantalla, params\);/.test(soloCodigo(leer('navigation/NavegacionGlobal.tsx')))
+    && /target: raiz\.key/.test(soloCodigo(leer('navigation/refNavegacion.ts'))));
 
   /*
    * El contexto viaja donde tiene sentido: una sección dice de dónde viene, y
@@ -233,8 +243,11 @@ console.log('\n── D · El Home, después del cambio ──');
     const weels = fuente.indexOf(marca);
     return puerta > 0 && weels > 0 && puerta < weels;
   };
-  check('15) en el Home se publica antes de los Weëls', antesDeWeels(soloCodigo(home), 'renderWeelsRow'));
-  check('15) y en la portada web también', antesDeWeels(soloCodigo(homeWeb), '<WeelsRow'));
+  /* Rediseño del 2026-11-15: ni puerta de publicar ni fila de Weëls en el Home; el orden que se fija es WeëAI → pastillas → muro. */
+  check('15) el Home ya no trae la puerta ni la fila de Weëls: WeëAI va antes de las pastillas del muro',
+    !/<ComposerEntry|<WeelsRow/.test(soloCodigo(home)) && soloCodigo(home).indexOf('{renderWeeAi()}') > 0 && soloCodigo(home).indexOf('{renderWeeAi()}') < soloCodigo(home).indexOf('renderFeedFilters()}'));
+  check('15) y en la portada web también',
+    !/<ComposerEntry|<WeelsRow/.test(soloCodigo(homeWeb)) && soloCodigo(homeWeb).indexOf('<TarjetaWeeAi') > 0 && soloCodigo(homeWeb).indexOf('<TarjetaWeeAi') < soloCodigo(homeWeb).indexOf('<PastillasDelFeed'));
 }
 
 console.log('\n── E · Lo que NO se ha roto ──');
@@ -244,7 +257,7 @@ console.log('\n── E · Lo que NO se ha roto ──');
    * donde de verdad se usa. Quitarlo del Home no podía dejar a nadie sin llegar.
    */
   check('16) se descubren comunidades desde Buscar', /communityService/.test(leer('screens/SearchScreen.tsx')));
-  check('16) y se crean desde ☰ → Explora → Comunidades', /navigate\('ExploreCommunities'\)/.test(soloCodigo(leer('components/DrawerMenu.tsx'))));
+  check('16) y se crean desde ☰ → Explora → Comunidades', /* Por la pestaña Home (2026-11-05): navegar a la pantalla a secas daba error desde el cajón. */ /navigateTab\('Home', \{ screen: 'ExploreCommunities' \}\)/.test(soloCodigo(leer('components/DrawerMenu.tsx'))));
   check('16) el bloque de comunidades sigue usándose en la barra lateral', /<CommunitiesEntry\b/.test(soloCodigo(leer('components/RightSidebar.tsx'))));
 
   /*
@@ -436,6 +449,8 @@ console.log('\n── I · El Home va directo al compositor ──');
     if (/ThemeContext$/.test(peticion)) return { useTheme: () => ({ theme: { colors: colores } }) };
     if (/UserProfileContext$/.test(peticion)) return { useUserProfile: () => ({ userProfile: null }) };
     if (/AvatarDisplay$/.test(peticion)) return { __esModule: true, default: () => h('span', null, 'avatar') };
+    /* El degradado de marca (components/GradienteDeMarca.tsx, 2026-11-05) es solo fondo: aquí no dibuja nada. */
+    if (/GradienteDeMarca$/.test(peticion)) return { RellenoDeMarca: () => null, GradienteDeMarca: ({ children }) => children };
     if (/utils\/scale$/.test(peticion)) return { scale: (n) => n };
     if (/firestoreService$/.test(peticion)) return {};
     /*
@@ -538,10 +553,12 @@ console.log('\n── I · El Home va directo al compositor ──');
    */
   /* El fuente se lee resuelto, así que la clave sale ya como su frase. */
   const enElHome = /<ComposerEntry placeholder="¿Qué quieres compartir\?" onCompose=\{handleCompose\} variante="home" directo \/>/;
-  check('5) el Home lo pide en sus dos pantallas',
-    enElHome.test(leer('screens/LandingScreen.tsx')) && enElHome.test(leer('screens/WebLandingScreen.tsx')));
+  /* Rediseño del 2026-11-15: lo que el Home pide en sus dos pantallas es la tarjeta de WeëAI; la puerta de publicar ya no. */
+  check('5) el Home ya no pide la puerta directa en ninguna de sus dos pantallas: pide la tarjeta de WeëAI',
+    !enElHome.test(leer('screens/LandingScreen.tsx')) && !enElHome.test(leer('screens/WebLandingScreen.tsx'))
+    && /<TarjetaWeeAi variante="portada"/.test(leer('screens/LandingScreen.tsx')) && /<TarjetaWeeAi variante="portada"/.test(leer('screens/WebLandingScreen.tsx')));
   check('5) una sola instancia por pantalla del Home',
-    (leer('screens/LandingScreen.tsx').match(/<ComposerEntry/g) || []).length === 1 && (leer('screens/WebLandingScreen.tsx').match(/<ComposerEntry/g) || []).length === 1);
+    (leer('screens/LandingScreen.tsx').match(/<TarjetaWeeAi/g) || []).length === 1 && (leer('screens/WebLandingScreen.tsx').match(/<TarjetaWeeAi/g) || []).length === 1);
   /* Y la puerta sigue sabiendo plegarse aunque hoy nadie se lo pida. */
   check('5) control: `directo` sigue siendo opcional', /const desplegable = !compact && !directo;/.test(leer(PUERTA)));
 }

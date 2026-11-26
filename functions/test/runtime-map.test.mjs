@@ -147,7 +147,9 @@ const MAPA = [
   { id: 'financial', canonico: ['core/financial/account.js', 'core/financial/commerce.js', 'core/financial/ledger.js', 'core/financial/money.js', 'core/financial/payment.js'],
     composicion: 'financial/index.js', fabrica: null, enUso: ['credits/creditEngine.js'], cargada: false, motor: 'NOT CONNECTED', simbolos: [] },
   { id: 'identity', canonico: ['core/account-identity.js', 'core/identity.js'], composicion: 'identity/cuentas.js', fabrica: 'nacerLoQueTocaDeUnPerfilNuevo', enUso: ['identity/nacimiento.js'], cargada: true,
-    motor: 'CONNECTED', simbolos: ['asegurarCuenta', 'asegurarEntidadDeCaraWee', 'crearPagina', 'cuentaWeeValida', 'entidadDeCuentaValida', 'esIdDeCuenta', 'esIdDePrincipal', 'normalizarNumeroDeCuenta', 'resolverCuentaDelPrincipal'] },
+    motor: 'CONNECTED', simbolos: ['asegurarCuenta', 'asegurarEntidadDeCaraWee', 'crearPagina', 'cuentaWeeValida', 'entidadDeCuentaValida', 'esIdDeCuenta', 'esIdDePrincipal', 'normalizarNumeroDeCuenta', 'resolverCuentaDelPrincipal',
+      /* F4: los alter egos (crear, retirar, su límite, su rechazo) y la forma de su identificador. */
+      'AlterEgoRechazado', 'crearAlterEgo', 'esIdDeEntidad', 'limiteDeAlterEgos', 'retirarAlterEgo'] },
   { id: 'registry', canonico: ['core/registry/capabilities.js', 'core/registry/registry.js', 'core/registry/validate.js'], composicion: 'registry/index.js', fabrica: 'registroDeWee', enUso: ['planner/index.js'], cargada: true,
     motor: 'CONNECTED', simbolos: ['CAPABILITY_CATALOG', 'crearRegistro', 'validarRegistro'] },
   /* Fase 12-A/B. Nació conectada: no hay una moderación «de antes» con la que convivir (docs/MODERATION.md). */
@@ -294,6 +296,23 @@ const FUNCTIONS = {
    * (ops/despliegue/grupos.json → no_se_despliegan): está en el mapa porque el código la exporta.
    */
   './creator/mundo': ['generateWorld'],
+  /*
+   * WeëPages (2026-11-02): crear/editar una Página de la cuenta y seguirla. Sin IA ni Credits. NO están desplegadas
+   * (ops/despliegue/grupos.json → no_se_despliegan); están en el mapa porque el código las exporta. docs/WEEPAGES.md.
+   */
+  './social/pages': ['savePage', 'followPage'],
+  /*
+   * Comunidades por identidad (2026-11-05): crear, unirse, salir, papeles, expulsar, transferir, editar, reclamar una
+   * heredada y listar las de la cara activa. Sin IA ni Credits. NO están desplegadas (ops/despliegue/grupos.json →
+   * no_se_despliegan; orden de producción en docs/COMUNIDADES-IDENTIDAD.md §9); están en el mapa porque el código las exporta.
+   */
+  './social/comunidades': ['createCommunity', 'joinCommunity', 'leaveCommunity', 'setCommunityRole', 'removeCommunityMember',
+    'transferCommunityOwnership', 'updateCommunity', 'claimLegacyCommunity', 'listMyCommunities'],
+  /*
+   * Boost (2026-11-04): promocionar publicaciones propias; reserva y liquida SOLO por el Credit Engine. NO están
+   * desplegadas (ops/despliegue/grupos.json → no_se_despliegan); están en el mapa porque el código las exporta. docs/BOOST.md.
+   */
+  './boost': ['boost', 'boostSweep'],
   './engine/webhooks': ['seedanceCallback'],
   './public/postPage': ['publicPostPage'],
   './engine/admin': ['engineAdmin'],
@@ -309,6 +328,9 @@ const FUNCTIONS = {
   './social/weetalk': ['burnViewOnce'],
   './social/econtact': ['requestEContact', 'acceptEContact'],
   './identity/nacimiento': ['nacimientoDeCuenta'],
+  /* Alter egos (F4, 2026-11-23): crear un Perfil Weë más (gratis) y retirar uno (inmediato). Sin IA ni Credits. Sin desplegar. */
+  './identity/alterEgos': ['crearAlterEgo', 'retirarAlterEgo'],
+  './identity/perfilPublico': ['espejoDelPerfilPublico'],
   './moderation': ['reportContent', 'moderationAdmin'],
   /*
    * S5: la puerta de las cosas de una cuenta. Crea, lee, cambia, archiva y
@@ -336,6 +358,26 @@ const FUNCTIONS = {
   './settlement/programado': ['barridoDeLiquidacion'],
   /* MC-4.5: la ÚNICA puerta de Media Cloud. De administración, y no es una API. */
   './media/canary': ['mediaCanary'],
+  /*
+   * AUTONOMÍA DEL PERSONAJE (docs/AUTONOMIA.md): una puerta de usuario
+   * (programar, apagar, ver el estado del pase) y una tarea programada que pone
+   * al día los pases; y dos disparadores que contestan como el personaje en
+   * WeeTalk y en comentarios. Las cuatro detrás de `aiSettings/autonomia.abierta`,
+   * CERRADA por defecto; los disparadores salen sin leer nada mientras lo esté.
+   */
+  './personajes/servidor': ['autonomiaPersonaje', 'nivelDelPaseAlGuardarLaFicha'],
+  './personajes/ciclo': ['cicloDeAutonomia'],
+  './personajes/acciones': ['personajeRespondeWeeTalk', 'personajeRespondeComentario'],
+  './personajes/materialServidor': ['procesarMaterialDelPersonaje', 'materialPersonaje'],
+  './personajes/encargos': ['encargoDelPersonaje'],
+  /* La campanita del dueño (2026-11-23): sin IA ni Credits; agrupa los avisos del personaje en una notificación. */
+  './personajes/campanita': ['campanitaDelPersonaje'],
+  /*
+   * La cuenta (2026-11-22), sin IA ni Credits: desactivar (`eliminarCuenta`),
+   * volver dentro de los 30 días (`reactivarCuenta`) y la tarea diaria que borra
+   * del todo las vencidas (`borrarCuentasVencidas`).
+   */
+  './cuenta': ['eliminarCuenta', 'reactivarCuenta', 'borrarCuentasVencidas'],
   './credits': ['getCreditsBalance', 'getCreditHistory', 'getCreditCost', 'spendCredits', 'grantCredits', 'refundCredits', 'validatePurchase', 'restorePurchase', 'creditsAdmin'],
   '(index)': ['sendPushNotification', 'sendMessagePushNotification'],
 };
@@ -395,7 +437,7 @@ console.log('\n── B · Las Functions que producción expone ──');
   const declaradas = Object.values(FUNCTIONS).flat();
   const reales = Object.values(porModulo).flat();
   check('4) son exactamente las declaradas en el mapa: ninguna Function nace sin clasificar', igual(declaradas, reales), diferencia(declaradas, reales));
-  check('5) y son treinta y siete: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar) y generateWorld (misión mundo3d, sin desplegar)', reales.length === 37, `${reales.length}`);
+  check('5) y son sesenta y tres: las treinta y cinco de antes (hasta Productions, F1-B), evalRun (F2-C1, de administración, sin desplegar), generateWorld (misión mundo3d, sin desplegar), savePage/followPage (WeëPages, sin desplegar), boost/boostSweep (Boost, sin desplegar), las nueve de Comunidades por identidad (sin desplegar) y espejoDelPerfilPublico (seguridad de users, sin desplegar); más las nueve de la autonomía del personaje (pase, nivel al guardar la ficha, ciclo, WeeTalk, comentarios, las dos del material, encargos y la campanita) y las tres de la cuenta (desactivar, reactivar, borrar las vencidas), y las dos de los alter egos (crear y retirar, F4), todas sin desplegar: sesenta y cinco. Las cuatro nuevas de Filmmaker NO están: archivado (docs/ARCHIVO.md)', reales.length === 65, `${reales.length}`);
   /*
    * ── LA PRUEBA DE QUE ESTA GUARDA SIGUE MORDIENDO (S5) ────────────────────
    *
@@ -488,8 +530,11 @@ console.log('\n── C · Motor por motor: qué está conectado y qué no ─�
    */
   check(`${n++}) algorithm: SOMBRA — la fábrica del ciclo la invoca la sombra del plan, y nadie más`,
     igual(['creator/sombra.js'], invocadaDesde('crearCicloAlgoritmico')), invocadaDesde('crearCicloAlgoritmico').join(', ') || 'nadie');
-  check(`${n++}) algorithm: y lo que decide no lo consume nadie: ni \`paraRouter\`, ni el cierre del ciclo, en ningún módulo vivo`,
-    invocadaDesde('paraRouter').length === 0 && vivosFueraDelCore.every((r) => !/\.cerrar\(\{|\bparaRouter\b/.test(codigo(path.join(LIB, r)))),
+  /* (Misión de cierre) `/\.cerrar\(\{/` no veía una llamada posicional —`cerrar(r, obs)`, que es la forma real—. El
+   * cierre solo puede llamarlo quien tiene el ciclo, y solo la sombra lo crea (arriba): se mira en ella, sin la llave. */
+  check(`${n++}) algorithm: y lo que decide no lo consume nadie: ni \`paraRouter\` en ningún módulo vivo, ni el cierre del ciclo —solo podría llamarlo quien lo crea, la sombra, y no lo llama—`,
+    invocadaDesde('paraRouter').length === 0 && vivosFueraDelCore.every((r) => !/\bparaRouter\b/.test(codigo(path.join(LIB, r))))
+      && !/\.cerrar\(/.test(codigo(path.join(LIB, 'creator/sombra.js'))),
     [...invocadaDesde('paraRouter')].join(', ') || 'nadie');
   const otros = Object.entries(OTROS_DEL_CORE);
   for (const [mod, simbolos] of otros) check(`${n++}) ${mod}: símbolos nombrados [${simbolos.join(', ')}]`, igual(simbolos, [...(nombrados.get(mod) || [])]), diferencia(simbolos, [...(nombrados.get(mod) || [])]));
@@ -542,14 +587,21 @@ console.log('\n── D · Un solo motor EN USO por pieza ──');
    * sin transacción de Credits, y detrás de un interruptor cerrado por defecto.
    * Que aparezca aquí es la prueba de que NO se abrió un camino paralelo.
    *
-   * `evals/dominios/router.ts` entra con F2-C1: el dominio real del Router en el Eval
-   * Engine ejecuta una generación REAL por el MISMO embudo —Router y libro incluidos—, con
-   * `attribution: 'eval'` para que el gasto se mida aparte y sin tocar los Credits
-   * del usuario. Que aparezca aquí prueba que las evals NO rodean el motor.
+   * `personajes/acciones.ts` (autonomía del personaje, docs/AUTONOMIA.md) entra
+   * por el MISMO embudo y con el MISMO modelo que Weë Brain, pedido por su nombre:
+   * el personaje es Weë Brain con el contexto de su ficha (regla 10). Va
+   * incluido en el pase de autonomía ya cobrado (`creditsEstimated: 0`) y detrás
+   * de `aiSettings/autonomia.abierta`, cerrada por defecto.
+   *
+   * `personajes/encargos.ts` son los ENCARGOS del personaje a Weë AI (imagen,
+   * búsqueda; el vídeo va por `videoEngine`, como Weë Studio): decisión del dueño
+   * (2026-11-22). Mismo embudo y mismo cobro que Weë AI —precio oficial,
+   * `spendCredits` → motor → `completeCredits`/`refundCredits`—, a la cuenta del
+   * dueño y dentro de su tope diario. No es un camino paralelo: es otra puerta.
    */
   const embudo = donde(/\bengine\.generate\(/, (r) => !r.startsWith('core/'));
   check('102) todo lo que pide IA entra por un único embudo: `engine.generate`',
-    igual(embudo, ['creator/brain.ts', 'creator/index.ts', 'engine/video.ts', 'evals/dominios/router.ts', 'gateway/index.ts']), embudo.join(', '));
+    igual(embudo, ['creator/brain.ts', 'creator/index.ts', 'engine/video.ts', 'evals/dominios/router.ts', 'gateway/index.ts', 'personajes/acciones.ts', 'personajes/encargos.ts']), embudo.join(', '));
   check('103) y a `runCapability` solo lo llama Weë Creator', igual(donde(/\brunCapability\(/, (r) => r !== 'gateway/index.ts'), ['creator/index.ts', 'creator/planner.ts']));
   /*
    * LA ÚNICA DUPLICACIÓN DE RUNTIME QUE EXISTE HOY, y está a la vista a propósito:
@@ -562,7 +614,8 @@ console.log('\n── D · Un solo motor EN USO por pieza ──');
   const fueraDelMotor = donde(new RegExp(`${patronDeHosts(hostsDeProveedores(RAIZ)).source}|GoogleGenAI|@google\\/genai|volces`, 'i'),
     (r) => !r.startsWith('engine/providers/') && !r.startsWith('core/'));
   check('104) fuera de los adaptadores, solo `vertexAI.ts` (avatar) habla con un proveedor — y está registrado como deuda',
-    igual(fueraDelMotor.filter((r) => !['engine/registry.ts', 'engine/verification.ts'].includes(r)), ['vertexAI.ts']), fueraDelMotor.join(', '));
+    /* music/matrix.ts y music/providers.ts anotan la dirección como dato y no llaman a nadie: lo exige gateway-autoridad y music.test (A3–A6). */
+    igual(fueraDelMotor.filter((r) => !['engine/registry.ts', 'engine/verification.ts', 'music/matrix.ts', 'music/providers.ts'].includes(r)), ['vertexAI.ts']), fueraDelMotor.join(', '));
   check('105) y a `vertexAI.ts` solo lo usa el avatar', igual(donde(/from '\.\/vertexAI'/), ['generateAvatar.ts']));
   check('106) el código ya dice cuál es el canónico y cuál está en uso, y que no cabe un tercero',
     /CANÓNICO {3}`core\/job\.ts`/.test(leer('functions/src/creator/types.ts')) && /NO PUEDE HABER UN TERCERO/.test(leer('functions/src/creator/types.ts')));

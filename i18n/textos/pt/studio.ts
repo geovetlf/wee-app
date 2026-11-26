@@ -4,7 +4,7 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Trato de "você" (informal), portugués de Brasil natural y entendible también
  * en Portugal. Los formatos —PDF, MP4, 16:9— y los segundos no cambian de
- * idioma, y "Weë Studio" y "Writer" son marca: no se traducen.
+ * idioma, y "WeëStudio" y "Writer" son marca: no se traducen.
  *
  * Cuidado con los falsos amigos del español: "pronto" no es soon (va "Em
  * breve"), "largo" no es long (va "Longo"), "acento" de voz es "sotaque" y los
@@ -231,7 +231,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Em breve',
   soonHint: 'Esta ferramenta já tem o seu lugar. Falta conectá-la.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Texto',
   textHint: 'Escreva qualquer conteúdo',
   exploreTitle: 'Explorar',
@@ -372,4 +372,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: 'Parei a criação. Os Credits reservados voltam para o seu saldo.',
   worldUploadFailed: 'Não consegui enviar sua foto. Tente de novo.',
   worldDailyLimit: 'Você já usou os mundos 3D de hoje. Se algum não sair, você o recupera, e eles se renovam todos os dias.',
+  filmmakerCardTitle: 'Dirija seu filme',
+  filmmakerCardSub: 'Cenas, planos e movimentos de câmera, com a direção nas suas mãos.',
+  filmmakerCardCta: 'Abrir Filmmaker',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: 'Crie',
+  heroAccent: 'sem limites.',
+  quickTitle: 'Criação rápida',
+  filmmakerEngineSub: 'Crie, dirija e edite seus filmes com IA.',
+  projectsTitle: 'Projetos',
 };

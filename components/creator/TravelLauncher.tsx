@@ -1,8 +1,11 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { PildoraDeCreator, RejillaDeCreator, TituloDeCreator, estilosDeCreator } from './PiezasDeCreator';
 import { SpecialistAction, SpecialistConfig } from '../../constants/specialists';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
@@ -11,7 +14,7 @@ import TravelMark from './TravelMark';
 import CajaDePrompt from './CajaDePrompt';
 
 /*
- * ─── Weë Travel, plegado en una fila ────────────────────────────────────────
+ * ─── WeëTravel, plegado en una fila ────────────────────────────────────────
  *
  * Todo lo que Travel sabe hacer cabe detrás de una sola fila: el nombre de la
  * sección, la frase para contarle un viaje a Weë, los ejemplos y las cuatro
@@ -45,6 +48,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
   const { theme } = useTheme();
   const t = useT();
   const [text, setText] = useState('');
+  const pro = useEnEspacioProfesional();
   const entrada = useRef(new Animated.Value(0)).current;
   const giro = useRef(new Animated.Value(0)).current;
 
@@ -74,8 +78,48 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
   /* El emoji vive en la configuración pero aquí lo dice el distintivo dibujado. */
   const titulo = idea.title.replace(/^[^\p{L}¿]+/u, '');
 
+  /*
+   * EN WEË VERSIÓN CREATOR NO SE PLIEGA.
+   * Se plegaba para dejar sitio a la gente, y aquí no hay muro: la caja, los
+   * ejemplos y las funciones se ven al entrar. Mismas llamadas, mismo destino.
+   */
+  if (pro) {
+    return (
+      <View style={styles.pro}>
+        <View style={estilosDeCreator.bloque}>
+          <TituloDeCreator titulo={titulo} />
+          <CajaDePrompt
+            valor={text}
+            onCambiar={setText}
+            onEnviar={enviar}
+            etiquetaEnviar={t('weeai.tellWeeTheTrip')}
+            textoEnviar={t('weeai.tellWeeTheTrip')}
+            placeholder={idea.placeholder}
+            enviarConIntro
+          />
+          {idea.chips.length > 0 && (
+            <View style={estilosDeCreator.pildoras}>
+              {idea.chips.map((chip) => (
+                <PildoraDeCreator key={chip} texto={objetivoDe(chip)} onPress={() => onSubmit(objetivoDe(chip))} />
+              ))}
+            </View>
+          )}
+        </View>
+        <RejillaDeCreator
+          puertas={actions.map((action) => ({
+            id: action.id,
+            icono: action.icon,
+            titulo: action.title,
+            pista: action.subtitle,
+            onPress: () => onAction(action),
+          }))}
+        />
+      </View>
+    );
+  }
+
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: open ? theme.colors.accent : theme.colors.border }]}>
+    <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
       {/* La fila. Cerrada, esto es TODO lo que ocupa Travel en la pantalla. */}
       <TouchableOpacity
         onPress={onToggle}
@@ -94,7 +138,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
           )}
         </View>
         <Animated.View style={{ transform: [{ rotate: giro.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] }) }] }}>
-          <Ionicons name="chevron-down" size={scale(20)} color={theme.colors.accentDark} />
+          <Ionicons name="chevron-down" size={scale(20)} color={theme.colors.text} />
         </Animated.View>
       </TouchableOpacity>
 
@@ -106,7 +150,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
           ]}
         >
           {/*
-            La misma caja que Weë Studio y Weë Design (decisión del usuario,
+            La misma caja que WeëStudio y WeëDesign (decisión del usuario,
             2026-09-15). Antes era una píldora de una línea con el botón al lado;
             un viaje se cuenta en varias líneas, y ahora la caja crece con ellas.
           */}
@@ -136,7 +180,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
                   accessibilityRole="button"
                   accessibilityLabel={objetivoDe(chip)}
                 >
-                  <Text style={[styles.ejemploTexto, { color: theme.colors.textSecondary }]} numberOfLines={1}>{chip}</Text>
+                  <Text style={[styles.ejemploTexto, { color: theme.colors.text }]} numberOfLines={1}>{objetivoDe(chip)}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -153,8 +197,8 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
                 accessibilityRole="button"
                 accessibilityLabel={action.subtitle ? t('weeai.titleWithDetail', { titulo: action.title, detalle: action.subtitle }) : action.title}
               >
-                <View style={[styles.funcionIcono, { backgroundColor: theme.colors.accent + '24' }]}>
-                  <Ionicons name={action.icon as any} size={scale(19)} color={theme.colors.accentDark} />
+                <View style={[styles.funcionIcono, { borderColor: theme.colors.border }]}>
+                  <Ionicons name={action.icon as any} size={scale(18)} color={theme.colors.text} />
                 </View>
                 <View style={styles.funcionTextos}>
                   <Text style={[styles.funcionTitulo, { color: theme.colors.text }]} numberOfLines={1}>{action.title}</Text>
@@ -162,7 +206,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
                     <Text style={[styles.funcionSub, { color: theme.colors.textSecondary }]} numberOfLines={1}>{action.subtitle}</Text>
                   )}
                 </View>
-                <Ionicons name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
+                <IconoDireccional name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             ))}
           </View>
@@ -173,6 +217,7 @@ const TravelLauncher: React.FC<TravelLauncherProps> = ({ idea, actions, hint, op
 };
 
 const styles = StyleSheet.create({
+  pro: { gap: 24 },
   card: {
     borderRadius: BORDER_RADIUS.lg,
     borderWidth: 1,
@@ -243,6 +288,7 @@ const styles = StyleSheet.create({
     borderRadius: scale(17),
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
   funcionTextos: {
     flex: 1,

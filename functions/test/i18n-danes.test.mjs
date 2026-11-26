@@ -82,9 +82,9 @@ const DA = aplanar(da);
 const ES = Object.fromEntries(aplanar(es));
 const EN = Object.fromEntries(aplanar(en));
 
-const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira|Filmmaker)|WeeTalk|Weëls?|Wäll|ËContact|ẄContact|Credits|Weë/gu;
+const MARCAS = /MyWeës|WeëAI|Weë(?:Studio|Design|Chef|Music|Fashion|Travel)|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira|Filmmaker)|WeeTalk|Weëls?|Ẅall|ËContact|ẄContact|Credits|Weë/gu;
 /* Lo que no es danés y está bien que esté: marcas, huecos y los nombres de función de Weë Business. */
-const NOMBRES_DE_PRODUCTO = /WhatsApp|Business Plan|Business Coach|Pricing Assistant|Brand Kit|Customer Insights|Business Ideas|Business Profile|My Business|Products & Catalog|YouTube Shorts|YouTube|TikTok|Instagram|Facebook|LinkedIn|Pinterest|Spotify|Google|Apple|World Encode Entity/g;
+const NOMBRES_DE_PRODUCTO = /WhatsApp|Business Plan|Business Coach|Pricing Assistant|Brand Kit|Customer Insights|Business Ideas|Business Profile|My Business|Products & Catalog|YouTube Shorts|YouTube|TikTok|Instagram|Facebook|LinkedIn|Pinterest|Spotify|Google|Apple|WORLD OF EXPRESSION & EVOLUTION/g;
 const sinLoAjeno = (v) => String(v)
   .replace(/\{\{[\w.]+\}\}/g, ' ')
   .replace(/\\[nrt]/g, ' ')
@@ -118,7 +118,7 @@ console.log('\n── A · `da-DK` de punta a punta, sin lógica para el danés 
   check('5) también si solo dice `da`, o si el danés va primero en su lista',
     elegir(null, ['da']).idioma === 'da' && elegir(null, ['da-DK', 'en-US']).idioma === 'da');
   check('5b) y un noruego o un sueco NO reciben danés por parecido: cada uno el suyo, o inglés',
-    elegir(null, ['nb-NO']).idioma === 'en' && elegir(null, ['sv-SE']).idioma === 'sv');
+    elegir(null, ['nb-NO']).idioma === 'nb' && elegir(null, ['sv-SE']).idioma === 'sv'); /* el noruego tiene su diccionario desde el lote L1 */
   check('6) la cadena de respaldo: `da-DK` → `da` → inglés',
     resolver.cadenaDeRespaldo('da-DK').join('>') === 'da-DK>da>en', resolver.cadenaDeRespaldo('da-DK').join('>'));
   check('7) lo elegido a mano gana al aparato, en las dos direcciones',
@@ -175,6 +175,37 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en danés que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['menu.pages', '«WeëPages» es el nombre de la función (marca), no se traduce'],
+    ['pages.type_influencer', '«Influencer» es la palabra danesa (tipo de página de WeëPages)'],
+    ['pages.type_institution', '«Institution» es la palabra danesa (tipo de página de WeëPages)'],
+    ['wall.demoBadge', '«Demo» es la palabra danesa (etiqueta del modo demo)'],
+    ['music.startInstrumental', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.groupGenre', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.advTempo', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_pop', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_rock', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_latin', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_jazz', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_folk', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_reggaeton', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.voice_duet', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.result_instrumental', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.result_jingle', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.result_loop', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.refStop', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.toolEq', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.section_intro', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.section_outro', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.instr_guitar', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.instr_synth', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.solo', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.eqTitle', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.fx_limiter', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.trRemix', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.trVariation', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.export_midi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.exportDownload', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.capMidi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
     ['aiAvatar.faceOval', '«Oval» es la palabra danesa'],
     ['aiAvatar.accPiercing', '«Piercing» es la palabra danesa'],
     ['business.shortcutAnalyze', '«Analyse», el sustantivo danés'],
@@ -216,7 +247,7 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['studio.reference', '«Reference» es la palabra danesa'],
     ['filmmaker.takeQualityStandard', '«Standard» es la palabra danesa'],
     ['studio.valStandard', '«Standard» es la palabra danesa'],
-    ['help.footer', 'la marca, «World Encode Entity» y la versión: solo cambia «version», que en danés se escribe igual'],
+    ['help.footer', 'la marca, «WORLD OF EXPRESSION & EVOLUTION» y la versión: solo cambia «version», que en danés se escribe igual'],
     ['moderation.reasonSpam', '«Spam» es la palabra danesa'],
     ['profile.bioLabel', '«Bio», la palabra del glosario (como Instagram en danés)'],
     ['profile.tabLikes', '«Likes», el contador danés (Retskrivningsordbogen: like, likes)'],
@@ -234,11 +265,32 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['studio.wrPodcasts', '«Podcasts» es la palabra danesa'],
     ['studio.xpTimelapse', '«Timelapse» es la palabra danesa'],
     ['studio.xpMakeup', '«Makeup» es la palabra danesa'],
+    ['fashion.optMakeup', '«Makeup» es la palabra danesa'],
+    ['fashion.galMakeup', '«Makeup» es la palabra danesa'],
     ['studio.xpOutfit', '«Outfit» es la palabra danesa'],
     ['studio.xpStyling', '«Styling» es la palabra danesa'],
     ['studio.camDrone', '«Drone» es la palabra danesa'],
     ['studio.mvTilt', '«Tilt», el término danés del movimiento de cámara'],
-    ['weebiz.logo', '«Logo» es la palabra danesa'],
+    /* WeëTravel (2026-11-06): marca, nombre propio DEMO o palabra igual en danés. */
+    ['travel.demo', 'WeëTravel (2026-11-06): marca: «DEMO» señala los datos simulados del prototipo'],
+    ['travel.travelSafe', 'WeëTravel (2026-11-06): marca: «Travel Safe» es el nombre de la sección'],
+    ['travel.budgetPlanner', 'WeëTravel (2026-11-06): palabra igual en danés: «Budget» (DDO)'],
+    ['travel.wzBudget', 'WeëTravel (2026-11-06): palabra igual en danés: «Budget» (DDO)'],
+    ['travel.budget', 'WeëTravel (2026-11-06): palabra igual en danés: «Budget» (DDO)'],
+    ['travel.expTransport', 'WeëTravel (2026-11-06): palabra igual en danés: «Transport»'],
+    ['travel.transportInfo', 'WeëTravel (2026-11-06): palabra igual en danés: «Transport»'],
+    ['travel.pcTransport', 'WeëTravel (2026-11-06): palabra igual en danés: «Transport»'],
+    ['travel.free', 'WeëTravel (2026-11-06): palabra igual en danés: «Gratis»'],
+    ['travel.cuscoName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.santoriniName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.kyotoName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.parisName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.oaxacaName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.marrakechName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.baliName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.costaRicaName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.islandiaF2', 'WeëTravel (2026-11-06): nombre propio DEMO: el plato «Skyr»'],
+    ['travel.baliF2', 'WeëTravel (2026-11-06): nombre propio DEMO: el plato «Satay»'],
     /* Los textos del servidor. */
     ['opciones.studioStyleElegant', '«Elegant» es la palabra danesa'],
     ['opciones.musicStylePop', '«Pop», nombre del género musical'],
@@ -248,6 +300,21 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['resultado.presupuesto', '«Budget» es la palabra danesa (DDO)'],
     ['resultado.presupuestoPalabra', '«budget» es la palabra danesa (DDO)'],
     ['resultado.escena', '«Scene» es la palabra danesa'],
+    ['weeai.ch_robot', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.ch_astronauta', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.sc_selva', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.sc_neon', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.sc_cafe', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.sc_zen', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_vintage', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_gala', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_festival', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_retro', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_minimal', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.scene', '«Scene» es la palabra danesa (portada de WeëAI, 2026-11-15)'],
+    /* Ficha del personaje (2026-11-22). */
+    ['character.statusLabel', '«Status» es la palabra danesa (Retskrivningsordbogen); «Tilstand» es el estado físico de algo'],
+    ['character.statusLine', '«Status: …», la misma palabra danesa con su hueco'],
   ]);
   const copiadas = DA.filter(([k, v]) => !IGUALES.has(k) && /\p{L}{3,}/u.test(sinLoAjeno(v)) && (ES[k] === v || EN[k] === v));
   if (process.env.DETALLE) console.log(copiadas.map(([k, v]) => `${k} = ${v}`).join('\n'));
@@ -332,9 +399,11 @@ console.log('\n── E · Danés escrito como danés ──');
   /* Mayúscula de frase: nada de «Rediger Profil» con Cada Palabra En Mayúscula. */
   const MAYUSCULAS_A_PROPOSITO = new Set([
     'brain.slogan' /* «Drøm · Spørg · Skab · Forbind»: cuatro imperativos de marca, cada uno con su mayúscula, como el español */,
+    'nav.brandSlogan' /* «Drøm · Skab · Forbind»: el eslogan de Weë, tres imperativos de marca con su mayúscula (decisión del dueño, 2026-11-04) */,
     'filmmaker.presetShorts' /* «YouTube Shorts»: nombre de producto */,
     'business.shareProfile', 'business.businessPlan', 'business.businessCoach', 'business.pricing', 'business.brandKit',
     'business.customerInsights', 'business.businessIdeas' /* nombres de producto de Weë Business (decisión del usuario, 2026-09-16) */,
+    'travel.travelSafe', 'travel.costaRicaName' /* WeëTravel (2026-11-06): «Travel Safe» es marca y «La Fortuna» nombre propio DEMO */,
   ]);
   const tituloIngles = DA.filter(([k, v]) => {
     if (MAYUSCULAS_A_PROPOSITO.has(k)) return false;
@@ -387,7 +456,7 @@ console.log('\n── H · El dinero y las marcas ──');
   const perdidos = DA.filter(([k, v]) => /Credits/.test(ES[k] || '') && !/Credits/.test(v));
   check('42) cada «Credits» del español sigue en su clave danesa', perdidos.length === 0, perdidos.slice(0, 4).map(([k]) => k).join(' ') || 'todos');
   const LISTA = ['Weë', 'Weë AI', 'Weë Studio', 'Weë Chef', 'Weë Design', 'Weë Travel', 'Weë Business', 'Weë Music', 'Weë Inspira',
-    'Weëls', 'Wäll', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
+    'Weëls', 'Ẅall', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
   const escapar = (m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const perdidas = [];
   for (const [k, v] of DA) {
@@ -401,8 +470,8 @@ console.log('\n── H · El dinero y las marcas ──');
     }
   }
   check('43) cada marca del español sigue, intacta, en su clave danesa', perdidas.length === 0, perdidas.slice(0, 6).join(' | ') || 'todas');
-  const PEGADA = /(?:Weë|WeeTalk|Wäll|ËContact|ẄContact|Credits|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Inspira))(?=[a-zæøå])/u;
-  const pegadas = DA.filter(([, v]) => PEGADA.test(v.replace(/Weëls?/g, '·')));
+  const PEGADA = /(?:Weë|WeeTalk|Ẅall|ËContact|ẄContact|Credits|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Inspira))(?=[a-zæøå])/u;
+  const pegadas = DA.filter(([, v]) => PEGADA.test(v.replace(/MyWeës|Weëls?/g, '·')));
   check('44) ninguna marca declinada ni con una terminación pegada («Weës», «WeeTalken»)', pegadas.length === 0, muestra(pegadas) || 'limpio');
   const TRADUCIDA = /Weë (?:Musik|Rejse|Rejser|Kok|Virksomhed|Forretning|Hjerne|Forfatter|Skribent|Foto|Skønhed|Hjem|Kreditter)(?![\p{L}])/u;
   const traducidas = DA.filter(([, v]) => TRADUCIDA.test(v));
@@ -477,6 +546,12 @@ console.log('\n── K · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* WeëPages: «Usuario» es el nombre de usuario (@) de una página, no la persona. */
+    'pages.f_handle',
+    /* WeëPages: «Acerca de» habla de la página, no de una virksomhed como en Weë Business. */
+    'pages.f_about', 'pages.about',
+    /* Weë Music: el mismo rótulo español, otro contexto — «Género» musical (no el sexo), «Ambiente» y «Voz» de una canción (no el sonido ambiente ni la voz en off), «Efectos» de audio y «Resumen» de una selección. */
+    'music.groupGenre', 'music.reviewTitle', 'music.groupMood', 'music.groupVoice', 'music.instr_vocals', 'music.fxTitle',
     /* «Subir»/«Bajar» reordenan escenas y klip (Flyt op/ned); en Studio son la grúa de la cámara (Kran op/ned). */
     'filmmaker.moveUp', 'filmmaker.moveDown',
     /* «Historias» como formato de redes es «Stories»; studio.wrStories («Historier») son relatos escritos. */
@@ -510,6 +585,16 @@ console.log('\n── K · Traducciones defectuosas ──');
     /* «¿Qué quieres hacer?» en Chef y en Travel es qué preparar o qué actividades («Hvad vil du lave?»); la pregunta
        de Weë Home es qué hacer CON el espacio que se ve en la foto («Hvad vil du gøre?»). */
     'preguntas.homeWhat',
+    /* WeëTravel (2026-11-06): la misma frase española, otro sentido que en otro módulo — «Lista» de lugares (Liste), no el
+       estado «Lista» de weeai (Færdig); «Solo» quien viaja solo (Alene), no el solo musical de music; «Medio» el presupuesto
+       medio (Mellem), no el largo de un texto de studio (Mellemlang); «Restaurar» el itinerario (Gendan), no una foto de
+       studio (Restaurer); «Cartel» un letrero de la calle (Skilt), no un póster de studio (Plakat); «Subir»/«Bajar» reordenan
+       paradas (Flyt op/ned), no la grúa de la cámara de studio (Kran op/ned). */
+    'travel.viewList', 'travel.saSolo', 'travel.budgetMid', 'travel.restore', 'travel.visionSign', 'travel.moveUp', 'travel.moveDown',
+    /* Ficha del personaje (2026-11-22): «Básico» es el nivel de autonomía (Grundlæggende), no el paquete de Credits (Basis). */
+    'character.levelBasico',
+    /* «Medio» es el nivel de autonomía (Mellem), no el largo de un texto de studio (Mellemlang). */
+   
   ]);
   /*
    * Los PASOS de un plan de Weë AI (`plan.<experiencia>Paso…`) se escriben en infinitivo sin «at» («Forbedre fotoet»),

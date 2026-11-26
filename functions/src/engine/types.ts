@@ -40,6 +40,12 @@ export interface RoutingPrefs {
   allowedProviders?: string[];
   /** Modelo concreto elegido por un motor de dominio (Weë Video Engine). */
   modelId?: string;
+  /**
+   * Ruta propia de la función que llama (`aiRouting/{routeKey}` en Firestore, p. ej. `character.text`). Si existe
+   * con cadena, sustituye a la de la capacidad y retira `allowedProviders`/`modelId`; si no, no cambia nada
+   * (`rutaPropia` en router.ts).
+   */
+  routeKey?: string;
 }
 
 export interface EngineContext {
@@ -533,6 +539,20 @@ export interface EngineSettings {
    * para). Se cambia con engineAdmin → setSettings y queda quién lo hizo.
    */
   iaDetenida?: boolean;
+  /**
+   * EL INTERRUPTOR DEL VÍDEO (Línea B · X2, 2026-10-14). APAGADO por defecto.
+   *
+   * El camino legacy del vídeo sondea a ModelArk DENTRO de la llamada: si el
+   * plazo vence, un GET de estado falla o la descarga no llega, se reembolsa a la
+   * persona mientras la tarea sigue viva —y cobrándose— en el proveedor, y no hay
+   * forma de cancelar una tarea que ya está en ejecución. Hasta que el vídeo vaya
+   * entero por el camino asíncrono (aceptación + barrido), ninguna ruta del
+   * servidor inicia un vídeo con un proveedor REAL salvo que esto sea `true`:
+   * ni `creatorRun`, ni `generateVideo` (Studio y Filmmaker), ni el conductor del
+   * Core. Se rechaza antes del cupo, de la reserva y del proveedor. El modo demo
+   * (sin clave) no se ve afectado y no cobra. Se cambia con engineAdmin → setSettings.
+   */
+  videoHabilitado?: boolean;
   /**
    * TOPE DE GASTO DIARIO EN PROVEEDORES, en USD, para todo Weë (FASE 8). Sin
    * valor —o 0— no hay tope. Al alcanzarlo, el router deja de proponer

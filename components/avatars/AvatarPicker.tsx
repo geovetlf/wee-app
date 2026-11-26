@@ -12,6 +12,8 @@ import {
   Image as RNImage,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { IconoWee } from '../icons/IconoWee';
+import IconoDireccional from '../IconoDireccional';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -273,8 +275,8 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
         onPress={() => setShowPicker(true)}
       >
         {renderCurrentAvatar()}
-        <View style={[styles.editBadge, { backgroundColor: theme.colors.accent }]}>
-          <Ionicons name="camera" size={12} color="white" />
+        <View style={[styles.editBadge, { backgroundColor: theme.dark ? '#FAFAFA' : '#0A0A0A' }]}>
+          <IconoWee name="camara" size={14} color={theme.dark ? '#0A0A0A' : '#FAFAFA'} />
         </View>
       </TouchableOpacity>
 
@@ -335,7 +337,7 @@ const AvatarPicker: React.FC<AvatarPickerProps> = ({
                         {t('avatar.aiSubtitle')}
                       </Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+                    <IconoDireccional name="chevron-forward" size={20} color={theme.colors.textSecondary} />
                   </TouchableOpacity>
                 </View>
               )}

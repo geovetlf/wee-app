@@ -1,5 +1,5 @@
 /*
- * Lo que describe cada experiencia de WEË AI. Los nombres —Weë Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * Lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign, WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Y además es el último escalón del respaldo, así que no puede tener huecos.
@@ -13,7 +13,7 @@ export const creator: typeof import('../es/creator').creator = {
   beauty: 'Makeup, hair, beard, outfits and makeovers',
   chef: 'Your personal chef: what to cook, recipes and menus',
   home: 'Decor, interior design, remodelling and gardens',
-  business: 'Business ideas, marketing, resumes, documents and decks',
+  business: 'Fashion, style, beauty and visual content creation.',
   travel: 'Plan your trip: where to go, what to do and how to get around',
   brain: 'Not sure where to start? Just ask Weë',
   designEx1: 'A logo for my business',
@@ -49,10 +49,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'I don’t know where to start',
   brainEx2: 'Explain this to me simply',
   brainEx3: 'Translate this text',
-  areaStudioPhotos: 'Weë Studio · Photos',
-  areaStudioVideos: 'Weë Studio · Videos',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Home & Design',
+  areaStudioPhotos: 'WeëStudio · Photos',
+  areaStudioVideos: 'WeëStudio · Videos',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Home & Design',
   areaHomeName: 'Home & Design',
   tellTheSpecialist: 'Tell {{especialista}} what you want to achieve: it asks you two or three simple questions and takes care of the rest. Then you publish straight to your community.',
   exampleQuoted: '“{{ejemplo}}”',

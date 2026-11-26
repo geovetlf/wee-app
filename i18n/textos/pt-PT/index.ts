@@ -6,8 +6,8 @@
  * falte o sobre en portugués no compila.
  *
  * QUÉ NO ENTRA NUNCA EN ESTOS ARCHIVOS:
- *   · los nombres de Weë —Weë, Wäll, Weëls, WeeTalk, ËContact, Credits, Weë AI,
- *     Weë Studio…—, que son marca y se escriben igual en todos los idiomas;
+ *   · los nombres de Weë —Weë, Ẅall, Weëls, WeeTalk, ËContact, Credits, Weë AI,
+ *     WeëStudio…—, que son marca y se escriben igual en todos los idiomas;
  *   · nada que escriba una persona: publicaciones, comentarios, nombres de
  *     comunidades, proyectos o prompts. Eso es contenido, no interfaz.
  *
@@ -47,6 +47,8 @@ import { econtact } from './econtact';
 import { weetalk } from './weetalk';
 import { notifications } from './notifications';
 import { saved } from './saved';
+import { pages } from './pages';
+import { boost } from './boost';
 import { weeai } from './weeai';
 import { writer } from './writer';
 import { settings } from './settings';
@@ -54,6 +56,9 @@ import { language } from './language';
 import { catalogo } from './catalogo';
 import { business } from './business';
 import { projects } from './projects';
+import { profesional } from './profesional';
+import { fashion } from './fashion';
+import { music } from './music';
 import { creaciones } from './creaciones';
 import { studio } from './studio';
 import { design } from './design';
@@ -68,16 +73,27 @@ import { help } from './help';
 import { search } from './search';
 import { onboarding } from './onboarding';
 import { aiAvatar } from './aiAvatar';
-import { weebiz } from './weebiz';
 import { moderation } from './moderation';
 import { filmmaker } from './filmmaker';
+import { filmmakerSpecs } from './filmmakerSpecs';
+import { filmmakerProd } from './filmmakerProd';
+import { filmmakerImagenes } from './filmmakerImagenes';
+import { filmmakerDirector } from './filmmakerDirector';
+import { filmmakerDocumentos } from './filmmakerDocumentos';
+import { filmmakerTandas } from './filmmakerTandas';
+import { filmmakerSonido } from './filmmakerSonido';
+import { travel } from './travel';
+import { mywees } from './mywees';
+import { character } from './character';
+import { cuenta } from './cuenta';
+import { publicar } from './publicar';
+import { alterEgo } from './alterEgo';
 import { FormaDelDiccionario } from '../es';
 
 export const ptPT: FormaDelDiccionario = {
   common,
   help,
   search,
-  weebiz,
   onboarding,
   aiAvatar,
   auth,
@@ -97,6 +113,8 @@ export const ptPT: FormaDelDiccionario = {
   weetalk,
   notifications,
   saved,
+  pages,
+  boost,
   weeai,
   writer,
   settings,
@@ -104,6 +122,9 @@ export const ptPT: FormaDelDiccionario = {
   catalogo,
   business,
   projects,
+  profesional,
+  fashion,
+  music,
   creaciones,
   studio,
   design,
@@ -111,4 +132,17 @@ export const ptPT: FormaDelDiccionario = {
   brain,
   moderation,
   filmmaker,
+  filmmakerSpecs,
+  filmmakerProd,
+  filmmakerImagenes,
+  filmmakerDirector,
+  filmmakerDocumentos,
+  filmmakerTandas,
+  filmmakerSonido,
+  travel,
+  mywees,
+  character,
+  cuenta,
+  publicar,
+  alterEgo,
 };

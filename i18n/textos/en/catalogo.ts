@@ -2,7 +2,7 @@
  * The catalogue of the eleven experiences, in English.
  *
  * Mirrors `textos/es/catalogo.ts` key for key; the Spanish file is the mould
- * and a missing key here does not compile. Brand names (Weë Brain, Weë Chef…),
+ * and a missing key here does not compile. Brand names (Weë Brain, WeëChef…),
  * identifiers, emoji, numbers and durations are never translated.
  */
 export const catalogo = {
@@ -52,7 +52,7 @@ export const catalogo = {
   brainEj3Title: 'Handles the whole process',
   brainEj3Subtitle: 'From the idea to the designs, videos and music',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Design whatever you imagine.',
   designIntro: 'Turn your ideas into incredible designs with artificial intelligence. From a logo to a car, a product or a whole world.',
   designChip1: 'Quick and easy',
@@ -151,7 +151,7 @@ export const catalogo = {
   photoEj5Title: 'Face retouch',
   photoEj6Title: 'Transform with AI',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Create, listen to and live your music with AI',
   musicIntro: 'Turn your ideas into songs, videos and one-of-a-kind experiences. No limits on your creativity.',
   musicChip1: 'Quick and simple',
@@ -213,7 +213,7 @@ export const catalogo = {
   musicClosingSubtitle: 'Turn your music into an incredible video: several styles, automatic sync, formats for social, scenes and characters.',
   musicClosingButton: 'Create video now',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Create photos and videos with AI',
   studioIntro: 'Tell me what you want to create and I’ll walk you through it.',
   studioChip1: 'Easy to use',
@@ -305,7 +305,7 @@ export const catalogo = {
   businessEj4Subtitle: 'Messages received',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Your chef, always with you',
   chefIntro: 'Discover recipes, build menus, make the most of what you have and eat better, more easily and more deliciously.',
   chefChip1: 'Easy recipes',
@@ -335,7 +335,7 @@ export const catalogo = {
   chefAcIdkTitle: 'I don’t know what to cook',
   chefAcIdkSubtitle: 'I’ll suggest something tasty',
   chefAcIdkGoal: 'I don’t know what to cook today',
-  chefIdeaTitle: 'Hi! I’m Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Hi! I’m WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'So, what would you like to cook today?',
   chefIdeaPlaceholder: 'Write your idea here…',
   chefIdeaChip1: 'I want a quick dinner',
@@ -547,7 +547,7 @@ export const catalogo = {
   writerEj6Title: 'Professional CV',
   writerEj6Subtitle: 'Modern and clean',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Plan your trip with someone who’s been there.',
   travelIntro: 'Tell me where you’re going —or that you don’t know yet— and I’ll plan the trip: what to see, where to eat and how to get around.',
   travelChip1: 'No bookings',

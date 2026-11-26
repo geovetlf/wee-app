@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, StatusBar, TouchableOpacity, FlatList, RefreshC
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
+import IconoMeGusta from '../components/IconoMeGusta';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
@@ -27,6 +28,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { nombreDeComunidad } from '../utils/comunidadesDeWee';
+import { MARCA } from '../constants/marca';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -832,6 +835,7 @@ const HomeScreen: React.FC = () => {
           ]}
           onPress={() => loadPosts()}
         >
+          <RellenoDeMarca radio={BORDER_RADIUS.md} />
           <Text style={styles.retryButtonText}>{t('wall.retry')}</Text>
         </TouchableOpacity>
       </View>
@@ -869,7 +873,7 @@ const HomeScreen: React.FC = () => {
       /* La de una comunidad de usuario la escribió una persona y sale tal cual; solo el respaldo es de Weë. */
       description: community?.description || t('home.communityDescDefault'),
       image: community?.imageUrl || 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800&h=400&fit=crop&q=80',
-      color: '#F5B731',
+      color: MARCA.primario,
       icon: community?.icon ? community.icon + '-outline' : 'people-outline',
     };
   };
@@ -1067,7 +1071,7 @@ const HomeScreen: React.FC = () => {
                   </View>
                   <View style={styles.highlightStats}>
                     <View style={styles.highlightStat}>
-                      <Ionicons name="thumbs-up-outline" size={scale(13)} color={theme.colors.textSecondary} />
+                      <IconoMeGusta size={scale(13)} color={theme.colors.textSecondary} />
                       <Text style={[styles.highlightStatText, { color: theme.colors.textSecondary }]}>
                         {totalVotes}
                       </Text>
@@ -1524,7 +1528,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
   },
   retryButtonText: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: scale(-0.2),

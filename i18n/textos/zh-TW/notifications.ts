@@ -35,6 +35,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} 在 {{comunidad}} 發了貼文',
   aCommunity: '某個社群',
   generic: '{{nombre}} 和你互動了',
+  characterNotice: '{{nombre}} 給你留了待查看的提醒',
   now: '剛剛',
   markAllRead: '全部標示為已讀',
   all: '全部',

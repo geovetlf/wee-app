@@ -1,5 +1,5 @@
 /*
- * JAPONÉS — El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * JAPONÉS — El Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -70,7 +70,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: '件のコメント',
   commentImageFailed: '画像をアップロードできませんでした。もう一度お試しください。',
   commentSendFailed: 'コメントを送信できませんでした。もう一度お試しください。',
-  shareText: '{{contenido}}\n\nWeëで作成 · World Encode Entity',
+  shareText: '{{contenido}}\n\nWeëで作成 · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Weëでこの投稿をチェック',
   commentsWithCount: 'コメント（{{total}}）',
   agreeWithComment: 'このコメントに賛成',
@@ -79,4 +79,22 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: 'プロンプトを隠す',
   copyPrompt: 'プロンプトをコピー',
   promptCopied: 'コピー済み',
+  demoBadge: 'デモ',
+  demoBadgeLabel: 'デモ用のコンテンツ',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Ẅallにはまだ投稿がありません',
+  immersiveError: 'Ẅallを読み込めませんでした',
+  immersiveEnd: 'すべて見終わりました',
+  agreePost: '賛成',
+  disagreePost: '反対',
+  mute: 'ミュート',
+  unmute: 'ミュート解除',
+  moreOptions: 'その他のオプション',
+  seeMore: 'もっと見る',
+  seeLess: '表示を減らす',
+  openPost: '投稿を開く',
+  imageOf: '画像{{numero}}/{{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: '炎',
+  reactionLaugh: '笑い',
 };

@@ -1,0 +1,16 @@
+[
+  {
+    "id": "salud-get-wee",
+    "host": "get-wee.web.app",
+    "ruta": "/post/salud-del-sistema",
+    "codigo": 404,
+    "periodoMin": 5
+  },
+  {
+    "id": "salud-wee-zone",
+    "host": "www.wee.zone",
+    "ruta": "/",
+    "codigo": 200,
+    "periodoMin": 5
+  }
+]

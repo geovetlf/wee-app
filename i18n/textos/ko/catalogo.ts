@@ -3,7 +3,7 @@
  *
  * Refleja `textos/es/catalogo.ts` clave por clave; el archivo español es el
  * molde y una clave que falte aquí no compila. Los nombres de Weë (Weë Brain,
- * Weë Chef…) se escriben en alfabeto latino dentro de la frase en hangul: no se
+ * WeëChef…) se escriben en alfabeto latino dentro de la frase en hangul: no se
  * transliteran nunca —ni «크레딧» ni «웨»—. Los identificadores, los emojis, los
  * números, las duraciones y los géneros musicales tampoco se traducen. El
  * registro es el 해요체 y los botones van en forma nominal corta.
@@ -55,7 +55,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: '전체 과정을 맡아요',
   brainEj3Subtitle: '아이디어부터 디자인, 비디오, 음악까지',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: '상상하는 것을 디자인하세요.',
   designIntro: '인공지능으로 아이디어를 멋진 디자인으로 바꿔 보세요. 로고부터 자동차, 제품, 하나의 세계까지.',
   designChip1: '빠르고 간편',
@@ -154,7 +154,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: '얼굴 보정',
   photoEj6Title: 'AI로 변신',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'AI로 음악을 만들고, 듣고, 즐기세요',
   musicIntro: '아이디어를 노래와 비디오, 특별한 경험으로 바꿔 보세요. 창작에 한계는 없어요.',
   musicChip1: '빠르고 간단',
@@ -216,7 +216,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: '음악을 멋진 비디오로 바꿔 보세요. 다양한 스타일, 자동 싱크, SNS용 화면 비율, 장면과 캐릭터까지.',
   musicClosingButton: '지금 비디오 만들기',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'AI로 사진과 비디오 만들기',
   studioIntro: '무엇을 만들고 싶은지 알려 주시면 하나씩 도와드릴게요.',
   studioChip1: '쓰기 쉬워요',
@@ -308,7 +308,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: '받은 메시지',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: '언제나 함께하는 나의 셰프',
   chefIntro: '레시피를 찾고, 메뉴를 짜고, 집에 있는 재료를 살려 더 쉽고 맛있게 잘 드세요.',
   chefChip1: '쉬운 레시피',
@@ -338,7 +338,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: '뭘 요리할지 모르겠어요',
   chefAcIdkSubtitle: '맛있는 걸 제안해 드려요',
   chefAcIdkGoal: '오늘 뭘 요리할지 모르겠어요',
-  chefIdeaTitle: '안녕하세요! Weë Chef예요 👨‍🍳',
+  chefIdeaTitle: '안녕하세요! WeëChef예요 👨‍🍳',
   chefIdeaSubtitle: '오늘은 무엇을 요리하고 싶으세요?',
   chefIdeaPlaceholder: '여기에 아이디어를 적어 주세요…',
   chefIdeaChip1: '빠른 저녁이 필요해요',
@@ -550,7 +550,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: '프로페셔널 이력서',
   writerEj6Subtitle: '모던하고 깔끔하게',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: '이미 다녀온 사람과 함께 여행을 준비하세요.',
   travelIntro: '어디로 가는지 알려 주세요. 아직 정하지 않았어도 괜찮아요. 볼 것, 먹을 곳, 다니는 방법까지 준비해 드릴게요.',
   travelChip1: '예약 없이',

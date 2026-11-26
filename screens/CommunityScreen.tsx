@@ -11,7 +11,9 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from '../components/icons/IconoDeTrazo';
+import IconoDireccional from '../components/IconoDireccional';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DocumentSnapshot } from 'firebase/firestore';
 import { useTheme } from '../contexts/ThemeContext';
@@ -27,13 +29,16 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { scale } from '../utils/scale';
 import { descripcionDeComunidad, nombreDeComunidad, textoDeRegla } from '../utils/comunidadesDeWee';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 type CommunityScreenRouteProp = RouteProp<MainStackParamList, 'Community'>;
 type CommunityScreenNavigationProp = StackNavigationProp<MainStackParamList>;
 
 const CommunityScreen: React.FC = () => {
-  const { t, locale } = useIdioma();
+  const { t, locale, formato } = useIdioma();
   const { theme } = useTheme();
+  /* Monocromo (2026-11-16): la tinta del tema (#0A0A0A / #FAFAFA) dice el estado activo; el dorado→naranja queda para la acción principal. */
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const navigation = useNavigation<CommunityScreenNavigationProp>();
@@ -177,10 +182,10 @@ const CommunityScreen: React.FC = () => {
         {/* Community Info */}
         <View style={[styles.communityInfo, { backgroundColor: theme.colors.card }]}>
           <View style={[styles.iconContainer, { backgroundColor: `${theme.colors.accent}20` }]}>
-            <Ionicons
+            <IconoDeTrazo
               name={community.icon as any}
               size={scale(40)}
-              color={theme.colors.accent}
+              color={tinta}
             />
           </View>
 
@@ -196,7 +201,7 @@ const CommunityScreen: React.FC = () => {
           <View style={styles.statsContainer}>
             <View style={styles.stat}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {community.memberCount}
+                {formato.numero(community.memberCount ?? 0)}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
                 {t('communities.members')}
@@ -205,7 +210,7 @@ const CommunityScreen: React.FC = () => {
             <View style={[styles.statDivider, { backgroundColor: theme.colors.border }]} />
             <View style={styles.stat}>
               <Text style={[styles.statNumber, { color: theme.colors.text }]}>
-                {community.postCount}
+                {formato.numero(community.postCount ?? 0)}
               </Text>
               <Text style={[styles.statLabel, { color: theme.colors.textSecondary }]}>
                 {t('communities.posts')}
@@ -226,18 +231,19 @@ const CommunityScreen: React.FC = () => {
             onPress={handleJoinOrLeave}
             disabled={joiningOrLeaving}
           >
+            <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={isUserMember} />
             {joiningOrLeaving ? (
-              <ActivityIndicator size="small" color={isUserMember ? theme.colors.text : 'white'} />
+              <ActivityIndicator size="small" color={isUserMember ? theme.colors.text : '#1F2937'} />
             ) : (
               <>
-                <Ionicons
+                <IconoDeTrazo
                   name={isUserMember ? 'checkmark' : 'add'}
                   size={scale(18)}
-                  color={isUserMember ? theme.colors.text : 'white'}
+                  color={isUserMember ? theme.colors.text : '#1F2937'}
                 />
                 <Text style={[
                   styles.joinButtonText,
-                  { color: isUserMember ? theme.colors.text : 'white' }
+                  { color: isUserMember ? theme.colors.text : '#1F2937' }
                 ]}>
                   {isUserMember ? t('search.member') : t('communities.join')}
                 </Text>
@@ -255,12 +261,12 @@ const CommunityScreen: React.FC = () => {
               activeOpacity={0.7}
             >
               <View style={styles.rulesHeaderLeft}>
-                <Ionicons name="document-text-outline" size={scale(20)} color={theme.colors.accent} />
+                <IconoDeTrazo name="document-text-outline" size={scale(20)} color={tinta} />
                 <Text style={[styles.rulesTitle, { color: theme.colors.text }]}>
                   {t('communities.rules')}
                 </Text>
               </View>
-              <Ionicons
+              <IconoDeTrazo
                 name={showRules ? 'chevron-up' : 'chevron-down'}
                 size={scale(20)}
                 color={theme.colors.textSecondary}
@@ -271,7 +277,7 @@ const CommunityScreen: React.FC = () => {
               <View style={styles.rulesList}>
                 {community.rules.map((rule, index) => (
                   <View key={rule.id} style={styles.ruleItem}>
-                    <Text style={[styles.ruleNumber, { color: theme.colors.accent }]}>
+                    <Text style={[styles.ruleNumber, { color: tinta }]}>
                       {index + 1}.
                     </Text>
                     <Text style={[styles.ruleText, { color: theme.colors.text }]}>
@@ -299,7 +305,7 @@ const CommunityScreen: React.FC = () => {
               avatarType={userProfile.avatarType || 'predefined'}
               avatarId={userProfile.avatarId || 'male'}
               photoURL={userProfile.photoURL}
-              backgroundColor={theme.colors.accent}
+              backgroundColor={theme.colors.surface}
               showBorder={false}
             />
             <View style={[styles.createInput, { backgroundColor: theme.colors.surface }]}>
@@ -308,28 +314,28 @@ const CommunityScreen: React.FC = () => {
               </Text>
             </View>
             <View style={styles.createActions}>
-              <Ionicons name="image-outline" size={22} color={theme.colors.accent} />
-              <Ionicons name="videocam-outline" size={22} color={theme.colors.accent} />
+              <IconoDeTrazo name="image-outline" size={22} color={tinta} />
+              <IconoDeTrazo name="videocam-outline" size={22} color={tinta} />
             </View>
           </TouchableOpacity>
         )}
 
         {/* Feed Tabs */}
-        <View style={[styles.tabsContainer, { borderBottomColor: theme.colors.border }]}>
+        <View style={[styles.tabsContainer, { borderBottomColor: 'transparent' }]}>
           <View
             style={[
               styles.tab,
-              { borderBottomColor: theme.colors.accent },
+              { borderBottomColor: 'transparent' },
             ]}
           >
-            <Ionicons
+            <IconoDeTrazo
               name="albums-outline"
               size={scale(18)}
-              color={theme.colors.accent}
+              color={tinta}
             />
             <Text style={[
               styles.tabText,
-              { color: theme.colors.accent },
+              { color: tinta },
               styles.tabTextActive,
             ]}>
               Flow
@@ -345,7 +351,7 @@ const CommunityScreen: React.FC = () => {
             }}
             activeOpacity={0.7}
           >
-            <Ionicons
+            <IconoDeTrazo
               name="play-outline"
               size={scale(18)}
               color={theme.colors.textSecondary}
@@ -368,13 +374,13 @@ const CommunityScreen: React.FC = () => {
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={[styles.header, { paddingTop: insets.top + SPACING.sm, backgroundColor: theme.colors.card }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+            <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('communities.one')}</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={theme.colors.accent} />
+          <ActivityIndicator size="large" color={tinta} />
         </View>
       </View>
     );
@@ -386,13 +392,13 @@ const CommunityScreen: React.FC = () => {
       <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
         <View style={[styles.header, { paddingTop: insets.top + SPACING.sm, backgroundColor: theme.colors.card }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+            <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('communities.one')}</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.centered}>
-          <Ionicons name="alert-circle-outline" size={48} color={theme.colors.textSecondary} />
+          <IconoDeTrazo name="alert-circle-outline" size={48} color={theme.colors.textSecondary} />
           <Text style={[styles.errorText, { color: theme.colors.text }]}>
             {t('communities.loadFailed')}
           </Text>
@@ -400,6 +406,7 @@ const CommunityScreen: React.FC = () => {
             style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
             onPress={() => navigation.goBack()}
           >
+            <RellenoDeMarca radio={BORDER_RADIUS.md} />
             <Text style={styles.retryButtonText}>{t('common.back')}</Text>
           </TouchableOpacity>
         </View>
@@ -410,12 +417,12 @@ const CommunityScreen: React.FC = () => {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + SPACING.sm, backgroundColor: theme.colors.card, borderBottomColor: theme.colors.border }]}>
+      <View style={[styles.header, { paddingTop: insets.top + SPACING.sm, backgroundColor: theme.colors.card, borderBottomColor: 'transparent' }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <Ionicons name={community.icon as any} size={scale(20)} color={theme.colors.accent} />
+          <IconoDeTrazo name={community.icon as any} size={scale(20)} color={tinta} />
           <Text style={[styles.headerTitle, { color: theme.colors.text }]} numberOfLines={1}>
             {nombreDeComunidad(community, t, locale)}
           </Text>
@@ -447,13 +454,13 @@ const CommunityScreen: React.FC = () => {
         ListFooterComponent={() =>
           loadingMore ? (
             <View style={styles.loadingMore}>
-              <ActivityIndicator size="small" color={theme.colors.accent} />
+              <ActivityIndicator size="small" color={tinta} />
             </View>
           ) : null
         }
         ListEmptyComponent={() => (
           <View style={styles.emptyState}>
-            <Ionicons
+            <IconoDeTrazo
               name="document-text-outline"
               size={48}
               color={theme.colors.textSecondary}
@@ -468,6 +475,7 @@ const CommunityScreen: React.FC = () => {
               style={[styles.createPostButton, { backgroundColor: theme.colors.accent }]}
               onPress={() => navigation.navigate('Create', { communitySlug: community.slug })}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               <Text style={styles.createPostButtonText}>{t('communities.createPost')}</Text>
             </TouchableOpacity>
           </View>
@@ -487,7 +495,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.md,
     paddingBottom: SPACING.md,
-    borderBottomWidth: 0.5,
   },
   backButton: {
     padding: SPACING.xs,
@@ -638,7 +645,6 @@ const styles = StyleSheet.create({
   },
   tabsContainer: {
     flexDirection: 'row',
-    borderBottomWidth: 0.5,
     marginTop: SPACING.xs,
   },
   tab: {
@@ -648,7 +654,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: SPACING.md,
     gap: SPACING.xs,
-    borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
   tabText: {
@@ -686,7 +691,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.full,
   },
   createPostButtonText: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.semibold,
   },
@@ -705,7 +710,7 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.md,
   },
   retryButtonText: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.semibold,
   },

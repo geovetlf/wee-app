@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from './icons/IconoDeTrazo';
 import { useTheme } from '../contexts/ThemeContext';
-import { useT } from '../contexts/IdiomaContext';
+import { useIdioma } from '../contexts/IdiomaContext';
+import { claveDelTipo, herramientaVisible, nombraUnaExperiencia } from '../utils/publicacionDeWeeAi';
 import { sinEspaciadoSiSeUne } from '../i18n/caja';
 import { Post } from '../services/firestoreService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
@@ -19,16 +20,24 @@ interface HowIMadeItProps {
  * Convierte cada publicación hecha con IA en algo que también enseña.
  */
 const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
-  const t = useT();
+  const { t, formato } = useIdioma();
   const { theme } = useTheme();
   const [promptOpen, setPromptOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const tools = (post.aiTools || []).filter(Boolean);
+  /* Lo guardado no se toca; el nombre de una sección de Weë se pinta con su grafía de hoy (utils/sectionFeed.ts). */
+  /* Ningún nombre de experiencia a la vista (decisión del dueño, 2026-11-23): lo guardado se pinta como «WeëAI · <qué se hizo>». */
+  const herramienta = herramientaVisible(post.aiTools, post.weeAi ? t(claveDelTipo(post.weeAi.tipo)) : undefined);
+  const tools = herramienta ? [herramienta] : [];
   const prompt = (post.aiPrompt || '').trim();
-  const process = (post.aiProcess || '').trim();
+  /* Un «Cómo lo hice» antiguo que la app escribió con el nombre de la experiencia no se enseña (el dato se queda guardado). */
+  const process = nombraUnaExperiencia(post.aiProcess || '') ? '' : (post.aiProcess || '').trim();
+  /* WeëAI sencillo: «Cómo lo hice» se dice con datos, en el idioma de quien mira; ningún dato técnico. */
+  const weeAi = post.weeAi;
+  const lineaDeWeeAi = weeAi?.segundos ? t('publicar.segundos', { segundos: formato.numero(weeAi.segundos) }) : '';
+  const estiloDe = post.estiloDe;
 
-  if (tools.length === 0 && !prompt && !process) return null;
+  if (tools.length === 0 && !prompt && !process && !weeAi) return null;
 
   const copyPrompt = async () => {
     if (!prompt || !isWeb) return;
@@ -64,33 +73,40 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
   };
 
   return (
-    <View style={[styles.box, { backgroundColor: theme.colors.accent + '14', borderColor: theme.colors.accent + '55' }]}>
+    <View style={[styles.box, { backgroundColor: theme.colors.surface }]}>
       <View style={styles.headerRow}>
-        <Text style={styles.emoji}>🤖</Text>
-        <Text style={[styles.title, { color: theme.colors.accentDark }, sinEspaciadoSiSeUne(t('wall.howIMadeIt'))]}>{t('wall.howIMadeIt')}</Text>
+        <IconoDeTrazo name="sparkles-outline" size={scale(15)} color={theme.colors.textSecondary} />
+        <Text style={[styles.title, { color: theme.colors.text }, sinEspaciadoSiSeUne(t('wall.howIMadeIt'))]}>{t('wall.howIMadeIt')}</Text>
       </View>
 
       {tools.length > 0 && (
         <View style={styles.toolsRow}>
           <Text style={[styles.label, { color: theme.colors.textSecondary }]}>{t('wall.madeWith')}</Text>
           {tools.map((tool) => (
-            <View key={tool} style={[styles.toolChip, { backgroundColor: theme.colors.card }]}>
+            <View key={tool} style={[styles.toolChip, { backgroundColor: theme.colors.surface }]}>
               <Text style={[styles.toolText, { color: theme.colors.text }]}>{tool}</Text>
             </View>
           ))}
         </View>
       )}
 
+      {!!lineaDeWeeAi && (
+        <Text style={[styles.processText, { color: theme.colors.textSecondary }]}>{lineaDeWeeAi}</Text>
+      )}
+      {!!estiloDe?.nombre && (
+        <Text style={[styles.processText, { color: theme.colors.textSecondary }]}>{t('publicar.inspiradoEn', { nombre: estiloDe.nombre })}</Text>
+      )}
+
       {!!prompt && (
         <View style={styles.promptBlock}>
           <TouchableOpacity style={styles.promptToggle} onPress={() => setPromptOpen((v) => !v)} activeOpacity={0.7}>
-            <Text style={[styles.promptToggleText, { color: theme.colors.accentDark }]}>
+            <Text style={[styles.promptToggleText, { color: theme.colors.text }]}>
               {promptOpen ? t('wall.hidePrompt') : t('wall.showPrompt')}
             </Text>
-            <Ionicons name={promptOpen ? 'chevron-up' : 'chevron-down'} size={scale(16)} color={theme.colors.accentDark} />
+            <IconoDeTrazo name={promptOpen ? 'chevron-up' : 'chevron-down'} size={scale(16)} color={theme.colors.textSecondary} />
           </TouchableOpacity>
           {promptOpen && (
-            <View style={[styles.promptBox, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.promptBox, { backgroundColor: theme.colors.surface }]}>
               <Text selectable style={[styles.promptText, { color: theme.colors.text }]}>{prompt}</Text>
               {isWeb ? (
                 <TouchableOpacity
@@ -98,7 +114,7 @@ const HowIMadeIt: React.FC<HowIMadeItProps> = ({ post }) => {
                   onPress={copyPrompt}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={scale(14)} color="white" />
+                  <IconoDeTrazo name={copied ? 'checkmark' : 'copy-outline'} size={scale(14)} color={theme.colors.background} />
                   <Text style={styles.copyText}>{copied ? t('wall.promptCopied') : t('wall.copyPrompt')}</Text>
                 </TouchableOpacity>
               ) : (
@@ -124,16 +140,12 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
     gap: SPACING.sm,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.xs,
-  },
-  emoji: {
-    fontSize: scale(13),
   },
   title: {
     fontSize: scale(11),

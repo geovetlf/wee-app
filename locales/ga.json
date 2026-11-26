@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Teastaíonn rochtain ar do cheamara ó Weë le go bhféadfaidh tú grianghraif a ghlacadh do do phostálacha, do do phróifíl, do WeeTalk agus do Weë AI.",
+    "NSMicrophoneUsageDescription": "Teastaíonn rochtain ar do mhicreafón ó Weë ionas gur féidir leat smaointe ceoil, foinn a chrónán tú, do thagairtí gutha féin agus teachtaireachtaí gutha a thaifeadadh. Ní úsáidtear an fhuaim ach amháin má shocraíonn tú féin é a úsáid.",
+    "NSPhotoLibraryUsageDescription": "Teastaíonn rochtain ar do ghailearaí ó Weë le go bhféadfaidh tú grianghraif agus físeáin a roghnú do do phostálacha, do do phróifíl, do WeeTalk agus do Weë AI.",
+    "NSPhotoLibraryAddUsageDescription": "Teastaíonn cead ó Weë chun íomhánna agus físeáin ó Weë AI a shábháil i do ghailearaí nuair a íoslódálann tú iad.",
+    "NSLocationWhenInUseUsageDescription": "Úsáideann Weë do shuíomh garbh chun áiteanna in aice láimhe agus do cheantar a mholadh nuair a chuireann tú suíomh le postáil – agus an aip ar oscailt amháin. Ní thaispeántar do shuíomh beacht go poiblí riamh."
+  }
+}

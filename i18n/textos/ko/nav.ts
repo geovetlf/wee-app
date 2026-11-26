@@ -17,6 +17,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: '만들기',
   talk: 'WeeTalk',
   notifications: '알림',
+  notificationsUnread: '알림, 읽지 않은 알림이 있어요',
   current: '현재 섹션',
   goTo: '{{nombre}} 화면으로 이동',
   weeNavigation: 'Weë 내비게이션',
@@ -26,5 +27,10 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: 'Weë AI 화면으로 이동',
   weeAiQuestion: '오늘은 무엇을 만들어 볼까요?',
   weeAiPitch: '원하는 것을 Weë에 말해 주세요. AI는 Weë가 알아서 해요.',
-  documentTitle: 'Weë - 미래의 커뮤니티',
+  brandSlogan: '상상 · 창작 · 연결',
+  documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: '메시지',
+  myWee: '내 Weë',
 };

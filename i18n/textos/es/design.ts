@@ -4,8 +4,8 @@
  * Este archivo es el MOLDE: de él sale el tipo que tiene que cumplir el resto
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
  *
- * QUÉ NO ESTÁ AQUÍ: "Weë Design", que es marca. Tampoco lo que Weë Design
- * comparte con Weë Studio y significa lo mismo —"Mis creaciones", "Ver todas",
+ * QUÉ NO ESTÁ AQUÍ: "WeëDesign", que es marca. Tampoco lo que WeëDesign
+ * comparte con WeëStudio y significa lo mismo —"Mis creaciones", "Ver todas",
  * "Creando...", "Creación lista"—: eso vive en `studio` y se lee de allí, para
  * que las dos pantallas no puedan acabar diciendo cosas distintas.
  */
@@ -95,12 +95,24 @@ export const design = {
   valStudioLight: 'De estudio',
 
   /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
+  kindProduct: 'Producto',
   kindInterior: 'Interior',
   kindArchitecture: 'Arquitectura',
   kindBoat: 'Barco',
   kindFurniture: 'Mobiliario',
+  sampleShoe: 'Zapatilla de cuero',
+  sampleGuitar: 'Guitarra eléctrica',
   sampleLivingRoom: 'Salón luminoso',
   samplePineHouse: 'Casa entre pinos',
   sampleYacht: 'Yate de 15 metros',
   sampleArmchair: 'Butaca de madera',
+  /* ── La portada de la demo YC (héroe, creación rápida, Design Studio, explorar) ── */
+  heroLead: 'Diseña',
+  heroAccent: 'sin límites.',
+  brandingTitle: 'Branding',
+  objects3dTitle: 'Objetos 3D',
+  designStudioTitle: 'Estudio de diseño',
+  designStudioSub: 'Crea, edita y visualiza diseños profesionales con IA.',
+  openStudio: 'Abrir estudio',
+  fashionHint: 'Diseña ropa, colecciones y más.',
 };

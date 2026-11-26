@@ -96,6 +96,15 @@ export const tarifaExacta = (model: Pick<ModelSpec, 'cost'>): boolean => model.c
  * mayor que el estimado, manda el medido.
  */
 export function creditsFor(capability: CapabilityId, usd: number, settings: EngineSettings, demo: boolean, input: Record<string, unknown> = {}): number {
+  /*
+   * LO DEMO NO SE COBRA, EN NINGÚN MODO (auditoría B4-03, 2026-10-14).
+   *
+   * Antes, en modo de precios simulado —el que rige en producción mientras no
+   * exista aiSettings/global— el resultado de muestra del proveedor `mock` valía
+   * el precio de catálogo, y música, efectos y documentos (que hoy solo atiende
+   * el demo) se cobraban como si fueran reales. Un resultado de muestra vale 0.
+   */
+  if (demo) return 0;
   if (capability.startsWith('image.')) {
     return priceImage(
       {
@@ -122,10 +131,8 @@ export function creditsFor(capability: CapabilityId, usd: number, settings: Engi
   }
   const service = serviceForCapability(capability, input);
   const catalogo = priceOperation(capability, input, service, settings).credits;
-  // En modo prueba se cobra el precio de muestra, también con el proveedor demo,
-  // para que los números que ve la persona sean realistas mientras se desarrolla.
+  // En modo prueba se cobra el precio de catálogo (lo demo ya salió arriba con 0).
   if (settings.pricingMode === 'simulated') return catalogo;
-  if (demo) return 0;
   const medido = usd > 0 ? usdToCredits(usd, settings) : 0;
   return Math.max(catalogo, medido);
 }

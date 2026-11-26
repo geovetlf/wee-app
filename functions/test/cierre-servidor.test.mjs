@@ -100,7 +100,7 @@ console.log('\n── A · Repetir un mensaje ya REEMBOLSADO no lo contesta grat
   check('7) conversación (cobro tras generar): no se guarda la respuesta, se marca y se dice DUPLICATE_REQUEST',
     conversacion > 0 && conversacion < BRAIN.indexOf('await messages.doc(`${messageId}_wee`).set('));
   check('8) y el `catch` recibe la marca: deshace el bloque contado y no completa ni reembolsa',
-    /const cobro = queHacerConElCobro\(\{ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui, cerradoSinCobro \}\);\s*if \(cobro\.deshacerBloque\) \{\s*await deshacerRespuesta\(uid, messageId\)/.test(BRAIN));
+    /const cobro = queHacerConElCobro\(\{ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui, cerradoSinCobro \}\);\s*if \(cobro\.deshacerBloque\) \{\s*await deshacerRespuesta\(uid, operacion\.clave, vigia\)/.test(BRAIN));
 
   /* El motor de hoy ya lanza ALREADY_REFUNDED ante ese duplicado: lo de arriba es la regla de Brain, no un parche del motor. */
   const { createCreditEngine } = lib('credits/creditEngine.js');
@@ -333,7 +333,7 @@ console.log('\n── G · El aviso del Router por un fallo de proveedor va sane
   const config = {
     providers: { alfa: { enabled: true, priority: 1 }, beta: { enabled: true, priority: 2 } },
     routing: { 'video.generate': { capability: 'video.generate', chain: [{ provider: 'alfa' }, { provider: 'beta' }], policy: 'quality-first' } },
-    settings: { ...DEFAULT_SETTINGS }, source: 'test',
+    settings: { ...DEFAULT_SETTINGS, videoHabilitado: true }, source: 'test', // Línea B · X2: aquí se prueba el aviso con el vídeo encendido
   };
   const router = createRouter({ adapters: { alfa: proveedor('alfa', true), beta: proveedor('beta', false) }, loadConfig: async () => config, ledger: memoryLedger(), health: memoryHealth(() => Date.now()), now: () => Date.now() });
   const r = await capturarRegistro(() => router.execute({ capability: 'video.generate', input: { prompt: 'Lima' }, userId: 'u1', jobId: 'j1', stepId: 's1' }));
@@ -427,10 +427,8 @@ console.log('\n── I · Consultas acotadas y documentación que dice la verda
   check('49) la denuncia sin cuenta nacida está documentada con exactitud: qué cuentas, que la migración NO está preparada, cómo se haría',
     /### 12\.1 Las cuentas que no han nacido/.test(IDENTITY) && /dry-run/i.test(IDENTITY) && /--ejecutar --confirmo-autorizacion/.test(IDENTITY)
     && /\*\*no está preparada\*\*/.test(MODERATION) && !/su migración está preparada y no ejecutada/.test(MODERATION));
-  const BIZ = sinComentarios(fuente('services/weeBizService.ts'));
-  check('50) la app escribe la reseña en `reviews/{uid}` con setDoc: la segunda de la misma persona actualiza la suya',
-    /const reviewRef = doc\(reviewsCol\(businessId\), data\.userId\);\s*const datos = [^\n]*\.filter\(\(\[, v\]\) => v !== undefined\)\);\s*await setDoc\(reviewRef, datos\);/.test(BIZ)
-    && !/addDoc\(reviewsCol\(/.test(BIZ)); /* + segunda auditoría: sin campos `undefined` (la persona sin foto podía no reseñar) */
+  /* 50 · Las reseñas de negocios las escribía services/weeBizService.ts, retirado por decisión del dueño el 2026-11-03: era del proyecto antiguo. */
+  check('50) el cliente ya no escribe reseñas de negocios', !fs.existsSync(path.resolve(RAIZ, 'services/weeBizService.ts')));
 }
 
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');

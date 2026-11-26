@@ -2,7 +2,7 @@
  * HINDI — WEË CHEF: el sitio donde se cocina.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Chef comparte con Weë Studio —"Ver todos", "Ajustes", "Listo"— vive en
+ * Lo que Chef comparte con WeëStudio —"Ver todos", "Ajustes", "Listo"— vive en
  * `studio`, y las funciones que ya existían siguen en `catalogo` (chefAc…).
  *
  * Las palabras de la cocina son las del glosario (§ 11.6): रेसिपी (f), सामग्री
@@ -37,6 +37,7 @@ export const chef: typeof import('../es/chef').chef = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: 'अपना आइडिया या सामग्री लिखें, या फ़ोटो इस्तेमाल करें',
+  cookPrompt: 'बताइए कि आप क्या पकाना चाहते हैं…',
   addLabel: 'फ़ोटो जोड़ें',
   cameraLabel: 'फ़ोटो लें',
   galleryLabel: 'गैलरी से फ़ोटो चुनें',
@@ -123,4 +124,11 @@ export const chef: typeof import('../es/chef').chef = {
   seeAll: 'सभी देखें',
   projectsEmpty: 'आपने अभी तक Weë के साथ कुछ नहीं पकाया है.',
   projectsEmptyHint: 'यहाँ जो भी बनाएँ, वह सेव हो जाता है और यहीं दिखता है.',
+  /* ── La portada de la demo YC (héroe y fichas) ── */
+  heroLead: 'आपका AI शेफ़,',
+  heroAccent: 'हमेशा आपके साथ',
+  chipRecipes: 'रेसिपी',
+  chipMenus: 'मेन्यू',
+  chipHealthy: 'सेहतमंद',
+  chipQuick: 'झटपट',
 };

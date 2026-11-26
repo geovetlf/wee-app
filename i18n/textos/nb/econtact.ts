@@ -1,0 +1,45 @@
+/*
+ * NORUEGO BOKMÅL — ËContact y ẄContact. Los dos nombres son marca —cambian con el perfil activo— y entran como valor, no se traducen.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * `count_one` lleva `{{contador}}` como `count_other`: nunca un «1» a mano.
+ */
+export const econtact: typeof import('../es/econtact').econtact = {
+  requestsReceived: 'Mottatte forespørsler',
+  requestsSent: 'Sendte forespørsler',
+  yours: 'Dine {{lista}}',
+  yoursWhenYouSignIn: 'Dine {{lista}}, når du logger inn',
+  yoursWhenYouSignInSubtitle: '{{lista}} tar vare på forbindelsene dine på Weë. Logg inn for å se dem.',
+  noneYet: 'Du har ingen {{lista}} ennå',
+  noneYetSubtitle: 'Her finner du folkene dine på Weë. En forbindelse lages mellom to: én foreslår, og den andre godtar.',
+  noAgenda: 'Denne profilen har ingen kontaktliste',
+  noAgendaSubtitle: '{{lista}} er stedet for forbindelsene dine med andre. Bytt til Ekte profil eller Profil Weë for å se dem.',
+  wantsToConnect: '{{lista}} · vil knytte kontakt med deg',
+  accept: 'Godta {{nombre}}',
+  reject: 'Avslå {{nombre}}',
+  withdraw: 'Trekk tilbake forespørselen til {{nombre}}',
+  removeFrom: 'Fjern {{nombre}} fra dine {{lista}}',
+  openProfile: 'Åpne {{etiqueta}} til {{nombre}}',
+  rejectTitle: 'Avslå forespørsel',
+  rejectConfirm: 'Vil du avslå forespørselen fra {{nombre}}?',
+  withdrawTitle: 'Trekk tilbake forespørsel',
+  withdrawConfirm: 'Vil du trekke tilbake forespørselen til {{nombre}}?',
+  removeTitle: 'Fjern {{lista}}',
+  removeConfirm: 'Vil du fjerne {{nombre}} fra dine {{lista}}?',
+  failed: 'Kunne ikke fullføres',
+  count_one: '{{contador}} {{lista}}',
+  count_other: '{{contador}} {{lista}}',
+  somePerson: 'denne personen',
+  acceptLabel: 'Godta {{lista}}',
+  rejectRequestLabel: 'Avslå forespørsel om {{lista}}',
+  requestSent: 'Forespørsel sendt',
+  errSignIn: 'Logg inn for å bruke ËContact.',
+  errNotYours: 'Den profilen er ikke din.',
+  errNotAPerson: 'Den profilen kan ikke bruke ËContact.',
+  errSameProfile: 'En profil kan ikke knytte kontakt med seg selv.',
+  errOffline: 'Kunne ikke koble til Weë.',
+  errNoRequestToReject: 'Det finnes ingen forespørsel til deg å avslå.',
+  errNoPendingRequest: 'Du har ingen ventende forespørsel med denne profilen.',
+  errNotConnected: 'Du har ingen forbindelse med denne profilen.',
+  errNoActiveProfile: 'Det er ingen aktiv profil å gjøre dette med.',
+};

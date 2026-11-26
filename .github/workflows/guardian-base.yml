@@ -1,0 +1,52 @@
+# EL GUARDIAN DE LA BASE, INDEPENDIENTE DEL PR — WEE Motor Guardian (docs/HARNESS.md · Guardian).
+#
+# Por qué es independiente: con `pull_request_target`, GitHub lee ESTE archivo de la rama BASE, no del PR, y el checkout
+# por defecto es la base. Un PR no puede cambiar ni este workflow ni el código que ejecuta (ops/harness/guardian-pr.mjs,
+# guardian-ci.mjs, guardian.mjs, su política y su guardia) para su propia ejecución: los cambios a estos archivos solo
+# cuentan cuando ya están en main. Todo lo demás de la CI (ci.yml, incluido el paso «Build Guardian») lo ejecuta código
+# que trae el propio PR.
+#
+# Cómo evita los riesgos conocidos de pull_request_target (se ejecuta con el contexto de la base):
+#   · Nada del PR se ejecuta: su cabeza se trae como DATOS (`git fetch refs/pull/<n>/head`) a una carpeta temporal y el
+#     Guardian de la base la LEE (parsea, lee JSON, pregunta a git). Ningún `actions/checkout` del head; sin hooks de git,
+#     sin LFS, sin `npm install` del PR (las dependencias se instalan del package-lock de la BASE, con --ignore-scripts).
+#   · Ningún secreto, ni del repositorio ni de un entorno, y el token de solo lectura (contents: read); el checkout no deja
+#     credenciales en el disco (persist-credentials: false). Sin caché (en este contexto escribiría en la de la base).
+#   · Ninguna expresión `${{ }}` en un `run:`: el número y la cabeza del PR se leen de GITHUB_EVENT_PATH dentro del
+#     script, se validan (entero; 40 hex) y llegan a git como argumentos, nunca a un shell.
+#
+# Límites (decisión del dueño, no del código): solo actúa desde que este archivo esté en main; para que BLOQUEE, su check
+# «Guardian de la base (independiente)» tiene que entrar en los requeridos del ruleset «main protegida»
+# (ops/github/ruleset-main.json + `node ops/github/proteccion.mjs`). Lo fija functions/test/guardian-base-workflow.test.mjs.
+name: Guardian de la base
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: guardian-base-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  guardian-base:
+    name: Guardian de la base (independiente)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # el merge-base con la cabeza del PR
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+      - name: Sin claves ni credenciales en el entorno
+        run: node scripts/ci-sin-secretos.mjs
+      - name: Dependencias de la base (sin scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Guardian de la base contra el PR (como datos)
+        run: node ops/harness/guardian-pr.mjs

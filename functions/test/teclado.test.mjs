@@ -188,7 +188,9 @@ const ARRIBA_DEL_TECLADO = {
   'components/RightSidebar.tsx': 'columna derecha de escritorio: no hay teclado de teléfono',
   'screens/InboxScreen.tsx': 'buscador en la cabecera de WeeTalk',
   'screens/SearchScreen.tsx': 'buscador en la cabecera',
-  'screens/WeeBizScreen.tsx': 'buscador en la cabecera de Weë Biz',
+  /* 2026-11-16: el formulario de «nuevo elemento» vive dentro de HojaDeElementos (ya envuelta en EspacioDeEscritura); la sección de «Mis creaciones» va en la página de cajas que ya acomoda el teclado. */
+  'components/weeai/video/NuevoElemento.tsx': 'formulario dentro de HojaDeElementos, que acomoda el teclado',
+  'components/weeai/video/SeccionDeElementosPropios.tsx': 'sección de Mis creaciones, dentro de su página que acomoda el teclado',
   // `screens/ChatScreen.tsx` estaba aquí como «pantalla sin ruta»: se retiró como código muerto (cierre
   // post-auditoría, 2026-10-01), así que ya no hay campo que eximir.
 };
@@ -197,6 +199,9 @@ const ARRIBA_DEL_TECLADO = {
  * Las piezas de `components/creator/` y `components/business/` no se pintan
  * nunca solas: viven dentro de `CreatorShell`, que ya acomoda el teclado para
  * toda la pantalla. Pedirles que lo hagan otra vez sería acomodarlo dos veces.
+ * Lo mismo las de `components/personaje/`: solo se pintan dentro de
+ * `CharacterSheetScreen`, que envuelve toda la ficha en `EspacioDeEscritura`
+ * (se comprueba abajo, para que la excepción no quede huérfana).
  */
 const acomoda = (x) =>
   /EspacioDeEscritura/.test(x.src) ||
@@ -204,7 +209,20 @@ const acomoda = (x) =>
   /Keyboard\.addListener/.test(x.src) ||
   /CreatorShell/.test(x.src) ||
   x.rel.startsWith('components/creator/') ||
-  x.rel.startsWith('components/business/');
+  x.rel.startsWith('components/business/') ||
+  /* Weë Travel (2026-11-06): todas sus pantallas se pintan dentro de `MarcoDeTravel`, que es `CreatorShell`, y sus
+     piezas (Campo, selectores) van en línea dentro de ellas, nunca en un Modal: el shell ya acomoda el teclado. */
+  x.rel.startsWith('components/travel/') ||
+  x.rel.startsWith('screens/travel/') ||
+  x.rel.startsWith('components/personaje/') ||
+  /* Weë Filmmaker ARCHIVADO (2026-11-23, docs/ARCHIVO.md): sin ruta ni puerta, nadie llega a sus fichas. Al retomarlo, sale de aquí. */
+  x.rel.startsWith('components/filmmaker/');
+
+check(
+  'las piezas del personaje viven dentro del acomodo de la ficha',
+  /<EspacioDeEscritura[\s\S]*<AutonomiaDelPersonaje[\s\S]*<\/EspacioDeEscritura>/.test(leer('screens/CharacterSheetScreen.tsx')),
+  'CharacterSheetScreen envuelve la ficha y la autonomía en EspacioDeEscritura'
+);
 
 const desatendidas = superficies.filter((x) => !acomoda(x) && !(x.rel in ARRIBA_DEL_TECLADO));
 
@@ -245,8 +263,6 @@ const CON_SCROLL_Y_CAMPO = [
   'screens/CommunitiesManagementScreen.tsx',
   'screens/InboxScreen.tsx',
   'screens/PostDetailScreen.tsx',
-  'screens/WeeBizProfileScreen.tsx',
-  'screens/WeeBizScreen.tsx',
 ];
 
 for (const rel of CON_SCROLL_Y_CAMPO) {

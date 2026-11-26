@@ -1,9 +1,12 @@
 import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, BackHandler } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
+import { EnlaceDeCreaciones, RADIO_DE_CREATOR, TituloDeCreator } from '../components/creator/PiezasDeCreator';
 import { textoDeObjetivo } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
 import { SpecialistAction, SpecialistExample } from '../constants/specialists';
@@ -14,18 +17,22 @@ import BrainChatScreen from './BrainChatScreen';
 import StudioScreen from './StudioScreen';
 import DesignScreen from './DesignScreen';
 import ChefScreen from './ChefScreen';
-import BusinessScreen from './BusinessScreen';
+import MusicScreen from './MusicScreen';
+import FashionScreen from './FashionScreen';
 import CabeceraDeSeccion from '../components/creator/CabeceraDeSeccion';
 import ActionGrid from '../components/creator/ActionGrid';
 import IdeaBox from '../components/creator/IdeaBox';
 import TravelLauncher from '../components/creator/TravelLauncher';
 import TravelMark from '../components/creator/TravelMark';
+import CajaDePrompt from '../components/creator/CajaDePrompt';
+import { CuerpoDeTravel, HeroDeTravel } from '../components/sectores/PortadaTravel';
 import UploadBox from '../components/creator/UploadBox';
 import ExamplesRow from '../components/creator/ExamplesRow';
 import WriterDocuments from '../components/creator/WriterDocuments';
 import { SectionTitle, ClosingBanner } from '../components/creator/ui';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { useEstiloWeeAi } from '../hooks/useEstiloWeeAi';
 
 /**
  * Pantalla de un especialista de Weë Creator (docs/CREATOR-BUILD.md):
@@ -34,6 +41,7 @@ import { scale } from '../utils/scale';
  */
 const SpecialistScreen: React.FC = () => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
   const { user } = useAuth();
   const navigation = useNavigation<any>();
@@ -41,6 +49,7 @@ const SpecialistScreen: React.FC = () => {
   const id: string = route.params?.id || 'brain';
   const spec = useEspecialista(id);
   const isBrain = id === 'brain';
+  const pro = useEnEspacioProfesional();
 
   const [myJobs, setMyJobs] = useState<CreatorJob[]>([]);
   /*
@@ -50,6 +59,7 @@ const SpecialistScreen: React.FC = () => {
    * de un toque y se vuelven a cerrar igual; al entrar siempre están cerradas.
    */
   const [herramientasAbiertas, setHerramientasAbiertas] = useState(false);
+  const [textoDeTravel, setTextoDeTravel] = useState('');
   useFocusEffect(
     useCallback(() => {
       // Al llegar a la sección, las herramientas siempre están cerradas: lo
@@ -76,7 +86,7 @@ const SpecialistScreen: React.FC = () => {
   /*
    * ATRÁS PLIEGA LAS HERRAMIENTAS ANTES DE SALIR.
    *
-   * En Weë Travel se entra escribiendo, dentro del desplegable: si el gesto de
+   * En WeëTravel se entra escribiendo, dentro del desplegable: si el gesto de
    * atrás se llevara la sección de un golpe, se iría con el viaje a medio
    * contar. Plegado primero, y desde ahí sí sale. Lo escrito se queda.
    */
@@ -96,25 +106,28 @@ const SpecialistScreen: React.FC = () => {
     return null;
   }
   if (isBrain) return <BrainChatScreen />;
-  if (id === 'business') return <BusinessScreen />;
-  /* "Weë Chef" → "Chef": la cabecera pone la marca y la sección pone su palabra. */
+  /* La sección con el nombre WeëFashion es de moda (demo YC, decisión del dueño); `business` es solo su id histórico. */
+  if (id === 'business') return <FashionScreen />;
+  /* "WeëChef" → "Chef": la cabecera pone la marca y la sección pone su palabra. */
   const nombreCorto = spec.experience.name.replace(/^Weë\s+/i, '');
   /*
-   * Weë Studio dejó de ser una ficha de especialista y pasó a ser un sitio con
+   * WeëStudio dejó de ser una ficha de especialista y pasó a ser un sitio con
    * pantalla propia. Se entrega aquí —y no cambiando los cinco sitios que
    * navegan a 'Specialist'— para que todas las puertas que ya existían —el ☰,
    * la barra de escritorio, la de Weë AI, la cuadrícula— lleven al Studio nuevo
    * sin tocar ninguna. La dirección /studio va a la misma pantalla.
    */
   if (id === 'studio') return <StudioScreen />;
-  /* Y Weë Design, por la misma razón: todas las puertas que ya existían llegan al sitio nuevo. */
+  /* Y WeëDesign, por la misma razón: todas las puertas que ya existían llegan al sitio nuevo. */
   if (id === 'design') return <DesignScreen />;
-  /* Y Weë Chef, desde el 2026-09-15: su sitio de trabajo, con la misma estructura. */
+  /* Y WeëChef, desde el 2026-09-15: su sitio de trabajo, con la misma estructura. */
   if (id === 'chef') return <ChefScreen />;
+  /* WeëMusic: portada, Composer y workstation propios (screens/MusicScreen.tsx). */
+  if (id === 'music') return <MusicScreen />;
 
   /*
    * `opens` deja que una acción abra la conversación de otra experiencia. Lo usa
-   * Weë Studio para sus tres áreas: "Fotos" abre Weë Photo, "Beauty" abre Weë
+   * WeëStudio para sus tres áreas: "Fotos" abre Weë Photo, "Beauty" abre Weë
    * Beauty. Sin `opens` —las otras siete secciones— se abre la propia, exactamente
    * como antes.
    */
@@ -142,14 +155,14 @@ const SpecialistScreen: React.FC = () => {
   const handleExample = (example: SpecialistExample) => startFlow(example.subtitle ? `${example.title} · ${example.subtitle}` : example.title);
 
   /*
-   * Las secciones con muro (hoy solo Weë Chef) se leen de arriba abajo como una
+   * Las secciones con muro (hoy solo WeëChef) se leen de arriba abajo como una
    * comunidad con herramientas dentro: cabecera baja → herramientas plegadas →
    * el muro. Todo lo demás —tus creaciones, los ejemplos— es complementario y va
    * después, para no competir con lo que publica la gente.
    */
 
   /*
-   * Secciones que entran por una sola tarjeta (hoy Weë Travel, fase 2E-69). El
+   * Secciones que entran por una sola tarjeta (hoy WeëTravel, fase 2E-69). El
    * nombre, la frase y las funciones caben juntos en una pieza compacta, así que
    * no hay cabecera dentro ni franja aparte: debajo empieza el muro y punto. Se
    * apoya en `ideaFirst`, que es justo lo que distingue a esas secciones —se
@@ -157,6 +170,12 @@ const SpecialistScreen: React.FC = () => {
    * nombre propio dentro de una pantalla que sirve a todas.
    */
   const lanzador = !!spec.ideaFirst;
+  /*
+   * WeëTravel: la portada de la demo YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3) con su workspace (docs/TRAVEL-WORKPLACE.md),
+   * la MISMA en la versión app y en creator (decisión del dueño, 2026-11-06). Solo cambia el marco, que pone CreatorShell.
+   */
+  const portadaDeTravel = lanzador && spec.id === 'travel';
+  const accionDeTravel = (id: string) => { const a = spec.actions.find((x) => x.id === id); if (a) handleAction(a); else startFlow(); };
 
   return (
     <CreatorShell
@@ -170,27 +189,56 @@ const SpecialistScreen: React.FC = () => {
     >
       {/*
         La cabecera de la sección: la W oficial, el nombre y su frase. La misma
-        de Weë Studio y Weë Design, y lo único que hay arriba desde el
+        de WeëStudio y WeëDesign, y lo único que hay arriba desde el
         2026-09-15. Antes había una franja gris con el nombre y, debajo, una
         tarjeta de presentación con sellos e ilustración; la frase se queda, el
         resto sobraba para empezar a crear.
       */}
+      {portadaDeTravel ? (
+        <>
+          <CabeceraDeSeccion soloIdentidad nombre={nombreCorto} lema={spec.headline} />
+          <View style={styles.portada}>
+            <HeroDeTravel onAccion={accionDeTravel} onIdea={(texto) => startFlow(texto)} />
+          </View>
+          <View style={styles.cajaDeTravel}>
+            <CajaDePrompt
+              vitrina
+              valor={textoDeTravel}
+              onCambiar={setTextoDeTravel}
+              onEnviar={() => startFlow(textoDeTravel)}
+              etiquetaEnviar={t('weeai.describeYourIdea')}
+              placeholder={t('weeai.travelPrompt')}
+              acciones={[
+                { icono: 'add', etiqueta: t('weeai.describeYourIdea'), alPulsar: () => startFlow(textoDeTravel) },
+                { icono: 'image-outline', etiqueta: t('catalogo.travelAcWhereTitle'), alPulsar: () => accionDeTravel('where') },
+                { icono: 'calendar-outline', etiqueta: t('catalogo.travelAcPlanTitle'), alPulsar: () => accionDeTravel('plan') },
+                { icono: 'location-outline', etiqueta: t('catalogo.travelAcDoingTitle'), alPulsar: () => accionDeTravel('doing') },
+                { icono: 'options-outline', etiqueta: t('catalogo.travelAcMovingTitle'), alPulsar: () => accionDeTravel('moving') },
+              ]}
+            />
+          </View>
+          <View style={styles.cuerpoDeTravel}>
+            <CuerpoDeTravel onAccion={accionDeTravel} onIdea={(texto) => startFlow(texto)} />
+          </View>
+        </>
+      ) : (
       <CabeceraDeSeccion nombre={nombreCorto} lema={spec.headline} descripcion={spec.intro} />
+      )}
 
       {/*
         Y justo debajo, la caja: en Weë AI se entra diciendo qué quieres, no
-        eligiendo herramienta. Las que entran por una tarjeta —Weë Travel— la
+        eligiendo herramienta. Las que entran por una tarjeta —WeëTravel— la
         llevan dentro de ella.
       */}
       {!lanzador && <IdeaBox config={spec.idea} onSubmit={(text) => startFlow(text)} />}
 
       {/*
-        Weë Travel entra por la frase, no por la cuadrícula (fase 2E-64C): un
+        WeëTravel entra por la frase, no por la cuadrícula (fase 2E-64C): un
         viaje se cuenta hablando y esa frase ya trae casi todo lo que hace falta.
         Desde 2E-69 la frase y las cuatro funciones viven en la misma tarjeta, así
         que entre la cabecera y el muro solo hay una pieza.
       */}
-      {lanzador ? (
+      {portadaDeTravel ? null : lanzador ? (
         <TravelLauncher
           idea={spec.idea}
           actions={spec.actions}
@@ -202,12 +250,16 @@ const SpecialistScreen: React.FC = () => {
         />
       ) : (
         <View style={styles.section}>
+          {pro ? (
+            <TituloDeCreator titulo={spec.gridTitle} />
+          ) : (
           <SectionTitle
             title={spec.gridTitle}
             hint={spec.gridHint}
             action={spec.id === 'design' ? t('weeai.describeYourIdea') : undefined}
             onAction={spec.id === 'design' ? () => startFlow() : undefined}
           />
+          )}
           <ActionGrid actions={spec.actions} layout={spec.actionLayout} onPress={handleAction} />
         </View>
       )}
@@ -238,33 +290,41 @@ const SpecialistScreen: React.FC = () => {
 
       {myJobs.length > 0 && (
         <View style={styles.section}>
+          {pro ? (
+            <TituloDeCreator titulo={t('weeai.myCreations')} accion={t('weeai.seeAllCreations')} onAccion={() => navigation.navigate('WeeCreator')} />
+          ) : (
           <SectionTitle title={t('weeai.myCreations')} action={t('weeai.seeAllCreations')} onAction={() => navigation.navigate('WeeCreator')} />
+          )}
           {myJobs.map((job) => (
             <TouchableOpacity
               key={job.id}
-              style={[styles.jobRow, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}
+              style={[styles.jobRow, { backgroundColor: c.superficie, borderColor: c.superficieAlta }, pro && styles.jobRowPro]}
               onPress={() => navigation.navigate('CreatorFlow', { experienceId: job.experienceId, jobId: job.id })}
               activeOpacity={0.8}
             >
-              <Text style={styles.jobEmoji}>{spec.experience.emoji}</Text>
+              {!pro && <Text style={styles.jobEmoji}>{spec.experience.emoji}</Text>}
               <View style={{ flex: 1 }}>
                 <Text style={[styles.jobGoal, { color: theme.colors.text }]} numberOfLines={1}>{textoDeObjetivo(t, job.experienceId, job.goal)}</Text>
                 <Text style={[styles.jobMeta, { color: theme.colors.textSecondary }]}>
                   {t(claveDelEstado[job.status]) ?? job.status}{job.demo ? ` · ${t('weeai.demo')}` : ''}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+              <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
             </TouchableOpacity>
           ))}
         </View>
       )}
 
-      <Text style={[styles.footer, { color: theme.colors.textSecondary }]}>{t('weeai.tellWee')}</Text>
+      {pro ? <EnlaceDeCreaciones /> : <Text style={[styles.footer, { color: theme.colors.textSecondary }]}>{t('weeai.tellWee')}</Text>}
     </CreatorShell>
   );
 };
 
 const styles = StyleSheet.create({
+  /* La portada de WeëTravel de la demo YC: el héroe y el cuerpo salen del aire del marco; la caja sube sobre el fundido. */
+  portada: { marginBottom: -scale(30), marginHorizontal: -SPACING.lg },
+  cajaDeTravel: { marginBottom: SPACING.xl },
+  cuerpoDeTravel: { gap: SPACING.xxl, marginHorizontal: -SPACING.lg, paddingBottom: SPACING.xl },
   section: {
     gap: SPACING.md,
   },
@@ -274,8 +334,8 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
     padding: SPACING.md,
     borderRadius: BORDER_RADIUS.md,
-    borderWidth: 1,
   },
+  jobRowPro: { borderWidth: 0, borderRadius: RADIO_DE_CREATOR },
   jobEmoji: {
     fontSize: scale(22),
   },
@@ -298,4 +358,4 @@ const styles = StyleSheet.create({
  * Weë AI es de la cuenta, no de un perfil: el taller se ve claro con el Perfil
  * Real y con el Perfil Weë. Lo de fuera —el cajón incluido— no se toca.
  */
-export default enTemaClaro(SpecialistScreen);
+export default enTemaOscuro(SpecialistScreen);

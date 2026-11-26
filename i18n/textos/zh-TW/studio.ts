@@ -16,7 +16,7 @@
  *   簡報 (no 演示文稿) · 履歷 (no 簡歷) · 部落格 (no 博客) · 型錄 (no 產品目錄)
  *   腦力激盪 (no 頭腦風暴) · 去背 (no 去除背景) · 物件 (no 物體) · 新增 (no 添加)
  *
- * MARCA: "Weë Studio", "Writer" y el resto de los nombres de Weë van en
+ * MARCA: "WeëStudio", "Writer" y el resto de los nombres de Weë van en
  * alfabeto latino dentro del hanzi, nunca traducidos ni transliterados
  * («工作室» no es Studio y «積分» no es Credits). Los formatos técnicos —PDF,
  * MP4, 16:9— tampoco cambian de idioma.
@@ -279,7 +279,7 @@ export const studio: typeof import('../es/studio').studio = {
   /* 串接 es como se dice en Taiwán conectar con una API. */
   soonHint: '這個工具的位置已經留好了，還差串接。',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: '文字',
   textHint: '寫任何內容',
   exploreTitle: '探索',
@@ -420,4 +420,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: '我已停止創作。預留的 Credits 會退回你的餘額。',
   worldUploadFailed: '沒能上傳你的照片，請再試一次。',
   worldDailyLimit: '今天的 3D 世界已經用完了。沒有生成成功的會退還給你，次數每天都會重置。',
+  filmmakerCardTitle: '執導你的電影',
+  filmmakerCardSub: '場景、鏡頭與運鏡，盡在你的掌控。',
+  filmmakerCardCta: '開啟 Filmmaker',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: '創作，',
+  heroAccent: '不設限。',
+  quickTitle: '快速創作',
+  filmmakerEngineSub: '用 AI 創作、導演和剪輯你的電影。',
+  projectsTitle: '專案',
 };

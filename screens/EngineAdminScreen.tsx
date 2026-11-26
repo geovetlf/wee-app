@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Switch } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
@@ -11,6 +12,7 @@ import { aiEngineService, EngineStatus, isPermissionDenied } from '../services/a
 import { notify, confirmAction } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 export const ENGINE_ADMIN_FLAG = 'wee.engine.admin';
 
@@ -94,7 +96,7 @@ const EngineAdminScreen: React.FC = () => {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={[styles.header, { borderBottomColor: theme.colors.border, paddingTop: isDesktop ? SPACING.md : insets.top + SPACING.sm }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
-          <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
         {/* "Weë AI Engine" es el nombre del motor: marca, no se traduce. */}
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>Weë AI Engine</Text>
@@ -144,6 +146,7 @@ const EngineAdminScreen: React.FC = () => {
               </Text>
               <View style={styles.actions}>
                 <TouchableOpacity onPress={seed} disabled={busy !== null} style={[styles.button, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel={t('settings.seedDefaults')}>
+                  <RellenoDeMarca radio={BORDER_RADIUS.full} />
                   <Text style={styles.buttonText}>{busy === 'seed' ? '…' : t('settings.seedDefaults')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => run('health', () => aiEngineService.resetHealth(), t('engine.healthReset'))} disabled={busy !== null} style={[styles.buttonGhost, { borderColor: theme.colors.border }]} activeOpacity={0.85} accessibilityLabel={t('engine.resetHealth')}>

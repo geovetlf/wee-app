@@ -1046,7 +1046,7 @@ await seccion('Y', async () => {
       .some((x) => x.field === 'prompt' && x.reason === 'forbidden_key'));
   const imports = ['index.ts', 'puerta.ts'].flatMap((f) => [...sinComentarios(leer(`functions/src/productions/${f}`)).matchAll(/from '([^']+)'/g)].map((x) => x[1]));
   const PERMITIDOS = ['crypto', 'firebase-admin/firestore', 'firebase-functions/v2/https', '../core/creative', '../core/element', '../content',
-    '../filmmaker/modelo', '../filmmaker/validacion', '../filmmaker/operaciones', '../identity/cuentas', './index'];
+    '../filmmaker/modelo', '../filmmaker/validacion', '../filmmaker/operaciones', '../identity/cuentas', './index', './referenciasAlCrear', './preferenciasAlGuardar'];
   check('Y3) importa solo lo que necesita: Firestore, la puerta, dos piezas del Core, el Content Core, la cuenta y el dominio de F1-A',
     imports.every((x) => PERMITIDOS.includes(x)), imports.filter((x) => !PERMITIDOS.includes(x)).join(', '));
   const codigo = sinComentarios(leer('functions/src/productions/index.ts'));
@@ -1060,8 +1060,8 @@ await seccion('Y', async () => {
     && (compilado.match(/require\("\.\/productions\/puerta"\)/g) || []).length === 1
     && (compilado.match(/Object\.defineProperty\(exports, "productions"/g) || []).length === 1);
   const mapa = leer('functions/test/runtime-map.test.mjs');
-  check('Y6) y el mapa del runtime la declara: 37 Functions (35 + evalRun, F2-C1, + generateWorld, misión mundo3d), `productions` sale de su puerta, y los veinte símbolos del Core que trae, autorizados',
-    /reales\.length === 37/.test(mapa) && /'\.\/productions\/puerta': \['productions'\]/.test(mapa) && /const DE_PRODUCTIONS = \{/.test(mapa));
+  check('Y6) y el mapa del runtime la declara: 51 Functions (35 + evalRun, F2-C1, + generateWorld, misión mundo3d, + savePage/followPage, WeëPages, + boost/boostSweep, Boost, + las nueve de Comunidades por identidad, + espejoDelPerfilPublico, seguridad de users), `productions` sale de su puerta, y los veinte símbolos del Core que trae, autorizados',
+    /reales\.length === 51/.test(mapa) && /'\.\/productions\/puerta': \['productions'\]/.test(mapa) && /const DE_PRODUCTIONS = \{/.test(mapa));
   check('Y7) ni el dominio de F1-A ni el Algorithm Engine se tocaron para esto: Filmmaker sigue siendo cinco archivos de dominio',
     fs.readdirSync(path.resolve(RAIZ, 'functions/src/filmmaker')).sort().join() === 'modelo.ts,operaciones.ts,recomendaciones.ts,requisitos.ts,validacion.ts'
     && !/productions/.test(fs.readdirSync(path.resolve(RAIZ, 'functions/src/filmmaker')).map((f) => leer(`functions/src/filmmaker/${f}`)).join('\n')));

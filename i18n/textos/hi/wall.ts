@@ -1,5 +1,5 @@
 /*
- * HINDI — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * HINDI — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -23,7 +23,7 @@
  * devanagari no tiene caja; «Creado con», al que siguen las fichas de las
  * herramientas, es «इस्तेमाल किए गए टूल», y «Proceso:», «प्रोसेस:».
  * `publishedOnWee` firma el texto que sale al compartir («- Weë पर पोस्ट किया
- * गया»), y `shareText` conserva «World Encode Entity» en latino: es la marca.
+ * गया»), y `shareText` conserva «WORLD OF EXPRESSION & EVOLUTION» en latino: es la marca.
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} ने रीपोस्ट किया',
@@ -86,7 +86,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'टिप्पणियाँ',
   commentImageFailed: 'इमेज अपलोड नहीं की जा सकी. फिर से कोशिश करें.',
   commentSendFailed: 'टिप्पणी नहीं भेजी जा सकी. फिर से कोशिश करें.',
-  shareText: '{{contenido}}\n\nWeë पर बनाया गया · World Encode Entity',
+  shareText: '{{contenido}}\n\nWeë पर बनाया गया · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Weë पर यह पोस्ट देखें',
   commentsWithCount: 'टिप्पणियाँ ({{total}})',
   agreeWithComment: 'इस टिप्पणी से सहमत',
@@ -95,4 +95,22 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: 'प्रॉम्प्ट छिपाएँ',
   copyPrompt: 'प्रॉम्प्ट कॉपी करें',
   promptCopied: 'कॉपी किया गया',
+  demoBadge: 'डेमो',
+  demoBadgeLabel: 'डेमो सामग्री',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Ẅall पर अभी कोई पोस्ट नहीं है',
+  immersiveError: 'हम Ẅall लोड नहीं कर सके',
+  immersiveEnd: 'आपने सब देख लिया',
+  agreePost: 'सहमत',
+  disagreePost: 'असहमत',
+  mute: 'म्यूट करें',
+  unmute: 'आवाज़ चालू करें',
+  moreOptions: 'और विकल्प',
+  seeMore: 'ज़्यादा देखें',
+  seeLess: 'कम देखें',
+  openPost: 'पोस्ट खोलें',
+  imageOf: '{{total}} में से {{numero}} छवि',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'आग',
+  reactionLaugh: 'हँसी',
 };

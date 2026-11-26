@@ -1,0 +1,38 @@
+{
+  "_estado": "PROPUESTA SIN APLICAR en el settings.json versionado (WEE Motor Guardian, 2026-10-14). Activada SOLO en el worktree aislado wt-guardian-f1 mediante .claude/settings.local.json (ignorado por git; afecta únicamente a sesiones abiertas en ese worktree). Llevarla a .claude/settings.json o a la configuración gestionada es decisión del dueño.",
+  "_onFailure": "onFailure:\"block\" convierte en bloqueo un hook que no llega a responder (tiempo agotado, Node ausente, JSON inválido, salida distinta de 0/2). La referencia lo sitúa desde Claude Code v2.1.295; en esta máquina está instalada la 2.1.295 (AppData/Roaming/Claude/claude-code/2.1.295), pero NO se ha observado su efecto en una sesión real (el CLI no tiene sesión iniciada y el espacio no es de confianza). Los dos hooks ya fallan cerrado por su propio código en todo lo que pueden ejecutar.",
+  "_matcher": "Edit|Write|MultiEdit|NotebookEdit: PostToolUse no se dispara si el archivo lo cambia Bash/PowerShell; eso lo cubre el hook Stop (lee git status).",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/guardian-post-edit.mjs"
+            ],
+            "timeout": 30,
+            "onFailure": "block"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/guardian-stop.mjs"
+            ],
+            "timeout": 600,
+            "onFailure": "block"
+          }
+        ]
+      }
+    ]
+  }
+}

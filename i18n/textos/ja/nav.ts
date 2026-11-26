@@ -14,6 +14,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: '作成',
   talk: 'WeeTalk',
   notifications: '通知',
+  notificationsUnread: '通知、未読のお知らせがあります',
   current: '表示中',
   goTo: '{{nombre}}に移動',
   weeNavigation: 'Weëのナビゲーション',
@@ -23,5 +24,10 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: 'Weë AIへ',
   weeAiQuestion: '今日は何を作りますか？',
   weeAiPitch: '作りたいものをWeëに伝えるだけです。AIのことはWeëにおまかせください。',
-  documentTitle: 'Weë - 未来のコミュニティ',
+  brandSlogan: '想像する · 創る · つながる',
+  documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'メッセージ',
+  myWee: 'マイWeë',
 };

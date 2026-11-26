@@ -28,7 +28,9 @@ export type NotificationType =
   | 'mention'        // Alguien te mencionó
   | 'repost'         // Alguien reposteó tu post
   | 'reply'          // Alguien respondió a tu comentario
-  | 'community_post'; // Nuevo post en una comunidad que sigues
+  | 'community_post' // Nuevo post en una comunidad que sigues
+  | 'character_notice' // Tu personaje (Perfil Weë) te dejó avisos para revisar; la escribe el servidor, agrupada
+  | 'recreate'; // Alguien recreó el estilo de tu publicación con WeëAI («Recrear este estilo»); la crea la app, sin push
 
 export interface Notification {
   id?: string;
@@ -40,8 +42,10 @@ export interface Notification {
    */
   recipientId: string;      // Identidad de perfil que recibe la notificación
   senderId: string;         // Identidad de perfil que generó la acción
-  /** La cuenta de quien recibe. La escribe el servidor; hace falta para un push. */
-  recipientAccountId?: string;
+  /*
+   * `recipientAccountId` ya no forma parte de un aviso que escriba la app (F1, 2026-11-23): unía una identidad con su
+   * cuenta frente a quien escribía el aviso. Solo algún aviso antiguo lo lleva; nadie lo lee.
+   */
   /** 'real' | 'wee': con qué cara está escribiendo quien la genera. */
   senderProfileType?: string;
   senderName: string;       // Nombre del sender (para mostrar sin query extra)
@@ -54,6 +58,8 @@ export interface Notification {
   commentContent?: string;  // Preview del comentario
   communityId?: string;     // ID de la comunidad (si aplica)
   communityName?: string;   // Nombre de la comunidad
+  /** character_notice: cuántos avisos del personaje se agruparon en esta notificación. */
+  pendientes?: number;
   read: boolean;
   createdAt: Timestamp;
 }
@@ -91,6 +97,33 @@ const createNotification = async (
 };
 
 export const notificationService = {
+  /**
+   * «Recrear este estilo» (WeëAI sencillo, 2026-11-23): se avisa al autor de la publicación original. Con los mismos
+   * campos que un «me gusta» (las reglas los validan: `tiposDeAvisoQueCreaLaApp`); `postId` es la publicación NUEVA,
+   * para que el autor vea qué hicieron con su estilo. No manda push: el servidor solo empuja los tipos que conoce.
+   */
+  createRecreateNotification: async (
+    autorId: string,
+    senderId: string,
+    senderName: string,
+    senderAvatar: { type?: string; id?: string; url?: string },
+    postId: string,
+    postContent: string,
+    senderProfileType: 'real' | 'wee',
+  ): Promise<string | null> =>
+    createNotification({
+      type: 'recreate',
+      recipientId: autorId,
+      senderId,
+      senderName,
+      senderAvatar: senderAvatar.url,
+      senderAvatarType: senderAvatar.type as 'predefined' | 'custom',
+      senderAvatarId: senderAvatar.id,
+      senderProfileType,
+      postId,
+      postContent: postContent.substring(0, 100),
+    }),
+
   // Crear notificación de like
   createLikeNotification: async (
     postOwnerId: string,
@@ -163,69 +196,11 @@ export const notificationService = {
   },
 
   /*
-   * ËCONTACT — dos avisos, uno por cada mitad de la conexión.
-   *
-   * Van por el sistema de notificaciones de siempre, con tipos propios. No se
-   * reutiliza `follow`: si compartieran tipo, las notificaciones históricas de
-   * seguidores dirían de pronto algo que nunca pasó.
+   * ËCONTACT — los dos avisos (`econtact_request`, `econtact_accepted`) YA NO LOS CREA LA APP (F1 del plan de alter
+   * egos, 2026-11-23). Los escribe el servidor en la misma transacción que la relación (`avisoDeEContact`,
+   * functions/src/social/econtact.ts), dirigidos a la IDENTIDAD que recibe y sin la cuenta de nadie. Las reglas ya no
+   * dejan al cliente crear esos tipos ni escribir `recipientAccountId`. Aquí se siguen LEYENDO como cualquier aviso.
    */
-
-  /*
-   * A QUIÉN VA DIRIGIDA: A LA IDENTIDAD, NO A LA CUENTA.
-   *
-   * `recipientId` y `senderId` son IDENTIDADES DE PERFIL. Quien te escribe al
-   * Perfil Weë te escribe a ese perfil, y ahí es donde tiene que aparecer el
-   * aviso: `NotificationsScreen` ya consulta por el uid del perfil activo, así
-   * que dirigirlo a la identidad lo deja en la bandeja correcta sin tocar nada.
-   *
-   * `recipientAccountId` es la cuenta de quien recibe. No se puede deducir del
-   * uid del perfil —hay que leerlo—, así que lo trae el servidor, que ya lo
-   * comprobó al abrir o aceptar la relación. Es lo que haría falta para un push,
-   * que se manda al aparato de una cuenta y no al de un perfil.
-   *
-   * `senderProfileType` dice si quien escribe es un Perfil Real o un Perfil Weë,
-   * para que el texto pueda distinguirlos sin ir a buscar el perfil otra vez.
-   */
-  createEContactRequestNotification: async (
-    recipientId: string,
-    senderId: string,
-    senderName: string,
-    senderAvatar: { type?: string; id?: string; url?: string },
-    identidad?: { recipientAccountId?: string; senderProfileType?: string }
-  ): Promise<string | null> => {
-    return createNotification({
-      type: 'econtact_request',
-      recipientId,
-      senderId,
-      senderName,
-      senderAvatar: senderAvatar.url,
-      senderAvatarType: senderAvatar.type as 'predefined' | 'custom',
-      senderAvatarId: senderAvatar.id,
-      recipientAccountId: identidad?.recipientAccountId,
-      senderProfileType: identidad?.senderProfileType,
-    });
-  },
-
-  /** "X aceptó tu solicitud": ya estáis conectados. Mismo reparto de identidades. */
-  createEContactAcceptedNotification: async (
-    recipientId: string,
-    senderId: string,
-    senderName: string,
-    senderAvatar: { type?: string; id?: string; url?: string },
-    identidad?: { recipientAccountId?: string; senderProfileType?: string }
-  ): Promise<string | null> => {
-    return createNotification({
-      type: 'econtact_accepted',
-      recipientId,
-      senderId,
-      senderName,
-      senderAvatar: senderAvatar.url,
-      senderAvatarType: senderAvatar.type as 'predefined' | 'custom',
-      senderAvatarId: senderAvatar.id,
-      recipientAccountId: identidad?.recipientAccountId,
-      senderProfileType: identidad?.senderProfileType,
-    });
-  },
 
   // Crear notificación de repost
   createRepostNotification: async (
@@ -388,6 +363,19 @@ export const notificationService = {
       callback(0);
     });
   },
+
+  /*
+   * El aviso agrupado de TU personaje (`notifications/personaje_<perfilWee>`, lo escribe el servidor).
+   * Se lee por su id: así la campanita lo ve también con el Perfil Real puesto.
+   */
+  subscribeToCharacterNotice: (
+    perfilWeeId: string,
+    callback: (notification: Notification | null) => void
+  ): (() => void) => onSnapshot(
+    doc(db, 'notifications', `personaje_${perfilWeeId}`),
+    (s) => callback(s.exists() ? ({ id: s.id, ...s.data() } as Notification) : null),
+    () => callback(null)
+  ),
 
   // Marcar notificación como leída
   markAsRead: async (notificationId: string): Promise<void> => {

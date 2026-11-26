@@ -40,6 +40,8 @@ Estudio audiovisual general: crear videos, animar imágenes, videos para redes, 
 
 ## 9. WEE Business
 
+> Nota (2026-11-06): esta experiencia se ve hoy como 👗 **Weë Fashion**; `business` es solo su id histórico (con trabajos y datos guardados detrás). Esta sección es el prompt maestro original y se conserva como historia.
+
 Ideas de negocio, marketing, publicidad, redes sociales, analizar negocio, documentos, presentaciones, vender más, CV y carrera, estrategia, e-commerce. Función **"Mis redes"**: más adelante conectar Instagram, Facebook y TikTok para crear, programar, publicar y gestionar respuestas cuando las APIs oficiales y permisos lo permitan. **No implementar todavía las APIs reales**; construir primero toda la experiencia.
 
 ## 10. WEE Chef

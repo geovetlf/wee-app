@@ -89,6 +89,9 @@ class BaseDeMentira {
         guardarEntidad: (e) => escrituras.push(['crear', `entities/${e.entityId}`, e]),
         guardarOperacion: (id, clave, entityId, at) => escrituras.push(['crear', `accounts/${id}/operations/${clave}`, { entityId, createdAt: at }]),
         actualizarCuenta: (id, campos) => escrituras.push(['actualizar', `accounts/${id}`, campos]),
+        /* Contrato 2.1: los dos puertos de los alter egos. */
+        actualizarEntidad: (id, campos) => escrituras.push(['actualizar', `entities/${id}`, campos]),
+        guardarPerfil: (uid, perfil) => escrituras.push(['crear', `users/${uid}`, perfil]),
       };
       const resultado = await cuerpo(tx);
       /* Commit: si algo de lo leído cambió, o un `crear` encuentra el documento puesto, se repite entera. */
@@ -228,8 +231,22 @@ console.log('\n── D · Lo que se guarda cumple su contrato ──');
     entidadReal.entityType === 'REAL_PROFILE' && entidadReal.entitySequence === 1 && C.entidadDeCuentaValida(entidadReal));
   check('28) y apunta a su perfil por el CAMPO uid, no por un id de documento',
     entidadReal.profileRef.coleccion === 'users' && entidadReal.profileRef.uid === CUENTA_A);
-  check('29) una entidad cuyo tipo y secuencia se contradicen no vale',
-    !C.entidadDeCuentaValida({ ...entidadReal, entityType: 'PAGE' }) && !C.entidadDeCuentaValida({ ...entidadReal, entitySequence: 3 }));
+  /*
+   * Contrato 2.1 (plan de alter egos, F2): de la 3 en adelante caben una Página O
+   * un Perfil Weë, y manda el tipo guardado. Lo que sigue sin valer es un Perfil
+   * Real fuera de la 1, o cualquier otra cosa en la 1 y en la 2.
+   */
+  check('29) una entidad cuyo tipo y secuencia se contradicen no vale (contrato 2.1)',
+    !C.entidadDeCuentaValida({ ...entidadReal, entityType: 'PAGE' })
+    && !C.entidadDeCuentaValida({ ...entidadReal, entityType: 'WEE_PROFILE' })
+    && !C.entidadDeCuentaValida({ ...entidadReal, entitySequence: 3 })
+    && !C.entidadDeCuentaValida({ ...entidadReal, entityType: 'PAGE', entitySequence: 2 })
+    && C.entidadDeCuentaValida({ ...entidadReal, entityType: 'PAGE', entitySequence: 3 })
+    && C.entidadDeCuentaValida({ ...entidadReal, entityType: 'WEE_PROFILE', entitySequence: 3 }));
+  check('29b) lo nuevo se escribe con 2.1 y los lectores siguen aceptando lo escrito con 2.0',
+    C.ACCOUNT_IDENTITY_CONTRACT_VERSION === '2.1' && cuenta.contract === '2.1' && entidadReal.contract === '2.1'
+    && C.cuentaWeeValida({ ...cuenta, contract: '2.0' }) && C.entidadDeCuentaValida({ ...entidadReal, contract: '2.0' })
+    && !C.cuentaWeeValida({ ...cuenta, contract: '1.0' }) && !C.entidadDeCuentaValida({ ...entidadReal, contract: '2.2' }));
   check('30) ni una con un identificador que no es opaco',
     !C.entidadDeCuentaValida({ ...entidadReal, entityId: '0084321751' }));
   check('31) ni una cuenta con un número que no es canónico',
@@ -373,6 +390,16 @@ console.log('\n── G · Las Páginas ──');
     (await C.asegurarEntidadDeCaraWee(bd, dados(70), { accountId: CUENTA_A, perfilUid: `hidi_${CUENTA_A}`, at: AHORA })).entidad.entitySequence === 2);
   check('54) sin clave de idempotencia no se crea ninguna',
     (await lanza(() => C.crearPagina(bd, dados(71), { accountId: CUENTA_A, clave: '', at: AHORA }))) !== null);
+  /* 2.1: un alter ego toma su secuencia del MISMO contador; la siguiente Página va detrás. */
+  const siguiente = bd.leer(`accounts/${CUENTA_A}`).nextPageSequence;
+  const alter = await C.crearAlterEgo(bd, dados(72), {
+    accountId: CUENTA_A, clave: 'alter1', at: AHORA, limite: 5,
+    perfilDe: (entityId) => ({ uid: entityId, entityId, displayName: 'Jay' }),
+  });
+  const pDespues = await C.crearPagina(bd, dados(73), { accountId: CUENTA_A, clave: 'p-despues', at: AHORA });
+  check('54b) Páginas y alter egos comparten el contador común: ninguna secuencia se repite',
+    bd.leer(`entities/${alter.entityId}`).entitySequence === siguiente && pDespues.entidad.entitySequence === siguiente + 1
+    && bd.leer(`entities/${alter.entityId}`).entityType === 'WEE_PROFILE');
 }
 
 // ════════════════════════════════════════════════════════════════════════════

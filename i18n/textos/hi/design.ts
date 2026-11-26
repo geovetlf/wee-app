@@ -2,7 +2,7 @@
  * HINDI — WEË DESIGN: diseñar y visualizar casi cualquier cosa física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Weë Design comparte con Weë Studio —"Mis creaciones", "Ver todas",
+ * Lo que WeëDesign comparte con WeëStudio —"Mis creaciones", "Ver todas",
  * "Creando...", "Creación lista"— vive en `studio` y se lee de allí.
  *
  * «Diseñar» es डिज़ाइन करें, como en Canva, y «espacio» es जगह (f; pl. जगहें), la
@@ -24,7 +24,7 @@
  * también se oyen sueltas en la etiqueta del lector de pantalla. También de
  * `studio`: «Minimalista» es मिनिमलिस्ट, «una vista aérea», एरियल व्यू, y «un antes y
  * después», पहले और बाद. Los materiales son मटीरियल, como en `business`, y no
- * सामग्री, que en Weë Chef son los ingredientes. Los títulos de los grupos de
+ * सामग्री, que en WeëChef son los ingredientes. Los títulos de los grupos de
  * ajustes y «Empieza por» se pintan con `textTransform`, que no cambia el
  * devanagari.
  */
@@ -114,12 +114,24 @@ export const design: typeof import('../es/design').design = {
   valStudioLight: 'स्टूडियो लाइट',
 
   /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
+  kindProduct: 'प्रोडक्ट',
   kindInterior: 'इंटीरियर',
   kindArchitecture: 'आर्किटेक्चर',
   kindBoat: 'नाव',
   kindFurniture: 'फ़र्नीचर',
+  sampleShoe: 'चमड़े का स्नीकर',
+  sampleGuitar: 'इलेक्ट्रिक गिटार',
   sampleLivingRoom: 'रोशनी से भरा लिविंग रूम',
   samplePineHouse: 'चीड़ के पेड़ों के बीच घर',
   sampleYacht: '15 मीटर यॉट',
   sampleArmchair: 'लकड़ी की आरामकुर्सी',
+  /* ── La portada de la demo YC (héroe, creación rápida, Design Studio, explorar) ── */
+  heroLead: 'बिना किसी सीमा के',
+  heroAccent: 'डिज़ाइन करें.',
+  brandingTitle: 'ब्रांडिंग',
+  objects3dTitle: '3D ऑब्जेक्ट',
+  designStudioTitle: 'डिज़ाइन स्टूडियो',
+  designStudioSub: 'AI के साथ प्रोफ़ेशनल डिज़ाइन बनाएँ, एडिट करें और देखें.',
+  openStudio: 'स्टूडियो खोलें',
+  fashionHint: 'कपड़े, कलेक्शन और बहुत कुछ डिज़ाइन करें.',
 };

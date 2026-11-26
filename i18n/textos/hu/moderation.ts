@@ -1,0 +1,29 @@
+/*
+ * HÚNGARO — Denunciar: la hoja única de reporte. Tipado contra el español.
+ */
+export const moderation: typeof import('../es/moderation').moderation = {
+  report: 'Jelentés',
+  subtitle: 'Mondd el, mi a gond ezzel a tartalommal.',
+  chooseReason: 'Válassz egy okot',
+  send: 'Jelentés küldése',
+  sending: 'Jelentés küldése…',
+  reasonSpam: 'Spam',
+  reasonHarassment: 'Zaklatás vagy megfélemlítés',
+  reasonHate: 'Gyűlöletkeltés vagy diszkrimináció',
+  reasonSexual: 'Szexuális tartalom',
+  reasonViolence: 'Erőszak',
+  reasonScam: 'Átverés vagy csalás',
+  reasonImpersonation: 'Más személy megszemélyesítése',
+  reasonIllegal: 'Illegális tartalom',
+  reasonSelfHarm: 'Önsértés vagy öngyilkosság',
+  reasonOther: 'Egyéb ok',
+  successTitle: 'A jelentés megérkezett',
+  successBody: 'Köszönjük, hogy segítesz megőrizni a Weë biztonságát.',
+  duplicateTitle: 'Ezt már jelentetted',
+  duplicateBody: 'A jelentésedet erről a tartalomról már megkaptuk.',
+  errorTitle: 'Nem sikerült elküldeni a jelentésedet.',
+  errorBody: 'Próbáld újra.',
+  errorOffline: 'Nincs kapcsolat. Próbáld újra.',
+  errorRateLimited: 'Túl sok jelentést küldtél egymás után. Próbáld újra később.',
+  errorUnavailable: 'Ez a tartalom már nem érhető el.',
+};

@@ -1,4 +1,4 @@
-import { CodigoDeIdioma, IDIOMA_DE_RESERVA, idiomaDelCatalogo, varianteDelLocale } from './idiomas';
+import { ALIAS_DE_IDIOMA, CodigoDeIdioma, IDIOMA_DE_RESERVA, idiomaDelCatalogo, varianteDelLocale } from './idiomas';
 
 /*
  * DE LO QUE DICE EL APARATO A LO QUE ENSEÑA WEË.
@@ -37,7 +37,7 @@ export const normalizarLocale = (crudo: string): string => {
   if (!limpio) return '';
   const trozos = limpio.split('-').filter(Boolean);
   if (!trozos.length) return '';
-  const idioma = trozos[0].toLowerCase();
+  const idioma = ALIAS_DE_IDIOMA[trozos[0].toLowerCase()] ?? trozos[0].toLowerCase();
   /* Solo letras: descarta basura del tipo "es-PE.UTF-8" o "C". */
   if (!/^[a-z]{2,3}$/.test(idioma)) return '';
   const resto = trozos.slice(1).map((t) => {
@@ -73,6 +73,25 @@ export const idiomaDe = (crudo: string): string => partesDelLocale(crudo).idioma
  * elegido. Lo segundo es lo que impide que la interfaz se rompa porque a una
  * traducción nueva le falte una línea.
  */
+/**
+ * LA CADENA DE LAS CLAVES (decisión D5, 2026-11-03): la de respaldo, con el VECINO declarado en el catálogo antes del
+ * inglés. Solo la usa el traductor para buscar UNA CLAVE que falte; elegir idioma y diccionario sigue usando
+ * `cadenaDeRespaldo`, así que un vecino nunca sustituye el diccionario de nadie.
+ *
+ *   'cnr-ME'  →  ['cnr-ME', 'cnr', 'sr-Latn', 'en']
+ *   'bs-BA'   →  ['bs-BA', 'bs', 'hr', 'en']
+ *   'nn-NO'   →  ['nn-NO', 'nn', 'en']           (D4: el nynorsk no tiene vecino)
+ *
+ * Un solo salto: el vecino de un vecino no entra (hr → bs, pero bs no vuelve a hr dentro de la misma cadena).
+ */
+export const cadenaDeClaves = (crudo: string): string[] => {
+  const cadena = cadenaDeRespaldo(crudo);
+  const vecino = idiomaDelCatalogo(idiomaDe(normalizarLocale(crudo)))?.respaldoVecino;
+  if (!vecino || cadena.includes(vecino)) return cadena;
+  const reserva = cadena.indexOf(IDIOMA_DE_RESERVA);
+  return reserva < 0 ? [...cadena, vecino] : [...cadena.slice(0, reserva), vecino, ...cadena.slice(reserva)];
+};
+
 export const cadenaDeRespaldo = (crudo: string): string[] => {
   const { idioma, locale } = partesDelLocale(crudo);
   const cadena: string[] = [];
@@ -166,6 +185,26 @@ export interface IdiomaResuelto {
  * que es exactamente lo que ese aparato pidió y lo que ya hacía cuando la
  * región venía en la primera línea.
  */
+/**
+ * EL LOCALE DE FORMATOS cuando la elección no trae región (decisiones D1 y D2, 2026-11-03). Solo para los idiomas que
+ * lo declaran en el catálogo (hoy, el árabe):
+ *   1. una región explícita se respeta tal cual;
+ *   2. si no la hay, se hereda la del aparato del MISMO idioma, siempre que no cambie la variante (el diccionario);
+ *   3. si tampoco, el `localePorDefecto` del catálogo (`ar` → `ar-SA`).
+ * Lo usan los dos caminos —elegido a mano y pedido por el aparato—, así que dan lo mismo.
+ */
+const localeDeFormatos = (locale: string, idioma: string, delAparato: readonly string[]): string => {
+  const fila = idiomaDelCatalogo(idioma);
+  if (!fila?.localePorDefecto && !fila?.heredaRegionDelAparato) return locale;
+  if (partesDelLocale(locale).region) return locale;
+  if (fila.heredaRegionDelAparato) {
+    const heredado = concretarConLaLista(locale, delAparato);
+    if (heredado !== locale && partesDelLocale(heredado).region
+      && etiquetaDelTexto(idioma, heredado) === etiquetaDelTexto(idioma, locale)) return heredado;
+  }
+  return fila.localePorDefecto || locale;
+};
+
 const concretarConLaLista = (locale: string, delAparato: readonly string[]): string => {
   const { idioma, locale: normalizado } = partesDelLocale(locale);
   /* Ya venía concretado —'pt-PT', 'zh-Hant'—: el aparato fue explícito a la
@@ -214,7 +253,7 @@ export const elegirIdioma = (
   if (suyo) {
     const base = idiomaDe(suyo);
     if (puedo(base) && idiomaDelCatalogo(base)) {
-      return { idioma: base as CodigoDeIdioma, locale: suyo, origen: 'elegido' };
+      return { idioma: base as CodigoDeIdioma, locale: localeDeFormatos(suyo, base, delAparato), origen: 'elegido' };
     }
   }
 
@@ -227,7 +266,7 @@ export const elegirIdioma = (
       if (puedo(escalon) && idiomaDelCatalogo(idiomaDe(escalon))) {
         return {
           idioma: idiomaDe(escalon) as CodigoDeIdioma,
-          locale: concretarConLaLista(locale, delAparato),
+          locale: localeDeFormatos(concretarConLaLista(locale, delAparato), idiomaDe(escalon), delAparato),
           origen: 'aparato',
         };
       }

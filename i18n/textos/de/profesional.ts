@@ -1,0 +1,16 @@
+export const profesional: typeof import('../es/profesional').profesional = {
+  name: 'Weë Creator-Version',
+  navLabel: 'Navigation von Weë Creator-Version',
+  projects: 'Projekte',
+  creations: 'Kreationen',
+  versionApp: 'Weë App-Version',
+  versionCreator: 'Weë Creator-Version',
+  versionLabel: 'Weë-Version',
+  switchToApp: 'Wechseln zu Weë App-Version',
+  switchToCreator: 'Wechseln zu Weë Creator-Version',
+  createWithAi: 'Mit KI erstellen',
+  continueWorking: 'Weiterarbeiten',
+  engineStatus: 'Status der Engines',
+  engineClosed: 'Vorerst geschlossen',
+  engineNote: 'Verbunden bedeutet, dass der Ablauf die Engine erreicht. Jedes Ergebnis wird bei der Erstellung geprüft.',
+};

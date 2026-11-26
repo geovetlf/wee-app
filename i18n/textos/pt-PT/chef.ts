@@ -2,7 +2,7 @@
  * PORTUGUÉS DE PORTUGAL — WEË CHEF: el sitio donde se cocina.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Chef comparte con Weë Studio —"Ver todos", "Ajustes", "Listo"— vive en
+ * Lo que Chef comparte con WeëStudio —"Ver todos", "Ajustes", "Listo"— vive en
  * `studio`, y las siete funciones que ya existían siguen en `weeai.chefAc…`.
  *
  * NO ES EL BRASILEÑO CON PALABRAS CAMBIADAS. Se tutea con «tu» —«tens»,
@@ -25,6 +25,7 @@ export const chef: typeof import('../es/chef').chef = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: 'Escreve a tua ideia, os teus ingredientes ou usa uma foto',
+  cookPrompt: 'Diz-me o que queres cozinhar…',
   addLabel: 'Adicionar uma foto',
   cameraLabel: 'Tirar uma foto',
   galleryLabel: 'Escolher uma foto da galeria',
@@ -109,4 +110,11 @@ export const chef: typeof import('../es/chef').chef = {
   seeAll: 'Ver todos',
   projectsEmpty: 'Ainda não cozinhaste nada com Weë.',
   projectsEmptyHint: 'O que criares aqui fica guardado e voltas a encontrá-lo nesta fila.',
+  /* ── La portada de la demo YC (héroe y fichas) ── */
+  heroLead: 'O teu chef com IA,',
+  heroAccent: 'sempre contigo',
+  chipRecipes: 'Receitas',
+  chipMenus: 'Ementas',
+  chipHealthy: 'Saudável',
+  chipQuick: 'Rápido',
 };

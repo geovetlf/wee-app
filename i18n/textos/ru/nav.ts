@@ -20,6 +20,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Создать',
   talk: 'WeeTalk',
   notifications: 'Уведомления',
+  notificationsUnread: 'Уведомления, у вас есть непрочитанные',
   current: 'текущий раздел',
   goTo: 'Открыть {{nombre}}',
   weeNavigation: 'Навигация Weë',
@@ -29,5 +30,10 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: 'Перейти в Weë AI',
   weeAiQuestion: 'Что хотите создать сегодня?',
   weeAiPitch: 'Расскажите Weë, что вам нужно. С ИИ Weë разберётся.',
-  documentTitle: 'Weë - Сообщество будущего',
+  brandSlogan: 'Воображать · Создавать · Объединяться',
+  documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Сообщения',
+  myWee: 'Мой Weë',
 };

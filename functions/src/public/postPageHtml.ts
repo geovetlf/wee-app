@@ -86,6 +86,8 @@ export interface PublicacionPublica {
   videoUrl?: string;
   isWeel?: boolean;
   aiTools?: string[];
+  /** La escribió un personaje con autonomía (IA): la página lo dice, como la app. */
+  autonomo?: boolean;
   /** Ya formateada en español por quien leyó Firestore. */
   fecha?: string;
   /** Solo la pregunta y las opciones. Los recuentos son del servidor. */
@@ -497,11 +499,16 @@ const bloqueDeEncuesta = (post: PublicacionPublica): string => {
   </section>`;
 };
 
-/** "Hecho con": las herramientas de IA que declaró quien publica. */
+/**
+ * "Hecho con": desde el 2026-11-23 (decisión del dueño) no se enseña NINGÚN nombre de experiencia ni de herramienta
+ * —WeëChef, WeëStudio, Filmmaker…—: lo que haya guardado en `aiTools` se pinta como «WeëAI» (marca, sin traducir). Los
+ * datos guardados no se tocan; solo cambia cómo se pinta.
+ */
+export const HERRAMIENTA_VISIBLE = 'WeëAI';
 const bloqueDeHerramientas = (post: PublicacionPublica, textos: TablaDeTextos): string => {
-  const herramientas = (post.aiTools || []).filter((t) => !!t).slice(0, 6);
+  const herramientas = (post.aiTools || []).filter((t) => !!t);
   if (!herramientas.length) return '';
-  const chips = herramientas.map((t) => `<span class="chip">${escapar(t)}</span>`).join('');
+  const chips = `<span class="chip">${escapar(HERRAMIENTA_VISIBLE)}</span>`;
   return `
   <div class="herramientas"><b>${escapar(textos.hechoCon)}</b>${chips}</div>`;
 };
@@ -548,9 +555,11 @@ export const paginaDeLaPublicacion = (post: PublicacionPublica, base = BASE_CANO
     ? `
     <div class="texto">${escapar(post.repostComment)}</div>`
     : '';
-  const fecha = post.fecha
+  // Transparencia fuera de la app (auditoría M7): lo escrito por un personaje con IA se marca también aquí.
+  const marcaDeIA = post.autonomo ? '✦ Personaje Weë · escrito con IA' : '';
+  const fecha = post.fecha || marcaDeIA
     ? `
-        <div class="cuando">${escapar(post.fecha)}</div>`
+        <div class="cuando">${escapar([marcaDeIA, post.fecha].filter(Boolean).join(' · '))}</div>`
     : '';
   const texto = post.content
     ? `

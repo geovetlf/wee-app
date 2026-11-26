@@ -27,11 +27,12 @@
 
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
 import { AlgorithmDescriptor } from './types';
-import { Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto } from './budget';
+import { Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto, topeDelContador } from './budget';
 import { restriccionesMalFormadas } from './objective';
 import { Confidence, Evidence, Signal, resolverSenales } from './signals';
 import { Severidad } from './strategy';
-import { violacionesEn } from './authority';
+import { duenosDe, sonDelRouter, violacionesEn } from './authority';
+import { claveDeEstado } from './verification';
 import {
   ContextoDeVerificacion, ESTADOS, EstadoDeVerificacion, MetricasDeVerificacion, METRICAS_DE_VERIFICACION_CERO,
   OutputExpectation, ResultadoAVerificar, VerificationCheck, VerificationEvaluator, VerificationFinding,
@@ -43,8 +44,10 @@ export const VERIFICATION_ENGINE_ID = 'motor-de-verificacion';
 
 export const DESCRIPTOR_DE_VERIFICACION: AlgorithmDescriptor = Object.freeze({
   id: VERIFICATION_ENGINE_ID,
-  /* 2 desde S2-C.1 (D3): los topes se comprueban solo con lo medido del resultado, y eso cambia lo que decide. */
-  version: 2,
+  /* 2 desde S2-C.1 (D3): los topes se comprueban solo con lo medido del resultado, y eso cambia lo que decide.
+   * 3 desde la misión de cierre: un corte del presupuesto cuenta lo no mirado como `unknown` —antes se
+   * dejaba fuera y podía salir `pass`—; cambia lo que decide cuando se corta, y nada más. */
+  version: 3,
   contract: ALGORITHM_CONTRACT_VERSION,
   category: 'verification',
   status: 'experimental',
@@ -315,7 +318,9 @@ export const crearMotorDeVerificacion = (opciones: OpcionesDelVerificador = {}) 
       findings.push(Object.freeze({
         checkId: 'authority:implementacion', type: 'authority.implementation', status: 'fail' as const,
         hard: true, severity: 'alto' as Severidad, by: 'structural',
-        because: `el resultado nombra implementación en ${violaciones.map((v) => `${v.donde}.${v.clave}`).sort().join(', ')}`,
+        because: sonDelRouter(violaciones)
+          ? `el resultado nombra implementación en ${violaciones.map((v) => `${v.donde}.${v.clave}`).sort().join(', ')}`
+          : `el resultado cruza la frontera de autoridad en ${violaciones.map((v) => `${v.donde}.${v.clave}`).sort().join(', ')} (${duenosDe(violaciones)})`,
       }));
       m.durosIncumplidos++;
     }
@@ -328,10 +333,37 @@ export const crearMotorDeVerificacion = (opciones: OpcionesDelVerificador = {}) 
       m.duros++;
       porque.push(`Topes de pensar mal formados (${limitesRotos.join('; ')}): no se verifica con ellos, así que no se puede concluir.`);
     }
-    for (const c of limitesRotos.length ? [] : todas) {
+    const porMirar = limitesRotos.length ? [] : todas;
+    for (let i = 0; i < porMirar.length; i++) {
+      const c = porMirar[i];
       if (vistos.has(c.id)) continue;      /* Un id repetido es una comprobación, no dos. */
       vistos.add(c.id);
-      if (!contador.gastar('checks')) { m.budgetExhausted = true; porque.push('se llegó al tope de comprobaciones'); break; }
+      if (!contador.gastar('checks')) {
+        m.budgetExhausted = true;
+        /*
+         * (Misión de cierre · motor-de-verificacion@3) LO QUE NO SE MIRÓ NO SE DA POR BUENO.
+         * Antes se dejaba fuera —`break` y nada más— y el veredicto se fundía solo con lo
+         * mirado: con las comprobaciones ordenadas por id, un duro como `structural:status`
+         * podía quedarse sin mirar y el veredicto salir `pass`. Ahora cada una que queda
+         * entra como «sin mirar» (`unknown`) con su dureza, y `fusionarEstados` hace lo de
+         * siempre: un duro sin mirar no deja pasar. Vale igual si el corte es por tiempo
+         * (`maxLatencyMs`, con el cronómetro del ciclo), y se dice cuál se acabó —como A1—.
+         * Cada id una vez: `c` ya está en `vistos`, y los siguientes se saltan por id.
+         */
+        const agotado = contador.agotado();
+        const tope = agotado ? topeDelContador(agotado) : 'maxChecks';
+        const motivo = `no se miró: se acabó el presupuesto de pensar (${tope})`;
+        findings.push(hallazgo(c, 'unknown', motivo, 'budget'));
+        let sinMirar = 1;
+        for (const r of porMirar.slice(i + 1)) {
+          if (vistos.has(r.id)) continue;
+          vistos.add(r.id);
+          findings.push(hallazgo(r, 'unknown', motivo, 'budget'));
+          sinMirar++;
+        }
+        porque.push(`se llegó al tope de pensar (${tope}): ${sinMirar} sin mirar, que cuentan como «sin saber» (\`unknown\`), no como buenas`);
+        break;
+      }
       m.checksEvaluados++;
       if (c.hard) m.duros++;
 
@@ -409,7 +441,7 @@ export const crearMotorDeVerificacion = (opciones: OpcionesDelVerificador = {}) 
 
     /* Las señales que A6 publica sobre SÍ MISMO. Genéricas: nada de capacidades. */
     const propias: Signal[] = [
-      { key: `verification.${status}`, subject: resultado.id, value: true, source: 'derived' },
+      { key: claveDeEstado(status), subject: resultado.id, value: true, source: 'derived' },
       { key: 'verification.coverage', subject: resultado.id, source: 'derived',
         value: m.checksEvaluados ? findings.filter((f) => !esSinSaber(f.status)).length / findings.length : 0 },
     ];

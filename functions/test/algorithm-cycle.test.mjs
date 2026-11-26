@@ -906,7 +906,9 @@ check('91 · nadie ha conectado A9 a producción: solo la sombra lo crea, y solo
 })());
 check('91b · y en la sombra el ciclo solo DECIDE: ni cierra, ni aprende, ni recibe lo aprendido', (() => {
   const src = sinComentarios(leer(PUERTA_DE_LA_SOMBRA));
-  const creaciones = src.match(/crearCicloAlgoritmico\)?\(\)/g) ?? [];
+  /* (Misión de cierre) Con UNA opción como mucho, y esa literal: el cronómetro del razonamiento
+   * —el tope de pensar—. Ni evaluadores, ni métricas, ni capacidades: nada que cierre ni aprenda. */
+  const creaciones = src.match(/crearCicloAlgoritmico\)?\((?:\{ cronometro: reloj \})?\)/g) ?? [];
   /* Lo que se le pide al ciclo vive entre la petición de sombra y la sección: ahí se mira. */
   const desde = src.indexOf('export const peticionDeLaSombra');
   const hasta = src.indexOf('const yaExiste');

@@ -134,7 +134,7 @@ check('16 · ni anidada dos niveles', A.metadataSegura({ a: { b: { allowedProvid
 check('17 · y un descriptor con esa metadata se rechaza entero',
   A.validarDescriptorDeCapacidad(fixture('x', 't', { metadata: { modelId: 'y' } }))
     .some((p) => p.reason === 'authority_violation'));
-check('18 · la cerradura usa el predicado del Planner, no una lista propia',
+check('18 · la cerradura usa la frontera de authority.ts —la lista del Planner y, encima, la lectura por responsabilidad—, no una lista propia de capability.ts',
   leer('functions/src/core/algorithm/capability.ts').includes("import { violacionesEn } from './authority'"));
 
 console.log('\n─── C. Capacidades futuras, tratadas como datos ───');

@@ -3,9 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { RejillaDeCreator } from '../creator/PiezasDeCreator';
 import { MODULOS_DE_BUSINESS, Modulo } from '../../constants/businessModules';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -26,11 +29,27 @@ interface Props {
  * Icono a la izquierda, nombre y debajo qué hay dentro en dos palabras. El icono
  * va del color del texto: ocho iconos de ocho colores convertirían la rejilla en
  * un semáforo y harían que el amarillo de Weë —que significa crear— dejara de
- * significar nada. Es la misma tarjeta de Weë Chef y Weë Studio.
+ * significar nada. Es la misma tarjeta de WeëChef y WeëStudio.
  */
 const BusinessModulos: React.FC<Props> = ({ onAbrir, porFila }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
+  const pro = useEnEspacioProfesional();
+
+  if (pro) {
+    return (
+      <RejillaDeCreator
+        puertas={MODULOS_DE_BUSINESS.map((modulo) => ({
+          id: modulo.id,
+          icono: modulo.icono,
+          titulo: modulo.nombre,
+          pista: t(modulo.claveHint),
+          onPress: () => onAbrir(modulo),
+        }))}
+      />
+    );
+  }
 
   return (
     <View style={styles.rejilla}>
@@ -43,7 +62,7 @@ const BusinessModulos: React.FC<Props> = ({ onAbrir, porFila }) => {
           <TouchableOpacity
             style={[
               styles.tarjeta,
-              { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+              { backgroundColor: c.superficie, borderColor: c.superficieAlta },
               isWeb && ({ cursor: 'pointer' } as any),
             ]}
             onPress={() => onAbrir(modulo)}
@@ -70,7 +89,6 @@ const styles = StyleSheet.create({
   rejilla: { flexDirection: 'row', flexWrap: 'wrap', margin: -SPACING.xs },
   tarjeta: {
     borderRadius: scale(20),
-    borderWidth: StyleSheet.hairlineWidth,
     padding: SPACING.lg,
     gap: SPACING.sm,
     minHeight: scale(118),

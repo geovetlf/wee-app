@@ -83,4 +83,24 @@ export const home = {
   likesCount_other: '{{cantidad}} Likes',
   commentsCount_one: '{{cantidad}} Comentario',
   commentsCount_other: '{{cantidad}} Comentarios',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Ẅall es marca. Sin revisión nativa. */
+  tabWall: 'Ẅall',
+  sectionsNav: 'Secciones',
+  weeAiTagline: 'Crea, desarrolla y transforma tus ideas',
+  openBrain: 'Abrir Weë Brain',
+  feedForYou: 'Para ti',
+  feedCreativity: 'Creatividad',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Ahora en Weë',
+  you: 'Tú',
+  guestTitle: 'Sé libre de expresarte.',
+  guestHint: 'Publica como tú o como tus alter egos, y muestra tu obra en WeëPages.',
+  premiere: 'Estreno',
+  presentedBy: 'Presentada por {{nombre}}',
+  viewPage: 'Ver WeëPage',
+  wallEmptyTitleWork: 'El Ẅall espera su primera obra',
+  wallEmptyHintFaces: 'Publica algo tuyo o de tu alter ego.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Universos para descubrir',
+  mosaicTitle: 'Lo que se crea ahora',
 };

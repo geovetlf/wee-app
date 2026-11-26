@@ -44,4 +44,14 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'Hvad mangler projektet?',
   whatIsMissingNote: 'Et logo, fotos, en annonce, en video, musik eller et dokument: Alle Weë-specialister kan bidrage her.',
   createSomethingNew: 'Lav noget nyt',
+  /* N — Rediseño de «Mis proyectos» (2026-11-05): contador, búsqueda, orden, fecha y vacío de la lista. */
+  count_one: '{{contador}} projekt',
+  count_other: '{{contador}} projekter',
+  updatedOn: 'Opdateret {{fecha}}',
+  searchPlaceholder: 'Søg i projekter',
+  sortUpdated: 'Senest opdateret',
+  sortName: 'Navn (A–Å)',
+  noMatches: 'Ingen projekter matcher din søgning.',
+  emptySpaceTitle: 'Dit kreative rum begynder her',
+  moreActions: 'Flere handlinger',
 };

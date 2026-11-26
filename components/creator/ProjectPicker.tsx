@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useIdioma } from '../../contexts/IdiomaContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,6 +9,7 @@ import { projectsService, WeeProject, PROJECT_EMOJIS, suggestProjectName } from 
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import EspacioDeEscritura from '../EspacioDeEscritura';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 interface ProjectPickerProps {
   visible: boolean;
@@ -92,7 +94,7 @@ const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, o
                 >
                   <Text style={styles.rowEmoji}>{project.emoji}</Text>
                   <Text style={[styles.rowName, { color: theme.colors.text }]} numberOfLines={1}>{project.name}</Text>
-                  <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+                  <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
                 </TouchableOpacity>
               ))
             )}
@@ -123,6 +125,7 @@ const ProjectPicker: React.FC<ProjectPickerProps> = ({ visible, goal, onClose, o
                 accessibilityLabel={t('weeai.projectName')}
               />
               <TouchableOpacity onPress={create} disabled={!name.trim() || creating} style={[styles.createButton, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityLabel={t('weeai.createProject')}>
+                <RellenoDeMarca radio={BORDER_RADIUS.full} />
                 <Text style={styles.createText}>{creating ? '…' : t('weeai.create')}</Text>
               </TouchableOpacity>
             </View>

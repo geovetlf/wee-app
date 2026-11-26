@@ -8,12 +8,12 @@
  * va en su voz y en forma llana, con la forma del español (infinitivo → 〜する, «Quiero…» → 〜したい, imperativo →
  * 〜して), igual que creator.ts, que repite varias de estas frases con la misma traducción. Si la misma frase es también
  * el título de la tarjeta («Crear una canción», «Crear un menú»…), las dos dicen lo mismo (prueba 54), y por eso la
- * cuadrícula de Weë Music va entera con 作る. «Beauty» es ビューティー,
+ * cuadrícula de WeëMusic va entera con 作る. «Beauty» es ビューティー,
  * como en studio.ts y creator.ts; «Writer» abre la sección entera y va como marca: Weë Writer. «Producto» es 商品,
  * como en design, studio y Weë Business; «especialista», スペシャリスト; «asistente inteligente», スマートアシスタント,
  * como en brain.ts; el «formato» de un video, アスペクト比 (glosario). Las cifras de ejemplo
  * siguen la costumbre japonesa (125.4K → 12.5万, 2.8K → 2,800, 20 min → 20分) y «Japón» de los ejemplos de viaje es
- * 京都, como en creator.ts; la bandera se queda. Los chips de Weë Travel conservan el espacio ASCII tras el emoji:
+ * 京都, como en creator.ts; la bandera se queda. Los chips de WeëTravel conservan el espacio ASCII tras el emoji:
  * `objetivoDe` (IdeaBox) solo quita el emoji si lo sigue un espacio.
  */
 export const catalogo: typeof import('../es/catalogo').catalogo = {
@@ -63,7 +63,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: '全部まとめておまかせ',
   brainEj3Subtitle: 'アイデアから、デザイン・動画・音楽まで',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: '想像したものを、デザインに。',
   designIntro: 'アイデアを、AIで驚きのデザインに変えましょう。ロゴから車、商品、まるごとひとつの世界まで、何でもデザインできます。',
   designChip1: 'すばやく、かんたん',
@@ -162,7 +162,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: '顔のレタッチ',
   photoEj6Title: 'AIで変身',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'AIで、音楽を作る・聴く・楽しむ',
   musicIntro: 'アイデアを、曲や動画、特別な体験に変えましょう。創造力に限界はありません。',
   musicChip1: 'すばやく、かんたん',
@@ -224,7 +224,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: '音楽を、見ごたえのある動画に変えましょう。多彩なスタイル、音楽との自動同期、SNS向けのアスペクト比、シーンやキャラクターにも対応しています。',
   musicClosingButton: '今すぐ動画を作成',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: '写真も動画も、AIで思いのままに',
   studioIntro: '作りたいものを教えてください。一歩ずつお手伝いします。',
   studioChip1: 'かんたん操作',
@@ -317,7 +317,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: '受信メッセージ',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'いつもそばに、専属シェフ',
   chefIntro: 'レシピ探しから献立づくり、手持ちの食材の活用まで。毎日の食事を、もっとヘルシーに、かんたんに、おいしく。',
   chefChip1: 'かんたんレシピ',
@@ -347,7 +347,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: '献立が決まらない',
   chefAcIdkSubtitle: 'おいしいものを提案します',
   chefAcIdkGoal: '今日の献立が決まらない',
-  chefIdeaTitle: 'こんにちは！　Weë Chefです👨‍🍳',
+  chefIdeaTitle: 'こんにちは！　WeëChefです👨‍🍳',
   chefIdeaSubtitle: '今日は何を作りたいですか？',
   chefIdeaPlaceholder: 'アイデアを書く…',
   chefIdeaChip1: 'すぐ作れる晩ごはんがいい',
@@ -559,7 +559,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: '職務経歴書',
   writerEj6Subtitle: 'モダンですっきり',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: '旅慣れた相棒と、旅の準備を。',
   travelIntro: '行き先を教えてください。まだ決まっていなくても大丈夫です。見どころ、食事のお店、移動手段まで、旅の計画を立てます。',
   travelChip1: '予約の手配なし',

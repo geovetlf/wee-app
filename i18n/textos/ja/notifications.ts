@@ -30,6 +30,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}}が{{comunidad}}に投稿しました',
   aCommunity: 'コミュニティ',
   generic: '{{nombre}}があなたに反応しました',
+  characterNotice: '{{nombre}}から確認してほしいお知らせがあります',
   now: 'たった今',
   markAllRead: 'すべて既読にする',
   all: 'すべて',

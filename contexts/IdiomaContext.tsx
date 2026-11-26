@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { CodigoDeIdioma, direccionDe, Idioma, idiomasDisponibles } from '../i18n/idiomas';
 import { elegirIdioma, etiquetaDelTexto, IdiomaResuelto, OrigenDelIdioma } from '../i18n/resolver';
 import { crearTraductor, Traductor, Valores } from '../i18n/traducir';
-import { DICCIONARIOS, idiomasConDiccionario } from '../i18n/diccionarios';
+import { almacen, idiomasConDiccionario } from '../i18n/carga';
 import { localesDelAparato } from '../i18n/aparato';
 import { guardarIdiomaElegido, leerIdiomaElegido } from '../i18n/preferencia';
 import { recordarLocale } from '../i18n/emergencia';
@@ -16,12 +16,19 @@ import * as formato from '../i18n/formato';
  * sabe que existe AsyncStorage. Todas piden `t('settings.title')` y ya está.
  * Todo lo de debajo —resolver, respaldar, guardar, formatear— pasa por aquí.
  *
- * POR QUÉ NO BLOQUEA EL ARRANQUE. Leer la preferencia guardada es asíncrono, y
- * había dos caminos: no pintar nada hasta tenerla, o pintar con lo que dice el
- * aparato y corregir en cuanto llegue. Se eligió lo segundo. Retrasar la app
- * entera por una lectura de unos milisegundos es peor que el parpadeo que
- * podría causar, y en la práctica la lectura termina mucho antes que la primera
- * consulta a Firestore. Quien quiera esperar tiene `cargando`.
+ * EL PRIMER PINTADO ESPERA A SU IDIOMA (lote L2, 2026-11-03). Antes se pintaba
+ * con lo que decía el aparato y se corregía al leer la preferencia guardada,
+ * con un posible parpadeo. Con la carga perezosa el diccionario elegido puede
+ * no estar todavía, y pintar mientras tanto en otra lengua es justo lo que el
+ * dueño pidió evitar: así que el árbol se monta cuando se sabe el idioma y su
+ * diccionario está cargado. La espera tiene tope (`TOPE_DE_LA_ESPERA`): si la
+ * preferencia o la carga no llegan, se sigue con el aparato o con el inglés,
+ * completos, nunca con una pantalla en blanco para siempre.
+ *
+ * CAMBIAR DE IDIOMA NO DESMONTA NADA: se sigue viendo el idioma anterior hasta
+ * que el nuevo está cargado, y entonces cambia de una vez. La pantalla, la
+ * sesión y lo escrito siguen donde estaban. Si la carga falla, la interfaz pasa
+ * al inglés (completo, precargado) y se reintenta la próxima vez.
  *
  * LO QUE ESTE CONTEXTO NO HACE, dicho aquí para que nadie lo añada después:
  * no mira la ubicación. Ni el GPS, ni la IP, ni el país de la SIM, ni la zona
@@ -62,6 +69,25 @@ interface ValorDelContexto {
 
 const Contexto = createContext<ValorDelContexto | undefined>(undefined);
 
+/*
+ * LA PRUEBA DE RTL, CONTROLADA (migración de la demo YC, 2026-11-03).
+ *
+ * El árabe ya tiene diccionario y se puede elegir en el selector (integración del proyecto i18n global, 2026-11-05).
+ * Este modo sigue sirviendo para revisar de un vistazo que la interfaz se lee de derecha a izquierda sin tocar la
+ * preferencia guardada: en DESARROLLO y solo si se arranca con `EXPO_PUBLIC_PRUEBA_RTL=ar`, la app usa el locale `ar`
+ * real —su diccionario, números, fechas y dirección—, que se carga antes del primer pintado. En una build de producción
+ * `__DEV__` es falso y esto no existe: no cambia la elección de nadie ni se guarda en ningún sitio.
+ */
+const PRUEBA_RTL = typeof __DEV__ !== 'undefined' && __DEV__ && process.env.EXPO_PUBLIC_PRUEBA_RTL === 'ar';
+
+/** Lo más que se espera, en el primer arranque, a la preferencia guardada y al diccionario. */
+const TOPE_DE_LA_ESPERA = 4000;
+const conTope = <T,>(promesa: Promise<T>, siNoLlega: T): Promise<T> =>
+  Promise.race([promesa, new Promise<T>((r) => setTimeout(() => r(siNoLlega), TOPE_DE_LA_ESPERA))]);
+
+/** Si un diccionario no se pudo cargar: la interfaz en inglés (precargado), con los formatos que se pidieron. */
+const enIngles = (r: IdiomaResuelto): IdiomaResuelto => ({ idioma: 'en' as CodigoDeIdioma, locale: r.locale, origen: 'reserva' });
+
 /** Lo que se resuelve antes de saber si hay algo guardado. */
 const resolverConElAparato = (): IdiomaResuelto =>
   elegirIdioma(null, localesDelAparato(), idiomasConDiccionario());
@@ -73,29 +99,45 @@ export const IdiomaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
    */
   const [resuelto, setResuelto] = useState<IdiomaResuelto>(resolverConElAparato);
   const [cargando, setCargando] = useState(true);
+  /* Sube cada vez que entra un diccionario (p. ej. el vecino de respaldo, que llega en segundo plano). */
+  const [version, setVersion] = useState(0);
+  /* Solo cuenta la ÚLTIMA petición: si alguien cambia de idioma dos veces seguidas, gana la segunda. */
+  const peticion = useRef(0);
 
-  /* Y en cuanto se sabe si eligió algo, manda su elección. */
+  useEffect(() => almacen.suscribir(() => setVersion((v) => v + 1)), []);
+
+  /* Primer arranque: la elección guardada (si la hay) manda, y no se pinta hasta tener su diccionario. */
   useEffect(() => {
     let vivo = true;
-    leerIdiomaElegido().then((elegido) => {
-      if (!vivo) return;
-      if (elegido) {
-        setResuelto(elegirIdioma(elegido, localesDelAparato(), idiomasConDiccionario()));
-      }
+    const mia = ++peticion.current;
+    (async () => {
+      const elegido = await conTope(leerIdiomaElegido(), null);
+      const objetivo = elegido ? elegirIdioma(elegido, localesDelAparato(), idiomasConDiccionario()) : resolverConElAparato();
+      const carga = await conTope(almacen.preparar(objetivo.locale), { listo: false, fallo: 'tope' });
+      /* El modo de prueba RTL pinta en árabe: su diccionario tiene que estar antes del primer pintado. */
+      if (PRUEBA_RTL) await conTope(almacen.preparar('ar'), { listo: false, fallo: 'tope' });
+      if (!vivo || mia !== peticion.current) return;
+      setResuelto(carga.listo ? objetivo : enIngles(objetivo));
       setCargando(false);
-    });
+    })();
     return () => { vivo = false; };
   }, []);
 
   const cambiarIdioma = (codigoOLocale: string) => {
     /*
-     * El estado primero y el guardado después, a propósito: la interfaz tiene
-     * que cambiar en el momento del toque, no cuando el disco conteste. Y se
-     * guarda el locale entero, no solo el idioma, para no perder la región.
+     * Se guarda en el momento del toque —el locale entero, no solo el idioma,
+     * para no perder la región— y la interfaz cambia cuando su diccionario está
+     * (al instante si ya estaba cargado). Hasta entonces se ve el idioma de antes,
+     * entero: nunca una mezcla ni un parpadeo en otra lengua.
      */
     const nuevo = elegirIdioma(codigoOLocale, localesDelAparato(), idiomasConDiccionario());
-    setResuelto(nuevo);
     void guardarIdiomaElegido(codigoOLocale);
+    const mia = ++peticion.current;
+    if (almacen.estaListo(nuevo.locale)) { setResuelto(nuevo); return; }
+    void almacen.preparar(nuevo.locale).then((carga) => {
+      if (mia !== peticion.current) return;
+      setResuelto(carga.listo ? nuevo : enIngles(nuevo));
+    });
   };
 
   /*
@@ -112,8 +154,18 @@ export const IdiomaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     document.documentElement.lang = etiqueta;
   }, [etiqueta]);
 
+  /*
+   * EL SENTIDO DE LA PÁGINA, EN LA WEB. React Native Web resuelve `start`/`end` y el orden de las filas con el `dir`
+   * del documento: sin esto, un idioma RTL dejaría la interfaz de izquierda a derecha. Con los idiomas de hoy es `ltr`.
+   */
+  const sentido = PRUEBA_RTL ? 'rtl' : direccionDe(resuelto.idioma);
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    document.documentElement.dir = sentido;
+  }, [sentido]);
+
   const valor = useMemo<ValorDelContexto>(() => {
-    const { idioma, locale, origen } = resuelto;
+    const { idioma, locale, origen } = PRUEBA_RTL ? { ...resuelto, idioma: 'ar' as const, locale: 'ar' } : resuelto;
     /*
      * Se le deja dicho a la pantalla de error en qué lengua está la interfaz.
      * Vive por fuera de este proveedor —tiene que sobrevivir a que reviente— y
@@ -124,7 +176,7 @@ export const IdiomaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
      * con la variante resuelta: un `zh-Hant-TW` es tradicional, no `zh`.
      */
     recordarLocale(etiqueta);
-    const t = crearTraductor(locale, DICCIONARIOS, {
+    const t = crearTraductor(locale, almacen.diccionarios(), {
       modoDesarrollo: typeof __DEV__ !== 'undefined' && __DEV__,
     });
     return {
@@ -148,9 +200,10 @@ export const IdiomaProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resuelto, cargando]);
+  }, [resuelto, cargando, version]);
 
-  return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
+  /* Hasta saber el idioma y tener su diccionario no se monta el árbol: ni un fotograma en otra lengua (L2). */
+  return <Contexto.Provider value={valor}>{cargando ? null : children}</Contexto.Provider>;
 };
 
 /**
@@ -165,7 +218,7 @@ export const useIdioma = (): ValorDelContexto => {
   const deEmergencia = useMemo<ValorDelContexto>(() => {
     const { idioma, locale, origen } = resolverConElAparato();
     return {
-      t: crearTraductor(locale, DICCIONARIOS),
+      t: crearTraductor(locale, almacen.diccionarios()),
       idioma, locale, origen,
       direccion: direccionDe(idioma),
       disponibles: idiomasDisponibles(),

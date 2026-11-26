@@ -235,7 +235,7 @@ export const claveDelValor = (ruta: string, valor: string): string | null =>
  * LO QUE LA PERSONA ELIGIÓ, POR RUTA DEL LENGUAJE CREATIVO.
  *
  * `{ 'shot.type': 'close_up', 'lighting.type': 'golden_hour' }` y nada más. Es
- * la MISMA forma que guarda el panel de controles de Weë Studio, a propósito:
+ * la MISMA forma que guarda el panel de controles de WeëStudio, a propósito:
  * lo que se ve en pantalla y lo que viaja tienen que ser el mismo dato, porque
  * dos copias del mismo estado se separan y entonces la persona ve una cosa y
  * Weë recibe otra.

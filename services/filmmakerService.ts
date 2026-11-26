@@ -276,6 +276,8 @@ export interface NuevaProduccion {
   readonly preset?: FormatPresetId;
   /** …o una producción entera, como borrador en su revisión 0. Lo uno o lo otro. */
   readonly production?: FilmmakerProduction;
+  /** Las imágenes de la persona (subidas a `creator-inputs`) con su papel; el servidor las vuelve material de la cuenta al crear. */
+  readonly references?: readonly { readonly role: 'reference' | 'character' | 'world'; readonly url: string }[];
 }
 
 export interface LoteParaAplicar {
@@ -287,13 +289,29 @@ export interface LoteParaAplicar {
   readonly operationId: string;
 }
 
-export const crearFilmmakerService = (llamar: LlamadaAProducciones) => ({
+/**
+ * LA ESPERA CORTA de las dos operaciones con las que se ABRE una pantalla (crear una producción y leer la lista): sin Functions o sin red la llamada
+ * podía quedarse girando hasta los 70 s de arriba. Pasados estos milisegundos se da por no llegada y vuelve como `sin_conexion` (reintentable), el
+ * mismo fallo de siempre. Solo cambia cuánto se espera en el cliente: ni la operación, ni el contrato, ni el servidor. El resto de operaciones
+ * (`apply`, `get`…) conservan su plazo largo, porque un lote lento no debe darse por perdido.
+ */
+export const PLAZO_CORTO_MS = 15_000;
+
+const conPlazo = <T>(promesa: Promise<T>, ms: number): Promise<T> => new Promise<T>((resolver, rechazar) => {
+  const temporizador = setTimeout(() => rechazar(Object.assign(new Error('deadline-exceeded'), { code: 'functions/deadline-exceeded' })), ms);
+  promesa.then((v) => { clearTimeout(temporizador); resolver(v); }, (e) => { clearTimeout(temporizador); rechazar(e); });
+});
+
+export const crearFilmmakerService = (llamar: LlamadaAProducciones, opciones: { readonly plazoCortoMs?: number } = {}) => {
+  const llamarConLimite: LlamadaAProducciones = (datos) => conPlazo(llamar(datos), opciones.plazoCortoMs ?? PLAZO_CORTO_MS);
+  return {
   /** Crear una producción. `created: false` si ya existía esa misma. */
   createProduction: (p: NuevaProduccion): Promise<Resultado<{ readonly created: boolean; readonly produccion: ProduccionGuardada }>> =>
     intentar(async () => {
-      const r = await llamar(limpio({
+      const r = await llamarConLimite(limpio({
         op: 'create', productionId: p.productionId ?? nuevoIdDeProduccion(), operationId: p.operationId,
         title: p.title, aspectRatio: p.aspectRatio, resolution: p.resolution, preset: p.preset, production: p.production,
+        references: p.references && p.references.length ? p.references : undefined,
       }));
       return { created: esObj(r) && r.created === true, produccion: aProduccion(r) };
     }),
@@ -306,7 +324,7 @@ export const crearFilmmakerService = (llamar: LlamadaAProducciones) => ({
   listProductions: (c: { readonly status?: EstadoDeProduccion; readonly limit?: number; readonly after?: string } = {}):
     Promise<Resultado<{ readonly producciones: readonly ResumenDeProduccion[]; readonly nextCursor?: string }>> =>
     intentar(async () => {
-      const r = await llamar(limpio({ op: 'list', status: c.status, limit: c.limit, after: c.after }));
+      const r = await llamarConLimite(limpio({ op: 'list', status: c.status, limit: c.limit, after: c.after }));
       if (!esObj(r) || !Array.isArray(r.productions)) throw new RespuestaInvalida('list');
       return { producciones: r.productions.map(aResumen), ...(typeof r.nextCursor === 'string' ? { nextCursor: r.nextCursor } : {}) };
     }),
@@ -353,7 +371,8 @@ export const crearFilmmakerService = (llamar: LlamadaAProducciones) => ({
       if (!esObj(r) || !esObj(r.source) || typeof r.source.productionId !== 'string' || !esEntero(r.source.revision)) throw new RespuestaInvalida('duplicate');
       return { created: r.created === true, produccion: aProduccion(r), source: { productionId: r.source.productionId, revision: r.source.revision } };
     }),
-});
+};
+};
 
 export type FilmmakerService = ReturnType<typeof crearFilmmakerService>;
 

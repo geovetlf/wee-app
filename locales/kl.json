@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë assiliummik atuinissamut akuersissummik pisariaqartitsivoq, taamaalilluni assiliisinnaassaatit assillu saqqummiussatinni, profilinni, WeeTalk aamma Weë AI atorlugit atorsinnaassallugit.",
+    "NSMicrophoneUsageDescription": "Weë nipimik tigusiummik atuinissamut akuersissummik pisariaqartitsivoq, taamaalilluni nipilersornermut isumassarsiat, erinnat nipaatsumik erinarsukkat, nammineq nipitit assersuutissat nipimillu oqariartuutit immiussinnaassallugit. Nipi taamaallaat atorneqartarpoq illit atornissaa aalajangiguit.",
+    "NSPhotoLibraryUsageDescription": "Weë assinut toqqorsivimmut akuersissummik pisariaqartitsivoq, taamaalilluni assit videollu saqqummiussatinnut, profilinnut, WeeTalk aamma Weë AI atorlugit atugassat toqqarsinnaassallugit.",
+    "NSPhotoLibraryAddUsageDescription": "Weë akuersissummik pisariaqartitsivoq, taamaalilluni assit videollu Weë AI atorlugu aallertatit assinut toqqorsivinnut toqqorsinnaassallugit.",
+    "NSLocationWhenInUseUsageDescription": "Weë sumiiffimmik eqqoqqissaanngitsumik atuisarpoq taamaallaat ammasimatillugu, taamaalilluni eqqaanni sumiiffinnik siunnersuisinnaassalluni, saqqummiussamullu sumiiffimmik ilanngussigaangavit najukkat takutissallugu. Sumiiffit eqqoqqissaartoq tamanut takutinneqarneq ajorpoq."
+  }
+}

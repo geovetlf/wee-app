@@ -4,7 +4,7 @@
  * Este archivo es el MOLDE: de él sale el tipo que tiene que cumplir el resto
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
  *
- * QUÉ NO ESTÁ AQUÍ: "Weë Studio" y "Writer", que son marca y se escriben igual
+ * QUÉ NO ESTÁ AQUÍ: "WeëStudio" y "Writer", que son marca y se escriben igual
  * en todos los idiomas. Tampoco los formatos —PDF, MP4, 16:9—, que son nombres
  * técnicos y no cambian de idioma.
  */
@@ -229,7 +229,7 @@ export const studio = {
   soon: 'Pronto',
   soonHint: 'Esta herramienta ya tiene su sitio. Falta conectarla.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Texto',
   textHint: 'Escribe cualquier contenido',
   exploreTitle: 'Explorar',
@@ -370,4 +370,13 @@ export const studio = {
   worldCancelledNote: 'Paré la creación. Lo que se reservó vuelve a tu saldo de Credits.',
   worldUploadFailed: 'No pude subir tu foto. Inténtalo de nuevo.',
   worldDailyLimit: 'Ya usaste los mundos 3D de hoy. Si alguno no sale, lo recuperas, y se renuevan cada día.',
+  filmmakerCardTitle: 'Dirige tu película',
+  filmmakerCardSub: 'Escenas, planos y movimientos de cámara, con la dirección en tus manos.',
+  filmmakerCardCta: 'Abrir Filmmaker',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: 'Crea',
+  heroAccent: 'sin límites.',
+  quickTitle: 'Creación rápida',
+  filmmakerEngineSub: 'Crea, dirige y edita tus películas con IA.',
+  projectsTitle: 'Proyectos',
 };

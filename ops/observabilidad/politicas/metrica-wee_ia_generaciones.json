@@ -1,0 +1,5 @@
+{
+  "name": "wee_ia_generaciones",
+  "description": "Generaciones de IA atendidas (una línea del motor por cada una)",
+  "filter": "resource.type=\"cloud_run_revision\" AND (textPayload:\"WEË AI ENGINE: \" OR jsonPayload.message:\"WEË AI ENGINE: \") AND (textPayload:\" atendió \" OR jsonPayload.message:\" atendió \")"
+}

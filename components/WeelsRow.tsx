@@ -10,6 +10,8 @@ import { cloudinaryVideoThumb } from '../services/cloudinaryService';
 import { formatNumber } from '../utils/formatoCorto';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { MARCA } from '../constants/marca';
+import { RellenoDeMarca } from './GradienteDeMarca';
 
 interface WeelsRowProps {
   /** Weëls reales (videos ≤ 15 s). Si no hay, se muestran ejemplos y la invitación a crear el primero. */
@@ -62,6 +64,7 @@ const SAMPLES: { colors: [string, string, string]; emoji: string; clave: string 
 const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, compacta }) => {
   const { theme } = useTheme();
   const { t, locale } = useIdioma();
+  const [rotas, setRotas] = React.useState<Record<string, boolean>>({});
   const hasPosts = posts.length > 0;
 
   return (
@@ -128,8 +131,10 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
           accessibilityRole="button"
           accessibilityLabel={t('weels.create')}
         >
-          {!compacta && <LinearGradient colors={['#F5B731', '#E5A020']} style={StyleSheet.absoluteFill} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} />}
+          {!compacta && <LinearGradient colors={MARCA.degradado.colores} locations={MARCA.degradado.posiciones} style={StyleSheet.absoluteFill} start={MARCA.degradado.inicio} end={MARCA.degradado.fin} />}
           <View style={[styles.plus, compacta && styles.plusCompacto, compacta && { backgroundColor: theme.colors.accent }]}>
+            {/* El + compacto se pinta con el degradado de marca; en la tarjeta grande el degradado ya es el fondo y el + queda blanco. */}
+            <RellenoDeMarca radio={styles.plusCompacto.borderRadius} apagada={!compacta} />
             <Ionicons name="add" size={scale(20)} color="#1F2937" />
           </View>
           {/* Dos líneas: "Tu primer Weël" no cabe en una a 68 puntos y se cortaría. */}
@@ -142,7 +147,10 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
 
         {hasPosts
           ? posts.slice(0, 10).map((post) => {
-              const thumb = post.videoUrl && post.videoUrl.includes('cloudinary.com') ? cloudinaryVideoThumb(post.videoUrl, 300) : null;
+              const guardada = post.imageUrlsThumbnails?.[0];
+              const propuesta = guardada || (post.videoUrl && post.videoUrl.includes('cloudinary.com') ? cloudinaryVideoThumb(post.videoUrl, 300) : null);
+              /* Una miniatura que no carga deja el fondo de siempre, no un recuadro oscuro. */
+              const thumb = propuesta && !rotas[post.id ?? ''] ? propuesta : null;
               return (
                 <TouchableOpacity
                   key={post.id}
@@ -152,7 +160,7 @@ const WeelsRow: React.FC<WeelsRowProps> = ({ posts, onOpenWeels, onCreateWeel, c
                   accessibilityLabel={t('weels.open')}
                 >
                   {thumb ? (
-                    <Image source={{ uri: thumb }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
+                    <Image source={{ uri: thumb }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" onError={() => setRotas((r) => ({ ...r, [post.id ?? '']: true }))} />
                   ) : (
                     <LinearGradient colors={SAMPLES[0].colors} style={StyleSheet.absoluteFill} start={{ x: 0.2, y: 0 }} end={{ x: 1, y: 1 }} />
                   )}

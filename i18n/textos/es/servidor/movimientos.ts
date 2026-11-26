@@ -26,6 +26,7 @@ export const movimientos = {
   brainRespuestas_one: 'Weë Brain · {{contador}} respuesta',
   brainRespuestas_other: 'Weë Brain · {{contador}} respuestas',
   brainNoPudo: 'Weë Brain · no pudo responder',
+  brainMuestra: 'Weë Brain · respuesta de muestra, no se cobra',
   studioVideo: 'Weë Studio · video',
   studioSinTiempo: 'Weë Studio · el intento anterior se quedó sin tiempo',
   studioNoSePudo: 'Weë Studio · el video no se pudo generar',
@@ -54,4 +55,8 @@ export const movimientos = {
   servicioAiTextPro: 'Texto largo de máxima calidad',
   servicioAiSearch: 'Búsqueda con IA',
   servicioAiBook: 'Creación de libro',
+  /* Boost (functions/src/boost, docs/BOOST.md): la reserva, la que no llegó a abrirse y la que no entregó nada. */
+  boostReserva: 'Boost de una publicación',
+  boostNoIniciado: 'Boost no iniciado',
+  boostSinEntregas: 'Boost sin entregas · se devolvió todo',
 };

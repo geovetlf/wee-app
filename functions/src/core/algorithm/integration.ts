@@ -136,7 +136,7 @@ export type MotivoDeParada =
   | 'ambiguous_alternatives'
   /* Declara un historial —del ámbito o por alternativa— Y pide a A8 que lo seleccione: dos fuentes para lo mismo. */
   | 'history_twice'
-  /* A8 rechazó la petición de contexto: sin reloj no se sabe qué sigue valiendo. */
+  /* A8 rechazó la petición de contexto: sin reloj no se sabe qué sigue valiendo. O el ciclo la rechaza antes de A8 porque sus requisitos están mal formados —`problemasDeLosRequisitos`—. */
   | 'context_rejected'
   /* A8 no contesta para ese ámbito —una cuenta, un campo de persona—. */
   | 'context_refused'
@@ -150,9 +150,9 @@ export type MotivoDeParada =
   | 'composition_emptied'
   /* (1.12) El plan existe pero ninguna disposición cabe en `maxDepth`: el ciclo se para antes de A1. El mismo nombre que en A2. */
   | 'max_depth_exceeded'
-  /* (1.12) El presupuesto de pensar no dejó evaluar ninguna alternativa —`maxCandidates: 0`, `maxAlgorithmCalls: 0`…—: por opciones, A1 falla con `budget_exceeded`; con tarea, la composición se vacía por él. El mismo nombre que el fallo de A1. */
+  /* (1.12) El presupuesto de pensar no dejó evaluar ninguna alternativa —`maxCandidates: 0`, `maxAlgorithmCalls: 0`…—: por opciones, A1 falla con `budget_exceeded`; con tarea, la composición se vacía por él. El mismo nombre que el fallo de A1. Y un TERCER caso desde la misión de cierre, solo con el cronómetro del ciclo: se acabó el tiempo de pensar ENTRE dos etapas —puede llegar sin `decision`, con el recorrido a medias y sin marca de presupuesto en ningún motor—, y se reconoce por su porqué («Se acabó el tiempo de pensar … antes de …»). Un motivo propio o un dato estructurado serían otra forma del contrato: decisión pendiente. */
   | 'budget_exceeded'
-  /* La petición —su objetivo, sus restricciones o el ámbito de lo aprendido (S2-A)— o la entrega nombraban una implementación: eso es del Router. */
+  /* La petición —su objetivo, sus restricciones o el ámbito de lo aprendido (S2-A)— o la entrega cruzaban la frontera de `authority.ts`: nombraban una implementación —eso es del Router— o, desde la misión de cierre, otra responsabilidad ajena (Credits, un secreto, una API, un material, un trabajo). El porqué dice cada clave y su dueño. */
   | 'authority_violation';
 
 /**
@@ -185,23 +185,36 @@ export interface EntregaDeEjecucion {
  * otra cosa, y se dice lector a lector (R6, auditado en el Router, el
  * Orchestrator, el Job Engine y el Gateway):
  *
- *   router         lo que el Router lee al elegir implementación: el mismo
- *                  `Budget` y la misma `QualityRequirement` que ya forman parte de
- *                  `RoutingConstraints`. No se copia ese tipo: se usan los suyos.
- *                  Hoy SÍ los lee.
- *   orchestrator   cuántos pasos a la vez. «Lo ejecuta el Orchestrator; aquí
- *                  solo se acota» (`AlgorithmConstraints.maxParallel`). Su campo
- *                  es `maxConcurrent`: la traducción está PENDIENTE y hoy no lo
- *                  lee nadie.
+ *   router         lo que lee el Router DEL CORE (`core/router.ts`) al elegir
+ *                  implementación: el mismo `Budget` y la misma
+ *                  `QualityRequirement` de `RoutingConstraints`. No se copia ese
+ *                  tipo: se usan los suyos. Ese Router los lee en SUS peticiones,
+ *                  pero hoy solo lo usa el conductor, tras `aiSettings/runtime`,
+ *                  cerrada (DD-02), y sin puerto de costes: un `maxUsd` se avisa
+ *                  (`budget_not_checked`), no se comprueba. El router de
+ *                  producción (`engine/router.ts`) no lee ninguno de los dos. Y el
+ *                  presupuesto de la entrega es del PLAN, no de un paso.
+ *   orchestrator   (S2-C.1 · D8, DECIDIDO: no se implementa.) `maxParallel` es una
+ *                  restricción del algoritmo —cuántos pasos a la vez puede tener
+ *                  una disposición que A2, A3, A4 y A1 analizan— y el plan
+ *                  entregado ya la cumple. No se traduce a `maxConcurrent`, el
+ *                  campo del Orchestrator: cuántos corren de verdad a la vez lo
+ *                  decide quien ejecuta, con el suyo.
  *   execution      los relojes del TRABAJO. El plazo ya existe en el Job Engine
- *                  y en el Gateway como `deadlineAt`. La latencia máxima hoy no
- *                  la lee nadie: allí hay `timeoutMs` y `deadlineAt`, y la
- *                  traducción está PENDIENTE.
+ *                  y en el Gateway como `deadlineAt`; falta que la entrega llegue
+ *                  hasta ellos. La latencia máxima hoy no
+ *                  la lee nadie, ni la leerá (S2-C.1 · D9, DECIDIDO): es un
+ *                  criterio del algoritmo sobre lo medido —A1, A3, A5 y A6—, no
+ *                  un `timeoutMs`, ni un plazo, ni un aborto.
  *   decision       lo que solo sirvió para decidir. El plan entregado ya lo
  *                  cumple por construcción —A1 descartó lo que no— y nadie más
  *                  tiene que volver a mirarlo.
  *
- * Ninguna de esas traducciones se construye aquí, y nada está conectado.
+ * Nada de esto está conectado, y ninguna traducción espera a nadie (DD-26). Que
+ * `maxParallel` y `maxLatencyMs` sigan apuntando a `orchestrator` y `execution` es
+ * el mapa de S2-A (lo fijan `algorithm-quality` 49 y 50); moverlos a `decision`,
+ * que es lo que dicen D8 y D9, cambia lo que devuelve `repartirRequisitos` y es
+ * una decisión aparte.
  *
  * Un `Record` sobre las claves de `AlgorithmConstraints`: un requisito nuevo no
  * compila hasta que alguien dice quién lo lee. Así no puede cruzar la frontera
@@ -225,8 +238,9 @@ export const DESTINO_DEL_REQUISITO: Readonly<Record<keyof AlgorithmConstraints, 
 /**
  * LOS REQUISITOS DE UNA ENTREGA, REPARTIDOS POR LECTOR (S2-A). Función pura.
  *
- * Es el contrato previo al Router, y NO está conectado: nadie de fuera de esta
- * capa lo llama todavía. Reparte lo que ya viaja en la entrega; no calcula nada,
+ * Es el contrato previo al Router: PREPARADO / NO CONECTADO, y sin consumidor
+ * decidido —fuera de esta capa no lo llama nadie (`algorithm-quality` 56; DD-26)—.
+ * Reparte lo que ya viaja en la entrega; no calcula nada,
  * no reparte presupuestos entre pasos —eso exigiría saber lo que cuesta cada
  * uno— y no elige nada.
  *
@@ -335,7 +349,8 @@ export interface ObservacionDeEjecucion {
    * (S2-C.1 · D3) Y con su SUJETO: una medida es del resultado si su `subject` es
    * `actual.id`. Solo esas llegan a A6 como evidencia y a A7 como lo medido de este
    * resultado; la de un paso, la de otro resultado o una `result.*` sin sujeto no se
-   * le atribuyen. Quien ejecuta las produce así, y quien llama a `cerrar` las entrega.
+   * le atribuyen. Quien ejecute tendrá que producirlas así, y quien llame a `cerrar`,
+   * entregarlas: hoy no existe ni lo uno ni lo otro —la sombra solo decide (`algorithm-cycle` 91b)—.
    */
   signals?: readonly Signal[];
   /** Si se ejecutó una recuperación, y cómo fue. Solo de lo ejecutado se aprende. */

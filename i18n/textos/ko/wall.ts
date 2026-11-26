@@ -1,5 +1,5 @@
 /*
- * COREANO — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * COREANO — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -81,7 +81,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: '댓글',
   commentImageFailed: '이미지를 올리지 못했어요. 다시 시도해 주세요.',
   commentSendFailed: '댓글을 보내지 못했어요. 다시 시도해 주세요.',
-  shareText: '{{contenido}}\n\nWeë에서 만들었어요 · World Encode Entity',
+  shareText: '{{contenido}}\n\nWeë에서 만들었어요 · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Weë에서 이 게시물을 확인해 보세요',
   commentsWithCount: '댓글 ({{total}})',
   agreeWithComment: '이 댓글에 공감',
@@ -90,4 +90,22 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: '프롬프트 숨기기',
   copyPrompt: '프롬프트 복사',
   promptCopied: '복사됨',
+  demoBadge: '데모',
+  demoBadgeLabel: '데모 콘텐츠',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: '아직 Ẅall에 게시물이 없어요',
+  immersiveError: 'Ẅall을 불러오지 못했어요',
+  immersiveEnd: '모두 다 봤어요',
+  agreePost: '동의',
+  disagreePost: '반대',
+  mute: '음소거',
+  unmute: '소리 켜기',
+  moreOptions: '더보기',
+  seeMore: '더 보기',
+  seeLess: '접기',
+  openPost: '게시물 열기',
+  imageOf: '이미지 {{numero}}/{{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: '불꽃',
+  reactionLaugh: '웃음',
 };

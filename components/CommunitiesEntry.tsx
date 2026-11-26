@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from './IconoDireccional';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from './GradienteDeMarca';
 
 interface CommunitiesEntryProps {
   onSearch: (query: string) => void;
@@ -46,11 +48,12 @@ const CommunitiesEntry: React.FC<CommunitiesEntryProps> = ({ onSearch, onCreate,
           accessibilityLabel={t('communities.searchLabel')}
         />
         <TouchableOpacity onPress={submit} style={styles.go} activeOpacity={0.7} accessibilityLabel={t('nav.search')}>
-          <Ionicons name="arrow-forward" size={scale(18)} color={theme.colors.accentDark} />
+          <IconoDireccional name="arrow-forward" size={scale(18)} color={theme.colors.accentDark} />
         </TouchableOpacity>
       </View>
 
       <TouchableOpacity onPress={onCreate} style={[styles.create, { backgroundColor: theme.colors.accent }]} activeOpacity={0.85} accessibilityRole="button" accessibilityLabel={t('communities.create')}>
+        <RellenoDeMarca radio={BORDER_RADIUS.full} />
         <Ionicons name="add" size={scale(20)} color="#1F2937" />
         <Text style={styles.createText}>{t('communities.create')}</Text>
       </TouchableOpacity>

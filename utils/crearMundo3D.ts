@@ -251,6 +251,8 @@ export const errorDelMundo3D = (error: unknown): ErrorDelMundo3D | null => {
       return fallo('entrada', 'motor.invalidRequest', false);
     }
     case 'UNAUTHORIZED': return fallo('sesion', 'weeai.errSignIn', false);
+    /* Guest AI Gate: una sesión de invitado no crea; se le pide iniciar sesión o crear su cuenta. */
+    case 'ACCOUNT_REQUIRED': return fallo('sesion', 'weeai.errAccountRequired', false);
     case 'ACCOUNT_NOT_FOUND': return fallo('sesion', 'weeai.errNoAccount', false);
     case 'DUPLICATE_REQUEST': return fallo('duplicado', 'weeai.errDuplicate', false);
     /* El cupo de mundos es del DÍA (`details.modality === '3d'`): reintentar en un momento no sirve, y se dice. */
@@ -488,7 +490,7 @@ export type EscenaDelMundo =
   | { readonly ok: false; readonly motivo: 'sin_material' | 'sin_cuenta' | 'escena_no_valida' };
 
 /**
- * LA ESCENA DEL MUNDO PARA SU PROYECTO: el núcleo 3D único, perfil `world` (Weë Studio), con el mundo como entorno,
+ * LA ESCENA DEL MUNDO PARA SU PROYECTO: el núcleo 3D único, perfil `world` (WeëStudio), con el mundo como entorno,
  * por id. La construye el mismo código que el servidor (`crearEscena3D`, del espejo), así que nunca sale una escena
  * que el servidor rechazaría. Dónde se guarda es una decisión pendiente del dueño: aquí solo se construye.
  */

@@ -8,7 +8,7 @@
  * de esos casos una palabra que en Taiwán no escribe nadie—.
  * Refleja `textos/es/catalogo.ts` clave por clave; el archivo español es el
  * molde y una clave que falte aquí no compila. Los nombres de Weë (Weë Brain,
- * Weë Chef…) se escriben en alfabeto latino dentro de la frase en hanzi: no se
+ * WeëChef…) se escriben en alfabeto latino dentro de la frase en hanzi: no se
  * traducen ni se transliteran nunca. Los identificadores, los emojis, los
  * números, las duraciones, los géneros musicales y las normas de cita tampoco
  * se traducen. La puntuación es de ancho completo y va un espacio entre el
@@ -61,7 +61,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: '全程替你搞定',
   brainEj3Subtitle: '從創意到設計、影片和音樂',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: '想到什麼，就設計什麼。',
   designIntro: '用人工智慧把你的想法變成出色的設計。從一個 logo 到一輛汽車、一件產品，甚至一整個世界。',
   designChip1: '快速又簡單',
@@ -160,7 +160,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: '臉部精修',
   photoEj6Title: '用 AI 改造',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: '用 AI 創作、聆聽，玩出你的音樂',
   musicIntro: '把你的想法變成歌曲、影片和獨一無二的體驗。創作沒有上限。',
   musicChip1: '快速又簡單',
@@ -222,7 +222,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: '把你的音樂變成一支出色的影片：多種風格、節奏自動同步、適合社群平台的尺寸，還有場景和角色。',
   musicClosingButton: '立即製作影片',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: '用 AI 做照片和影片',
   studioIntro: '告訴我你想做什麼，我一步一步帶你完成。',
   studioChip1: '簡單好上手',
@@ -314,7 +314,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: '收到的訊息',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: '你的廚師，隨時都在',
   chefIntro: '找食譜、配菜單、用好家裡現有的食材，吃得更好、更省事、更美味。',
   chefChip1: '簡單食譜',
@@ -344,7 +344,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: '不知道要煮什麼',
   chefAcIdkSubtitle: '我推薦你一道好吃的',
   chefAcIdkGoal: '今天不知道要煮什麼',
-  chefIdeaTitle: '你好！我是 Weë Chef 👨‍🍳',
+  chefIdeaTitle: '你好！我是 WeëChef 👨‍🍳',
   chefIdeaSubtitle: '說說看，今天想煮點什麼？',
   chefIdeaPlaceholder: '在這裡寫下你的想法…',
   chefIdeaChip1: '想做一頓快速的晚餐',
@@ -556,7 +556,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: '專業履歷',
   writerEj6Subtitle: '現代又清爽',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: '和一個走過路的人一起準備這趟旅行。',
   travelIntro: '告訴我你要去哪裡——還沒決定也沒關係——我來幫你準備：看什麼、吃什麼、怎麼移動。',
   travelChip1: '不代訂',

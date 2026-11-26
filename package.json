@@ -16,10 +16,17 @@
     "deploy:prod:functions": "node scripts/no-desplegar.mjs deploy:prod:functions",
     "deploy:prod:firestore": "node scripts/no-desplegar.mjs deploy:prod:firestore",
     "test:engine": "npm --prefix functions test",
-    "web:demo": "node scripts/web-demo.mjs"
+    "web:demo": "node scripts/web-demo.mjs",
+    "demo:emuladores": "node scripts/demo/entorno.mjs emuladores",
+    "demo:medios": "node scripts/demo/entorno.mjs medios",
+    "demo:web": "node scripts/demo/entorno.mjs web",
+    "demo:nativo": "node scripts/demo/entorno.mjs nativo",
+    "demo:reiniciar": "node scripts/demo/entorno.mjs reiniciar",
+    "demo:presupuesto": "node scripts/demo/generar-medios.mjs --medios demo-medios"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/manrope": "0.4.3",
     "@expo/metro-runtime": "~6.1.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-google-signin/google-signin": "^15.0.0",
@@ -32,6 +39,7 @@
     "expo-constants": "~18.0.13",
     "expo-dev-client": "~6.0.21",
     "expo-device": "~8.0.10",
+    "expo-document-picker": "~14.0.8",
     "expo-file-system": "~19.0.21",
     "expo-font": "~14.0.12",
     "expo-image": "~3.0.11",

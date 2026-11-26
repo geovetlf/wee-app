@@ -1,0 +1,35 @@
+{
+  "displayName": "Weë · errores repetidos en una función",
+  "documentation": {
+    "content": "Más de 5 entradas de log con severidad ≥ ERROR en 10 minutos en UNA función (la etiqueta `service_name` dice cuál). En Cloud Run, `console.error` y `console.warn` salen por stderr y cuentan como ERROR. Mira los logs de ese servicio; si empezó con un despliegue, marcha atrás de esa función (docs/LANZAMIENTO.md § Marcha atrás). docs/OBSERVABILITY.md",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "Errores por función",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/log_entry_count\" AND resource.type=\"cloud_run_revision\" AND metric.label.severity=one_of(\"ERROR\",\"CRITICAL\",\"ALERT\",\"EMERGENCY\")",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 5,
+        "duration": "0s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "600s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM",
+            "groupByFields": [
+              "resource.label.service_name"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "3600s"
+    },
+    "autoClose": "86400s"
+  }
+}

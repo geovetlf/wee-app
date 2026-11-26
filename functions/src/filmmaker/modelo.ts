@@ -211,6 +211,12 @@ export const LIMITES = Object.freeze({
   texto: 2000,
   linea: 1000,
   textoLibre: 4000,
+  /**
+   * Convergencia (2026-11-18) · AMPLIACIÓN DOCUMENTADA: la IDEA (`intent.freeText`) admite hasta 12 000 caracteres, lo que
+   * «Pegar texto» ya acepta en la app. Sobre ese tope se RECHAZA (`too_long`, con el máximo): nunca se recorta en silencio.
+   * El resto de los textos libres siguen en `textoLibre`.
+   */
+  ideaLibre: 12000,
   elementosPorBloque: MAX_ELEMENTOS_POR_NODO,
   dependencias: MAX_DEPENDENCIAS_DE_PLANO,
   anclajes: MAX_ANCLAJES,
@@ -400,7 +406,23 @@ export interface ProductionScene {
   readonly continuity?: ContinuityRule;
   /** De qué escenas continúa esta. Si una cambia, esta puede tener que rehacerse. */
   readonly dependsOn?: readonly string[];
+  /**
+   * CONVERGENCIA (2026-11-18) · EL ESTADO DE LA TANDA, EN EL SERVIDOR. Una tanda (capítulo) ES una escena del contrato:
+   * no hay temporadas ni episodios. Opcional: una escena sin esto es una tanda en borrador y sin guardar, como siempre.
+   * No es parte de lo que la escena ES (no cambia lo que se genera): `toma.ts` la deja fuera de la firma.
+   */
+  readonly batch?: SceneBatch;
   readonly shots: readonly ProductionShot[];
+}
+
+/** Estados que la persona puede dar a una tanda. `producing`/`done`/`error` salen de las tomas, no se guardan aquí. */
+export const ESTADOS_DE_TANDA_GUARDADOS = Object.freeze(['draft', 'approved'] as const);
+export type SceneBatchStatus = typeof ESTADOS_DE_TANDA_GUARDADOS[number];
+
+/** `stored`: guardada en el almacén de la cuenta. Solo con la tanda aprobada. */
+export interface SceneBatch {
+  readonly status: SceneBatchStatus;
+  readonly stored?: boolean;
 }
 
 /**
@@ -438,6 +460,11 @@ export interface ProductionShot {
   readonly dependsOn?: readonly string[];
   readonly generation?: ShotGeneration;
   readonly advanced?: AdvancedDirection;
+  /**
+   * OLA 3b · UNA REVISIÓN PEDIDA de la toma del plano: editarla o extenderla. Es una PETICIÓN, no un resultado: no
+   * cambia el vídeo del plano, deja dicho qué se quiere hacer con él. Cómo se hace lo decide F1-D.
+   */
+  readonly revision?: ShotRevision;
 }
 
 /** A quién o a qué mira la cámara, y a qué parte. */
@@ -457,6 +484,33 @@ export interface CharacterState {
 
 export interface ShotGeneration {
   readonly quality?: ProductionQuality;
+  /**
+   * Convergencia (2026-11-18) · LO QUE LA PERSONA ELIGE DEL MODELO (panel de especificaciones). Opcionales. `preferredModel` es un
+   * id del catálogo (`CapacidadesDeModelo.modeloId`), solo de un modelo integrado; `variants` 1–4 según el modelo; `seed` un
+   * entero, solo si el modelo lo soporta. Lo valida el servidor contra las capacidades del modelo (`engine/preferenciasDeModelo.ts`).
+   */
+  readonly preferredModel?: string;
+  readonly variants?: number;
+  /** La semilla de consistencia (`seed` en la toma). El dominio no admite la clave `seed`: es un parámetro de proveedor. */
+  readonly consistencySeed?: number;
+}
+
+/** Qué se le puede pedir a una toma que ya existe. */
+export const MODOS_DE_REVISION = Object.freeze(['edit', 'extend'] as const);
+export type TakeRevisionMode = typeof MODOS_DE_REVISION[number];
+export const DIRECCIONES_DE_EXTENSION = Object.freeze(['forward', 'backward'] as const);
+export type ExtensionDirection = typeof DIRECCIONES_DE_EXTENSION[number];
+
+/**
+ * LA REVISIÓN DE UNA TOMA. `instruction` es contenido de la persona (no se traduce). `fromTake` dice de cuál de las
+ * tomas del plano se parte; sin él, de la última que salió bien. `seconds` y `direction` solo al extender.
+ */
+export interface ShotRevision {
+  readonly mode: TakeRevisionMode;
+  readonly instruction: string;
+  readonly fromTake?: number;
+  readonly direction?: ExtensionDirection;
+  readonly seconds?: number;
 }
 
 /** El texto que la persona escribe cuando quiere dirigir con sus palabras. */
@@ -476,6 +530,11 @@ export interface DialogueLine {
   readonly emotion?: string;
   /** Si alguien ya sabe cuánto dura, manda sobre la estimación. */
   readonly estimatedSec?: number;
+  /**
+   * Convergencia (2026-11-18) · LA VOZ PROPIA DE ESTA LÍNEA (el cuadro). Ausente = hereda: la del personaje (o la del narrador),
+   * como siempre. Es una descripción o un audio de referencia, igual que la del personaje: nunca un id de proveedor.
+   */
+  readonly voice?: VoiceReference;
 }
 
 /* ── Personajes, apariencia, lugares, objetos y referencias ──────────────── */
@@ -487,6 +546,10 @@ export interface DialogueLine {
  * proveedor —tampoco un id de voz—. Si el personaje ya es un Element de la
  * cuenta, `element` lo dice, en su versión.
  */
+/** De dónde viene una ficha del universo. Ausente = `user` (lo puso la persona): lo guardado antes de este campo sigue leyéndose igual. */
+export const ORIGENES_DE_FICHA = Object.freeze(['user', 'proposal', 'document'] as const);
+export type EntityOrigin = typeof ORIGENES_DE_FICHA[number];
+
 export interface ProductionCharacter {
   readonly id: string;
   readonly name: string;
@@ -499,6 +562,8 @@ export interface ProductionCharacter {
   readonly relationships?: readonly CharacterRelationship[];
   readonly continuity?: CharacterContinuity;
   readonly element?: ElementBinding;
+  /** De dónde viene (convergencia 2026-11-18): lo puso la persona, lo propuso Weë o salió de un documento. Ausente = `user`. */
+  readonly origin?: EntityOrigin;
 }
 
 export interface ApparentAge {
@@ -511,6 +576,8 @@ export interface VoiceReference {
   readonly description?: string;
   readonly referenceId?: string;
   readonly language?: string;
+  /** Una voz del catálogo de Weë (id semántico del catálogo, nunca el id de un proveedor). Ausente = la describe `description` o hereda. */
+  readonly catalogId?: string;
 }
 
 export interface CharacterRelationship {
@@ -562,6 +629,8 @@ export interface ProductionLocation {
   readonly appearance?: AppearanceProfile;
   readonly referenceIds?: readonly string[];
   readonly element?: ElementBinding;
+  /** De dónde viene (convergencia 2026-11-18): lo puso la persona, lo propuso Weë o salió de un documento. Ausente = `user`. */
+  readonly origin?: EntityOrigin;
 }
 
 export interface ProductionObject {
@@ -572,6 +641,8 @@ export interface ProductionObject {
   readonly appearance?: AppearanceProfile;
   readonly referenceIds?: readonly string[];
   readonly element?: ElementBinding;
+  /** De dónde viene (convergencia 2026-11-18): lo puso la persona, lo propuso Weë o salió de un documento. Ausente = `user`. */
+  readonly origin?: EntityOrigin;
 }
 
 /**
@@ -586,6 +657,8 @@ export interface ProductionReference {
   readonly assetId?: string;
   readonly element?: ElementBinding;
   readonly description?: string;
+  /** De dónde viene (convergencia 2026-11-18): lo puso la persona, lo propuso Weë o salió de un documento. Ausente = `user`. */
+  readonly origin?: EntityOrigin;
 }
 
 /* ── Audio ────────────────────────────────────────────────────────────────── */
@@ -625,6 +698,15 @@ export type AudioTarget =
 export interface GenerationPreferences {
   readonly quality?: ProductionQuality;
   readonly preview?: PreviewPolicy;
+  /**
+   * Convergencia (2026-11-18) · LO QUE LA PERSONA ELIGE DEL MODELO (panel de especificaciones). Opcionales. `preferredModel` es un
+   * id del catálogo (`CapacidadesDeModelo.modeloId`), solo de un modelo integrado; `variants` 1–4 según el modelo; `seed` un
+   * entero, solo si el modelo lo soporta. Lo valida el servidor contra las capacidades del modelo (`engine/preferenciasDeModelo.ts`).
+   */
+  readonly preferredModel?: string;
+  readonly variants?: number;
+  /** La semilla de consistencia (`seed` en la toma). El dominio no admite la clave `seed`: es un parámetro de proveedor. */
+  readonly consistencySeed?: number;
 }
 
 /**
@@ -951,11 +1033,11 @@ export const estadoEfectivo = (
 export const repartoDelPlano = (scene: ProductionScene, shot?: ProductionShot): readonly string[] =>
   shot?.characterIds ?? scene.characterIds ?? [];
 
-/** La voz con la que suena una línea: la del narrador o la de su personaje. */
+/** La voz con la que suena una línea: la PROPIA si la tiene (cuadro); si no, la heredada: la del narrador o la de su personaje. */
 export const vozDeLinea = (prod: FilmmakerProduction, line: DialogueLine): VoiceReference | undefined =>
-  line.kind === 'narration'
+  line.voice ?? (line.kind === 'narration'
     ? prod.audio.narrator
-    : prod.characters.find((c) => c.id === line.characterId)?.voice;
+    : prod.characters.find((c) => c.id === line.characterId)?.voice);
 
 export const idiomaDeLinea = (prod: FilmmakerProduction, line: DialogueLine): string | undefined =>
   line.language ?? prod.metadata.locale;

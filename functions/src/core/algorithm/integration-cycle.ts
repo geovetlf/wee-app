@@ -36,8 +36,8 @@ import { ContextoDeRecuperacion } from './recovery';
 import { crearMotorDeRecuperacion } from './recovery-engine';
 import { ResultadoDeDecision } from './feedback';
 import { DescriptorDeMetrica, crearMotorDeFeedback } from './feedback-engine';
-import { crearMotorDeContexto, paraDecision } from './context-engine';
-import { violacionesEn } from './authority';
+import { crearMotorDeContexto, paraDecision, problemasDeLosRequisitos } from './context-engine';
+import { duenosDe, sonDelRouter, violacionesEn } from './authority';
 import {
   AlgorithmDecisionResult, CierreDelCiclo, EntregaDeEjecucion, MotivoDeCierreInvalido, MotivoDeParada,
   ObservacionDeEjecucion, OpcionesDeAprendizaje, PasoDelCiclo, PeticionAlgoritmica, problemaDeObservacion,
@@ -54,7 +54,70 @@ export interface OpcionesDelCiclo {
   evaluadores?: readonly VerificationEvaluator[];
   metricas?: readonly DescriptorDeMetrica[];
   capacidades?: PuertosDeCapacidad;
+  /**
+   * EL CRONÓMETRO DEL RAZONAMIENTO, por puerto: milisegundos MONOTÓNICOS
+   * (`performance.now`), solo para el tope de pensar `maxLatencyMs`.
+   *
+   * Sin él, el motor es el de siempre —puro, sin reloj— y el tope de tiempo no se
+   * mide. Con él, el ciclo lo aplica MIENTRAS razona: en `decidir`, cada etapa (A2,
+   * A4, A3, A5) recibe el tiempo que queda como su propio `maxLatencyMs` y se recorta
+   * como siempre —lo mejor que tenga—, y entre etapas, si no queda tiempo, el ciclo
+   * se para con `budget_exceeded` y dice antes de qué etapa. En `cerrar`, A6 y A6r
+   * reciben el reloj —desde el inicio de `cerrar`, leído fresco— y miden su PROPIO tope
+   * (el del presupuesto que les llegue), sin uno común a las dos. A8 —lo aprendido— va antes de la primera comprobación y sin
+   * el cronómetro (su reloj es el `ahora` de la petición): lo acotan sus propios
+   * topes. Y el corte entre etapas es el tercer caso de `budget_exceeded`
+   * (`MotivoDeParada`): sin `decision`, y dicho en el porqué.
+   *
+   * NO es un reloj de pared: no sirve para `deadlineAt`, que es una fecha. Por eso
+   * A1 no lo recibe —su `ahora` es justamente ese reloj de pared—, y el ciclo
+   * comprueba el tiempo ANTES de A1. Y NO es un plazo de nadie más: ni del
+   * proveedor, ni del Gateway, ni de un trabajo, ni del dinero. Solo de pensar.
+   */
+  cronometro?: () => number;
 }
+
+/**
+ * UN CRONÓMETRO A PRUEBA DE RELOJES ROTOS, ANCLADO A CADA LLAMADA (revisión de la misión,
+ * dos pasadas). Cada `decidir` y cada `cerrar` ABREN una llamada con una lectura fresca:
+ *
+ *  · si esa lectura falla, la llamada entera va SIN reloj —las etapas leen un reloj quieto,
+ *    que no avanza ni corta, y no hay tope común—;
+ *  · si es buena, una lectura que falla después vale la última buena DE ESA LLAMADA, nunca
+ *    una de la anterior ni 0. Así un reloj que falla y se recupera no hace pasar por «pensar»
+ *    el hueco entre dos llamadas, ni la ejecución entre `decidir` y `cerrar`.
+ *
+ * Una lectura no cuenta si el reloj lanza o no da un número finito. Lo que acota sin reloj es
+ * el resto de topes —candidatas, iteraciones, profundidad—, como siempre.
+ */
+const cronometroSeguro = (c: (() => number) | undefined): { abrir: () => number | undefined; leer: () => number } | undefined => {
+  if (typeof c !== 'function') return undefined;
+  const fresca = (): number | undefined => {
+    try {
+      const v = c();
+      if (typeof v === 'number' && Number.isFinite(v)) return v;
+    } catch {
+      /* El reloj no tumba el razonamiento: una lectura que lanza no cuenta, y se dice devolviendo «sin lectura». */
+      return undefined;
+    }
+    return undefined;
+  };
+  /* La llamada en curso: la última lectura buena desde que se abrió. Sin ella, la llamada va sin reloj. */
+  let llamada: { ultima: number } | undefined;
+  return {
+    abrir: (): number | undefined => {
+      const v = fresca();
+      llamada = v === undefined ? undefined : { ultima: v };
+      return v;
+    },
+    leer: (): number => {
+      if (!llamada) return 0;
+      const v = fresca();
+      if (v !== undefined) llamada.ultima = v;
+      return llamada.ultima;
+    },
+  };
+};
 
 /** La alternativa elegida, por su id: A1 devuelve el valor, y el id está en sus candidatos. */
 const idDe = <T>(d: AlgorithmDecision<T>, valor: T | undefined): string | undefined =>
@@ -119,19 +182,24 @@ const porElPresupuesto = (paralelizar: boolean, r: Pick<AlgorithmDecisionResult,
   || (!!r.strategies?.metricas.budgetExhausted && !r.strategies.estrategias.length);
 
 export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
+  const cronometro = cronometroSeguro(opciones.cronometro);
+  /* El de las etapas: el de la llamada en curso; sin llamada (su inicio falló), quieto —lo que no avanza no corta—. */
+  const ahora = cronometro ? { ahora: (): number => cronometro.leer() } : {};
   const a1 = crearMotorDeDecision<unknown>();
-  const a2 = crearMotorDeDescomposicion(opciones.capacidades ? { capacidades: opciones.capacidades } : {});
-  const a3 = crearMotorDeEstrategias();
-  const a4 = crearMotorDeParalelizacion();
-  const a5 = crearMotorDeOptimizacion<Strategy>();
-  const a6 = crearMotorDeVerificacion(opciones.evaluadores ? { evaluadores: opciones.evaluadores } : {});
-  const a6r = crearMotorDeRecuperacion();
+  const a2 = crearMotorDeDescomposicion({ ...(opciones.capacidades ? { capacidades: opciones.capacidades } : {}), ...ahora });
+  const a3 = crearMotorDeEstrategias({ ...ahora });
+  const a4 = crearMotorDeParalelizacion({ ...ahora });
+  const a5 = crearMotorDeOptimizacion<Strategy>({ ...ahora });
+  const a6 = crearMotorDeVerificacion({ ...(opciones.evaluadores ? { evaluadores: opciones.evaluadores } : {}), ...ahora });
+  const a6r = crearMotorDeRecuperacion({ ...ahora });
   const a7 = crearMotorDeFeedback(opciones.metricas ? { metricas: opciones.metricas } : {});
   const a8 = crearMotorDeContexto(opciones.metricas ? { metricas: opciones.metricas } : {});
 
   /* ── DECIDIR ────────────────────────────────────────────────────────────── */
 
   const decidir = <T = unknown>(peticion: PeticionAlgoritmica<T>): AlgorithmDecisionResult<T> => {
+    /* Lo primero, para que cuente todo: con cronómetro, el tope de pensar cubre el ciclo entero. */
+    const inicio = cronometro?.abrir();
     const recorrido: PasoDelCiclo[] = [];
     const porque: string[] = [];
     let salida: Omit<AlgorithmDecisionResult<T>, 'contract' | 'status' | 'recorrido' | 'because'> = {};
@@ -148,7 +216,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
      * implementación. Lo que NINGUNA autoridad mira antes de este punto es lo
      * que la petición trae en `constraints` y en `expected`, y eso también
      * cruza la frontera. Por eso la comprobación va aquí, sobre la entrega
-     * ENTERA, con el mismo predicado del Planner.
+     * ENTERA, con la frontera de `authority.ts`: la lista del Planner primero y,
+     * después, la lectura por responsabilidad.
      */
     const entregar = (parte: Pick<EntregaDeEjecucion, 'plan' | 'elegida'>): AlgorithmDecisionResult<T> => {
       /*
@@ -165,7 +234,9 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
       });
       const cruces = violacionesEn(entrega, 'entrega');
       if (cruces.length) {
-        porque.push(`La entrega nombraba una implementación (${cruces.map((c) => c.clave).join(', ')}): eso lo elige el Router.`);
+        porque.push(sonDelRouter(cruces)
+          ? `La entrega nombraba una implementación (${cruces.map((c) => c.clave).join(', ')}): eso lo elige el Router.`
+          : `La entrega pedía lo que no es de esta capa (${duenosDe(cruces)}): no se entrega.`);
         return fin('invalid', 'authority_violation');
       }
       recorrido.push('handoff');
@@ -221,7 +292,9 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
       ...violacionesEn(pedidoDeContexto, 'aprendido'),
     ];
     if (cruzan.length) {
-      porque.push(`La petición nombra una implementación en sus requisitos o en su ámbito (${[...new Set(cruzan.map((c) => c.clave))].sort().join(', ')}): eso lo elige el Router.`);
+      porque.push(sonDelRouter(cruzan)
+        ? `La petición nombra una implementación en sus requisitos o en su ámbito (${[...new Set(cruzan.map((c) => c.clave))].sort().join(', ')}): eso lo elige el Router.`
+        : `La petición pide en sus requisitos o en su ámbito lo que no es de esta capa (${duenosDe(cruzan)}): no se piensa nada.`);
       return fin('invalid', 'authority_violation');
     }
 
@@ -245,7 +318,46 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
       porque.push(`Restricciones mal formadas (${malFormadas.join('; ')}): se para antes de componer, y A1 lo dice como conflicto de restricciones.`);
       return fin(decision.status === 'decided' ? 'undecided' : decision.status, 'undecided');
     }
+    /*
+     * Y LOS REQUISITOS DE LO APRENDIDO, con la misma regla y antes de A8. Hasta
+     * la misión de cierre, A8 contestaba sin admisiones a unos requisitos mal
+     * formados y aquí se leía como «A8 no contesta para ese ámbito»
+     * (`context_refused`): una etiqueta falsa, que manda a quien pidió a mirar su
+     * ámbito cuando lo que tiene que corregir es un número. Es una petición de
+     * contexto rechazada, y se dice qué campo y por qué.
+     */
+    const requisitosRotos = peticion.aprendido ? problemasDeLosRequisitos(peticion.aprendido.requirements) : [];
+    if (requisitosRotos.length) {
+      porque.push(`Los requisitos de lo aprendido están mal formados (${requisitosRotos.join('; ')}): A8 no serviría nada, y no es un ámbito sin respuesta sino una petición que corregir.`);
+      return fin('invalid', 'context_rejected');
+    }
     const restricciones = restriccionesEfectivas(d);
+
+    /*
+     * EL TOPE DE PENSAR, MIENTRAS SE PIENSA (misión de cierre). Solo con
+     * cronómetro; sin él, `d.budget` llega a cada etapa tal cual y nada cambia.
+     * Con él, cada etapa recibe como `maxLatencyMs` el tiempo que queda —lo más
+     * estrecho manda, como siempre— y, entre etapas, sin tiempo se para aquí con
+     * `budget_exceeded`: no se entrega una alternativa pensada a medias. El
+     * presupuesto ya está validado (arriba), así que el tope es un número bueno.
+     */
+    const topeDeTiempo = presupuestoEfectivo(d.budget).maxLatencyMs;
+    const queda = (): number | undefined => {
+      const ya = cronometro?.leer();
+      return inicio === undefined || ya === undefined ? undefined : topeDeTiempo - (ya - inicio);
+    };
+    /* Nunca 0 ni negativo —un tope así sería un presupuesto mal formado—: si el tiempo se acaba
+     * entre la comprobación y la etapa, la etapa recibe una milésima y se recorta en su primera cuenta. */
+    const presupuestoDeEtapa = (): DecisionContext<unknown>['budget'] => {
+      const q = queda();
+      return q === undefined ? d.budget : { ...(d.budget ?? {}), maxLatencyMs: Math.max(q, 0.001) };
+    };
+    const sinTiempo = (antesDe: string): AlgorithmDecisionResult<T> | undefined => {
+      const q = queda();
+      if (q === undefined || q > 0) return undefined;
+      porque.push(`Se acabó el tiempo de pensar —maxLatencyMs ${topeDeTiempo} ms— antes de ${antesDe}: se para aquí, y no se entrega una alternativa pensada a medias.`);
+      return fin('undecided', 'budget_exceeded');
+    };
 
     /* 1 · CONTEXTO. A8 selecciona lo aprendido; A1 lo recibe por su puerto: el del
      * ámbito y el de cada alternativa, los dos de A8 y ninguno fabricado aquí. */
@@ -280,6 +392,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
 
     /* 2 · SIN TAREA: la decisión es entre lo que ya hay. */
     if (!tarea && !enfoques) {
+      const corte = sinTiempo('A1 (decisión)');
+      if (corte) return corte;
       recorrido.push('decision');
       const decision = a1.decidir(base) as AlgorithmDecision<T | Strategy>;
       salida = { ...salida, decision };
@@ -294,6 +408,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     /* 3 · ENFOQUE. Cuando lo primero es elegir qué tarea, lo elige A1. */
     let tareaElegida: TareaADescomponer | undefined = tarea;
     if (enfoques) {
+      const corte = sinTiempo('A1 (enfoque)');
+      if (corte) return corte;
       recorrido.push('approach');
       const approach = a1.decidir({ ...base, options: enfoques }) as AlgorithmDecision<TareaADescomponer>;
       salida = { ...salida, approach };
@@ -306,8 +422,10 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     const t = tareaElegida as TareaADescomponer;
 
     /* 4 · ESTRUCTURA. A2 es la autoridad sobre la tarea: si la rechaza, se para. */
+    const corteA2 = sinTiempo('A2 (estructura)');
+    if (corteA2) return corteA2;
     recorrido.push('decomposition');
-    const decomposition = a2.descomponer(t, restricciones, d.budget);
+    const decomposition = a2.descomponer(t, restricciones, presupuestoDeEtapa());
     salida = { ...salida, decomposition };
     if (decomposition.problemas.length) {
       porque.push(`A2 rechazó la tarea: ${decomposition.problemas.map((p) => p.reason).join(', ')}.`);
@@ -327,15 +445,19 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
 
     /* 5 · PARALELISMO, si se pidió. A4 es la autoridad sobre la forma paralela. */
     if (peticion.componer?.paralelizar) {
+      const corte = sinTiempo('A4 (paralelismo)');
+      if (corte) return corte;
       recorrido.push('parallelization');
-      const p = a4.variantes(t, senales, restricciones, d.budget);
+      const p = a4.variantes(t, senales, restricciones, presupuestoDeEtapa());
       salida = { ...salida, parallelization: p.analisis };
       formas = p.variantes;
     }
 
     /* 6 · ESTRATEGIAS. Solo A3 las genera. */
+    const corteA3 = sinTiempo('A3 (estrategias)');
+    if (corteA3) return corteA3;
     recorrido.push('strategy');
-    const strategies = a3.proponer(formas, senales, restricciones, d.budget);
+    const strategies = a3.proponer(formas, senales, restricciones, presupuestoDeEtapa());
     salida = { ...salida, strategies };
     let candidatas = strategies.estrategias;
 
@@ -377,13 +499,16 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
 
     /* 7 · OPTIMIZACIÓN, si se pidió. A5 dice qué es factible y qué mejora; no elige. */
     if (peticion.componer?.optimizar) {
+      const corte = sinTiempo('A5 (optimización)');
+      if (corte) return corte;
       recorrido.push('optimization');
       const baseline = candidatas.find((c) => c.value.isBaseline);
+      const presupuestoA5 = presupuestoDeEtapa();
       const optimization = a5.optimizar({
         candidates: candidatas,
         objective: d.objective,
         ...(restricciones ? { constraints: restricciones } : {}),
-        ...(d.budget ? { budget: d.budget } : {}),
+        ...(presupuestoA5 ? { budget: presupuestoA5 } : {}),
         evidence: comoEvidencia(senales),
         ...(baseline ? { baselineId: baseline.id } : {}),
         ...(typeof d.seed === 'number' ? { seed: d.seed } : {}),
@@ -402,6 +527,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     if (vaciada) porque.push(porQueSeVacio(peticion.componer?.paralelizar === true, salida));
 
     /* 8 · DECISIÓN. A1, entre lo que A3 generó y A5 dejó en pie o propuso. */
+    const corteA1 = sinTiempo('A1 (decisión)');
+    if (corteA1) return corteA1;
     recorrido.push('decision');
     const decision = a1.decidir({ ...base, options: candidatas, signals: strategies.signals }) as AlgorithmDecision<T | Strategy>;
     salida = { ...salida, decision };
@@ -429,6 +556,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
     observacion: ObservacionDeEjecucion,
     aprendizaje?: OpcionesDeAprendizaje,
   ): CierreDelCiclo => {
+    /* Una llamada nueva: A6 y A6r miden desde AQUÍ, no desde el final de `decidir` —la ejecución no es pensar—. */
+    cronometro?.abrir();
     const porque: string[] = [];
     const invalido = (parada: MotivoDeCierreInvalido): CierreDelCiclo =>
       Object.freeze({ contract: ALGORITHM_CONTRACT_VERSION, status: 'invalid' as const, parada, because: Object.freeze(porque) });
@@ -449,8 +578,8 @@ export const crearCicloAlgoritmico = (opciones: OpcionesDelCiclo = {}) => {
      * lo que salió. Es la evidencia que A6 necesita para comprobar los topes —hasta 1.11
      * no se le pasaba, y cerraba `unknown`— y lo medido que A7 aprende de este resultado.
      * Lo de un paso, lo de otro resultado o una `result.*` sin sujeto no es suyo: ni se
-     * le atribuye ni se mezcla. Quien ejecuta lo produce con su sujeto, y quien llama a
-     * `cerrar` lo entrega en la observación.
+     * le atribuye ni se mezcla. Quien ejecute tendrá que producirlo con su sujeto, y quien
+     * llame a `cerrar`, entregarlo en la observación: hoy nadie llama a `cerrar` (91b, DD-26).
      */
     const delResultado = (observacion.signals ?? []).filter((s) => !!s && s.subject === observacion.actual.id);
 

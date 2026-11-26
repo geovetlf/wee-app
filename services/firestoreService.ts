@@ -50,6 +50,7 @@ import type { PostPlace } from '../data/places';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
 import { paginaDelMuroGeneral, sobreconsulta } from '../utils/sectionFeed';
 import { paraBuscar } from '../i18n/caja';
+import { perfilDesactivado, visibleParaLosDemas } from '../utils/cuentaDesactivada';
 
 /*
  * Una encuesta dentro de una publicación.
@@ -98,8 +99,17 @@ export interface Post {
 
   // === Cómo lo hice (creaciones con IA) ===
   aiTools?: string[]; // Herramientas de IA usadas (ej. ["Kling", "ElevenLabs"])
+  /** La escribió un personaje con autonomía (IA); lo pone SOLO el servidor. La app la marca «Personaje con IA». */
+  autonomo?: boolean;
   aiPrompt?: string; // Prompt que usó el autor (se puede copiar)
   aiProcess?: string; // Breve explicación del proceso
+  /**
+   * WeëAI sencillo (2026-11-23): la publicación nació en «crear para publicar». Datos, no frases: quien pinta
+   * «Cómo lo hice» los dice en el idioma de quien mira (`utils/publicacionDeWeeAi.ts`). Sin datos técnicos.
+   */
+  weeAi?: { tipo: 'imagen' | 'video' | 'editar'; segundos?: number };
+  /** «Recrear este estilo»: de qué publicación salió la idea y a quién se menciona como inspiración. */
+  estiloDe?: { postId: string; userId: string; nombre: string };
 
   // === NUEVO: Sistema de comunidades ===
   communityId?: string; // ID de la comunidad (requerido para nuevos posts)
@@ -130,7 +140,7 @@ export interface Post {
   /*
    * DÓNDE QUIERE APARECER ESTA PUBLICACIÓN. Lo decide quien publica.
    *
-   * `['general']` solo el muro general. `['travel']` solo Weë Travel, y entonces
+   * `['general']` solo el muro general. `['travel']` solo WeëTravel, y entonces
    * NO sale en el muro general. `['general', 'travel', 'design']` en los tres.
    * Sin límite de cuántos.
    *
@@ -197,7 +207,9 @@ export interface Post {
 
   // === NUEVO: Sistema de votación (% de acuerdo) ===
   agreementCount: number; // Votos "de acuerdo"
-  disagreementCount: number; // Votos "en desacuerdo"
+  disagreementCount: number; // Votos "en desacuerdo" (el 👎 ya no se pinta; los guardados cuentan)
+  fireCount?: number; // Reacción Fuego (reglas 2026-11-16); ausente en publicaciones anteriores
+  laughCount?: number; // Reacción Risa (ídem)
 
   // === DEPRECADO: Sistema de likes (mantener para retrocompatibilidad) ===
   likes: number; // @deprecated - usar agreementCount/disagreementCount
@@ -337,6 +349,8 @@ export interface Comment {
   createdAt: Timestamp;
   updatedAt?: Timestamp;
   parentCommentId?: string; // Para respuestas a comentarios
+  /** Lo escribió un personaje con autonomía (IA); lo pone SOLO el servidor. La app lo marca «Personaje con IA». */
+  autonomo?: boolean;
 
   // === NUEVO: Sistema de votación para comentarios ===
   agreementCount?: number;
@@ -367,6 +381,8 @@ class FirestoreService {
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
+        /* Lo de una cuenta desactivada no se enseña (utils/cuentaDesactivada.ts). */
+        if (collectionName === 'posts' && !visibleParaLosDemas(docSnap.data())) return null;
         return { id: docSnap.id, ...docSnap.data() } as T;
       }
       return null;
@@ -409,6 +425,8 @@ class FirestoreService {
       const documents: T[] = [];
 
       querySnapshot.forEach((doc) => {
+        /* Las publicaciones de una cuenta desactivada no salen en ningún listado. */
+        if (collectionName === 'posts' && !visibleParaLosDemas(doc.data())) return;
         documents.push({ id: doc.id, ...(doc.data() as object) } as T);
       });
 
@@ -456,6 +474,8 @@ class FirestoreService {
       const documents: T[] = [];
 
       querySnapshot.forEach((doc) => {
+        /* Las publicaciones de una cuenta desactivada no salen en ningún listado. */
+        if (collectionName === 'posts' && !visibleParaLosDemas(doc.data())) return;
         documents.push({ id: doc.id, ...(doc.data() as object) } as T);
       });
 
@@ -531,6 +551,7 @@ class FirestoreService {
       return onSnapshot(queryRef, (querySnapshot: QuerySnapshot) => {
         const documents: T[] = [];
         querySnapshot.forEach((doc: QueryDocumentSnapshot) => {
+          if (collectionName === 'posts' && !visibleParaLosDemas(doc.data())) return;
           documents.push({ id: doc.id, ...(doc.data() as object) } as T);
         });
         callback(documents);
@@ -604,7 +625,7 @@ export const postsService = {
 
   /*
    * No hay método para el muro de una SECCIÓN porque ya no hay muros de
-   * sección: Weë tiene uno solo, el Wäll, y de qué experiencia viene cada
+   * sección: Weë tiene uno solo, el Ẅall, y de qué experiencia viene cada
    * publicación lo dice su WeeTag. Lo que sí queda es `paginaDeLaSeccion` en
    * `utils/sectionFeed`, que sigue sirviendo para acotar por sección sobre esta
    * misma colección general.
@@ -818,11 +839,16 @@ export const postsService = {
       if (result.documents.length < fetchSize) break;
     }
 
+    /*
+     * SE DEVUELVEN TODOS LOS VÍDEOS RECORRIDOS (migración demo YC, 2026-11-03). Antes se cortaba a `limitCount`, pero el
+     * cursor ya estaba DETRÁS del último documento recorrido: los vídeos que sobraban de la tanda no volvían nunca (con 20
+     * Weëls, 5 no se alcanzaban). Una página puede traer unos pocos más de los pedidos; no se pierde ninguno.
+     */
     return {
-      documents: allVideoPosts.slice(0, limitCount),
+      documents: allVideoPosts,
       lastDoc: lastVisible,
       /* Quedan posts detrás del cursor, aunque esta vuelta no haya dado quince vídeos. */
-      hasMore: hayMasPosts || allVideoPosts.length > limitCount,
+      hasMore: hayMasPosts,
     };
   },
 
@@ -849,6 +875,43 @@ const perfilRealPorUid = async (uid: string): Promise<UserProfile | null> => {
 };
 
 /*
+ * LO QUE SE LEE DE OTRA PERSONA SALE DE `publicProfiles` (seguridad de `users`, 2026-10-07).
+ *
+ * `users/{id}` solo lo lee su dueño: lleva el saldo, el país, el idioma y `linkedAccountId`. La cara pública
+ * —nombre, foto, bio, contadores, referencia— la copia el servidor con lista blanca
+ * (`functions/src/identity/perfilPublico.ts`) a `publicProfiles/{id}`, y de ahí leen tarjetas, perfil ajeno,
+ * buscador, avisos y ËContact. Lo propio sigue leyéndose de `users` (`perfilRealPorUid`).
+ *
+ * TRANSICIÓN: mientras la copia no esté rellena, una consulta vacía cae a `users` como antes. Con las reglas
+ * nuevas esa caída la deniega Firestore para lo ajeno y aquí se queda en «no hay», nunca en un error en pantalla.
+ * Se retira cuando el relleno esté hecho (scratchpad/users/INFORME.md, «migración pendiente»).
+ */
+export const COLECCION_PERFILES_PUBLICOS = 'publicProfiles';
+type FiltroDePerfil = { field: 'uid' | 'entityId'; operator: '==' | 'in'; value: string | string[] };
+/** true cuando las reglas desplegadas aún no abren `publicProfiles`: entonces se lee directamente `users`. */
+let publicProfilesCerrada = false;
+const perfilesPublicos = async (filtros: FiltroDePerfil[], limite: number): Promise<UserProfile[]> => {
+  /*
+   * Mientras las reglas desplegadas no tengan `publicProfiles` (las de producción aún no la abren), su lectura
+   * falla con permission-denied: eso no puede tumbar el perfil; se cae a `users`, igual que si estuviera vacía.
+   */
+  let publicos: UserProfile[] = [];
+  if (!publicProfilesCerrada) {
+    try {
+      let q: any = collection(db, COLECCION_PERFILES_PUBLICOS);
+      for (const f of filtros) q = query(q, where(f.field, f.operator, f.value));
+      const snap = await getDocs(query(q, limit(limite)));
+      publicos = snap.docs.map((d) => ({ id: d.id, ...(d.data() as object) } as UserProfile));
+    } catch (e: any) {
+      // Sin registrar como error (en desarrollo nativo cada console.error abre una alerta) y sin reintentar.
+      if (e?.code === 'permission-denied') publicProfilesCerrada = true;
+    }
+  }
+  if (publicos.length > 0) return publicos;
+  return firestoreService.getMany<UserProfile>('users', filtros, undefined, 'desc', limite).catch(() => [] as UserProfile[]);
+};
+
+/*
  * UN PERFIL POR SU REFERENCIA PÚBLICA (Fase 11.x-6).
  *
  * La referencia pública de un perfil es su ENTIDAD —`ent_` y 26 caracteres
@@ -864,10 +927,10 @@ const perfilRealPorUid = async (uid: string): Promise<UserProfile | null> => {
 const perfilPorReferenciaPublica = async (referencia: string): Promise<UserProfile | null> => {
   if (typeof referencia !== 'string' || !referencia) return null;
   const campo = campoQueResuelve(referencia);
-  if (campo === 'uid') return perfilRealPorUid(referencia);
-  const users = await firestoreService.getMany<UserProfile>('users',
-    [{ field: 'entityId', operator: '==', value: referencia }], undefined, 'desc', 1
-  );
+  const filtro: FiltroDePerfil = campo === 'uid'
+    ? { field: 'uid', operator: '==', value: referencia }
+    : { field: 'entityId', operator: '==', value: referencia };
+  const users = await perfilesPublicos([filtro], 1);
   return users.length > 0 ? users[0] : null;
 };
 
@@ -950,8 +1013,7 @@ export const usersService = {
     for (let i = 0; i < unicos.length; i += 30) tandas.push(unicos.slice(i, i + 30));
     const resultados = await Promise.all(
       tandas.map((tanda) =>
-        firestoreService
-          .getMany<UserProfile>('users', [{ field: 'uid', operator: 'in', value: tanda }])
+        perfilesPublicos([{ field: 'uid', operator: 'in', value: tanda }], 30)
           .catch((error) => {
             // Una tanda que falla se queda sin sus personas. Que se vea, en vez
             // de que la lista salga corta sin que nadie sepa por qué.
@@ -1032,9 +1094,9 @@ export const usersService = {
    * que un negocio pudiera hacerse pasar por una tercera cara de la cuenta.
    *
    * Se han eliminado. Un negocio no es una cara de una persona: es una PÁGINA
-   * de la cuenta, y una Página es una entidad, no un perfil. Lo que sí sigue
-   * existiendo es el negocio en sí —`businesses/{id}`, su catálogo y sus
-   * pantallas— porque eso es Weë Business, el producto, que no se toca.
+   * de la cuenta, y una Página es una entidad, no un perfil. El directorio de
+   * negocios del proyecto anterior también se retiró de Weë, definitivamente,
+   * el 2026-11-06.
    */
 };
 
@@ -1188,17 +1250,12 @@ export const searchUsers = async (searchQuery: string, limitCount = 10, locale?:
 
     // Firebase no soporta búsqueda de texto completo, así que obtenemos usuarios y filtramos
     // En producción se usaría Algolia o Elasticsearch
-    const snapshot = await getDocs(
-      query(collection(db, 'users'), limit(100))
-    );
+    // Solo la cara pública (`publicProfiles`): `users` ya no se lista. Ver `perfilesPublicos`.
+    const users = await perfilesPublicos([], 100);
 
-    const users = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as UserProfile));
-
-    // Filtrar por displayName que contenga el query (case insensitive)
-    const filtered = users.filter(user =>
+    // Filtrar por displayName que contenga el query (case insensitive).
+    // Una cuenta desactivada no aparece (utils/cuentaDesactivada.ts).
+    const filtered = users.filter(user => !perfilDesactivado(user)).filter(user =>
       paraBuscar(user.displayName).includes(searchLower) ||
       paraBuscar(user.bio).includes(searchLower)
     );
@@ -1247,7 +1304,7 @@ export const searchPosts = async (searchQuery: string, limitCount = 10): Promise
     const posts = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    } as Post));
+    } as Post)).filter(visibleParaLosDemas);
 
     // Filtrar por contenido que contenga el query
     const filtered = posts.filter(post =>
@@ -1277,7 +1334,7 @@ export const getTrendingPosts = async (limitCount = 10): Promise<Post[]> => {
     const posts = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    } as Post));
+    } as Post)).filter(visibleParaLosDemas);
 
     // Ordenar por engagement (likes + comments)
     const sorted = posts.sort((a, b) => {
@@ -1315,6 +1372,7 @@ export const getPopularHashtags = async (limitCount = 10): Promise<PopularHashta
 
     snapshot.docs.forEach(doc => {
       const post = doc.data() as Post;
+      if (!visibleParaLosDemas(post)) return;
       if (post.hashtags && Array.isArray(post.hashtags)) {
         post.hashtags.forEach(tag => {
           const normalizedTag = tag.toLowerCase().trim();
@@ -1354,7 +1412,7 @@ export const getPostsByHashtag = async (hashtag: string, limitCount = 20): Promi
     const posts = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
-    } as Post));
+    } as Post)).filter(visibleParaLosDemas);
 
     // Filtrar por hashtag
     const filtered = posts.filter(post =>

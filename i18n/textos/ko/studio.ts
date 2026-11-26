@@ -4,7 +4,7 @@
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Registro 해요체 para la interfaz y forma nominal corta en los botones
  * (만들기, 완료, 추가). Los formatos —PDF, MP4, 16:9— no cambian de idioma, y
- * "Weë Studio" y "Writer" son marca: van en alfabeto latino dentro de la frase
+ * "WeëStudio" y "Writer" son marca: van en alfabeto latino dentro de la frase
  * en hangul, nunca transliterados. Lo que sí es coreano son las unidades: los
  * segundos van con 초 pegado al número, sin espacio.
  *
@@ -244,7 +244,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: '준비 중',
   soonHint: '이 도구는 자리를 잡았어요. 연결만 남았어요.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: '텍스트',
   textHint: '어떤 글이든 써요',
   exploreTitle: '더 보기',
@@ -385,4 +385,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: '만들기를 중지했어요. 차감 예정이던 Credits는 잔액으로 돌아가요.',
   worldUploadFailed: '사진을 올리지 못했어요. 다시 시도해 주세요.',
   worldDailyLimit: '오늘의 3D 월드를 모두 사용했어요. 만들어지지 않은 건 다시 돌아오고, 3D 월드는 매일 새로 채워져요.',
+  filmmakerCardTitle: '나만의 영화를 연출하세요',
+  filmmakerCardSub: '장면, 샷, 카메라 움직임까지 직접 연출하세요.',
+  filmmakerCardCta: 'Filmmaker 열기',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: '한계 없이',
+  heroAccent: '만들어요.',
+  quickTitle: '빠른 만들기',
+  filmmakerEngineSub: 'AI로 영화를 만들고, 연출하고, 편집해요.',
+  projectsTitle: '프로젝트',
 };

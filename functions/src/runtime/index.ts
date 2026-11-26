@@ -361,9 +361,12 @@ export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?:
      * puede liquidar, no se deshace nada, pero NO se calla: se registra la causa, saneada
      * (cierre post-auditoría 2026-10-01, server/errores-tragados).
      */
-    await ledger.settle({ creditTransactionId, finalAmount }).catch((e) => {
+    /* Devuelve si ESTA llamada fue quien cerró la fila (el libro dice `already` si otra ya lo había hecho): sirve para contar bien, no para decidir nada. */
+    const r = await ledger.settle({ creditTransactionId, finalAmount }).catch((e) => {
       console.error(`WEË RUNTIME: no se pudo liquidar la fila del libro ${creditTransactionId}`, sanitizeForLog(e, 300));
+      return undefined;
     });
+    return !!r && (r as { already?: boolean }).already !== true;
   };
   return {
     async liquidar({ userId, reserva, importe, jobId, job }) {
@@ -377,8 +380,15 @@ export const liquidacionDeWee = (deps: { credits?: typeof creditEngine; ledger?:
         const r = await credits.completeCredits({ userId, requestId: reserva.requestId, finalAmount: importe, meta: { jobId } });
         await cerrarLoAceptado(job, reserva);
         /* Lo que la fila dice que se cobró es lo que el Credit Engine dice que quedó cobrado: una reserva que ya estaba devuelta, cero. */
-        await cerrarFila(reserva.transactionId, r.status === 'COMPLETED' ? importe : 0);
-        return { desenlace: r.status === 'COMPLETED' ? 'liquidada' : 'ya_estaba', estado: r.status };
+        const cerroLaFila = await cerrarFila(reserva.transactionId, r.status === 'COMPLETED' ? importe : 0);
+        /*
+         * L-5: «liquidada» es que ESTA llamada terminó el cobro: o movió el dinero, o —si el dinero ya estaba movido— fue la
+         * que cerró la fila del libro que una pasada anterior dejó a medias. Una repetición sobre algo ya cobrado y ya
+         * cerrado (`duplicate` y la fila `already`) es «ya estaba». Un motor que no dice `duplicate` conserva el
+         * comportamiento anterior. Si dos repeticiones compiten por cerrar la fila, el libro no es transaccional y las dos
+         * pueden creerse la primera: es un recuento del informe, el dinero lo decide el Credit Engine y se mueve una vez.
+         */
+        return { desenlace: r.status === 'COMPLETED' && (r.duplicate !== true || cerroLaFila) ? 'liquidada' : 'ya_estaba', estado: r.status };
       } catch (e) {
         return { desenlace: 'fallo', error: e instanceof Error ? e.name : 'error' };
       }

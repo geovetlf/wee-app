@@ -66,8 +66,19 @@ check('ninguna clave de proveedor aparece en el código del cliente', leaked.len
  * EXPO_PUBLIC_APP_CHECK_SITE_KEY es la clave de SITIO de reCAPTCHA Enterprise para
  * App Check en la web (config/appCheck.web.ts): pública por diseño, va en la página.
  * Se admite ese nombre exacto, no un patrón: un «…APP_CHECK_SECRET» no pasaría.
+ *
+ * EXPO_PUBLIC_DEMO_MEDIOS y EXPO_PUBLIC_DEMO_UID: la dirección de los medios del EMULADOR y el UID —un identificador— de
+ * su cuenta de prueba, que solo pone scripts/demo/entorno.mjs. La app solo las usa en un proyecto `demo-*` contra el
+ * emulador; también por nombre exacto. La CONTRASEÑA de esa cuenta ya no viaja (antes, EXPO_PUBLIC_DEMO_CLAVE, y su
+ * correo, EXPO_PUBLIC_DEMO_CORREO): una variable EXPO_PUBLIC no es un secreto (decisión del dueño, 2026-11-07, B2-G).
+ *
+ * EXPO_PUBLIC_PRUEBA_RTL: el modo de prueba de dirección (solo `ar`), que contexts/IdiomaContext.tsx lee solo con
+ * __DEV__; no es un secreto ni cambia nada en una compilación de producción. Por nombre exacto.
  */
-check('el cliente solo usa identificadores públicos (Firebase, emuladores, client id de Google, interruptores de preview, la clave de sitio de App Check)', clientFiles.every((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).every((v) => /FIREBASE|EMULATOR|GOOGLE_CLIENT_ID|WALL_PREVIEW/.test(v) || v === 'EXPO_PUBLIC_APP_CHECK_SITE_KEY')));
+check('el cliente solo usa identificadores públicos (Firebase, emuladores, client id de Google, interruptores de preview, la clave de sitio de App Check)', clientFiles.every((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).every((v) => /FIREBASE|EMULATOR|GOOGLE_CLIENT_ID|WALL_PREVIEW/.test(v) || ['EXPO_PUBLIC_APP_CHECK_SITE_KEY', 'EXPO_PUBLIC_DEMO_MEDIOS', 'EXPO_PUBLIC_DEMO_UID', 'EXPO_PUBLIC_PRUEBA_RTL', 'EXPO_PUBLIC_REACCIONES_NUEVAS', 'EXPO_PUBLIC_WEEMUSIC_UI'].includes(v))));
+/* Ningún nombre de credencial entra en el cliente, aunque alguien lo añada a la lista de arriba: «…_SITE_KEY» es pública por diseño. */
+const credencialesEnElCliente = clientFiles.flatMap((f) => (f.text.match(/EXPO_PUBLIC_[A-Z_]+/g) || []).filter((v) => /(CLAVE|PASSWORD|CONTRASE|SECRET|TOKEN|PRIVATE)/.test(v)).map((v) => `${f.file}: ${v}`));
+check('ninguna variable EXPO_PUBLIC del cliente lleva nombre de credencial (CLAVE, PASSWORD, SECRET, TOKEN, PRIVATE): una variable EXPO_PUBLIC no es un secreto', credencialesEnElCliente.length === 0, credencialesEnElCliente.join(', '));
 
 // 2) Nada de claves con valor en el código fuente
 const serverFiles = readDir('functions/src');
@@ -157,7 +168,7 @@ console.log('\n── Fronteras de autorización ──');
   const reglas = read('firestore.rules');
 
   check('una notificación no se puede firmar con la identidad de otra persona',
-    /allow create: if isAuthenticated\(\) &&\s*\n\s*\(request\.resource\.data\.senderId == request\.auth\.uid/.test(reglas),
+    /allow create: if isAuthenticated\(\) &&\s*\n\s*esMia\(request\.resource\.data\.senderId\)/.test(reglas), // F3: cualquier cara de la cuenta
     'dispara un push de verdad con `senderName` tal cual');
 
   /*
@@ -168,10 +179,14 @@ console.log('\n── Fronteras de autorización ──');
   {
     const avisos = reglas.slice(reglas.indexOf('match /notifications/{notificationId}'), reglas.indexOf('match /creatorInterests/'));
     check('un aviso tiene la forma de los que manda la app, y ninguna otra (cada uno es un push)',
-      /request\.resource\.data\.senderId == \("hidi_" \+ request\.auth\.uid\)\) &&\s*\n\s*avisoConLaFormaDeLaApp\(\);/.test(avisos)
-      && /return \['like', 'comment', 'econtact_request', 'econtact_accepted'\];/.test(avisos)
+      /* F3 de alter egos (2026-11-23): firma cualquier cara de la cuenta (`esMia`) y no se avisa a ninguna (`misIdentidades`). */
+      /esMia\(request\.resource\.data\.senderId\) &&\s*\n\s*avisoConLaFormaDeLaApp\(\);/.test(avisos)
+      /* + 'recreate' (WeëAI sencillo, 2026-11-23, decisión del dueño): «Recrear este estilo» avisa al autor con la misma forma. */
+      /* − econtact_* y sin `recipientAccountId` (F1 del plan de alter egos, 2026-11-23): los escribe el servidor. */
+      && /return \['like', 'comment', 'recreate'\];/.test(avisos)
+      && !/'recipientAccountId'/.test(avisos)
       && /aviso\.keys\(\)\.hasOnly\(camposDeAvisoDeLaApp\(\)\)/.test(avisos)
-      && /!\(aviso\.recipientId in misIdentidadesHeredadas\(\)\)/.test(avisos)
+      && /!\(aviso\.recipientId in misIdentidades\(\)\)/.test(avisos)
       && /aviso\.read == false/.test(avisos) && /aviso\.createdAt is timestamp/.test(avisos)
       && /textoDeAviso\('postContent', 400\) && textoDeAviso\('commentContent', 400\)/.test(avisos));
     check('y el destinatario solo la marca como leída',
@@ -215,9 +230,11 @@ console.log('\n── Fronteras de autorización ──');
     /allow delete: if isAuthenticated\(\) &&\s*\n\s*\(resource\.data\.userId == request\.auth\.uid \|\|\s*\n\s*resource\.data\.userId == \("hidi_" \+ request\.auth\.uid\)\);/.test(reglas),
     'en producción hay ocho: no se estranda a nadie');
 
-  check('un negocio y una comunidad se crean con la CUENTA, no con una cara',
-    /ownerId: user\?\.uid|const activeUid = user\?\.uid;/.test(read('screens/WeeBizRegisterScreen.tsx'))
-    && /createdBy: user\.uid,/.test(read('screens/CommunitiesManagementScreen.tsx')));
+  /* Re-anclado 2026-11-05 (docs/COMUNIDADES-IDENTIDAD.md, decisiones 1–3 del dueño): unirse, salir y crear van por las callables con la cara ACTIVA: la cara activa es la dueña y el servidor comprueba que es de la sesión; la cuenta va en lo privado. */
+  check('una comunidad la crea la cara ACTIVA por el servidor, que comprueba que es de la sesión (el alta de negocios de WeeBiz se retiró el 2026-11-03)',
+    /comunidadesService\.crear\(identidad, /.test(read('screens/CommunitiesManagementScreen.tsx'))
+    && !/createdBy: user\.uid,/.test(read('screens/CommunitiesManagementScreen.tsx'))
+    && /const yo = await resolver\(a\.comoIdentidad, a\.cuentaDeLaSesion, true\);/.test(read('functions/src/social/comunidades.ts')));
   check('y el muro vota con la cuenta, como el detalle y las encuestas',
     /userId: user\?\.uid,/.test(read('components/PostCard.tsx'))
     && !/userId: activeProfile\?\.uid/.test(read('components/PostCard.tsx'))
@@ -239,8 +256,9 @@ console.log('\n── Fronteras de autorización ──');
    * los campos de cuenta que recoge el registro; borrar, nadie desde el cliente.
    */
   check('el subárbol privado de una cuenta existe y solo lo lee y escribe su dueño',
-    /match \/private\/\{documento\} \{[\s\S]{0,200}?allow read: if esDuenyoDelPerfil\(userId\);[\s\S]{0,300}?allow delete: if false;/.test(reglas)
-    && /allow create, update: if esDuenyoDelPerfil\(userId\) && documento == 'account'/.test(reglas));
+    /match \/private\/\{documento\} \{[\s\S]{0,200}?allow read: if esDuenyoDelPerfil\(userId\);[\s\S]{0,800}?allow delete: if false;/.test(reglas)
+    && /allow create: if esDuenyoDelPerfil\(userId\) && documento == 'account'/.test(reglas)
+    && /allow update: if esDuenyoDelPerfil\(userId\) && documento == 'account'/.test(reglas));
 
   check('el callable que autoriza Credits sin liquidarlos está marcado como no habilitado',
     /NO HABILITADO COMO RUTA DE PRODUCTO/.test(read('functions/src/credits/index.ts')));
@@ -307,7 +325,8 @@ console.log('\n── Fronteras de autorización ──');
       && (weetalk.match(/p\.borrarObjeto\(/g) || []).length === 1
       && /if \(enSuSitio\) \{\s*\n\s*try \{\s*\n\s*await p\.borrarObjeto\(ref\.objectKey\)/.test(weetalk));
     check('y la cuenta del remitente se resuelve con el resolutor canónico, sin recortar prefijos',
-      /cuentaDeIdentidad\(senderId, d\.data\(\) as PerfilDeIdentidad\)/.test(weetalk)
+      /* F4: el canónico que también lee los alter egos (`cuentaDelPerfilLeido`: heredado por vínculo, alter ego por entidad). */
+      /cuentaDelPerfilLeido\(db, senderId, d\.data\(\) as PerfilDeIdentidad\)/.test(weetalk)
       && !/replace\(\/\^hidi_|slice\(5\)|split\('hidi_'\)/.test(weetalk));
     check('y nunca con una comparación débil ni con una identidad que llegue en la petición',
       !/includes\(senderId\)|startsWith\(senderId\)|request\.data\.(senderId|uid|userId)/.test(weetalk)
@@ -345,7 +364,7 @@ console.log('\n── Lo de la cuenta, fuera del perfil público ──');
     /* El VALOR del token no se escribe en el registro (un aviso de estado sin el token sí puede). */
     && !/console\.(log|warn|error)\([^\n]*,\s*token\s*\)/.test(push.replace(/\/\*[\s\S]*?\*\//g, '')));
   check('el servidor lo lee de pushTokens/{cuenta} resuelta con el resolutor canónico',
-    /collection\('pushTokens'\)\.doc\(cuenta\)/.test(indice) && /cuentaDeIdentidad\(identidad as string, perfil\.data\(\) as PerfilDeIdentidad\)/.test(indice)
+    /collection\('pushTokens'\)\.doc\(cuenta\)/.test(indice) && /cuentaDelPerfilLeido\(db, identidad, perfil\.data\(\) as PerfilDeIdentidad\)/.test(indice)
     && !/\.pushToken\b/.test(indice) && !/replace\(\/\^hidi_/.test(indice));
   check('las reglas no dejan escribir campos de cuenta en users, ni al crear ni al actualizar',
     /function accountFields\(\) \{\s*\n\s*return \['email', 'realName', 'birthDate', 'gender', 'pushToken', 'pushTokenUpdatedAt'\];/.test(reglas)
@@ -353,7 +372,8 @@ console.log('\n── Lo de la cuenta, fuera del perfil público ──');
     && /allow update: if isAuthenticated\(\) && !touchesCreditFields\(\) && !touchesEcontactFields\(\) && !touchesAccountFields\(\)/.test(reglas));
   check('lo privado del dueño se reconoce por el campo uid del perfil, no por el id del documento',
     /get\(\/databases\/\$\(database\)\/documents\/users\/\$\(idDePerfil\)\)\.data\.uid == request\.auth\.uid/.test(reglas)
-    && /allow create, update: if esDuenyoDelPerfil\(userId\) && documento == 'account' &&\s*\n\s*request\.resource\.data\.keys\(\)\.hasOnly\(camposPrivadosDeCuenta\(\)\)/.test(reglas));
+    && /allow create: if esDuenyoDelPerfil\(userId\) && documento == 'account' &&\s*\n\s*request\.resource\.data\.keys\(\)\.hasOnly\(camposPrivadosDeCuenta\(\)\)/.test(reglas)
+    && /allow update: if esDuenyoDelPerfil\(userId\) && documento == 'account' &&\s*\n\s*request\.resource\.data\.keys\(\)\.hasOnly\(camposPrivadosDeCuenta\(\)\)/.test(reglas));
   check('el perfil se crea sin email y el registro guarda lo privado aparte',
     !/email: user\.email/.test(contexto) && !/email: '',/.test(perfiles)
     && /guardarDatosPrivados\(userProfile\.id, \{\s*\n\s*realName: realName\.trim\(\),\s*\n\s*birthDate: getBirthDateISO\(\),\s*\n\s*gender,/.test(registro)

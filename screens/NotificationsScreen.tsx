@@ -10,6 +10,7 @@ import {
   InteractionManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../contexts/ThemeContext';
@@ -25,6 +26,8 @@ import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/des
 import { scale } from '../utils/scale';
 import { referenciaPublicaDe } from '../utils/identidadPublica';
 import { nombreGuardadoDeComunidad } from '../utils/comunidadesDeWee';
+import { MARCA } from '../constants/marca';
+import { useAvisoDelPersonaje } from '../hooks/useCampanita';
 
 /*
  * Cuánto hace. Vive fuera del componente, así que el idioma le llega como
@@ -61,19 +64,23 @@ const getNotificationIcon = (type: NotificationType): { name: string; color: str
     case 'comment':
       return { name: 'chatbubble', color: '#3B82F6' };
     case 'follow': // histórico: el sistema de seguidores
-      return { name: 'person-add', color: '#F5B731' };
+      return { name: 'person-add', color: MARCA.primario };
     case 'econtact_request':
-      return { name: 'person-add', color: '#F5B731' };
+      return { name: 'person-add', color: MARCA.primario };
     case 'econtact_accepted':
-      return { name: 'people', color: '#F5B731' };
+      return { name: 'people', color: MARCA.primario };
     case 'repost':
       return { name: 'repeat', color: '#10B981' };
     case 'mention':
-      return { name: 'at', color: '#F59E0B' };
+      return { name: 'at', color: MARCA.primarioOscuro };
     case 'reply':
       return { name: 'arrow-undo', color: '#6366F1' };
     case 'community_post':
       return { name: 'people', color: '#EC4899' };
+    case 'character_notice':
+      return { name: 'sparkles', color: MARCA.primario };
+    case 'recreate':
+      return { name: 'color-wand', color: MARCA.primario };
     default:
       return { name: 'notifications', color: '#6B7280' };
   }
@@ -100,6 +107,9 @@ const claveDeLaNotificacion = (notification: Notification): string => {
     case 'mention': return 'notifications.mention';
     case 'reply': return 'notifications.reply';
     case 'community_post': return 'notifications.communityPost';
+    case 'character_notice': return 'notifications.characterNotice';
+    // «Recrear este estilo» (WeëAI sencillo): al tocarlo se abre la publicación nueva (su postId), como cualquier aviso con publicación.
+    case 'recreate': return 'publicar.notifRecrear';
     default: return 'notifications.generic';
   }
 };
@@ -172,7 +182,7 @@ const FilaDeAviso = React.memo(function FilaDeAviso({ item, remitente, onPress }
               { backgroundColor: icon.color },
             ]}
           >
-            <Ionicons name={icon.name as any} size={scale(12)} color="white" />
+            <IconoDireccional name={icon.name as any} size={scale(12)} color="white" />
           </View>
         </View>
 
@@ -209,10 +219,10 @@ const FilaDeAviso = React.memo(function FilaDeAviso({ item, remitente, onPress }
 });
 
 const NotificationsScreen: React.FC = () => {
-  const { theme } = useTheme();
+  const { theme, setThemeMode } = useTheme();
   const { t, formato } = useIdioma();
   const { user, registerCleanup } = useAuth();
-  const { userProfile } = useUserProfile();
+  const { userProfile, alterEgos = [], switchIdentity } = useUserProfile();
   const { isDesktop } = useResponsive();
 
   // Usar el UID del perfil activo (Real, Weë o Biz)
@@ -226,6 +236,12 @@ const NotificationsScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  /* Con cualquier cara puesta, los avisos de TODOS tus personajes también salen aquí (son tuyos). */
+  const avisosDeLosPersonajes = useAvisoDelPersonaje();
+  const extra = avisosDeLosPersonajes.filter((a) => !notifications.some((n) => n.id === a.id));
+  const todas = extra.length
+    ? [...extra, ...notifications].sort((a, b) => (b.createdAt?.toMillis?.() ?? 0) - (a.createdAt?.toMillis?.() ?? 0))
+    : notifications;
 
   // Suscripción en tiempo real — espera a que la transición termine
   useEffect(() => {
@@ -302,6 +318,19 @@ const NotificationsScreen: React.FC = () => {
       const referencia = referenciaPublicaDe(remitentes[notification.senderId]) ?? notification.senderId;
       nav.navigate('UserProfile', { userId: referencia });
     };
+    /*
+     * Los avisos de tu personaje se revisan en su ficha, que es solo tuya. La ficha es SIEMPRE la del alter ego puesto
+     * (nunca por parámetro), así que antes se cambia a la cara del personaje que avisó: no se aprueba con la equivocada.
+     */
+    const personajeQueAvisa = notification.type === 'character_notice' ? notification.recipientId : undefined;
+    if (personajeQueAvisa && personajeQueAvisa !== userProfile?.uid && alterEgos.some((a) => a.uid === personajeQueAvisa)) {
+      switchIdentity(personajeQueAvisa);
+      setThemeMode('dark');
+    }
+    if (notification.type === 'character_notice') {
+      nav.navigate('CharacterSheet');
+      return;
+    }
     if (notification.type === 'follow' && notification.senderId) {
       abrirRemitente();
       return;
@@ -325,6 +354,7 @@ const NotificationsScreen: React.FC = () => {
   const handleMarkAllAsRead = async () => {
     if (!activeUid) return;
     await notificationService.markAllAsRead(activeUid);
+    for (const aviso of avisosDeLosPersonajes) if (aviso.id && !aviso.read) await notificationService.markAsRead(aviso.id);
   };
 
   // Refresh manual
@@ -338,10 +368,10 @@ const NotificationsScreen: React.FC = () => {
 
   // Filtrar notificaciones
   const filteredNotifications = filter === 'unread'
-    ? notifications.filter(n => !n.read)
-    : notifications;
+    ? todas.filter(n => !n.read)
+    : todas;
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = todas.filter(n => !n.read).length;
 
   // Renderizar notificación
   const renderNotification = ({ item }: { item: Notification }) => (

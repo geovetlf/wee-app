@@ -1,5 +1,5 @@
 /*
- * CHINO SIMPLIFICADO — lo que describe cada experiencia de WEË AI. Los nombres —Weë Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * CHINO SIMPLIFICADO — lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign, WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -12,7 +12,7 @@
  * e Instagram se quedan igual, con un espacio entre el hanzi y el latín.
  *
  * En `tellTheSpecialist` el hueco es un nombre de marca en alfabeto latino, así que
- * va suelto entre espacios: «告诉 Weë Design 你想做什么».
+ * va suelto entre espacios: «告诉 WeëDesign 你想做什么».
  */
 export const creator: typeof import('../es/creator').creator = {
   design: 'Logo、海报、插画，还有社交媒体素材',
@@ -23,7 +23,7 @@ export const creator: typeof import('../es/creator').creator = {
   beauty: '妆容、发型、胡须、穿搭和造型改造',
   chef: '你的私人厨师：今天吃什么、菜谱和菜单',
   home: '装饰、室内设计、改造和庭院',
-  business: '创业点子、营销、简历、文档和演示文稿',
+  business: '时尚、风格、美妆和视觉内容创作。',
   travel: '规划你的旅行：去哪儿、玩什么、怎么走',
   brain: '不知道去哪里找？问问 Weë',
   designEx1: '给我的店做个 Logo',
@@ -59,10 +59,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: '不知道从哪里开始',
   brainEx2: '用简单的话讲给我听',
   brainEx3: '翻译这段文字',
-  areaStudioPhotos: 'Weë Studio · 照片',
-  areaStudioVideos: 'Weë Studio · 视频',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · 家居与设计',
+  areaStudioPhotos: 'WeëStudio · 照片',
+  areaStudioVideos: 'WeëStudio · 视频',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · 家居与设计',
   areaHomeName: '家居与设计',
   tellTheSpecialist: '告诉 {{especialista}} 你想做什么：它会问你两三个简单的问题，剩下的交给它。做好之后可以直接发到你的社区。',
   exampleQuoted: '“{{ejemplo}}”',

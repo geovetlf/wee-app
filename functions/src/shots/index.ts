@@ -470,44 +470,69 @@ export const actualizarPlano = async (
   cambios: CambiosDePlano,
   deps: DepsDePlanos = {},
 ): Promise<ResultadoDeCambio> => {
-  const actual = await leerPlano(accountId, shotId, deps);
-  if (!actual) return { status: 'no_encontrado' };
+  const previo = await leerPlano(accountId, shotId, deps);
+  if (!previo) return { status: 'no_encontrado' };
 
-  if (cambios.state !== undefined && cambios.state !== actual.state
-    && !puedePasarDePlano(actual.state, cambios.state)) {
-    return { status: 'transicion_invalida', de: actual.state, a: cambios.state };
-  }
+  /* Lo que sale de aplicar los cambios sobre un plano LEÍDO. Se usa dos veces (ver abajo) y las dos igual. */
+  const componer = (actual: ShotNode): { status: 'compuesto'; siguiente: ShotNode } | ResultadoDeCambio => {
+    if (cambios.state !== undefined && cambios.state !== actual.state
+      && !puedePasarDePlano(actual.state, cambios.state)) {
+      return { status: 'transicion_invalida', de: actual.state, a: cambios.state };
+    }
 
-  const siguiente: ShotNode = limpiar({
-    ...actual,
-    ...(cambios.state !== undefined ? { state: cambios.state } : {}),
-    ...(cambios.order !== undefined ? { order: cambios.order } : {}),
-    ...(cambios.sceneId !== undefined ? { sceneId: cambios.sceneId } : {}),
-    ...(cambios.previousShotId !== undefined ? { previousShotId: cambios.previousShotId } : {}),
-    ...(cambios.dependsOnShotIds !== undefined ? { dependsOnShotIds: [...cambios.dependsOnShotIds] } : {}),
-    ...(cambios.elements !== undefined ? { elements: [...cambios.elements] } : {}),
-    ...(cambios.creative !== undefined ? { creative: cambios.creative } : {}),
-    ...(cambios.continuity !== undefined ? { continuity: cambios.continuity } : {}),
-    ...(cambios.narrative !== undefined ? { narrative: cambios.narrative } : {}),
-    ...(cambios.producedAssetId !== undefined ? { producedAssetId: cambios.producedAssetId } : {}),
-    ...(cambios.verdict !== undefined ? { verdict: cambios.verdict } : {}),
-    version: Math.min(actual.version + 1, 9999),
-    updatedAt: cambios.at,
-    ...(cambios.state === 'archived' ? { archivedAt: cambios.at } : {}),
-  });
+    const siguiente: ShotNode = limpiar({
+      ...actual,
+      ...(cambios.state !== undefined ? { state: cambios.state } : {}),
+      ...(cambios.order !== undefined ? { order: cambios.order } : {}),
+      ...(cambios.sceneId !== undefined ? { sceneId: cambios.sceneId } : {}),
+      ...(cambios.previousShotId !== undefined ? { previousShotId: cambios.previousShotId } : {}),
+      ...(cambios.dependsOnShotIds !== undefined ? { dependsOnShotIds: [...cambios.dependsOnShotIds] } : {}),
+      ...(cambios.elements !== undefined ? { elements: [...cambios.elements] } : {}),
+      ...(cambios.creative !== undefined ? { creative: cambios.creative } : {}),
+      ...(cambios.continuity !== undefined ? { continuity: cambios.continuity } : {}),
+      ...(cambios.narrative !== undefined ? { narrative: cambios.narrative } : {}),
+      ...(cambios.producedAssetId !== undefined ? { producedAssetId: cambios.producedAssetId } : {}),
+      ...(cambios.verdict !== undefined ? { verdict: cambios.verdict } : {}),
+      version: Math.min(actual.version + 1, 9999),
+      updatedAt: cambios.at,
+      ...(cambios.state === 'archived' ? { archivedAt: cambios.at } : {}),
+    });
 
-  const problemas = validarPlano(siguiente);
-  if (problemas.length) return { status: 'invalido', problemas };
+    const problemas = validarPlano(siguiente);
+    if (problemas.length) return { status: 'invalido', problemas };
+    return { status: 'compuesto', siguiente };
+  };
 
-  const fuera = await revisarVecinos(accountId, siguiente, deps);
+  /* Primero con lo leído: lo que se puede rechazar sin escribir se rechaza antes de mirar otras colecciones. */
+  const primero = componer(previo);
+  if (primero.status !== 'compuesto') return primero;
+
+  const fuera = await revisarVecinos(accountId, primero.siguiente, deps);
   if (fuera) return { status: 'referencia_rechazada', referencia: fuera };
-  if (siguiente.producedAssetId !== undefined && siguiente.producedAssetId !== actual.producedAssetId) {
-    const malAsset = await revisarAsset(accountId, siguiente.producedAssetId, deps);
+  if (primero.siguiente.producedAssetId !== undefined && primero.siguiente.producedAssetId !== previo.producedAssetId) {
+    const malAsset = await revisarAsset(accountId, primero.siguiente.producedAssetId, deps);
     if (malAsset) return { status: 'referencia_rechazada', referencia: malAsset };
   }
 
-  await planos(deps).doc(shotId).set(siguiente);
-  return { status: 'actualizado', shot: siguiente };
+  /*
+   * GRAN MOTOR · G-1. Se LEE para componer y se ESCRIBE después, y entre las dos
+   * cosas cabe otra edición: sin transacción, dos cambios a la vez dejaban el
+   * último que llegara y el primero desaparecía sin que nadie se enterase, con
+   * la versión sin contarlo. Dentro de la transacción se vuelve a leer y se
+   * recompone sobre lo que haya AHORA, con la misma regla: una transición que ya
+   * no vale por lo que escribió otro se rechaza como cualquier otra. Es el mismo
+   * patrón que `fijarResultadoVerificado` y que `elements`.
+   */
+  const ref = planos(deps).doc(shotId);
+  return laBase(deps).runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const actual = snap.exists ? snap.data() : undefined;
+    if (!planoValido(actual) || actual.ownerAccountId !== accountId) return { status: 'no_encontrado' } as ResultadoDeCambio;
+    const c = componer(actual);
+    if (c.status !== 'compuesto') return c as ResultadoDeCambio;
+    tx.set(ref, c.siguiente);
+    return { status: 'actualizado', shot: c.siguiente } as ResultadoDeCambio;
+  });
 };
 
 export type ResultadoDeFijado =
@@ -612,30 +637,44 @@ export const actualizarEscena = async (
   cambios: CambiosDeEscena,
   deps: DepsDePlanos = {},
 ): Promise<ResultadoDeCambioDeEscena> => {
-  const actual = await leerEscena(accountId, sceneId, deps);
-  if (!actual) return { status: 'no_encontrado' };
+  const previa = await leerEscena(accountId, sceneId, deps);
+  if (!previa) return { status: 'no_encontrado' };
 
-  const siguiente: SceneNode = limpiar({
-    ...actual,
-    ...(cambios.order !== undefined ? { order: cambios.order } : {}),
-    ...(cambios.name !== undefined ? { name: cambios.name } : {}),
-    ...(cambios.location !== undefined ? { location: cambios.location } : {}),
-    ...(cambios.elements !== undefined ? { elements: [...cambios.elements] } : {}),
-    ...(cambios.creative !== undefined ? { creative: cambios.creative } : {}),
-    ...(cambios.narrative !== undefined ? { narrative: cambios.narrative } : {}),
-    version: Math.min(actual.version + 1, 9999),
-    updatedAt: cambios.at,
-  });
+  const componer = (actual: SceneNode): { status: 'compuesta'; siguiente: SceneNode } | ResultadoDeCambioDeEscena => {
+    const siguiente: SceneNode = limpiar({
+      ...actual,
+      ...(cambios.order !== undefined ? { order: cambios.order } : {}),
+      ...(cambios.name !== undefined ? { name: cambios.name } : {}),
+      ...(cambios.location !== undefined ? { location: cambios.location } : {}),
+      ...(cambios.elements !== undefined ? { elements: [...cambios.elements] } : {}),
+      ...(cambios.creative !== undefined ? { creative: cambios.creative } : {}),
+      ...(cambios.narrative !== undefined ? { narrative: cambios.narrative } : {}),
+      version: Math.min(actual.version + 1, 9999),
+      updatedAt: cambios.at,
+    });
+    const problemas = validarEscena(siguiente);
+    if (problemas.length) return { status: 'invalido', problemas };
+    return { status: 'compuesta', siguiente };
+  };
 
-  const problemas = validarEscena(siguiente);
-  if (problemas.length) return { status: 'invalido', problemas };
+  const primera = componer(previa);
+  if (primera.status !== 'compuesta') return primera;
 
-  const aRevisar = [...(siguiente.elements ?? []), ...(siguiente.location ? [siguiente.location] : [])];
+  const aRevisar = [...(primera.siguiente.elements ?? []), ...(primera.siguiente.location ? [primera.siguiente.location] : [])];
   const rechazo = await revisarElementos(accountId, aRevisar, deps);
   if (rechazo) return { status: 'referencia_rechazada', referencia: rechazo };
 
-  await escenas(deps).doc(sceneId).set(siguiente);
-  return { status: 'actualizado', scene: siguiente };
+  /* GRAN MOTOR · G-1: leer y escribir en una transacción, como el plano (ver `actualizarPlano`). */
+  const ref = escenas(deps).doc(sceneId);
+  return laBase(deps).runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const actual = snap.exists ? snap.data() : undefined;
+    if (!escenaValida(actual) || actual.ownerAccountId !== accountId) return { status: 'no_encontrado' } as ResultadoDeCambioDeEscena;
+    const c = componer(actual);
+    if (c.status !== 'compuesta') return c as ResultadoDeCambioDeEscena;
+    tx.set(ref, c.siguiente);
+    return { status: 'actualizado', scene: c.siguiente } as ResultadoDeCambioDeEscena;
+  });
 };
 
 /* ── El contexto de continuidad, acotado ──────────────────────────────────── */

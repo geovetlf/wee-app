@@ -6,18 +6,21 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Switch,
 } from 'react-native';
+import Interruptor from '../components/Interruptor';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { varianteDelLocale } from '../i18n/idiomas';
+import { nombreDeLaRegion } from '../i18n/formato';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useResponsive } from '../hooks/useResponsive';
+import { useDireccion } from '../hooks/useDireccion';
 import ResponsiveLayout from '../components/ResponsiveLayout';
 import { ProfileStackParamList } from '../navigation/ProfileStackNavigator';
 import { confirmAction, notify } from '../utils/notify';
@@ -37,8 +40,10 @@ const SettingsScreen: React.FC = () => {
    */
   const { t, idioma, locale, disponibles } = useIdioma();
   const { theme } = useTheme();
-  const { logout } = useAuth();
-  const { userProfile } = useUserProfile();
+  /* El rojo de «Eliminar cuenta»: #DC2626 no llega a 4,5:1 sobre el tema oscuro; #F87171 sí. */
+  const rojoDePeligro = theme.dark ? '#F87171' : '#DC2626';
+  const { user, logout } = useAuth();
+  const { userProfile, realProfile } = useUserProfile();
   const navigation = useNavigation<SettingsNavigationProp>();
   const insets = useSafeAreaInsets();
   const { isDesktop } = useResponsive();
@@ -176,8 +181,8 @@ const SettingsScreen: React.FC = () => {
       disabled={!onPress}
     >
       <View style={styles.settingLeft}>
-        <View style={[styles.iconContainer, { backgroundColor: theme.colors.surface }]}>
-          <Ionicons name={icon as any} size={20} color={theme.colors.accent} />
+        <View style={styles.iconContainer}>
+          <Ionicons name={icon as any} size={20} color={theme.colors.text} />
         </View>
         <View style={styles.settingText}>
           <Text style={[styles.settingTitle, { color: theme.colors.text }]}>
@@ -193,7 +198,7 @@ const SettingsScreen: React.FC = () => {
       <View style={styles.settingRight}>
         {rightComponent}
         {showArrow && onPress && (
-          <Ionicons 
+          <IconoDireccional 
             name="chevron-forward" 
             size={20} 
             color={theme.colors.textSecondary}
@@ -217,7 +222,7 @@ const SettingsScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
           {t('settings.title')}
@@ -226,13 +231,40 @@ const SettingsScreen: React.FC = () => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/*
+          LA CUENTA, LO PRIMERO (decisión del dueño, 2026-11-05): el nombre real, el correo con el que se
+          entra y el país. Siempre los del Perfil Real —son de la persona y de su cuenta—, aunque esté puesto
+          el Perfil Weë. Solo se leen; se cambian donde siempre.
+        */}
+        {!!user && (
+          <View style={styles.section}>
+            <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
+              {t('settings.sectionAccount')}
+            </TextoEnMayusculas>
+            <View style={[styles.card, styles.cuenta, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+              <Text style={[styles.cuentaNombre, { color: theme.colors.text }]} numberOfLines={2}>
+                {realProfile?.displayName || '—'}
+              </Text>
+              {[
+                { clave: 'auth.email', valor: user.email || '—' },
+                { clave: 'onboarding.country', valor: (realProfile?.country ? nombreDeLaRegion(realProfile.country, locale) : realProfile?.countryName) || '—' },
+              ].map((dato) => (
+                <View key={dato.clave} style={[styles.cuentaFila, { borderTopColor: theme.colors.border }]}>
+                  <Text style={[styles.cuentaEtiqueta, { color: theme.colors.textSecondary }]}>{t(dato.clave)}</Text>
+                  <Text style={[styles.cuentaValor, { color: theme.colors.text }]} numberOfLines={1}>{dato.valor}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         {/* Contenido */}
         <View style={styles.section}>
-          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
             {t('settings.sectionContent')}
           </TextoEnMayusculas>
 
-          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             {renderSettingItem(
               'people',
               t('settings.myCommunities'),
@@ -249,11 +281,11 @@ const SettingsScreen: React.FC = () => {
           significaba otra cosa.
         */}
         <View style={styles.section}>
-          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
             {t('settings.sectionPreferences')}
           </TextoEnMayusculas>
 
-          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             {/*
               El subtítulo dice la VARIANTE, no el idioma: con portugués
               europeo puesto tiene que leerse «Português (Portugal)» y no
@@ -274,21 +306,23 @@ const SettingsScreen: React.FC = () => {
 
         {/* Privacidad */}
         <View style={styles.section}>
-          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
             {t('settings.sectionPrivacy')}
           </TextoEnMayusculas>
           
-          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             {renderSettingItem(
               'lock-closed',
               t('settings.privateReplies'),
               t('settings.privateRepliesHint'),
               undefined,
-              <Switch
+              <Interruptor
                 value={allowPrivateReplies}
                 onValueChange={setAllowPrivateReplies}
-                trackColor={{ false: theme.colors.border, true: theme.colors.accent + '40' }}
-                thumbColor={allowPrivateReplies ? theme.colors.accent : theme.colors.textSecondary}
+                trackColor={{ false: theme.colors.border, true: theme.colors.text }}
+                thumbColor={allowPrivateReplies ? theme.colors.background : theme.colors.textSecondary}
+                /* En la web el pulgar encendido se pinta con activeThumbColor (react-native-web); sin él sale su verde azulado. */
+                {...({ activeThumbColor: theme.colors.background } as object)}
               />,
               false
             )}
@@ -298,12 +332,14 @@ const SettingsScreen: React.FC = () => {
               t('settings.location'),
               textoUbicacion,
               ubicacionNecesitaAjustes ? () => { void abrirAjustesDelSistema(); } : undefined,
-              <Switch
+              <Interruptor
                 value={ubicacion.preferencia !== 'off'}
                 onValueChange={cambiarUbicacion}
                 disabled={ubicacion.cargando || pidiendoUbicacion}
-                trackColor={{ false: theme.colors.border, true: theme.colors.accent + '40' }}
-                thumbColor={ubicacion.preferencia !== 'off' ? theme.colors.accent : theme.colors.textSecondary}
+                trackColor={{ false: theme.colors.border, true: theme.colors.text }}
+                thumbColor={ubicacion.preferencia !== 'off' ? theme.colors.background : theme.colors.textSecondary}
+                /* En la web el pulgar encendido se pinta con activeThumbColor (react-native-web); sin él sale su verde azulado. */
+                {...({ activeThumbColor: theme.colors.background } as object)}
               />,
               false
             )}
@@ -319,21 +355,23 @@ const SettingsScreen: React.FC = () => {
 
         {/* Notificaciones */}
         <View style={styles.section}>
-          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
             {t('settings.sectionNotifications')}
           </TextoEnMayusculas>
           
-          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             {renderSettingItem(
               'notifications',
               t('settings.pushNotifications'),
               t('settings.pushNotificationsHint'),
               undefined,
-              <Switch
+              <Interruptor
                 value={notificationsEnabled}
                 onValueChange={setNotificationsEnabled}
-                trackColor={{ false: theme.colors.border, true: theme.colors.accent + '40' }}
-                thumbColor={notificationsEnabled ? theme.colors.accent : theme.colors.textSecondary}
+                trackColor={{ false: theme.colors.border, true: theme.colors.text }}
+                thumbColor={notificationsEnabled ? theme.colors.background : theme.colors.textSecondary}
+                /* En la web el pulgar encendido se pinta con activeThumbColor (react-native-web); sin él sale su verde azulado. */
+                {...({ activeThumbColor: theme.colors.background } as object)}
               />,
               false
             )}
@@ -342,11 +380,11 @@ const SettingsScreen: React.FC = () => {
 
         {/* Información */}
         <View style={styles.section}>
-          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
             {t('settings.sectionInfo')}
           </TextoEnMayusculas>
           
-          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             {renderSettingItem(
               'information-circle',
               t('settings.about'),
@@ -373,11 +411,11 @@ const SettingsScreen: React.FC = () => {
 
         {/* Cuenta */}
         <View style={styles.section}>
-          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          <TextoEnMayusculas style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
             {t('settings.sectionAccount')}
           </TextoEnMayusculas>
 
-          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <TouchableOpacity
               style={[styles.settingItem, {
                 backgroundColor: 'transparent',
@@ -387,11 +425,11 @@ const SettingsScreen: React.FC = () => {
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.iconContainer, { backgroundColor: theme.colors.surface }]}>
-                  <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+                <View style={styles.iconContainer}>
+                  <IconoDireccional name="log-out-outline" size={20} color={theme.colors.text} />
                 </View>
                 <View style={styles.settingText}>
-                  <Text style={[styles.settingTitle, { color: '#EF4444' }]}>
+                  <Text style={[styles.settingTitle, { color: theme.colors.text }]}>
                     {t('settings.signOut')}
                   </Text>
                   <Text style={[styles.settingSubtitle, { color: theme.colors.textSecondary }]}>
@@ -403,13 +441,51 @@ const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
+        {/*
+          Zona de peligro: eliminar la cuenta. Al final y sobria; el rojo solo
+          en la acción que destruye («Cerrar sesión», arriba, va en el color de
+          texto de siempre). La explicación y la confirmación viven en su pantalla.
+        */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            {t('cuenta.sectionDanger')}
+          </Text>
+
+          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+            <TouchableOpacity
+              style={[styles.settingItem, {
+                backgroundColor: 'transparent',
+                borderBottomWidth: 0,
+              }]}
+              onPress={() => (navigation as any).navigate('EliminarCuenta')}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: theme.colors.surface }]}>
+                  <Ionicons name="trash-outline" size={20} color={rojoDePeligro} />
+                </View>
+                <View style={styles.settingText}>
+                  <Text style={[styles.settingTitle, { color: rojoDePeligro }]}>
+                    {t('cuenta.settingsRow')}
+                  </Text>
+                  <Text style={[styles.settingSubtitle, { color: theme.colors.textSecondary }]}>
+                    {t('cuenta.settingsRowHintDesactivar')}
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} style={styles.arrow} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Version Info */}
         <View style={styles.versionContainer}>
           <Text style={[styles.versionText, { color: theme.colors.textSecondary }]}>
             Weë v1.0.0
           </Text>
           <Text style={[styles.versionSubtext, { color: theme.colors.textSecondary }]}>
-            World Encode Entity
+            WORLD OF EXPRESSION & EVOLUTION
           </Text>
         </View>
       </ScrollView>
@@ -450,19 +526,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '600',
-    marginBottom: 12,
-    letterSpacing: 0.5,
+    marginBottom: 10,
+    letterSpacing: 1.2,
   },
   card: {
-    borderRadius: 12,
+    borderRadius: 14,
     overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  cuenta: {
+    paddingHorizontal: 16,
+    paddingTop: 18,
+  },
+  cuentaNombre: {
+    fontSize: 22,
+    fontWeight: '600',
+    letterSpacing: -0.3,
+    marginBottom: 14,
+  },
+  cuentaFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  cuentaEtiqueta: {
+    fontSize: 14,
+  },
+  cuentaValor: {
+    fontSize: 15,
+    fontWeight: '500',
+    flexShrink: 1,
+    textAlign: 'right',
   },
   settingItem: {
     flexDirection: 'row',
@@ -470,7 +569,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   settingLeft: {
     flexDirection: 'row',
@@ -478,9 +577,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   iconContainer: {
-    width: 36,
+    width: 28,
     height: 36,
-    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,

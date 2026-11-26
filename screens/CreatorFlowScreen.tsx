@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { textoDeFechas, textoDelServidor, textoDeObjetivo, textoDeOpcion, textoDePregunta } from '../i18n/servidor';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,7 +14,7 @@ import JobProgress from '../components/creator/JobProgress';
 import ResultCard from '../components/creator/ResultCard';
 import ProjectPicker from '../components/creator/ProjectPicker';
 import { projectsService } from '../services/projectsService';
-import { creatorService, Answer, CreatorJob, PlanPricing, QualityChoice, Question, humanizeCreatorError, isClientTimeout } from '../services/creatorService';
+import { creatorService, Answer, CreatorJob, PlanPricing, QualityChoice, Question, humanizeCreatorError, isClientTimeout, pideCuentaAutenticada } from '../services/creatorService';
 import { creditsShortfall, CreditsShortfall } from '../services/creditsService';
 import { uploadCreatorImage } from '../services/creatorUploads';
 import { documentsService } from '../services/documentsService';
@@ -24,7 +24,9 @@ import type { MainStackParamList } from '../navigation/MainStackNavigator';
 import { claveDelValor, filtrarCreativo } from '../constants/camaraCinematica';
 import FichaDeContexto from '../components/creator/FichaDeContexto';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { useEstiloWeeAi } from '../hooks/useEstiloWeeAi';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 /**
  * Conversación guiada con un especialista de Weë (docs/CREATOR-ARQUITECTURA.md §3 y §7):
@@ -50,12 +52,13 @@ const CreatorFlowScreen: React.FC = () => {
     * Brain, en el servidor. Esta pantalla lo reúne y lo lleva.
     */
   const params: ContextoDeExperiencia = route.params ?? {};
+  const estiloWeeAi = useEstiloWeeAi();
 
   const experience = getExperienceById(params.experienceId || '') || WEE_EXPERIENCES[0];
   /*
    * Con quién cree la persona que está hablando (fase 2E-56).
    *
-   * Quien entra por Weë Design → Hogar & Diseño no debe leer "Weë Home" en
+   * Quien entra por WeëDesign → Hogar & Diseño no debe leer "Weë Home" en
    * ningún sitio: ni firmando las burbujas, ni en el progreso, ni en el
    * resultado, ni en lo que se publica. El identificador interno sigue siendo
    * `home`; lo que cambia es el nombre con el que la experiencia habla.
@@ -78,6 +81,15 @@ const CreatorFlowScreen: React.FC = () => {
   const [question, setQuestion] = useState<Question | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /* Guest AI Gate: el último error fue «hace falta una cuenta» (sesión de invitado). Se apaga con el error. */
+  const [pideCuenta, setPideCuenta] = useState(false);
+  useEffect(() => {
+    if (!error) setPideCuenta(false);
+  }, [error]);
+  const fallo = (e: unknown) => {
+    setError(humanizeCreatorError(e, t, locale));
+    setPideCuenta(pideCuentaAutenticada(e));
+  };
   /** Saldo insuficiente al crear: se muestra el aviso con saldo, costo y tienda (docs/CREDITS.md). */
   const [shortfall, setShortfall] = useState<CreditsShortfall | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -156,7 +168,7 @@ const CreatorFlowScreen: React.FC = () => {
         setPricing(response.pricing ?? null);
         setQuality(null);
       } catch (e) {
-        setError(humanizeCreatorError(e, t, locale));
+        fallo(e);
       } finally {
         setBusy(false);
       }
@@ -176,7 +188,7 @@ const CreatorFlowScreen: React.FC = () => {
         uploadedUrl.current = url;
         await creatorService.attachImage(jobId, url);
       } catch (e) {
-        setError(humanizeCreatorError(e, t, locale));
+        fallo(e);
       }
     },
     [jobId, user, t]
@@ -269,7 +281,7 @@ const CreatorFlowScreen: React.FC = () => {
       setQuestion(response.question);
       setPricing(response.pricing ?? null);
     } catch (e) {
-      setError(humanizeCreatorError(e, t, locale));
+      fallo(e);
     } finally {
       setBusy(false);
     }
@@ -287,7 +299,7 @@ const CreatorFlowScreen: React.FC = () => {
         setPricing(response.pricing ?? null);
         setJob((current) => (current ? { ...current, creditsEstimated: response.creditsEstimated } : current));
       } catch (e) {
-        setError(humanizeCreatorError(e, t, locale));
+        fallo(e);
       } finally {
         setQuoting(false);
       }
@@ -316,7 +328,7 @@ const CreatorFlowScreen: React.FC = () => {
       if (isClientTimeout(e)) return;
       const short = creditsShortfall(e);
       setShortfall(short);
-      if (!short) setError(humanizeCreatorError(e, t, locale));
+      if (!short) fallo(e);
     } finally {
       setBusy(false);
     }
@@ -337,7 +349,7 @@ const CreatorFlowScreen: React.FC = () => {
   /*
    * Ajustar un viaje no es empezar otro (fase 2E-65.1).
    *
-   * Weë Travel es la única sección donde una respuesta puede ser algo que no cabe
+   * WeëTravel es la única sección donde una respuesta puede ser algo que no cabe
    * en un botón: unas fechas, o dos intereses a la vez. Al pedir un cambio se
    * abría un trabajo nuevo con el objetivo y nada más, así que del 12 al 22 de
    * octubre se convertía en aire y había que volver a elegirlo en el calendario.
@@ -415,8 +427,8 @@ const CreatorFlowScreen: React.FC = () => {
       kind: media ? media.type : 'post',
       /*
        * La sección de la que sale el resultado. Se resuelve por el área a la que
-       * pertenece la experiencia —Hogar & Diseño publica como Weë Design, Fotos
-       * como Weë Studio—, que es lo que la persona ve y lo que tiene sentido leer
+       * pertenece la experiencia —Hogar & Diseño publica como WeëDesign, Fotos
+       * como WeëStudio—, que es lo que la persona ve y lo que tiene sentido leer
        * en la publicación (fase 2E-63C.1).
        */
       sourceSection: EXPERIENCE_AREA[experience.id]?.section ?? experience.id,
@@ -479,8 +491,8 @@ const CreatorFlowScreen: React.FC = () => {
 
   /*
    * Dónde está la persona, dicho como ella lo entiende. Weë Photo y Weë Beauty
-   * dejaron de ser secciones y son áreas de Weë Studio: la cabecera lo dice
-   * ("Weë Studio · Fotos") y la barra lateral marca Studio. Por dentro no cambia
+   * dejaron de ser secciones y son áreas de WeëStudio: la cabecera lo dice
+   * ("WeëStudio · Fotos") y la barra lateral marca Studio. Por dentro no cambia
    * nada —el identificador sigue siendo `photo`, y con él viajan el historial, el
    * plan y el servidor—; cambia lo que se lee arriba.
    */
@@ -516,7 +528,7 @@ const CreatorFlowScreen: React.FC = () => {
         {/*
           LO QUE SE TRAE DE DONDE SE VENÍA, A LA VISTA (B3.12).
 
-          Quien eligió Retrato, hora dorada y primer plano en Weë Studio tiene
+          Quien eligió Retrato, hora dorada y primer plano en WeëStudio tiene
           que VER que llegaron. Si no se ven, no hay forma de saber si Weë se
           acordó, y la única salida es volver a elegirlo todo —que es justo lo
           que un lugar de trabajo existe para evitar—.
@@ -563,7 +575,7 @@ const CreatorFlowScreen: React.FC = () => {
           proporción, con su nombre y con las dos acciones que hacen falta:
           cambiarla y quitarla. El archivo no se toca ni se vuelve a subir.
 
-          Solo para lo que transforma un espacio: un plato de Weë Chef o un
+          Solo para lo que transforma un espacio: un plato de WeëChef o un
           retrato de Weë Beauty siguen con su tira de siempre.
         */}
         {!!imageUri && trabajaSobreUnEspacio && (
@@ -608,6 +620,7 @@ const CreatorFlowScreen: React.FC = () => {
               activeOpacity={0.85}
               accessibilityLabel={t('weeai.getCredits')}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               <Text style={styles.retryText}>{t('weeai.getCredits')}</Text>
             </TouchableOpacity>
           </View>
@@ -615,17 +628,31 @@ const CreatorFlowScreen: React.FC = () => {
         {!!error && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
             <Text style={[styles.errorText, { color: theme.colors.text }]}>{error}</Text>
-            <TouchableOpacity
-              onPress={() => (status === 'planned' ? handleCreate() : start(job?.goal || params.goal))}
-              style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.retryText}>{t('weeai.tryAgain')}</Text>
-            </TouchableOpacity>
+            {pideCuenta ? (
+              /* Guest AI Gate: el inicio de sesión de siempre (la ruta `Login`, que también lleva a crear cuenta). */
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Login')}
+                style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
+                activeOpacity={0.85}
+                accessibilityLabel={t('weeai.accountRequiredAction')}
+              >
+                <RellenoDeMarca radio={BORDER_RADIUS.full} />
+                <Text style={styles.retryText}>{t('weeai.accountRequiredAction')}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={() => (status === 'planned' ? handleCreate() : start(job?.goal || params.goal))}
+                style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
+                activeOpacity={0.85}
+              >
+                <RellenoDeMarca radio={BORDER_RADIUS.full} />
+                <Text style={styles.retryText}>{t('weeai.tryAgain')}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
-        {status === 'running' && job && <JobProgress experienceName={nombre} job={job} />}
+        {status === 'running' && job && <JobProgress experienceName={nombre} job={job} onKeepBrowsing={() => navigation.navigate('Historial')} />}
 
         {status === 'done' && job && (
           <ResultCard
@@ -657,14 +684,33 @@ const CreatorFlowScreen: React.FC = () => {
           />
         )}
 
+        {/* Quien viene de una plantilla: crédito a su autor y otra foto SIN perder la plantilla (misma ruta, mismo prompt). */}
+        {status === 'done' && job && params.plantilla ? (
+          <View style={styles.plantillaDe}>
+            <Text style={[styles.errorText, { color: theme.colors.textSecondary }]}>
+              {params.plantilla.autor ? t('weeai.templateBy', { autor: params.plantilla.autor }) : params.plantilla.titulo}
+            </Text>
+            <TouchableOpacity
+              onPress={() => navigation.replace('CreatorFlow', { experienceId: experience.id, goal: params.goal, plantilla: params.plantilla })}
+              accessibilityRole="button"
+              activeOpacity={0.7}
+              style={[styles.otraFoto, { backgroundColor: estiloWeeAi.superficie }]}
+            >
+              <Text style={[styles.errorText, { color: theme.colors.text, fontWeight: FONT_WEIGHT.semibold }]}>{t('weeai.tryOtherPhoto')}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+
         {status === 'failed' && job && !error && (
           <View style={[styles.errorBox, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-            <Text style={[styles.errorText, { color: theme.colors.text }]}>{job.progressText ? textoDelServidor(job.progressText, { t, locale, experiencia: experience.id }) : t('weeai.itDidNotWork')}</Text>
+            {/* El engine marca como «rechazo de entrada» lo que el proveedor no acepta (rostros reales, contenido sensible): aquí se dice qué hacer. */}
+            <Text style={[styles.errorText, { color: theme.colors.text }]}>{job.progressText && /rostros reales|rechazo de entrada|face|portrait|sensitive/i.test(job.progressText) ? t('weeai.inputRejected') : job.progressText ? textoDelServidor(job.progressText, { t, locale, experiencia: experience.id }) : t('weeai.itDidNotWork')}</Text>
             <TouchableOpacity
               onPress={() => start(job.goal)}
               style={[styles.retryButton, { backgroundColor: theme.colors.accent }]}
               activeOpacity={0.85}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               <Text style={styles.retryText}>{t('weeai.tryAgain')}</Text>
             </TouchableOpacity>
           </View>
@@ -733,6 +779,8 @@ const CreatorFlowScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   /* La tira de lo que se trajo, arriba del todo y sin robar sitio. */
+  plantillaDe: { gap: SPACING.sm, marginTop: SPACING.md, alignItems: 'flex-start' },
+  otraFoto: { minHeight: 44, borderRadius: BORDER_RADIUS.full, justifyContent: 'center', paddingHorizontal: SPACING.lg },
   contextoTraido: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.md },
   container: {
     flex: 1,
@@ -858,4 +906,4 @@ const styles = StyleSheet.create({
  * Weë AI es de la cuenta, no de un perfil: el taller se ve claro con el Perfil
  * Real y con el Perfil Weë. Lo de fuera —el cajón incluido— no se toca.
  */
-export default enTemaClaro(CreatorFlowScreen);
+export default enTemaOscuro(CreatorFlowScreen);

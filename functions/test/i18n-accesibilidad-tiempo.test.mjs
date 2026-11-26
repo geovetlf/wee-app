@@ -50,9 +50,10 @@ const EN = textosDe('en');
  * desde una URL `data:` no puede resolver rutas relativas. Lo que se ejecuta es
  * el código real de los dos, sin imitaciones.
  */
+/* formato.ts importa también idiomaDe y el catálogo (intlNoFiable, 2026-11-03): sustitutos neutros, que aquí no se prueba kl. */
 const fuenteFormato = leer('i18n/formato.ts').replace(
-  "import { partesDelLocale } from './resolver';",
-  "const partesDelLocale = (l) => ({ region: (l.split('-')[1] || '').toUpperCase() || undefined });");
+  "import { partesDelLocale, idiomaDe } from './resolver';\nimport { idiomaDelCatalogo } from './idiomas';",
+  "const partesDelLocale = (l) => ({ region: (l.split('-')[1] || '').toUpperCase() || undefined });\nconst idiomaDe = (l) => String(l).split('-')[0];\nconst idiomaDelCatalogo = () => undefined;");
 /* Vivía en `data/mockData.ts`, la maqueta; se mudó tal cual a `utils/formatoCorto.ts` cuando la maqueta se retiró. */
 const fuenteTiempo = leer('utils/formatoCorto.ts')
   .split('\n')

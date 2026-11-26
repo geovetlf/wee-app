@@ -1,12 +1,16 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import CabeceraDeModuloPro from '../creator/CabeceraDeModuloPro';
 import { PUERTAS_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../../constants/designTools';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import TextoEnMayusculas from '../TextoEnMayusculas';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -24,7 +28,7 @@ interface Props {
  * Filas, no tarjetas. Dentro de una categoría ya sabes de qué va la cosa y lo
  * que buscas es un sitio por donde empezar; una lista ligera se recorre de un
  * vistazo, y otra rejilla de tarjetas convertiría esto en el catálogo que
- * Weë Design no quiere ser.
+ * WeëDesign no quiere ser.
  *
  * Elegir un punto de partida no abre nada más: vuelve a la caja con esa idea
  * empezada, para que la persona la termine con sus palabras —"una silla" pasa a
@@ -36,7 +40,9 @@ interface Props {
  * arriba.
  */
 const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onElegirPunto }) => {
+  const pro = useEnEspacioProfesional();
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
 
   const esTodas = vista === 'todas';
@@ -45,14 +51,14 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
   const fila = (clave: string, icono: string | null, alPulsar: () => void, pista?: string) => (
     <TouchableOpacity
       key={clave}
-      style={[styles.fila, { borderBottomColor: theme.colors.border }, isWeb && ({ cursor: 'pointer' } as any)]}
+      style={[styles.fila, { borderBottomColor: c.superficieAlta }, isWeb && ({ cursor: 'pointer' } as any)]}
       onPress={alPulsar}
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={t(clave)}
     >
       {!!icono && (
-        <View style={[styles.icono, { backgroundColor: theme.colors.surface }]}>
+        <View style={[styles.icono, { backgroundColor: c.superficieAlta }]}>
           <Ionicons name={icono as any} size={scale(20)} color={theme.colors.text} />
         </View>
       )}
@@ -60,12 +66,19 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
         <Text style={[styles.filaTitulo, { color: theme.colors.text }]}>{t(clave)}</Text>
         {!!pista && <Text style={[styles.filaPista, { color: theme.colors.textSecondary }]}>{t(pista)}</Text>}
       </View>
-      <Ionicons name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
+      <IconoDireccional name="chevron-forward" size={scale(16)} color={theme.colors.textSecondary} />
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, pro && styles.panelPro]}>
+      {pro ? (
+        <CabeceraDeModuloPro
+          nombre={esTodas ? t('design.allTitle') : t(puerta?.clave ?? '')}
+          pista={esTodas ? t('design.allHint') : t(puerta?.claveHint ?? '')}
+          onVolver={onVolver}
+        />
+      ) : (
       <View style={styles.cabecera}>
         <TouchableOpacity
           onPress={onVolver}
@@ -75,17 +88,22 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
           accessibilityLabel={t('common.back')}
           style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
         >
-          <Ionicons name="chevron-back" size={scale(24)} color={theme.colors.text} />
+          <IconoDireccional name="chevron-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
+      )}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.dentro}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.dentro, pro && styles.dentroPro]}>
+        {!pro && (
+          <>
         <Text style={[styles.titulo, { color: theme.colors.text }]}>
           {esTodas ? t('design.allTitle') : t(puerta?.clave ?? '')}
         </Text>
         <Text style={[styles.pista, { color: theme.colors.textSecondary }]}>
           {esTodas ? t('design.allHint') : t(puerta?.claveHint ?? '')}
         </Text>
+          </>
+        )}
 
         {!esTodas && (
           <TextoEnMayusculas style={[styles.grupo, { color: theme.colors.textSecondary }]}>{t('design.startWith')}</TextoEnMayusculas>
@@ -103,6 +121,8 @@ const DesignPanel: React.FC<Props> = ({ vista, onVolver, onAbrirCategoria, onEle
 
 const styles = StyleSheet.create({
   panel: { flex: 1 },
+  panelPro: { gap: 8 },
+  dentroPro: { paddingHorizontal: 0 },
   cabecera: { paddingHorizontal: SPACING.lg, paddingTop: SPACING.md, paddingBottom: SPACING.sm },
   dentro: { paddingHorizontal: SPACING.xl, paddingBottom: scale(110) },
   titulo: { fontSize: scale(28), fontWeight: FONT_WEIGHT.bold, letterSpacing: scale(-0.5) },
@@ -119,7 +139,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.md,
     paddingVertical: SPACING.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   icono: {
     width: scale(40),

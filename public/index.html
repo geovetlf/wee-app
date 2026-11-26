@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>%WEB_TITLE%</title>
+    <!--
+      Esquema de color declarado desde el primer byte. Copia de la plantilla de Expo web (@expo/cli/static/template/index.html)
+      con solo esto añadido: sin ello, un navegador móvil con modo oscuro forzado (Samsung Internet, Chrome) oscurece por su
+      cuenta la app clara del Perfil Real. La app pinta todos sus fondos y textos con su tema (claro o oscuro, según el perfil).
+      «light dark» declara que la página sabe de los dos esquemas y quita el oscurecimiento automático; el tema de la app,
+      que deriva del perfil, es el que manda. `ThemeContext` ajusta `color-scheme` de :root al cambiar de tema.
+    -->
+    <meta name="color-scheme" content="light dark" />
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      /* These styles make the body full-height */
+      html,
+      body {
+        height: 100%;
+      }
+      /* These styles disable body scrolling if you are using <ScrollView> */
+      body {
+        overflow: hidden;
+      }
+      /* Claro de partida (Perfil Real); ThemeContext lo cambia a oscuro con el Perfil Weë. */
+      :root {
+        color-scheme: only light;
+        background-color: #ffffff;
+      }
+      /* These styles make the root element full-height */
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript>
+      You need to enable JavaScript to run this app.
+    </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>

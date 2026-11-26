@@ -5,7 +5,7 @@ import CabeceraDeSeccion from '../creator/CabeceraDeSeccion';
 interface Props {
   /**
    * Lo que va detrás de "Weë" en el nombre. Studio es el valor de siempre;
-   * Weë Design pasa "Design" y comparte así la MISMA cabecera, no una copia que
+   * WeëDesign pasa "Design" y comparte así la MISMA cabecera, no una copia que
    * con el tiempo se parecería cada vez menos.
    */
   nombre?: string;

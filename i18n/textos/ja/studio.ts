@@ -1,5 +1,5 @@
 /*
- * JAPONÉS — Weë Studio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
+ * JAPONÉS — WeëStudio: el sitio donde se crea, sus herramientas y su vocabulario de cámara.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -9,7 +9,7 @@
  * frases cortas que se entienden solas. «Formato» (cuadrado, vertical, horizontal) es アスペクト比, como en el
  * glosario; «Referencias» son siempre imágenes: 参考画像. «Beauty» y «Fashion», que el español deja en inglés, van en
  * katakana (ビューティー、ファッション): no son marca, y en latino no se leerían como japonés. El lema va en paralelo
- * al de Weë Design (思いのままにデザイン。), que comparte la misma cabecera.
+ * al de WeëDesign (思いのままにデザイン。), que comparte la misma cabecera.
  *
  * Una frase española, una japonesa: «Normal» es 標準 en la lente y en la velocidad (como la velocidad de reproducción
  * de YouTube), y «Movimiento» es 動き en los ajustes, en la herramienta y en la fila de controles. Solo se separan donde
@@ -237,7 +237,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: '準備中',
   soonHint: 'このツールはすでに用意されています。あとは接続するだけです。',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'テキスト',
   textHint: 'あらゆる文章を作成',
   exploreTitle: '発見',
@@ -378,4 +378,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: '作成を停止しました。確保していたCreditsは残高に戻ります。',
   worldUploadFailed: '写真をアップロードできませんでした。もう一度お試しください。',
   worldDailyLimit: '今日の3Dワールドはすべて使いました。作成できなかったものは戻ります。3Dワールドは毎日リセットされます。',
+  filmmakerCardTitle: 'あなたの映画を監督しよう',
+  filmmakerCardSub: 'シーン、ショット、カメラワークをあなたの手で。',
+  filmmakerCardCta: 'Filmmakerを開く',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: '思いのままに',
+  heroAccent: '作れます。',
+  quickTitle: 'クイック作成',
+  filmmakerEngineSub: 'AIで映画を作り、演出し、編集できます。',
+  projectsTitle: 'プロジェクト',
 };

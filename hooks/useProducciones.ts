@@ -60,7 +60,7 @@ export const useProducciones = (status: EstadoDeProduccion, activa = true) => {
 };
 
 /**
- * CREAR UNA PRODUCCIÓN desde lo que la persona escribió en Weë Studio. El id lo
+ * CREAR UNA PRODUCCIÓN desde lo que la persona escribió en WeëStudio. El id lo
  * pone quien llama, una vez: repetir con el mismo id y lo mismo dentro devuelve
  * la que ya había, así que un doble toque no crea dos.
  */

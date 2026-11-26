@@ -1,4 +1,4 @@
-import { collection, limit, onSnapshot, orderBy, query, where, Timestamp } from 'firebase/firestore';
+import { collection, doc, limit, onSnapshot, orderBy, query, where, Timestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../config/firebase';
 
@@ -7,9 +7,10 @@ import { db, functions } from '../config/firebase';
  *
  *   Cliente → Firebase Auth → Cloud Functions → Credit Engine → Firestore
  *
- * La app NUNCA suma, resta ni modifica Credits: solo lee su saldo (perfil real,
- * campos creditsBalance…) y su historial (creditTransactions), y pide al
- * servidor lo demás (inicializar la cuenta, costos, compras, gastos).
+ * La app NUNCA suma, resta ni modifica Credits: solo lee su saldo
+ * (`creditAccounts/{uid}`, que solo puede leer su dueño — F-06) y su historial
+ * (creditTransactions), y pide al servidor lo demás (inicializar la cuenta,
+ * costos, compras, gastos). El saldo ya no se lee del perfil, que es público.
  */
 
 // ─── Tipos (espejo de functions/src/credits) ───
@@ -20,6 +21,8 @@ export type CreditService =
   | 'ai_video'
   | 'ai_video_advanced'
   | 'ai_video_edit'
+  | 'ai_identity_face'
+  | 'ai_identity_full'
   | 'ai_audio'
   | 'ai_music'
   | 'ai_text'
@@ -61,37 +64,51 @@ export interface CreditTransaction {
   refundedAt?: Timestamp | null;
 }
 
-export interface CreditPackage {
-  id: string;
-  /**
-   * Cómo se llama el paquete.
-   *
-   * `nombreClave` cuando es una palabra —«Básico»— y hay que traducirla;
-   * `name` cuando es un nombre de producto —«Plus», «Black Pro»— que se escribe
-   * igual en todos los idiomas. Nunca los dos a la vez.
-   */
-  name?: string;
-  nombreClave?: string;
+/**
+ * La compra por importe tal como la anuncia el servidor (getCreditCost → compra). No hay paquetes desde el
+ * 2026-11-04: la persona elige de minUsd a maxUsd, de stepUsd en stepUsd, y recibe creditsPerUsd por dólar.
+ * El cliente no tiene copia propia de estos números: los pinta y el servidor los vuelve a aplicar al comprar.
+ */
+export interface MercadoDeCompra {
+  id: 'US' | 'PE';
+  currency: 'USD' | 'PEN';
+  disponible: boolean;
+  fx: { source: string; value: number; date: string } | null;
+}
+export interface ConfiguracionDeCompra {
+  minUsd: number;
+  maxUsd: number;
+  stepUsd: number;
+  creditsPerUsd: number;
+  /** El proveedor que puede confirmar pagos ahora mismo, o null (ninguno: producción hoy). */
+  proveedor: 'test' | null;
+  mercados: MercadoDeCompra[];
+}
+
+/** Lo que se pide al servidor: el importe y lo que la persona VIO. El servidor lo recalcula y rechaza diferencias. */
+export interface PedidoDeCompra {
+  requestId: string;
+  amountUsd: number;
+  market: 'US' | 'PE';
+  displayed: { currency: 'USD' | 'PEN'; amountMinor: number };
   credits: number;
-  priceUsd: number;
-  priceLabel: string;
-  popular?: boolean;
-  /** La etiqueta del paquete, como clave: «Popular», «Mejor valor». */
-  badgeClave?: string;
-  productId: string; // IAP product ID for App Store / Play Store
+}
+
+export interface ResultadoDeCompra {
+  transactionId: string;
+  amount: number;
+  balanceAfter: number;
+  duplicate: boolean;
+  credits: number;
+  orderId: string;
+  amountUsd: number;
+  currency: string;
+  amountMinor: number;
 }
 
 /** Compatibilidad con código anterior (alias del saldo). */
 export type Wallet = CreditsBalance;
 export type Transaction = CreditTransaction;
-
-// ─── Paquetes (para mostrar; el servidor es la autoridad al acreditar) ───
-
-export const CREDIT_PACKAGES: CreditPackage[] = [
-  { id: 'basic', nombreClave: 'credits.pkgBasic', credits: 40, priceUsd: 4.99, priceLabel: '$4.99', productId: 'zone.wee.credits.basic' },
-  { id: 'plus', name: 'Plus', credits: 90, priceUsd: 9.99, priceLabel: '$9.99', popular: true, badgeClave: 'credits.badgePopular', productId: 'zone.wee.credits.plus' },
-  { id: 'blackpro', name: 'Black Pro', credits: 200, priceUsd: 19.9, priceLabel: '$19.90', badgeClave: 'credits.badgeBestValue', productId: 'zone.wee.credits.blackpro' },
-];
 
 // ─── Helpers ───
 
@@ -166,53 +183,95 @@ class CreditsService {
     }
   }
 
-  /** Saldo en tiempo real. `accountUid` es la CUENTA (uid de Firebase Auth), no un perfil. */
+  /**
+   * Saldo en tiempo real. `accountUid` es la CUENTA (uid de Firebase Auth), no un perfil.
+   *
+   * F-06: se escucha `creditAccounts/{uid}` —su documento privado, que solo
+   * puede leer ella— y no el perfil público. Si el documento aún no existe
+   * (cuenta nueva o que todavía no se migró), se pide al servidor que la
+   * inicialice/migre y se PINTA LO QUE CONTESTA mientras llega la escucha:
+   * antes ese resultado se tiraba y la píldora se quedaba en 0.
+   */
   subscribeToBalance(accountUid: string, callback: (account: CreditsBalance) => void): () => void {
     if (!cuentaValida(accountUid) || !db) {
       callback(emptyBalance(accountUid || ''));
       return () => {};
     }
-    const q = query(collection(db, 'users'), where('uid', '==', accountUid), limit(1));
-    return onSnapshot(
-      q,
+    let activa = true;
+    let llegoElDocumento = false;
+    const pedirAlServidor = () => {
+      if (this.ensuring.has(accountUid)) return;
+      this.ensuring.add(accountUid);
+      this.ensureAccount()
+        .then((cuenta) => {
+          if (activa && !llegoElDocumento && cuenta) callback({ ...cuenta, userId: accountUid });
+        })
+        .finally(() => this.ensuring.delete(accountUid));
+    };
+    const unsubscribe = onSnapshot(
+      doc(db, 'creditAccounts', accountUid),
       (snap) => {
-        if (snap.empty) {
+        if (!activa) return;
+        const data = (snap.exists() ? snap.data() : undefined) as Record<string, unknown> | undefined;
+        const initialized = typeof data?.creditsBalance === 'number';
+        if (!initialized) {
           callback(emptyBalance(accountUid));
+          pedirAlServidor();
           return;
         }
-        const data = snap.docs[0].data() as Record<string, unknown>;
-        const initialized = typeof data.creditsBalance === 'number';
+        llegoElDocumento = true;
         callback({
           userId: accountUid,
-          balance: initialized ? (data.creditsBalance as number) : 0,
-          lifetimeEarned: typeof data.creditsLifetimeEarned === 'number' ? (data.creditsLifetimeEarned as number) : 0,
-          lifetimeSpent: typeof data.creditsLifetimeSpent === 'number' ? (data.creditsLifetimeSpent as number) : 0,
-          initialized,
+          balance: data!.creditsBalance as number,
+          lifetimeEarned: typeof data!.creditsLifetimeEarned === 'number' ? (data!.creditsLifetimeEarned as number) : 0,
+          lifetimeSpent: typeof data!.creditsLifetimeSpent === 'number' ? (data!.creditsLifetimeSpent as number) : 0,
+          initialized: true,
         });
-        if (!initialized && !this.ensuring.has(accountUid)) {
-          this.ensuring.add(accountUid);
-          this.ensureAccount().finally(() => this.ensuring.delete(accountUid));
-        }
       },
-      () => callback(emptyBalance(accountUid))
+      () => {
+        if (!activa) return;
+        // Sin permiso o sin red: el saldo lo da el servidor, que es quien lo sabe.
+        callback(emptyBalance(accountUid));
+        pedirAlServidor();
+      }
     );
+    return () => {
+      activa = false;
+      unsubscribe();
+    };
   }
 
   /** Historial en tiempo real (creditTransactions, más recientes primero). `accountUid` es la CUENTA. */
-  subscribeToTransactions(accountUid: string, callback: (transactions: CreditTransaction[]) => void, maxResults = 50): () => void {
-    if (!cuentaValida(accountUid) || !db) {
+  /**
+   * Escucha el historial. `onError` (opcional) distingue «no se pudo leer» de «no hay movimientos»: sin él, un fallo
+   * se entrega como lista vacía, como antes. Mi billetera lo pasa para no decir «Sin movimientos» cuando no sabe.
+   */
+  subscribeToTransactions(accountUid: string, callback: (transactions: CreditTransaction[]) => void, maxResults = 50, onError?: () => void): () => void {
+    if (!cuentaValida(accountUid)) {
       callback([]);
       return () => {};
     }
+    if (!db) {
+      if (onError) onError(); else callback([]);
+      return () => {};
+    }
     const q = query(collection(db, 'creditTransactions'), where('userId', '==', accountUid), orderBy('createdAt', 'desc'), limit(maxResults));
+    /*
+     * Con `onError`, una lista VACÍA que sale de la caché local no es una respuesta: sin red, Firestore entrega una
+     * instantánea vacía «fromCache» y la pantalla diría «Sin movimientos» sin haber preguntado al servidor. Se espera a
+     * la confirmación del servidor (por eso `includeMetadataChanges`: si el servidor confirma que está vacía, llega
+     * como cambio de metadatos). Lo que la caché sí tiene se enseña enseguida.
+     */
     return onSnapshot(
       q,
+      { includeMetadataChanges: !!onError },
       (snap) => {
+        if (onError && snap.empty && snap.metadata.fromCache) return;
         const items: CreditTransaction[] = [];
         snap.forEach((d) => items.push({ id: d.id, ...(d.data() as Omit<CreditTransaction, 'id'>) }));
         callback(items);
       },
-      () => callback([])
+      () => { if (onError) onError(); else callback([]); }
     );
   }
 
@@ -222,26 +281,9 @@ class CreditsService {
     return data.items;
   }
 
-  /** Costos vigentes de todos los servicios y paquetes (los decide el servidor). */
-  async getCosts(): Promise<{ costs: Record<CreditService, number>; packages: CreditPackage[] }> {
-    const data = await call<{ costs: Record<CreditService, number>; packages: Omit<CreditPackage, 'priceLabel'>[] }>('getCreditCost');
-    const packages = data.packages.map((pkg) => {
-      const local = CREDIT_PACKAGES.find((p) => p.id === pkg.id);
-      /*
-       * Los precios y los Credits los manda el servidor; el nombre y la
-       * etiqueta son cosa de la interfaz y salen del catálogo local, como
-       * CLAVES. Así un paquete nuevo del servidor no llega sin traducir.
-       */
-      return {
-        ...pkg,
-        priceLabel: `$${pkg.priceUsd.toFixed(2)}`,
-        popular: local?.popular,
-        name: local?.name,
-        nombreClave: local?.nombreClave,
-        badgeClave: local?.badgeClave,
-      };
-    });
-    return { costs: data.costs, packages };
+  /** Costos vigentes de los servicios y la regla de la compra por importe (los decide el servidor). */
+  async getCosts(): Promise<{ costs: Record<CreditService, number>; compra: ConfiguracionDeCompra }> {
+    return call<{ costs: Record<CreditService, number>; compra: ConfiguracionDeCompra }>('getCreditCost');
   }
 
   async getCost(service: CreditService): Promise<number> {
@@ -250,15 +292,12 @@ class CreditsService {
   }
 
   /**
-   * Compra de un paquete. El servidor valida el comprobante con el proveedor y
-   * acredita los Credits; el proveedor "test" (recarga de prueba) solo existe en dev.
+   * Compra por importe. El servidor crea la orden (o devuelve la del mismo requestId), recalcula Credits y
+   * precio, pide al proveedor que confirme el pago y solo entonces acredita. El proveedor "test" (recarga de
+   * prueba) solo existe en dev y en los emuladores.
    */
-  async purchase(packageId: string, provider: 'test' | 'apple' | 'google' | 'stripe' = 'test', payload?: Record<string, unknown>) {
-    return call<{ transactionId: string; amount: number; balanceAfter: number; duplicate: boolean; credits: number; packageId: string }>('validatePurchase', {
-      provider,
-      packageId,
-      payload: payload || {},
-    });
+  async comprarImporte(pedido: PedidoDeCompra, provider: 'test' | 'apple' | 'google' | 'stripe' = 'test') {
+    return call<ResultadoDeCompra>('validatePurchase', { provider, payload: { ...pedido } });
   }
 
   /**
@@ -301,7 +340,7 @@ export interface TransactionView {
  * `constants/specialists.ts`—.
  *
  * `title` es el concepto que escribió el servidor y GUARDÓ con el movimiento, en español: «Credits de bienvenida»,
- * «WEË AI · Weë Chef», «Weë Brain · 12 respuestas». Esas frases están en el catálogo del servidor
+ * «WEË AI · WeëChef», «Weë Brain · 12 respuestas». Esas frases están en el catálogo del servidor
  * (`i18n/textos/es/servidor/movimientos.ts`), así que quien pinta las reconoce y las escribe en el idioma de quien
  * mira, también las de movimientos de hace meses (`i18n/servidor.ts`). `tituloClave` es lo que se dice por tipo
  * de movimiento, cuando no hay concepto o no se reconoce.

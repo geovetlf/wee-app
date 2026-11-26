@@ -85,4 +85,24 @@ export const home: typeof import('../es/home').home = {
   likesCount_other: '{{cantidad}} Mi piace',
   commentsCount_one: '{{cantidad}} commento',
   commentsCount_other: '{{cantidad}} commenti',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Ẅall es marca. Sin revisión nativa. */
+  tabWall: 'Ẅall',
+  sectionsNav: 'Sezioni',
+  weeAiTagline: 'Crea, sviluppa e trasforma le tue idee',
+  openBrain: 'Apri Weë Brain',
+  feedForYou: 'Per te',
+  feedCreativity: 'Creatività',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'Ora su Weë',
+  you: 'Tu',
+  guestTitle: 'Esprimiti in libertà.',
+  guestHint: 'Pubblica come te stesso o come i tuoi alter ego, e mostra la tua opera su WeëPages.',
+  premiere: 'Prima',
+  presentedBy: 'Presentata da {{nombre}}',
+  viewPage: 'Vedi WeëPage',
+  wallEmptyTitleWork: 'Il Ẅall aspetta la sua prima opera',
+  wallEmptyHintFaces: 'Pubblica qualcosa di tuo o del tuo alter ego.',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'Universi da scoprire',
+  mosaicTitle: 'Creato adesso',
 };

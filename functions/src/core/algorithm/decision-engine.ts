@@ -24,9 +24,11 @@
  *
  * ── Lo que NO hace, y tiene dueño ───────────────────────────────────────────
  *
- * No elige proveedor, modelo ni adaptador: eso es del Router, que ya puntúa sus
- * siete ejes y no se copia aquí. Si una estrategia necesita saber algo del
- * Router, lo recibe como SEÑAL. Este archivo no lo importa y no puede.
+ * No elige proveedor, modelo ni adaptador: eso es del Router —en producción
+ * `engine/router.ts`, que ordena por su política; el del Core (`core/router.ts`)
+ * puntúa seis ejes ponderados más `capabilityFit`, que solo informa—, y no se
+ * copia aquí. Si una estrategia necesita saber algo del Router, lo recibe como
+ * SEÑAL. Este archivo no lo importa y no puede.
  */
 
 import { ALGORITHM_CONTRACT_VERSION } from '../contracts';
@@ -37,7 +39,7 @@ import {
   referenciaDeAlgoritmo,
 } from './types';
 import {
-  AlgorithmSpend, Contador, GASTO_CERO, crearContador, presupuestoEfectivo, problemasDelPresupuesto, topeDelContador,
+  Contador, crearContador, presupuestoEfectivo, problemasDelPresupuesto, topeDelContador,
 } from './budget';
 import {
   AlgorithmConstraints, EJES, Objective, ObjectiveAxis, conflictosDeRestricciones, ladoFundible, pesosNormalizados, problemasDeLosLados,
@@ -45,9 +47,9 @@ import {
 import {
   Confidence, Evidence, Signal, Uncertainty, confianzaDeEvidencia, incertidumbreDe, resolverSenales, senalValida,
 } from './signals';
-import { Alternative, AxisValues, StrategyScore, ejesDeEstrategia, pareto, puntuar } from './scoring';
+import { Alternative, AxisValues, StrategyScore, pareto, puntuar } from './scoring';
 import { Strategy, problemasDeEstrategia } from './strategy';
-import { violacionesDeEstrategia, violacionesEn } from './authority';
+import { duenosDe, sonDelRouter, violacionesDeEstrategia, violacionesEn } from './authority';
 /* Solo la DEFINICIÓN de muestra de A7. Ni su motor ni el de A8: A1 no lee de ellos. */
 import { POLITICA_MINIMA } from './feedback';
 import {
@@ -597,7 +599,7 @@ export const problemaDeHistorial = (h: unknown): string | undefined => {
     if (v !== undefined && (typeof v !== 'number' || !Number.isFinite(v) || v < 0)) return `${k} imposible`;
   }
   const cruces = violacionesEn(h, 'history');
-  if (cruces.length) return `nombra una implementación (${cruces[0].clave})`;
+  if (cruces.length) return sonDelRouter(cruces) ? `nombra una implementación (${cruces[0].clave})` : `cruza la frontera de autoridad (${duenosDe(cruces)})`;
   if (w.sampleSize < POLITICA_MINIMA.minSampleSize) {
     return `muestra de ${w.sampleSize}, por debajo de ${POLITICA_MINIMA.minSampleSize}: no es una muestra`;
   }
@@ -834,7 +836,9 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
           'authority_violation', contador.gasto(), { warnings: ['authority_violation'] }),
         status: 'invalid',
         explanation: Object.freeze([
-          `La petición nombra una implementación en sus requisitos (${claves.join(', ')}): eso lo elige el Router, y no se decide sobre ella.`,
+          sonDelRouter(cruces)
+            ? `La petición nombra una implementación en sus requisitos (${claves.join(', ')}): eso lo elige el Router, y no se decide sobre ella.`
+            : `La petición pide en sus requisitos lo que no es de esta capa (${duenosDe(cruces)}), y no se decide sobre ella.`,
         ]),
       };
     }
@@ -1131,24 +1135,6 @@ export const crearMotorDeDecision = <T = unknown>(opciones: OpcionesDelMotor = {
 
   return { descriptor: DESCRIPTOR_DEL_MOTOR, decidir };
 };
-
-/** Lo que el motor ESPERA del elegido. Para comparar con la línea base; no es lo medido. */
-export const resultadoEsperado = <T>(d: AlgorithmDecision<T>, valores?: AxisValues): {
-  quality?: number; costUsd?: number; latencyMs?: number;
-} => {
-  const v = valores ?? {};
-  return {
-    quality: typeof v.quality === 'number' ? v.quality : undefined,
-    costUsd: typeof v.cost === 'number' ? v.cost : undefined,
-    latencyMs: typeof v.latency === 'number' ? v.latency : undefined,
-  };
-};
-
-/** Los ejes de una alternativa cuyo valor es una estrategia. Atajo sobre lo de A0. */
-export const valoresDeEstrategia = (s: Strategy): AxisValues => ejesDeEstrategia(s);
-
-/** Un gasto vacío, para quien tenga que construir una decisión sin haber pensado. */
-export const SIN_GASTO: Readonly<AlgorithmSpend> = GASTO_CERO;
 
 /** El contador, expuesto para que una prueba pueda construir el mismo que usa el motor. */
 export const contadorDelMotor = (limites?: AlgorithmBudgetLimits, ahora?: () => number): Contador =>

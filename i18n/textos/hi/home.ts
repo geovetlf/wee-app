@@ -8,8 +8,7 @@
  * con «चाहते हैं», que tiene género: dice «आज क्या शेयर करना है?», el mismo
  * patrón que «आज क्या बनाना है?» del glosario (§ 11.1). «Destacado» es
  * «चुनिंदा», en la insignia, en la sección y en «चुनिंदा राय»; la sección no dice
- * «पोस्ट» porque la misma frase «Destacados» es también `weebiz.featured`, y en
- * toda la app se dice igual.
+ * «पोस्ट» porque la misma frase «Destacados» se dice igual en toda la app.
  * Las cifras de la tarjeta del tema del día llevan `{{cantidad}}` también en el
  * `_one`, que en hindi cubre el 0 y el 1 (§ 8): «जवाब» y «पसंद» no cambian y
  * «टिप्पणी» pasa a «टिप्पणियाँ». «Like» es «पसंद», nunca «लाइक» (glosario
@@ -105,4 +104,24 @@ export const home: typeof import('../es/home').home = {
   likesCount_other: '{{cantidad}} पसंद',
   commentsCount_one: '{{cantidad}} टिप्पणी',
   commentsCount_other: '{{cantidad}} टिप्पणियाँ',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Ẅall es marca. Sin revisión nativa. */
+  tabWall: 'Ẅall',
+  sectionsNav: 'हिस्से',
+  weeAiTagline: 'अपने आइडिया बनाएँ, निखारें और बदलें',
+  openBrain: 'Weë Brain खोलें',
+  feedForYou: 'आपके लिए',
+  feedCreativity: 'रचनात्मकता',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'अभी Weë पर',
+  you: 'आप',
+  guestTitle: 'खुद को खुलकर व्यक्त करो।',
+  guestHint: 'अपने नाम से या अपने ऑल्टर ईगो के नाम से पोस्ट करें, और अपना काम WeëPages पर दिखाएँ।',
+  premiere: 'प्रीमियर',
+  presentedBy: '{{nombre}} की प्रस्तुति',
+  viewPage: 'WeëPage देखें',
+  wallEmptyTitleWork: 'Ẅall अपनी पहली कृति का इंतज़ार कर रहा है',
+  wallEmptyHintFaces: 'अपना या अपने ऑल्टर ईगो का कुछ पोस्ट करें।',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: 'खोजने के लिए ब्रह्मांड',
+  mosaicTitle: 'अभी बन रहा है',
 };

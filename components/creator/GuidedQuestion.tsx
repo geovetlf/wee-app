@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import CajaDePrompt from './CajaDePrompt';
 import { textoDeOpcion, textoDePregunta } from '../../i18n/servidor';
 import { Question } from '../../services/creatorService';
 import DateRangePicker from './DateRangePicker';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import TextoEnMayusculas from '../TextoEnMayusculas';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 export interface QaHistoryItem {
   question: string;
@@ -39,7 +42,12 @@ interface GuidedQuestionProps {
  */
 const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experienceId, goal, history, question, busy, onAnswer, hideThinking }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
+  const pro = useEnEspacioProfesional();
+  const [escrito, setEscrito] = useState('');
+  /* Cada pregunta empieza con su caja vacía. */
+  useEffect(() => setEscrito(''), [question?.id]);
   const pregunta = question && experienceId ? textoDePregunta(t, experienceId, question) : question?.text;
   const etiqueta = (option: { id: string; label: string }): string =>
     question && experienceId ? textoDeOpcion(t, experienceId, question.id, option) : option.label;
@@ -47,8 +55,8 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
     <View style={styles.container}>
       {/* Lo que la persona pidió */}
       <View style={styles.bubbleRow}>
-        <View style={[styles.bubbleUser, { backgroundColor: theme.colors.accent + '33' }]}>
-          <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{goal}</Text>
+        <View style={[styles.bubbleUser, { backgroundColor: c.seleccion }]}>
+          <Text style={[styles.bubbleText, { color: c.sobreSeleccion }]}>{goal}</Text>
         </View>
       </View>
 
@@ -56,14 +64,14 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
       {history.map((item, index) => (
         <View key={`${index}-${item.question}`}>
           <View style={styles.bubbleRowLeft}>
-            <TextoEnMayusculas style={[styles.bubbleWho, { color: theme.colors.textSecondary }]}>{experienceName}</TextoEnMayusculas>
-            <View style={[styles.bubbleWee, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
-              <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{item.question}</Text>
+            <TextoEnMayusculas style={[styles.bubbleWho, { color: c.tintaSecundaria }]}>{experienceName}</TextoEnMayusculas>
+            <View style={[styles.bubbleWee, { backgroundColor: c.superficie }]}>
+              <Text style={[styles.bubbleText, { color: c.tinta }]}>{item.question}</Text>
             </View>
           </View>
           <View style={styles.bubbleRow}>
-            <View style={[styles.bubbleUser, { backgroundColor: theme.colors.accent + '33' }]}>
-              <Text style={[styles.bubbleText, { color: theme.colors.text }]}>{item.answer}</Text>
+            <View style={[styles.bubbleUser, { backgroundColor: c.seleccion }]}>
+              <Text style={[styles.bubbleText, { color: c.sobreSeleccion }]}>{item.answer}</Text>
             </View>
           </View>
         </View>
@@ -72,8 +80,8 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
       {/* Pregunta actual */}
       {question ? (
         <View style={styles.current}>
-          <TextoEnMayusculas style={[styles.bubbleWho, { color: theme.colors.textSecondary }]}>{experienceName}</TextoEnMayusculas>
-          <Text style={[styles.questionText, { color: theme.colors.text }]}>{pregunta}</Text>
+          <TextoEnMayusculas style={[styles.bubbleWho, { color: c.tintaSecundaria }]}>{experienceName}</TextoEnMayusculas>
+          <Text style={[styles.questionText, { color: c.tinta }]}>{pregunta}</Text>
           {question.kind === 'dates' ? (
             /*
              * El calendario devuelve la frase que cualquiera escribiría —"del 12
@@ -85,6 +93,20 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
               onConfirm={(frase) => onAnswer(undefined, frase)}
               onSkip={() => onAnswer('idk')}
             />
+          ) : (pro && question.options.length === 0 ? (
+            /*
+             * Sin opciones no hay nada que elegir (el nombre de un logo): sin esta caja
+             * la pregunta no tendría salida. Con opciones sigue siendo elegir, sin escribir.
+             */
+            <CajaDePrompt
+              valor={escrito}
+              onCambiar={setEscrito}
+              onEnviar={() => { if (escrito.trim()) onAnswer(undefined, escrito.trim()); }}
+              etiquetaEnviar={t('common.send')}
+              textoEnviar={t('common.send')}
+              placeholder={pregunta ?? ''}
+              ocupado={busy}
+            />
           ) : (
           <View style={styles.options}>
             {question.options.map((option) => {
@@ -95,9 +117,7 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
                   style={[
                     styles.option,
                     {
-                      backgroundColor: theme.colors.card,
-                      borderColor: isIdk ? theme.colors.accent : theme.colors.border,
-                      borderStyle: isIdk ? 'dashed' : 'solid',
+                      backgroundColor: c.superficie,
                     },
                   ]}
                   onPress={() => onAnswer(option.id)}
@@ -105,24 +125,24 @@ const GuidedQuestion: React.FC<GuidedQuestionProps> = ({ experienceName, experie
                   activeOpacity={0.8}
                   accessibilityLabel={etiqueta(option)}
                 >
-                  <Text style={[styles.optionText, { color: theme.colors.text }]}>{etiqueta(option)}</Text>
+                  <Text style={[styles.optionText, { color: c.tinta }]}>{etiqueta(option)}</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
-          )}
+          ))}
         </View>
       ) : hideThinking ? null : (
         <View style={styles.thinking}>
-          <ActivityIndicator color={theme.colors.accent} />
-          <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>{t('weeai.nameThinking', { nombre: experienceName })}</Text>
+          <ActivityIndicator color={c.tintaSecundaria} />
+          <Text style={[styles.thinkingText, { color: c.tintaSecundaria }]}>{t('weeai.nameThinking', { nombre: experienceName })}</Text>
         </View>
       )}
 
       {busy && question && (
         <View style={styles.thinking}>
-          <ActivityIndicator color={theme.colors.accent} />
-          <Text style={[styles.thinkingText, { color: theme.colors.textSecondary }]}>{t('weeai.oneMoment')}</Text>
+          <ActivityIndicator color={c.tintaSecundaria} />
+          <Text style={[styles.thinkingText, { color: c.tintaSecundaria }]}>{t('weeai.oneMoment')}</Text>
         </View>
       )}
     </View>
@@ -153,7 +173,6 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderRadius: BORDER_RADIUS.lg,
     borderTopLeftRadius: BORDER_RADIUS.sm,
-    borderWidth: 1,
   },
   bubbleUser: {
     alignSelf: 'flex-end',
@@ -185,7 +204,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
     borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
     justifyContent: 'center',
   },
   optionText: {

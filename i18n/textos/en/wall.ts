@@ -1,5 +1,5 @@
 /*
- * El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * El Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Y además es el último escalón del respaldo, así que no puede tener huecos.
@@ -65,7 +65,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'comments',
   commentImageFailed: 'Couldn\'t upload the image. Try again.',
   commentSendFailed: 'Couldn\'t send the comment. Try again.',
-  shareText: '{{contenido}}\n\nCreated on Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nCreated on Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Take a look at this post on Weë',
   commentsWithCount: 'Comments ({{total}})',
   agreeWithComment: 'Agree with this comment',
@@ -74,4 +74,22 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: 'Hide prompt',
   copyPrompt: 'Copy prompt',
   promptCopied: 'Copied',
+  demoBadge: 'Demo',
+  demoBadgeLabel: 'Demo content',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'There are no posts on the Ẅall yet',
+  immersiveError: 'We couldn’t load the Ẅall',
+  immersiveEnd: 'You’re all caught up',
+  agreePost: 'Agree',
+  disagreePost: 'Disagree',
+  mute: 'Mute',
+  unmute: 'Unmute',
+  moreOptions: 'More options',
+  seeMore: 'See more',
+  seeLess: 'See less',
+  openPost: 'Open post',
+  imageOf: 'Image {{numero}} of {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Fire',
+  reactionLaugh: 'Laugh',
 };

@@ -2,12 +2,12 @@
  * DANÉS — WEË CHEF: el sitio donde se cocina.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Chef comparte con Weë Studio —"Ver todos", "Ajustes", "Listo"— vive en
+ * Lo que Chef comparte con WeëStudio —"Ver todos", "Ajustes", "Listo"— vive en
  * `studio`, y las funciones que ya existían siguen en `catalogo` (chefAc…).
  *
  * Glosario § 9.6: «receta» es «opskrift», «ingrediente», «ingrediens», la
  * información nutricional, «Næringsindhold», y la lista de la compra,
- * «Indkøbsliste»; el cocinero sería «kok», pero la marca Weë Chef no cambia.
+ * «Indkøbsliste»; el cocinero sería «kok», pero la marca WeëChef no cambia.
  * Los nutrientes van como en la etiqueta danesa de los envases: «Fedt»,
  * «Kulhydrat», «Sukker», «Protein» y «Natrium», en singular. «Sin X» es el
  * sufijo -fri (Laktosefri, Glutenfri, Æggefri, Nøddefri, Sukkerfri), igual en el
@@ -34,6 +34,7 @@ export const chef: typeof import('../es/chef').chef = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: 'Skriv din idé eller dine ingredienser, eller brug et foto',
+  cookPrompt: 'Fortæl mig, hvad du vil lave…',
   addLabel: 'Tilføj et foto',
   cameraLabel: 'Tag et foto',
   galleryLabel: 'Vælg et foto fra galleriet',
@@ -119,4 +120,11 @@ export const chef: typeof import('../es/chef').chef = {
   seeAll: 'Se alle',
   projectsEmpty: 'Du har ikke lavet mad med Weë endnu.',
   projectsEmptyHint: 'Det, du laver her, bliver gemt, og du finder det igen i denne række.',
+  /* ── La portada de la demo YC (héroe y fichas) ── */
+  heroLead: 'Din AI-kok,',
+  heroAccent: 'altid med dig',
+  chipRecipes: 'Opskrifter',
+  chipMenus: 'Menuer',
+  chipHealthy: 'Sund',
+  chipQuick: 'Hurtigt',
 };

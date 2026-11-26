@@ -2,11 +2,11 @@
  * RUSO — WEË DESIGN: diseñar y visualizar casi cualquier cosa física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Weë Design comparte con Weë Studio —"Mis creaciones", "Ver todas",
+ * Lo que WeëDesign comparte con WeëStudio —"Mis creaciones", "Ver todas",
  * "Creando...", "Creación lista"— vive en `studio` y se lee de allí.
  *
  * "3D" se escribe igual en ruso; "render" es «рендер», que es la palabra rusa
- * de siempre y no una transliteración de la marca. "Weë Design" no aparece
+ * de siempre y no una transliteración de la marca. "WeëDesign" no aparece
  * aquí: es marca y vive fuera del diccionario.
  */
 export const design: typeof import('../es/design').design = {
@@ -94,12 +94,24 @@ export const design: typeof import('../es/design').design = {
   valStudioLight: 'Студийное',
 
   /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
+  kindProduct: 'Продукт',
   kindInterior: 'Интерьер',
   kindArchitecture: 'Архитектура',
   kindBoat: 'Лодка',
   kindFurniture: 'Мебель',
+  sampleShoe: 'Кожаные кроссовки',
+  sampleGuitar: 'Электрогитара',
   sampleLivingRoom: 'Светлая гостиная',
   samplePineHouse: 'Дом среди сосен',
   sampleYacht: '15-метровая яхта',
   sampleArmchair: 'Деревянное кресло',
+  /* ── La portada de la demo YC (héroe, creación rápida, Design Studio, explorar) ── */
+  heroLead: 'Дизайн',
+  heroAccent: 'без границ.',
+  brandingTitle: 'Брендинг',
+  objects3dTitle: '3D-объекты',
+  designStudioTitle: 'Дизайн-студия',
+  designStudioSub: 'Создавайте, редактируйте и визуализируйте профессиональный дизайн с ИИ.',
+  openStudio: 'Открыть студию',
+  fashionHint: 'Создавайте одежду, коллекции и не только.',
 };

@@ -9,6 +9,7 @@ import { destinosDisponibles, MURO_GENERAL } from '../../utils/sectionFeed';
 import { getExperienceById } from '../../constants/weeExperiences';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 /**
  * La puerta de publicar de Weë.
@@ -50,7 +51,7 @@ interface ComposerEntryProps {
   onCompose: (kind: ComposerKind) => void;
   /**
    * Una sola fila (fase 2E-70). El atajo de foto se queda al lado del campo y
-   * lo demás baja dentro de la pantalla de crear. Lo pide Weë Travel, donde el
+   * lo demás baja dentro de la pantalla de crear. Lo pide WeëTravel, donde el
    * muro es el producto y cada píxel de arriba es media foto.
    */
   compact?: boolean;
@@ -126,7 +127,7 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
   const { theme } = useTheme();
   const t = useT();
   /*
-   * Los nombres de sección son marca —"Weë Chef" se escribe igual en todos los
+   * Los nombres de sección son marca —"WeëChef" se escribe igual en todos los
    * idiomas— y llegan tal cual. El muro general no: es una descripción y trae
    * su clave.
    */
@@ -190,6 +191,8 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
               accessibilityRole="button"
               accessibilityLabel={t('composer.createPost')}
             >
+              {/* El + de publicar lleva el degradado de marca (2026-11-05). */}
+              <RellenoDeMarca radio={BORDER_RADIUS.full} />
               <Ionicons name="add" size={scale(26)} color="#1F2937" />
             </TouchableOpacity>
           </Animated.View>
@@ -339,6 +342,7 @@ const ComposerEntry: React.FC<ComposerEntryProps> = ({ placeholder, onCompose, c
             accessibilityRole="button"
             accessibilityLabel={t('composer.publish')}
           >
+            <RellenoDeMarca radio={BORDER_RADIUS.full} />
             <Ionicons name="paper-plane-outline" size={scale(18)} color="#1F2937" />
             <Text style={styles.publishText}>{t('composer.publish')}</Text>
           </TouchableOpacity>

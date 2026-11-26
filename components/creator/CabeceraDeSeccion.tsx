@@ -1,3 +1,4 @@
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Image } from 'expo-image';
@@ -9,6 +10,7 @@ import CreditsPill from '../CreditsPill';
 import { useMarcoDeSeccion } from './MarcoDeSeccion';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { useDireccion } from '../../hooks/useDireccion';
 
 const isWeb = Platform.OS === 'web';
 
@@ -27,6 +29,7 @@ const isWeb = Platform.OS === 'web';
 const W_DE_WEE = require('../../assets/icon.png');
 
 interface Props {
+  /** El lema en un solo color, sin el dorado: lo usa WeëTravel. */
   /** Lo que va detrás de "Weë": Studio, Design, Chef, Travel… */
   nombre: string;
   /**
@@ -42,12 +45,17 @@ interface Props {
    * al Home —nadie debe quedarse encerrado en una sección—.
    */
   onVolver?: () => void;
+  /**
+   * Solo la fila de identidad (volver · W · nombre · saldo), sin el lema ni la descripción. La usa la portada de
+   * WeëStudio de la demo YC, que presenta la sección en su propio héroe (components/studio/PortadaStudio.tsx).
+   */
+  soloIdentidad?: boolean;
 }
 
 /**
  * LA CABECERA DE UNA SECCIÓN DE WEË AI.
  *
- * Nació en Weë Studio y desde el 2026-09-15 la llevan todas (decisión del
+ * Nació en WeëStudio y desde el 2026-09-15 la llevan todas (decisión del
  * usuario): arriba de una sección no va nada más que esto.
  *
  * La W y el nombre en una fila, y debajo —alineado con el nombre, no con el
@@ -109,9 +117,16 @@ export const tamanoDelLema = (lema: string): number => {
   return 21;
 };
 
-const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolver }) => {
+const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolver, soloIdentidad }) => {
+  /* WeëTravel y WeëFashion son en blanco y negro: su nombre no lleva el color de la marca. */
+  const monocromo = nombre === 'Travel' || nombre === 'Fashion';
   const { theme } = useTheme();
   const t = useT();
+  const dir = useDireccion();
+  /* La imagen de cada sección llega con la reconstrucción de los sectores (docs/MIGRACION-UI-DEMO-YC.md, lote 3); hasta entonces, la cabecera de siempre. */
+  const baseDeMedios: string | null = null;
+  const imagenDeLaSeccion = baseDeMedios && !['Studio', 'Music', 'Fashion'].includes(nombre) ? `${baseDeMedios}/${nombre === 'Design' ? 'l-design-hero' : `l-hero-${nombre.toLocaleLowerCase('en-US')}`}.webp` : null;
+  const [imagenRota, setImagenRota] = React.useState(false);
   const navigation = useNavigation<any>();
   /*
    * Qué aporta el marco que la envuelve: si ya enseña el saldo —para no
@@ -121,7 +136,11 @@ const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolve
   const tamano = scale(TAMANO_DEL_NOMBRE);
   const tamanoLema = scale(tamanoDelLema(lema));
 
-  const volver = onVolver || (() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')));
+  const enProfesional = useEnEspacioProfesional();
+  const volver = onVolver || (() => {
+    if (enProfesional) return navigation.navigate('WeeCreator');
+    return navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main');
+  });
 
   /*
    * El lema, partido en dos: la primera palabra en el color del texto y el resto
@@ -129,6 +148,38 @@ const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolve
    * —el orden de las palabras cambia de un idioma a otro y dos trozos pegados se
    * rompen al traducir— y se parte aquí al pintar.
    */
+  /*
+   * DENTRO DE WEË VERSIÓN CREATOR, UNA LÍNEA DE TRABAJO.
+   *
+   * Quien está aquí ya sabe dónde está: el marco lo marca en la navegación, y el
+   * saldo y la W están arriba. Sin logo, sin lema de cartel y sin flecha —volver
+   * es elegir otra sección—; la flecha solo sale si la sección tiene un nivel al
+   * que volver (`onVolver`).
+   */
+  if (enProfesional) {
+    const detalle = (descripcion ?? lema).replace(/\s*\n\s*/g, ' ');
+    return (
+      <View style={styles.proBloque}>
+        {!!onVolver && (
+          <TouchableOpacity
+            onPress={onVolver}
+            style={[styles.proVolver, isWeb && ({ cursor: 'pointer' } as any)]}
+            activeOpacity={0.7}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}
+          >
+            <Ionicons name="chevron-back" size={20} color={theme.colors.text} style={dir.espejo} />
+          </TouchableOpacity>
+        )}
+        <View style={styles.proTextos}>
+          <Text accessibilityRole="header" style={[styles.proNombre, { color: theme.colors.text }]}>Weë {nombre}</Text>
+          {!!detalle && <Text style={[styles.proDetalle, { color: theme.colors.textSecondary }]}>{detalle}</Text>}
+        </View>
+      </View>
+    );
+  }
+
   const corte = lema.indexOf(' ');
   const primera = corte > 0 ? lema.slice(0, corte) : lema;
   const resto = corte > 0 ? lema.slice(corte) : '';
@@ -150,7 +201,7 @@ const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolve
         accessibilityRole="button"
         accessibilityLabel={t('common.back')}
       >
-        <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
+        <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} style={dir.espejo} />
       </TouchableOpacity>
 
       <Image
@@ -191,6 +242,10 @@ const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolve
     </View>
   );
 
+  if (soloIdentidad) {
+    return <View style={[styles.bloque, styles.bloqueSoloIdentidad, marco.aireLateral ? { marginHorizontal: -marco.aireLateral } : null]}>{filaDeIdentidad}</View>;
+  }
+
   return (
     /*
       El aire que mete el marco se devuelve aquí. Sin esto, la MISMA cabecera
@@ -210,10 +265,21 @@ const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolve
         (decisión del usuario, 2026-09-15). Lo que separa de la caja es el aire,
         no una línea.
       */}
+      {!!imagenDeLaSeccion && !imagenRota && (
+        <Image
+          source={{ uri: imagenDeLaSeccion }}
+          style={styles.imagenDeLaSeccion}
+          contentFit="cover"
+          transition={150}
+          onError={() => setImagenRota(true)}
+          accessible={false}
+        />
+      )}
+
       <View style={styles.presentacion}>
         <Text style={[styles.lema, { fontSize: tamanoLema, lineHeight: tamanoLema * 1.22, color: theme.colors.text }]}>
           <Text>{primera}</Text>
-          {!!resto && <Text style={{ color: theme.colors.accent }}>{resto}</Text>}
+          {!!resto && <Text style={{ color: monocromo ? theme.colors.text : theme.colors.accent }}>{resto}</Text>}
         </Text>
 
         {!!descripcion && (
@@ -226,6 +292,13 @@ const CabeceraDeSeccion: React.FC<Props> = ({ nombre, lema, descripcion, onVolve
 };
 
 const styles = StyleSheet.create({
+  bloqueSoloIdentidad: { paddingBottom: SPACING.sm },
+  imagenDeLaSeccion: { width: '100%', aspectRatio: 16 / 9, borderRadius: scale(18), marginTop: scale(4), marginBottom: scale(14) },
+  proBloque: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  proVolver: { width: 28, height: 28, alignItems: 'center', justifyContent: 'center', marginLeft: -6 },
+  proTextos: { flex: 1, minWidth: 0, gap: 2 },
+  proNombre: { fontSize: 20, lineHeight: 26, fontWeight: '600', letterSpacing: -0.2 },
+  proDetalle: { fontSize: 13.5, lineHeight: 19 },
   /*
    * La cabecera entera: arriba la fila de identidad, debajo la presentación.
    * Poco aire abajo, porque lo que viene después es la caja donde se escribe,
@@ -260,6 +333,8 @@ const styles = StyleSheet.create({
    * caja es mayor que lo que se ve.
    */
   logo: {
+    /* Redondeado: sobre el negro de WeëMusic no se ve el cuadro blanco del icono. */
+    borderRadius: scale(12),
     width: scale(52),
     height: scale(52),
     marginLeft: scale(2),

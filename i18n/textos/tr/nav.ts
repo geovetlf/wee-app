@@ -17,6 +17,7 @@ export const nav: typeof import('../es/nav').nav = {
   create: 'Oluştur',
   talk: 'WeeTalk',
   notifications: 'Bildirimler',
+  notificationsUnread: 'Bildirimler, okunmamış bildirimlerin var',
   current: 'geçerli bölüm',
   goTo: '{{nombre}} sayfasına git',
   weeNavigation: 'Weë gezinme çubuğu',
@@ -26,5 +27,10 @@ export const nav: typeof import('../es/nav').nav = {
   goToWeeAi: 'Weë AI bölümüne git',
   weeAiQuestion: 'Bugün ne oluşturmak istiyorsun?',
   weeAiPitch: 'Ne istediğini Weë\'ye anlat. Yapay zekâ kısmını Weë halleder.',
-  documentTitle: 'Weë - Geleceğin topluluğu',
+  brandSlogan: 'Hayal et · Yarat · Bağlan',
+  documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Mesajlar',
+  myWee: 'Benim Weë',
 };

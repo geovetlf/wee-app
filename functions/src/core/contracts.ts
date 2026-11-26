@@ -186,7 +186,8 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  *
  * Lo que NO entra, y a propósito: elegir proveedor o modelo. Eso es del Router
  * y el intento de meterlo en un plan ya se rechazó una vez (B3.15.2). El mismo
- * predicado que lo impidió —`claveDeImplementacion`— guarda esta capa.
+ * predicado que lo impidió —`claveDeImplementacion`— guarda esta capa, primero; desde
+ * la misión de cierre, además, la lectura por responsabilidad de `authority.ts`.
  *
  * 1.1 (A1): el primer algoritmo real obligó a que una decisión pudiera contar
  * más de sí misma. Se AÑADEN, todos opcionales: `constraints` —el objetivo dice
@@ -534,6 +535,58 @@ export const MAX_PROPUESTAS_POR_PASO = 4;
  *   PUNTUACIÓN     `StrategyScore.fits` se queda como estaba: un 0 puede ser un eje sin dato,
  *                  la ausencia la dice `missing`, y un 0 no es evidencia negativa. Solo
  *                  queda escrito.
+ */
+/*
+ * LO QUE LA MISIÓN DE CIERRE Y MADURACIÓN HACE DENTRO DE 1.12 (2026-10-07). No cambia la
+ * forma de la petición ni la del resultado, ni lo que se decide con entradas válidas —salvo
+ * A6 cuando se le acaba el presupuesto (CORTE)—: hace cumplir lo que 1.11 y 1.12 ya habían
+ * escrito y no se cumplía.
+ *
+ *   FRONTERA    la frontera se lee también POR RESPONSABILIDAD (`authority.ts`): cada clave se
+ *               parte en palabras y se pregunta de quién es lo que nombra —elegir proveedor o
+ *               modelo, llamar a una API, cobrar, leer un secreto, crear materiales o trabajos—,
+ *               DESPUÉS de la lista del Planner y solo para rechazar más. Es lo que
+ *               `EFECTOS_PROHIBIDOS` declara desde A0 y la lista de diez nombres no veía
+ *               (`vendor`, `apiKey`, `credits`, `proveedor`…). La violación dice además qué
+ *               efecto intentaba y de quién es (`efecto`, `dueno`). Con entradas legítimas no
+ *               cambia nada: las huellas doradas de S2 salen idénticas byte a byte.
+ *
+ *   SEÑAL       A6 publicaba `verification.pass_with_uncertainty`, que la regla de nombres
+ *               de las señales rechaza; ahora `verification.passWithUncertainty`
+ *               (`claveDeEstado`). Los otros cinco estados ya cumplían.
+ *   REQUISITOS  A8 aplica la regla de B.1 también a `minSampleSize` y `maxAgeMs`
+ *               (`problemasDeLosRequisitos`): un `NaN` o un texto ya no apagan esos suelos, ni
+ *               unos requisitos que no son un objeto.
+ *   PARADA      el ciclo dice `context_rejected`, no `context_refused`, cuando los requisitos
+ *               de lo aprendido están mal formados: es una petición que corregir.
+ *   CORTE       A6, cuando se le acaba el presupuesto de comprobaciones —o el de pensar—, cuenta
+ *               lo que no miró como `unknown`; antes lo dejaba fuera y el veredicto podía salir
+ *               `pass` sin haber mirado un duro. Cambia lo que A6 decide al cortarse, así que,
+ *               por la regla de `AlgorithmDescriptor.version`, sube a `motor-de-verificacion@3`;
+ *               la forma pública no cambia.
+ *
+ * Y el ciclo acepta un cronómetro (`OpcionesDelCiclo.cronometro`) para que el tope de pensar
+ * `maxLatencyMs` —que el contrato ya declaraba— se aplique mientras se razona y no solo se
+ * mida al terminar. Es una opción de la fábrica, no un campo de la petición ni del resultado:
+ * sin ella, el motor es byte a byte el de antes; con ella, lo que puede cambiar es que se
+ * pare por `budget_exceeded`, una parada que 1.12 ya tenía.
+ *
+ * El NÚMERO se queda en 1.12 por decisión expresa del dueño en esta misión —no cambiar la
+ * versión del contrato salvo necesidad real—: nada guardado ni ningún consumidor depende de
+ * lo que cambia, y producción sigue en 1.9 (`creatorChat`). Por la regla de versionado y el
+ * precedente de 1.10 —que subió el número al extender la frontera al ámbito—, la FRONTERA
+ * justificaría 1.13: subirlo es una decisión del dueño, aislada, y queda registrada como tal
+ * (DD-26 punto 4 y DECISIONES-PENDIENTES). Mientras sea 1.12, dos «1.12» pueden no ser el
+ * mismo motor —el de main antes de esta misión y el de después—, así que
+ * `algoritmo-produccion` compara también el CÓDIGO del motor entre main y producción.
+ *
+ * Los DESCRIPTORES siguen su propia regla («sube cuando cambia lo que el algoritmo
+ * DECIDE»), leída así en esta misión: sube el motor cuyo veredicto cambia con entradas
+ * VÁLIDAS —A6, por CORTE y SEÑAL: `motor-de-verificacion@3`—; no sube el que solo rechaza
+ * más de lo que el contrato ya prohibía —FRONTERA, REQUISITOS—, como en S2-C (la regla de
+ * B.1 en A3, A4, A8 y el motor de optimización, «sin subir contrato ni motores»). La lectura contraria —que A1, A3,
+ * A7 y el motor de optimización suban también por FRONTERA, como `motor-de-decision@2` en 1.10— va con la
+ * decisión del 1.13.
  */
 export const ALGORITHM_CONTRACT_VERSION = '1.12' as const;
 

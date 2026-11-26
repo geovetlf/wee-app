@@ -260,8 +260,9 @@ console.log('\n── E · La ruta que faltaba ──');
   const fabricas = navegadores
     .map((f) => (leer('navigation/' + f).match(/create(?:Stack|BottomTab|MaterialTopTab)Navigator[<(]/g) || []).length)
     .reduce((a, b) => a + b, 0);
-  check('32) no se creó ningún navegador nuevo', fabricas === 6, fabricas + ' navegadores');
-  check('32) ni ningún archivo de navegación nuevo', navegadores.length === 7, navegadores.join(' · '));
+  /* 7 y 8: Weë versión creator (decisión del dueño, 2026-10-30) es el único añadido. */
+  check('32) no se creó ningún navegador nuevo', fabricas === 7, fabricas + ' navegadores');
+  check('32) ni ningún archivo de navegación nuevo', navegadores.length === 8, navegadores.join(' · '));
 
   /*
    * 33 · Y NADIE ABRIÓ UN DEEP LINK. El mapa de enlaces de App.tsx no menciona
@@ -282,10 +283,11 @@ console.log('\n── F · Control: no se rediseñó nada ──');
    * Lo que se mira es lo que la hace ser ella.
    */
   const COMUNIDADES = soloCodigo(leer('screens/CommunitiesManagementScreen.tsx'));
-  check('34) la pantalla de comunidades sigue igual por dentro',
-    /communityService\.joinCommunity/.test(COMUNIDADES)
-    && /communityService\.leaveCommunity/.test(COMUNIDADES)
-    && /communityService\.createCommunity/.test(COMUNIDADES)
+  /* Re-anclado 2026-11-05 (docs/COMUNIDADES-IDENTIDAD.md, decisiones 1–3 del dueño): unirse, salir y crear van por las callables con la cara ACTIVA. */
+  check('34) la pantalla de comunidades sigue igual por dentro (unirse, salir y crear, ahora por el servidor)',
+    /comunidadesService\.unirse/.test(COMUNIDADES)
+    && /comunidadesService\.salir/.test(COMUNIDADES)
+    && /comunidadesService\.crear/.test(COMUNIDADES)
     && /navigation\.goBack\(\)/.test(COMUNIDADES));
   check('34) y su texto sigue saliendo del diccionario de la fase anterior',
     /t\('communities\.searchPlaceholder'\)/.test(COMUNIDADES) && /t\('menu\.communities'\)/.test(COMUNIDADES));
@@ -302,11 +304,11 @@ console.log('\n── F · Control: no se rediseñó nada ──');
    * donde estaban.
    */
   check('36) el hueco de la portada conserva icono y medidas',
-    /<Ionicons name="camera-outline" size=\{32\} color=\{theme\.colors\.textSecondary\} \/>/.test(PERFIL)
+    /<IconoDeTrazo name="camera-outline" size=\{32\} color=\{theme\.colors\.textSecondary\} \/>/.test(PERFIL)
     && /const BANNER_HEIGHT = 180;/.test(CRUDO));
   check('36) y el encabezado flotante sigue con sus dos botones',
-    /<Ionicons name="menu" size=\{22\} color="#fff" \/>/.test(PERFIL)
-    && /<Ionicons name="settings-outline" size=\{20\} color="#fff" \/>/.test(PERFIL));
+    /<IconoDeTrazo name="menu" size=\{22\} color="#fff" \/>/.test(PERFIL)
+    && /<IconoDeTrazo name="settings-outline" size=\{20\} color="#fff" \/>/.test(PERFIL));
   check('36) el toque de la portada sigue siendo el mismo',
     /onPress=\{handleBannerSelect\}/.test(PERFIL)
     && /onLongPress=\{\(\) => userProfile\?\.bannerURL && setShowBannerViewer\(true\)\}/.test(PERFIL));

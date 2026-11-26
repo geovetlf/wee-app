@@ -48,6 +48,30 @@ export const DECLARED: Record<string, ProviderVerification> = {
     firstTest: 'Con la misma clave de ModelArk, generar una imagen desde Weë Design.',
     documentedAt: '2026-09-07',
   },
+  /*
+   * Embeddings (memoria de los personajes con IA). No es una capacidad del router:
+   * vive en `engine/embeddings.ts` con un modelo fijado. Misma clave de ModelArk.
+   * Hoy esa clave es la cuenta personal de pruebas; la de empresa entra cambiando
+   * el valor del secreto, sin tocar código.
+   */
+  'byteplus-embedding': {
+    state: 'DOCUMENTATION_VERIFIED',
+    credential: 'ARK_API_KEY',
+    docsUrl: 'https://docs.byteplus.com/en/docs/ModelArk/multimodal-vectorization-api',
+    firstTest: 'Activar Skylark-embedding-vision en la consola de BytePlus y vectorizar una frase corta con la misma clave de ModelArk.',
+    documentedAt: '2026-11-22',
+  },
+  /*
+   * Texto de la familia Seed por la Chat API de ModelArk. Fuera de toda cadena por defecto y desactivado:
+   * se enciende desde Firestore. Misma clave de ModelArk. Tarifa sin confirmar (null en byteplusText.ts).
+   */
+  'byteplus-text': {
+    state: 'DOCUMENTATION_VERIFIED',
+    credential: 'ARK_API_KEY',
+    docsUrl: 'https://docs.byteplus.com/en/docs/ModelArk/Chat',
+    firstTest: 'Activar Seed 2.0 Lite o Mini en la consola de BytePlus, encender aiProviders/byteplus-text y crear aiRouting/character.text; luego escribirle a un personaje con pase en un entorno de pruebas.',
+    documentedAt: '2026-11-23',
+  },
   flux: {
     state: 'DOCUMENTATION_VERIFIED',
     credential: 'BFL_API_KEY',

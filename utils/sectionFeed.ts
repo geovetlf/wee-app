@@ -438,14 +438,53 @@ export interface ContextoPublicacion {
  * misma que la de SECTION_MARKERS para que no haya dos listas que mantener.
  */
 const NOMBRE_SECCION: Record<string, string> = {
-  chef: 'Weë Chef',
-  design: 'Weë Design',
-  studio: 'Weë Studio',
+  /* Las seis experiencias se escriben PEGADAS desde el 2026-11-15 (decisión del dueño): WeëChef, WeëDesign… Weë Brain y Weë Writer, separados. */
+  chef: 'WeëChef',
+  design: 'WeëDesign',
+  studio: 'WeëStudio',
   writer: 'Weë Writer',
-  music: 'Weë Music',
-  business: 'Weë Business',
+  music: 'WeëMusic',
+  business: 'WeëFashion',
   brain: 'Weë Brain',
-  travel: 'Weë Travel',
+  travel: 'WeëTravel',
+};
+
+/**
+ * Los nombres con los que una sección firmó publicaciones antiguas en `aiTools`.
+ *
+ * Una publicación anterior a `sourceSection` solo dice de dónde viene por el nombre
+ * que llevaba la sección ese día, y ese texto está guardado: no se migra. Cuando una
+ * sección cambia de nombre (Weë Business pasó a Weë Fashion, 2026-10-14) el nombre
+ * viejo se sigue reconociendo, y lo que se enseña es el nombre de hoy. El
+ * identificador de la sección no cambia nunca.
+ */
+const NOMBRES_ANTERIORES: Record<string, string[]> = {
+  /*
+   * La grafía separada es la que llevan guardada en `aiTools` las publicaciones anteriores al 2026-11-15: se sigue
+   * reconociendo (la comparación va normalizada, pero «wee studio» no es «weestudio») y lo que se enseña es la de hoy.
+   * Aquí los nombres viejos son DATOS para reconocer lo ya publicado, no texto que se pinte.
+   */
+  chef: ['Weë Chef'],
+  design: ['Weë Design'],
+  studio: ['Weë Studio'],
+  music: ['Weë Music'],
+  business: ['Weë Fashion', 'Weë Business'],
+  travel: ['Weë Travel'],
+};
+
+/**
+ * El nombre de HOY de una herramienta guardada en `aiTools`.
+ *
+ * «Cómo lo hice» pinta lo que la publicación trae guardado, y lo guardado antes del 2026-11-15 dice «Weë Studio». La
+ * publicación no se toca: al pintarla, el nombre de una sección de Weë se enseña con su grafía vigente, igual que hace
+ * el WeeTag con `seccionDe`. Lo que no es una sección de Weë (el nombre de otra herramienta) pasa tal cual.
+ */
+export const nombreDeHoyDeHerramienta = (herramienta: string): string => {
+  const limpia = (herramienta || '').trim();
+  for (const [id, anteriores] of Object.entries(NOMBRES_ANTERIORES)) {
+    if (anteriores.includes(limpia)) return NOMBRE_SECCION[id] ?? limpia;
+  }
+  return limpia;
 };
 
 /**
@@ -483,7 +522,8 @@ export const seccionDe = (post: Post): ContextoPublicacion | undefined => {
   for (const [id, nombre] of Object.entries(NOMBRE_SECCION)) {
     // "wee design" dentro de "Weë Design": la comparación va normalizada, así que
     // la diéresis y las mayúsculas dan igual.
-    if (herramientas.some((h) => h.includes(normalize(nombre)))) return { id, nombre };
+    const nombres = [nombre, ...(NOMBRES_ANTERIORES[id] ?? [])];
+    if (herramientas.some((h) => nombres.some((n) => h.includes(normalize(n))))) return { id, nombre };
   }
   return undefined;
 };

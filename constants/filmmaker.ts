@@ -8,7 +8,7 @@ import type { FormatPresetId, SubjectFocus, TimeOfDay, Weather } from '../servic
  * del dominio de F1-A, viajan al servidor y no se traducen nunca.
  *
  * Ni un vocabulario nuevo: los valores salen de F1-A (`PRESETS`, `CLIMAS`,
- * `MOMENTOS_DEL_DIA`, `ENFOQUES`) y la cámara usa la biblioteca de Weë Studio
+ * `MOMENTOS_DEL_DIA`, `ENFOQUES`) y la cámara usa la biblioteca de WeëStudio
  * (`constants/camaraCinematica.ts`), que ya nombra el lenguaje creativo del Core.
  */
 

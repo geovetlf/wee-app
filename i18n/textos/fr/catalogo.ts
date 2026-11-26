@@ -3,7 +3,7 @@
  *
  * Refleja `textos/es/catalogo.ts` clave por clave; el archivo español es el
  * molde y una clave que falte aquí no compila. Los nombres de Weë (Weë Brain,
- * Weë Chef…), los identificadores, los emojis, los números y las duraciones no
+ * WeëChef…), los identificadores, los emojis, los números y las duraciones no
  * se traducen nunca. En francés el apóstrofo es siempre el tipográfico (’).
  */
 export const catalogo: typeof import('../es/catalogo').catalogo = {
@@ -53,7 +53,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Il s’occupe de tout le processus',
   brainEj3Subtitle: 'De l’idée aux designs, vidéos et musiques',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Conçois tout ce que tu imagines.',
   designIntro: 'Transforme tes idées en designs incroyables grâce à l’intelligence artificielle. D’un logo à une voiture, un produit ou un monde entier.',
   designChip1: 'Rapide et facile',
@@ -152,7 +152,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Retouche du visage',
   photoEj6Title: 'Transformer avec l’IA',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Crée, écoute et vis ta musique avec l’IA',
   musicIntro: 'Transforme tes idées en chansons, vidéos et expériences uniques. Aucune limite pour ta créativité.',
   musicChip1: 'Rapide et simple',
@@ -214,7 +214,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Transforme ta musique en une vidéo incroyable : plusieurs styles, synchronisation automatique, formats pour les réseaux, scènes et personnages.',
   musicClosingButton: 'Créer la vidéo maintenant',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Crée des photos et des vidéos avec l’IA',
   studioIntro: 'Dis-moi ce que tu veux créer et je t’accompagne pas à pas.',
   studioChip1: 'Facile à utiliser',
@@ -306,7 +306,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Messages reçus',
   businessEj4Meta: '↑ 70%',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Ton chef, toujours avec toi',
   chefIntro: 'Découvre des recettes, crée des menus, cuisine ce que tu as sous la main et mange mieux, plus facilement et avec plus de goût.',
   chefChip1: 'Recettes faciles',
@@ -336,7 +336,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Je ne sais pas quoi cuisiner',
   chefAcIdkSubtitle: 'Je te propose quelque chose de bon',
   chefAcIdkGoal: 'Je ne sais pas quoi cuisiner aujourd’hui',
-  chefIdeaTitle: 'Salut ! Je suis Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Salut ! Je suis WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Dis-moi, qu’est-ce que tu aimerais cuisiner aujourd’hui ?',
   chefIdeaPlaceholder: 'Écris ton idée ici…',
   chefIdeaChip1: 'Je veux un dîner rapide',
@@ -548,7 +548,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'CV professionnel',
   writerEj6Subtitle: 'Moderne et épuré',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Prépare ton voyage avec quelqu’un qui y est déjà allé.',
   travelIntro: 'Dis-moi où tu vas — ou que tu ne le sais pas encore — et je te prépare le voyage : quoi voir, où manger et comment te déplacer.',
   travelChip1: 'Sans réservations',

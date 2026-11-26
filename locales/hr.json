@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë treba pristup kameri kako bi mogao snimati fotografije za objave, profil, WeeTalk i Weë AI.",
+    "NSMicrophoneUsageDescription": "Weë treba pristup tvom mikrofonu kako bi mogao snimati glazbene ideje, pjevušene melodije, vlastite vokalne reference i glasovne poruke. Zvuk se koristi samo ako ti tako odlučiš.",
+    "NSPhotoLibraryUsageDescription": "Weë treba pristup galeriji kako bi mogao birati fotografije i videozapise za objave, profil, WeeTalk i Weë AI.",
+    "NSPhotoLibraryAddUsageDescription": "Weë treba dopuštenje za spremanje slika i videozapisa iz Weë AI u galeriju kad ih preuzmeš.",
+    "NSLocationWhenInUseUsageDescription": "Weë koristi tvoju približnu lokaciju za predlaganje obližnjih mjesta i tvog područja kad objavi dodaješ lokaciju – samo dok je aplikacija otvorena. Tvoja točna lokacija nikad se ne prikazuje javno."
+  }
+}

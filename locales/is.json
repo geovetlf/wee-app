@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë þarf aðgang að myndavélinni svo þú getir tekið myndir og notað þær í færslum, á prófílnum þínum, í WeeTalk og í Weë AI.",
+    "NSMicrophoneUsageDescription": "Weë þarf aðgang að hljóðnemanum svo þú getir tekið upp tónlistarhugmyndir, raulaðar laglínur, eigin raddfyrirmyndir og raddskilaboð. Hljóðið er aðeins notað ef þú ákveður að nota það.",
+    "NSPhotoLibraryUsageDescription": "Weë þarf aðgang að myndasafninu svo þú getir valið myndir og myndbönd fyrir færslurnar þínar, prófílinn þinn, WeeTalk og Weë AI.",
+    "NSPhotoLibraryAddUsageDescription": "Weë þarf leyfi til að vista í myndasafninu myndir og myndbönd sem þú sækir úr Weë AI.",
+    "NSLocationWhenInUseUsageDescription": "Weë notar áætlaða staðsetningu þína aðeins á meðan forritið er opið, til að stinga upp á stöðum í nágrenninu og svæðinu þínu þegar þú bætir staðsetningu við færslu. Nákvæm staðsetning þín er aldrei sýnd opinberlega."
+  }
+}

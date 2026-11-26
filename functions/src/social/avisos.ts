@@ -80,6 +80,18 @@ export const avisoPush = (tipo: unknown, nombreDelRemitente: string | null, idio
 };
 
 /**
+ * A QUÉ CARA VA EL AVISO (decisión del dueño D11, F4 del plan de alter egos). El teléfono es de la CUENTA y una cuenta
+ * puede tener varios Perfiles Weë: sin esto no se sabe con quién contestar. Cuando el aviso va a un Perfil Weë, el
+ * título se escribe «Para Lina Shade: Nuevo mensaje», en el idioma de quien lo recibe. Al Perfil Real, o sin un nombre
+ * que se pueda enseñar, el título no cambia. El nombre de la cara es contenido: no se traduce.
+ */
+export const tituloParaLaCara = (titulo: string, nombreDeLaCara: string | null, idioma?: unknown): string => {
+  if (!nombreDeLaCara) return titulo;
+  const plantilla = tablaDelIdioma(AVISOS, idioma).paraLaCara || AVISOS.en?.paraLaCara || AVISOS.es?.paraLaCara;
+  return plantilla ? rellenarTexto(plantilla, { destino: nombreDeLaCara, titulo }) : titulo;
+};
+
+/**
  * El texto del push de un mensaje de WeeTalk: lo que escribió quien lo manda, o —si es una foto, una imagen o un
  * audio sin texto— lo que la app guarda en su lugar («Foto única», «📷 Imagen», «🎤 Audio»), dicho en el idioma de
  * quien lo recibe. Lo que escribió una persona no se traduce.

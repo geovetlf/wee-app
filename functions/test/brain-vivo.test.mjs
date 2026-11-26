@@ -202,8 +202,9 @@ const sueltos = (src) =>
     .filter((texto) => !MARCA.test(texto));
 check('31) la cabecera no tiene textos a mano, salvo la marca', sueltos(cabecera).length === 0, sueltos(cabecera).join(' | '));
 check('32) el dibujo tampoco', sueltos(sistema).length === 0, sueltos(sistema).join(' | '));
+/* 2026-11-16: el título de la cabecera es «Brain», una palabra y sin traductor (el dueño quitó «Weë» del título y el lema decorativo). */
 check('33) y la marca sigue escrita como marca, sin traductor',
-  /<Text>Weë <\/Text>/.test(cabecera) && />Brain<\/Text>/.test(cabecera));
+  !/<Text>Weë <\/Text>/.test(cabecera) && /<Text>Brain<\/Text>/.test(cabecera));
 check('33) el sitio de trabajo lee sus textos del diccionario',
   /t\('brain\.slogan'\)|<CabeceraDeWeeBrain/.test(pantalla) && /t\('brain\.placeholder'\)/.test(pantalla));
 
@@ -255,8 +256,8 @@ check('39) un solo aire debajo de la caja anclada',
  * ni siquiera necesita medirlo: le basta con `EspacioDeEscritura`. Quien sí lo
  * mira es la cabecera de Weë Brain, para apartar el saludo mientras se escribe.
  */
-check('40) reutiliza el acomodo de teclado que ya existe',
-  /EspacioDeEscritura/.test(shell) && /useAlturaDelTeclado/.test(cabecera));
+check('40) reutiliza el acomodo de teclado que ya existe (la cabecera ya no necesita medirlo: se quitó el saludo que se apartaba)',
+  /EspacioDeEscritura/.test(shell) && !/useAlturaDelTeclado/.test(cabecera));
 check('41) Weë Brain no monta su propio sistema de teclado',
   !/Keyboard\.addListener|KeyboardAvoidingView|visualViewport/.test(pantalla));
 check('42) y el marco tampoco vigila nada en bucle',
@@ -306,9 +307,9 @@ for (const rel of ['components/studio/StudioPromptComposer.tsx', 'screens/ChefSc
  * Lo que se va es el saludo: el lema y la descripción. El nombre, el cerebro
  * pequeño y el saldo no se van nunca, y al cerrar el teclado vuelve todo.
  */
-check('48b) con teclado, el lema y la descripción dejan sitio al cerebro',
-  /const conTeclado = useAlturaDelTeclado\(\) > 0;/.test(cabecera)
-  && /\{!conTeclado && \(/.test(cabecera));
+/* 2026-11-16: el saludo (lema y descripción) se retiró de la cabecera; ya no hay nada que apartar con el teclado. */
+check('48b) la cabecera ya no lleva saludo que apartar con el teclado: sin lema ni descripción',
+  !/conTeclado/.test(cabecera) && !/\{t\('brain\.slogan'\)\}<\/Text>\s*\n\s*<Text style=\{\[styles\.descripcion/.test(cabecera));
 check('48c) pero el nombre y el saldo se quedan',
   !/conTeclado[\s\S]{0,200}styles\.identidad/.test(cabecera)
   && /<CreditsPill compact \/>/.test(cabecera));
@@ -332,9 +333,9 @@ console.log('\n── F · Lo que no se toca ──');
  * medido de su referencia. Vive en la pantalla, no en el tema: el amarillo de
  * la marca no se toca, y la burbuja de Weë Brain sigue siendo la tarjeta gris.
  */
-check('33b) la burbuja de quien escribe es dorada, no el acento al 20%',
-  /const DORADO_DE_QUIEN_ESCRIBE = '#FBD45A';/.test(pantalla)
-  && !/accent \+ '33'/.test(pantalla));
+check('33b) la burbuja de quien escribe es tinta (monocromo WeëAI), no dorada ni el acento al 20%',
+  /c\.seleccion : c\.superficie/.test(pantalla)
+  && !/DORADO_DE_QUIEN_ESCRIBE|accent \+ '33'/.test(pantalla));
 /*
  * LIMPIO: SIN LÍNEAS NI CUADRADOS (decisión del usuario, 2026-09-16).
  * La conversación no va dentro de una tarjeta y ninguna burbuja lleva borde: lo
@@ -342,7 +343,7 @@ check('33b) la burbuja de quien escribe es dorada, no el acento al 20%',
  * cerebro: el mismo dibujo del centro de la pantalla.
  */
 check('33c) la burbuja de Weë Brain es lisa, sin borde',
-  /mia \? styles\.bubbleMia : \{ backgroundColor: theme\.colors\.surface \}/.test(pantalla));
+  /backgroundColor: mia \? c\.seleccion : c\.superficie/.test(pantalla));
 check('33e) la conversación no va metida en una tarjeta',
   /chat: \{\s*gap: SPACING\.lg,\s*\},/.test(pantalla));
 check('33f) y no queda ni un borde en el chat', !/borderWidth: 1/.test(pantalla));
@@ -355,7 +356,7 @@ check('33f) y no queda ni un borde en el chat', !/borderWidth: 1/.test(pantalla)
 const caja = leer('components/creator/CajaDePrompt.tsx');
 check('33j) la caja de Weë Brain va sin contorno', /sinMarco\n/.test(pantalla) || /sinMarco$/m.test(pantalla));
 check('33k) y esa opción apaga borde y sombra',
-  /cajaSinMarco: \{\s*borderWidth: 0,\s*shadowOpacity: 0,/.test(caja));
+  /cajaSinMarco: \{\s*shadowOpacity: 0,/.test(caja));
 for (const rel of ['components/studio/StudioPromptComposer.tsx', 'screens/ChefScreen.tsx', 'screens/StudioScreen.tsx']) {
   check(`33l) ${rel} conserva su contorno`, !/sinMarco/.test(leer(rel)));
 }
@@ -397,8 +398,8 @@ check('33d) el amarillo de la marca no se toca',
 
 check('34) el cerebro no sabe de Credits ni de precios',
   !/Credits|credit|precio|spend/i.test(codigo));
-check('35) tocar un satélite usa la ruta de siempre',
-  /navigation\.navigate\('Specialist', \{ id: exp\.id \}\)/.test(pantalla));
+check('35) ya no hay satélites: sin la órbita, las experiencias se abren desde la portada de WeëAI (decisión del dueño, 2026-11-16)',
+  !/irASatelite|SistemaDeWeeBrain estado/.test(pantalla));
 check('36) y la pantalla sigue pidiendo el precio antes de enviar',
   /refreshQuote\(/.test(pantalla) && /chat\.quote/.test(pantalla));
 check('37) la caja es la común, no una copia',
@@ -441,8 +442,8 @@ check('43) control: devolvérsela al pie se detectaría',
  * cerebro no se veía nunca. Ahora el cerebro está arriba siempre y lo que se
  * habla sale debajo, en la misma página.
  */
-check('44) el cerebro se pinta siempre, no solo cuando no hay conversación',
-  /<SistemaDeWeeBrain estado=\{estadoDelCerebro\} onSatelite=\{irASatelite\} \/>/.test(pantalla)
+check('44) Weë Brain empieza limpio: sin el cerebro de la órbita ni las seis experiencias, con o sin conversación',
+  !/<SistemaDeWeeBrain/.test(pantalla) && !/estadoDelCerebro/.test(pantalla)
   /* El `enBlanco ?` que queda es el texto de la caja, no un cambio de vista. */
   && !/\{enBlanco \? \(/.test(pantalla));
 check('45) y la conversación va debajo, en la misma página',

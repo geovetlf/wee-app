@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ViewStyle, StyleProp, LayoutChangeEvent, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
@@ -12,12 +13,15 @@ import AvatarDisplay from '../avatars/AvatarDisplay';
 import CreditsPill from '../CreditsPill';
 import { ConMarcoDeSeccion } from './MarcoDeSeccion';
 import CreatorSidebar from './CreatorSidebar';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { useColumnaDeCreator } from './PiezasDeCreator';
 import EspacioDeEscritura from '../EspacioDeEscritura';
 import { ALTO_BARRA } from '../BarraInferior';
 import { PaginaDeCajas, CajaAnclada, AIRE_DE_LA_CAJA } from './CajaQueCrece';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import { useScrollDeBarra } from '../../hooks/useScrollDeBarra';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 interface CreatorShellProps {
   /** Qué elemento de la barra lateral se marca como activo ('creator', 'brain', 'photo'…). */
@@ -36,11 +40,13 @@ interface CreatorShellProps {
   onBack?: () => void;
   children: React.ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
+  /** Tirar para refrescar (solo móvil nativo): lo que la pantalla quiera recargar. */
+  refreshControl?: React.ReactElement<any>;
   /**
    * En el teléfono, sin la franja de arriba (flecha de volver y nombre): la
    * sección se presenta sola con su cabecera —logo, nombre y lema—, que es lo
    * único que debe haber arriba (decisión del usuario, 2026-09-15). Se vuelve
-   * con el gesto de atrás y con la barra de abajo, como en Weë Studio y Weë
+   * con el gesto de atrás y con la barra de abajo, como en WeëStudio y Weë
    * Design, que nunca tuvieron esta franja. En escritorio se queda: allí es la
    * miga de pan de la barra lateral.
    */
@@ -76,6 +82,13 @@ interface CreatorShellProps {
    * nuevo que leer, una vez por mensaje; abrir el teclado no mueve nada.
    */
   seguirAlFinal?: unknown;
+  /** Un fondo propio para la pantalla (la portada de WeëAI v2 va en negro profundo). Sin él, el del tema. */
+  fondo?: string;
+  /**
+   * PANTALLA FIJA (portada de WeëAI v2, 2026-11-17): en el teléfono el contenido NO se desplaza; ocupa lo que queda entre la
+   * franja de arriba y la barra de abajo, y quien lo pinta reparte esa altura. En escritorio se comporta como siempre.
+   */
+  fija?: boolean;
 }
 
 /**
@@ -89,7 +102,7 @@ interface CreatorShellProps {
  *
  * Hubo un tiempo —unas horas, el 2026-09-16— en que esta caja se quedaba con
  * poco menos de la mitad, para que al escribir no tapara el cerebro. El usuario
- * lo pidió al revés: que se extienda sin tope, como la de Weë Studio. Así que
+ * lo pidió al revés: que se extienda sin tope, como la de WeëStudio. Así que
  * escribir mucho tapa el cerebro mientras se escribe, y eso está decidido: la
  * página de debajo sigue ahí y vuelve en cuanto la caja se vacía.
  *
@@ -104,8 +117,9 @@ const ALTO_MINIMO_DE_LA_CAJA = scale(150);
  * Escritorio: barra lateral con los especialistas + barra superior (buscar,
  * notificaciones, perfil) + contenido ancho. Móvil: cabecera compacta + contenido.
  */
-const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, mark, breadcrumb = 'Weë AI', onBack, children, contentStyle, sinFranjaSuperior, pie, seguirAlFinal }) => {
+const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, mark, breadcrumb = 'Weë AI', onBack, children, contentStyle, refreshControl, sinFranjaSuperior, pie, seguirAlFinal, fondo, fija }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
   /* Solo hace falta con pie anclado: cuánto mide la zona donde se escribe. */
   const [altoDeEscritura, setAltoDeEscritura] = useState(0);
@@ -137,6 +151,11 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
   const { user } = useAuth();
   const { userProfile } = useUserProfile();
   const { isDesktop } = useResponsive();
+  /* Dentro de Weë versión creator, la navegación y el saldo los pone su marco. */
+  const enProfesional = useEnEspacioProfesional();
+  const columna = useColumnaDeCreator();
+  /* Dentro de creator, todas las secciones llevan la misma columna. */
+  const columnaPro = enProfesional ? [columna, styles.columnaPro] : null;
 
   /*
    * Una sola medida, y solo cuando de verdad cambia: el alto de la zona donde se
@@ -180,22 +199,25 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
     if (Date.now() < siguiendoHasta.current) alFinal(false);
   };
 
-  const back = onBack || (() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')));
+  const back = onBack || (() => {
+    if (enProfesional) return navigation.navigate('WeeCreator');
+    return navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main');
+  });
   const goSearch = () => navigation.navigate('Search');
   const goNotifications = () => navigation.navigate('Main', { screen: 'Home', params: { screen: 'Notifications' } });
   const goProfile = () => navigation.navigate(user ? 'Main' : 'Login', user ? { screen: 'Profile' } : undefined);
 
   if (!isDesktop) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: fondo ?? theme.colors.background }]} edges={['top']}>
         {!sinFranjaSuperior && (
-        <View style={[styles.mobileHeader, { borderBottomColor: theme.colors.border }]}>
+        <View style={[styles.mobileHeader, { borderBottomColor: c.superficieAlta }]}>
           <TouchableOpacity onPress={back} style={styles.backButton} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
-            <Ionicons name="arrow-back" size={scale(23)} color={theme.colors.text} />
+            <IconoDireccional name="arrow-back" size={scale(23)} color={theme.colors.text} />
           </TouchableOpacity>
           {mark}
           <View style={styles.headerTitles}>
-            {!!overline && <Text style={[styles.overline, { color: theme.colors.accentDark }]}>{overline}</Text>}
+            {!!overline && <Text style={[styles.overline, { color: c.tinta }]}>{overline}</Text>}
             <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={1}>{title}</Text>
           </View>
           {/*
@@ -206,7 +228,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
             quitó porque entonces estas pantallas empezaban por el muro y el
             número le restaba aire; ahora empiezan por lo que se crea.
           */}
-          <CreditsPill compact />
+          {!enProfesional && <CreditsPill compact />}
         </View>
         )}
         {/*
@@ -237,12 +259,16 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
           la caja y el teclado —medido en el teléfono—.
         */}
         <EspacioDeEscritura style={styles.fill} descuento={ALTO_BARRA}>
-          {pie ? (
+          {fija ? (
+            <View style={styles.fill}>
+              <ConMarcoDeSeccion saldoALaVista={!sinFranjaSuperior} aireLateral={0}>{children}</ConMarcoDeSeccion>
+            </View>
+          ) : pie ? (
             <View style={styles.fill} onLayout={medirEscritura}>
               <PaginaDeCajas
                 ref={refPagina}
                 style={styles.fill}
-                contentContainerStyle={[styles.mobileContent, contentStyle]}
+                contentContainerStyle={[styles.mobileContent, contentStyle, columnaPro]}
                 keyboardShouldPersistTaps="handled"
                 onContentSizeChange={seguirAlFinal === undefined ? undefined : alCrecerLaPagina}
               >
@@ -259,7 +285,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
               </CajaAnclada>
             </View>
           ) : (
-            <PaginaDeCajas contentContainerStyle={[styles.mobileContent, contentStyle]} keyboardShouldPersistTaps="handled" {...scrollDeBarra}>
+            <PaginaDeCajas contentContainerStyle={[styles.mobileContent, contentStyle, columnaPro]} keyboardShouldPersistTaps="handled" refreshControl={refreshControl} {...scrollDeBarra}>
               {/*
                 Si la franja de arriba se ve, el saldo ya está ahí y la cabecera de
                 la sección —si la hay— no lo repite. Sin franja, lo enseña ella.
@@ -273,12 +299,12 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
   }
 
   return (
-    <View style={[styles.desktop, { backgroundColor: theme.colors.surface }]}>
-      <CreatorSidebar activeId={activeId} />
+    <View style={[styles.desktop, { backgroundColor: enProfesional ? theme.colors.background : (fondo ?? c.superficieAlta) }]}>
+      {!enProfesional && <CreatorSidebar activeId={activeId} />}
       <View style={styles.main}>
-        <View style={[styles.topBar, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.border }]}>
+        {!enProfesional && <View style={[styles.topBar, { backgroundColor: theme.colors.background, borderBottomColor: c.superficieAlta }]}>
           <TouchableOpacity onPress={back} style={styles.breadcrumb} activeOpacity={0.7} accessibilityLabel={t('common.back')}>
-            <Ionicons name="arrow-back" size={scale(20)} color={theme.colors.text} />
+            <IconoDireccional name="arrow-back" size={scale(20)} color={theme.colors.text} />
             <Text style={[styles.breadcrumbText, { color: theme.colors.text }]}>{breadcrumb}</Text>
           </TouchableOpacity>
           {/*
@@ -288,7 +314,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
           */}
           {!!mark && (
             <View style={styles.identity}>
-              <View style={[styles.identityBar, { backgroundColor: theme.colors.border }]} />
+              <View style={[styles.identityBar, { backgroundColor: c.superficieAlta }]} />
               {mark}
               <Text style={[styles.identityText, { color: theme.colors.text }]} numberOfLines={1}>{title}</Text>
             </View>
@@ -300,11 +326,11 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
             el mismo número dos veces en el mismo golpe de vista.
           */}
           <View style={styles.topActions}>
-            <TouchableOpacity onPress={goSearch} activeOpacity={0.7} style={[styles.search, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} accessibilityLabel={t('weeai.searchLabel')}>
+            <TouchableOpacity onPress={goSearch} activeOpacity={0.7} style={[styles.search, { backgroundColor: c.superficieAlta, borderColor: c.superficieAlta }]} accessibilityLabel={t('weeai.searchLabel')}>
               <Ionicons name="search-outline" size={scale(16)} color={theme.colors.textSecondary} />
               <Text style={[styles.searchText, { color: theme.colors.textSecondary }]}>{t('weeai.searchInWee')}</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={goNotifications} activeOpacity={0.7} style={[styles.iconButton, { borderColor: theme.colors.border }]} accessibilityLabel={t('weeai.notifications')}>
+            <TouchableOpacity onPress={goNotifications} activeOpacity={0.7} style={[styles.iconButton, { borderColor: c.superficieAlta }]} accessibilityLabel={t('weeai.notifications')}>
               <Ionicons name="notifications-outline" size={scale(20)} color={theme.colors.text} />
             </TouchableOpacity>
             <TouchableOpacity onPress={goProfile} activeOpacity={0.7} accessibilityLabel={t('weeai.myProfile')}>
@@ -319,14 +345,14 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
                   showBorder={false}
                 />
               ) : (
-                <View style={[styles.iconButton, { borderColor: theme.colors.border }]}>
+                <View style={[styles.iconButton, { borderColor: c.superficieAlta }]}>
                   <Ionicons name="person-outline" size={scale(20)} color={theme.colors.text} />
                 </View>
               )}
             </TouchableOpacity>
           </View>
-        </View>
-        <PaginaDeCajas contentContainerStyle={[styles.desktopContent, contentStyle]} keyboardShouldPersistTaps="handled">
+        </View>}
+        <PaginaDeCajas contentContainerStyle={[styles.desktopContent, contentStyle, columnaPro]} keyboardShouldPersistTaps="handled">
           {/* La barra lateral ya enseña el saldo: la cabecera de la sección no lo repite. */}
           <ConMarcoDeSeccion saldoALaVista aireLateral={SPACING.xl}>
             {children}
@@ -340,6 +366,7 @@ const CreatorShell: React.FC<CreatorShellProps> = ({ activeId, overline, title, 
 };
 
 const styles = StyleSheet.create({
+  columnaPro: { paddingBottom: 48 },
   container: {
     flex: 1,
   },
@@ -352,7 +379,6 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   /*
    * 44 de verdad, sin `scale()`: el factor de web lo dejaba en 39,6 y volver
@@ -419,7 +445,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: SPACING.xl,
     height: scale(64),
-    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   breadcrumb: {
     flexDirection: 'row',
@@ -468,7 +493,6 @@ const styles = StyleSheet.create({
     height: scale(40),
     paddingHorizontal: SPACING.md,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: 1,
   },
   searchText: {
     fontSize: FONT_SIZE.sm,
@@ -477,7 +501,6 @@ const styles = StyleSheet.create({
     width: scale(40),
     height: scale(40),
     borderRadius: scale(20),
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

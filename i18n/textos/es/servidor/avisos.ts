@@ -33,4 +33,6 @@ export const avisos = {
   fotoUnica: 'Foto única',
   imagen: '📷 Imagen',
   audio: '🎤 Audio',
+  /* El aviso va a un Perfil Weë (D11): «Para Lina Shade: Nuevo mensaje». `destino` es el nombre de esa cara y no se traduce. */
+  paraLaCara: 'Para {{destino}}: {{titulo}}',
 };

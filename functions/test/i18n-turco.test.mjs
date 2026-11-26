@@ -75,7 +75,7 @@ const TR = aplanar(tr);
 const ES = Object.fromEntries(aplanar(es));
 const EN = Object.fromEntries(aplanar(en));
 
-const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls|Wäll|ËContact|ẄContact|Credits|Weë/gu;
+const MARCAS = /MyWeës|WeëAI|Weë(?:Studio|Design|Chef|Music|Fashion|Travel)|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls|Ẅall|ËContact|ẄContact|Credits|Weë/gu;
 const sinLoAjeno = (v) => String(v)
   .replace(/\{\{[\w.]+\}\}/g, ' ')
   .replace(/\\[nrt]/g, ' ')
@@ -92,7 +92,8 @@ console.log('\n── A · `tr-TR` de punta a punta, sin lógica para el turco �
     JSON.stringify(cat));
   check('2) y su locale principal, `tr-TR`, está entre los contemplados', idiomas.LOCALES_CONTEMPLADOS.includes('tr-TR'));
   check('3) el registro lo sirve con su propio diccionario, no por un alias',
-    registro.DICCIONARIOS.tr === tr && registro.idiomasConDiccionario().includes('tr'));
+    /* Con su sección del servidor el registro sirve {...tr, ...servidor}: se exige que CADA módulo sea el suyo (el mismo objeto), y que la sección esté. */
+    Object.keys(tr).every((s) => registro.DICCIONARIOS.tr[s] === tr[s]) && !!registro.DICCIONARIOS.tr.preguntas && registro.idiomasConDiccionario().includes('tr'));
 
   const disponibles = registro.idiomasConDiccionario();
   const elegir = (elegido, aparato) => resolver.elegirIdioma(elegido, aparato, disponibles);
@@ -154,6 +155,21 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en turco que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['menu.pages', '«WeëPages» es el nombre de la función (marca), no se traduce'],
+    ['pages.type_influencer', '«Influencer» es la palabra turca (tipo de página de WeëPages)'],
+    ['wall.demoBadge', '«Demo» es la palabra turca (etiqueta del modo demo)'],
+    ['music.advTempo', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_pop', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_rock', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_hiphop', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_latin', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_folk', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_reggaeton', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.result_jingle', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.solo', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.fx_limiter', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.export_midi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.capMidi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
     ['filmmaker.presetShorts', '«YouTube Shorts» es el nombre de la plataforma, que no se traduce, y ya dice que es vídeo (con «videosu» se corta en su casilla)'],
     ['composer.kindVideo', '«Video» es la palabra turca (glosario § 10.1)'],
     ['engine.modalityVideo', '«video» es la palabra turca (glosario § 10.1)'],
@@ -182,7 +198,21 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['catalogo.musicEj1Subtitle', '«Pop», nombre del género musical, igual en turco'],
     ['catalogo.musicEj2Subtitle', '«Reggaeton», nombre del género musical, igual en turco'],
     ['catalogo.musicEj3Subtitle', '«Rock», nombre del género musical, igual en turco'],
+    ['travel.demo', 'WeëTravel (2026-11-06): marca: «DEMO» señala los datos simulados del prototipo'],
+    ['travel.travelSafe', 'WeëTravel (2026-11-06): marca: «Travel Safe» es el nombre de la sección'],
+    ['travel.bkTrain', 'WeëTravel (2026-11-06): palabra igual en turco: «Tren»'],
+    ['travel.cuscoName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.cuscoA1', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.kyotoName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.parisName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.oaxacaName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.oaxacaA1', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.oaxacaA2', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.costaRicaName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.costaRicaF1', 'WeëTravel (2026-11-06): nombre propio DEMO: el plato «Gallo pinto»'],
     ['catalogo.chefEj4Title', '«Lomo saltado» es el nombre de un plato: no se traduce, como «sushi»'],
+    ['weeai.cl_retro', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_minimal', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
   ]);
   const copiadas = TR.filter(([k, v]) => !IGUALES.has(k) && /\p{L}{3,}/u.test(sinLoAjeno(v)) && (ES[k] === v || EN[k] === v));
   check('20) ninguna cadena copiada tal cual del español o del inglés, salvo las que se escriben igual con su porqué',
@@ -286,7 +316,6 @@ console.log('\n── F · La caja: mayúsculas, minúsculas y búsqueda con las
     ['services/communityService.ts', 'el slug ASCII de una comunidad'],
     ['services/firestoreService.ts', 'la clave del recuento de hashtags populares, que es también lo que se enseña: plegarla cambiaría cómo se escribe'],
     ['services/projectsService.ts', 'la heurística española «mi …» de la sugerencia de nombre'],
-    ['services/weeBizService.ts', 'el campo guardado `nameLower` y su búsqueda por prefijo: cambiarlo exige migrar los negocios guardados'],
     ['constants/camaraCinematica.ts', 'el alias técnico de un comando de cámara'],
     ['constants/weeExperiences.ts', 'las palabras clave de las experiencias: se comparan con lo que se escribe, no se enseñan'],
     ['utils/mensajesDeFilmmaker.ts', 'convierte el código de error del servidor (ASCII, snake_case) en el sufijo de su clave i18n: no se enseña'],
@@ -341,7 +370,7 @@ console.log('\n── G · El dinero y las marcas ──');
   check('39) cada «Credits» del español sigue en su clave turca', perdidos.length === 0, perdidos.slice(0, 4).map(([k]) => k).join(' ') || 'todos');
 
   const LISTA = ['Weë', 'Weë AI', 'Weë Studio', 'Weë Chef', 'Weë Design', 'Weë Travel', 'Weë Business', 'Weë Music', 'Weë Inspira',
-    'Weëls', 'Wäll', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
+    'Weëls', 'Ẅall', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
   const escapar = (m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const perdidas = [];
   for (const [k, v] of TR) {
@@ -356,9 +385,10 @@ console.log('\n── G · El dinero y las marcas ──');
   }
   check('40) cada marca del español sigue, intacta, en su clave turca', perdidas.length === 0, perdidas.slice(0, 6).join(' | ') || 'todas');
   /* Una marca nunca lleva una terminación pegada sin apóstrofo: «Weëde», «WeeTalkta». */
-  const PEGADA = /(?:Weë|WeeTalk|Weëls|Wäll|ËContact|ẄContact|Credits|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Inspira))(?=[a-zçğıöşü])/u;
+  const PEGADA = /(?:Weë|WeeTalk|Weëls|Ẅall|ËContact|ẄContact|Credits|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Inspira))(?=[a-zçğıöşü])/u;
   /* «Weëls» y su singular «Weël» son la marca entera, no «Weë» con algo pegado. */
-  const pegadas = TR.filter(([, v]) => PEGADA.test(v.replace(/Weëls?/g, '·')));
+  /* «MyWeës» (rediseño del 2026-11-15) también es una marca entera, como «Weëls»: no es «Weë» con una terminación turca. */
+  const pegadas = TR.filter(([, v]) => PEGADA.test(v.replace(/MyWeës|Weëls?/g, '·')));
   check('41) ninguna marca con una terminación pegada sin apóstrofo', pegadas.length === 0,
     pegadas.slice(0, 4).map(([k, v]) => `${k}: «${v.slice(0, 40)}»`).join(' | ') || 'limpio');
   const TRADUCIDA = /Weë (?:Stüdyo|Tasarım|Fotoğraf|Yazar|Müzik|Güzellik|Şef|Ev|İş|Seyahat|Gezi|Beyin|Zihin|Yapay Zek[aâ]|Kredi)(?![\p{L}])/u;
@@ -440,6 +470,13 @@ console.log('\n── J · Traducciones defectuosas ──');
    * en `DISTINTAS_A_PROPOSITO` con su porqué; si no, es una inconsistencia.
    */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* WeëPages: «Usuario» es el nombre de usuario (@) de una página, no la persona. */
+    'pages.f_handle',
+    /* WeëPages: «Seguir» una página es el botón «Takip et»; en Studio «Takip» es el movimiento de cámara. */
+    'pages.follow',
+    'music.instr_vocals',
+    /* Weë Music: el mismo rótulo español, otro contexto — «Género» musical (no el sexo), «Ambiente» y «Voz» de una canción (no el sonido ambiente ni la voz en off), «Efectos» de audio y «Resumen» de una selección. */
+    'music.groupGenre', 'music.groupMood', 'music.groupVoice', 'music.fxTitle',
     /* «Personas» como estilo de avatar son personas; en el Chef, «Personas» es cuántos comen. */
     'avatar.stylePeople',
     /* «Subir»/«Bajar» en Filmmaker reordenan escenas y planos (Yukarı/Aşağı taşı); en Studio son la grúa de la cámara (Yükselme/Alçalma). */
@@ -451,27 +488,29 @@ console.log('\n── J · Traducciones defectuosas ──');
     /* «Listo»: el botón es «Bitti»; el título de un aviso, «Tamamlandı»; el estado de una creación, «Hazır» (glosario § 10.6). */
     'aiAvatar.doneTitle', 'creaciones.statusReady',
     /* «Publicaciones» y «Reseñas» bajo una cifra del perfil van en singular, como en Instagram: «12 Gönderi», «4 Değerlendirme». */
-    'profile.posts', 'weebiz.reviews',
+    'profile.posts',
     /* «Materiales»: la partida de coste de un precio (Malzeme), no las opciones de material de Weë Design (Malzemeler). */
     'business.pricingMaterials',
-    /* «Logo»: el campo del logo del negocio en su ficha (İşletme logosu). */
-    'weebiz.logo',
     /* «Servicios»: el gasto de luz, agua e internet (Faturalar), no la categoría de negocios de servicios (Hizmetler). */
     'business.expenseServices',
     /* «Todo»: todos los valores nutricionales (Tüm değerler), no el filtro «Tümü». */
     'chef.nuAll',
     /* «Media»: la pestaña de fotos y vídeos del perfil (Medya), no la dificultad media de Chef (Orta zorluk). */
     'profile.tabMedia',
-    /* «No disponible»: un producto que no hay (Mevcut değil), no una función que no se puede usar (Kullanılamıyor). */
-    'weebiz.notAvailable',
     /* «Publicar» una creación: «Weë'de paylaş», porque en esa pantalla «Paylaş» a secas es compartir fuera. */
     'creaciones.publish',
     /* «Natural» y «Suave»: la luz (Doğal ışık, Yumuşak ışık) y el movimiento (Doğal, Akıcı) no son la calma (Sakin). */
     'studio.smNatural', 'studio.ltSoft', 'studio.smSmooth',
     /* «Normal»: el objetivo estándar (Standart), no la velocidad normal (Orta). */
     'studio.lnsStandard',
-    /* «Seguir»: seguir a un negocio (Takip et), no el movimiento de cámara que va detrás del sujeto (Takip). */
-    'weebiz.follow',
+    /* «sin límites.»: la segunda mitad del héroe de la demo YC; en turco el verbo va al final y cada sección termina con el suyo (oluştur., tasarla.). */
+    'design.heroAccent',
+    /* WeëTravel (2026-11-06): la misma frase española, otro sentido que en otro módulo — «Lista» de lugares (Liste), no el
+       estado «Lista» de weeai (Hazır); «Historia» la categoría de lugares (Tarih), no el relato de fashion (Hikâye); «Solo»
+       quien viaja solo (Yalnız), no el solo musical de music; «Restaurar» el itinerario (Geri yükle), no una foto de studio
+       (Onar); «Cartel» un letrero de la calle (Tabela), no un póster de studio (Afiş); «Subir»/«Bajar» reordenan paradas
+       (Yukarı/Aşağı taşı), no la grúa de la cámara de studio (Yükselme/Alçalma). */
+    'travel.viewList', 'travel.catHistory', 'travel.saSolo', 'travel.restore', 'travel.visionSign', 'travel.moveUp', 'travel.moveDown',
   ]);
   const porFrase = new Map();
   for (const [k, v] of TR) {

@@ -10,12 +10,12 @@
  * cantidad en ninguna de sus dos formas, así que el chino tampoco la inventa y
  * el botón se queda en «移除提及».
  *
- * LAS MARCAS NO PASAN A HANZI: Weël, Wäll y ËContact se escriben igual que en
+ * LAS MARCAS NO PASAN A HANZI: Weël, Ẅall y ËContact se escriben igual que en
  * español, con sus diéresis. Lo técnico que los demás idiomas dejaron tal cual
  * —face swap, Firebase Storage— también se queda.
  *
  * ESPACIADO: un espacio entre hanzi y latín o cifras («最长 {{segundos}} 秒»,
- * «公共 Wäll»), ninguno entre palabras chinas, y puntuación de ancho completo.
+ * «公共 Ẅall»), ninguno entre palabras chinas, y puntuación de ancho completo.
  *
  * VOCABULARIO COMPARTIDO con el resto del chino, para que la misma cosa se llame
  * igual en todas las pantallas: una publicación es «动态» (wall, notifications),
@@ -28,6 +28,12 @@ export const composer: typeof import('../es/composer').composer = {
   photoOrVideo: '照片或视频',
   camera: '相机',
   location: '位置',
+  place: '地点',
+  gallery: '相册',
+  projects: '项目',
+  createWithAi: '用 AI 创作',
+  newPost: '新动态',
+  multimedia: '媒体',
   poll: '投票',
   sheetTitle: '创作',
   sheetSubtitle: '今天想分享点什么？',
@@ -44,7 +50,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: '显示发布选项',
   hideOptions: '隐藏发布选项',
   currentDestination: '{{destino}}，当前发布位置',
-  generalWall: '公共 Wäll',
+  generalWall: '公共 Ẅall',
   placeholderPollExtra: '还想补充点什么（可选）…',
   placeholderQuestion: '想问社区什么？',
   placeholderWeel: '说说你的 Weël 做了什么，用了哪些 AI…',
@@ -54,15 +60,10 @@ export const composer: typeof import('../es/composer').composer = {
   placeholderDefault: '写点什么…',
   postTextLabel: '动态正文',
   weelHint: 'Weël：最长 {{segundos}} 秒的视频。分享到 Weë 之外时会带上一个小小的水印。',
-  newPost: '新动态',
   you: '我',
   shareWithCommunity: '分享给 Weë 社区',
-  publicVisibility: '公开',
-  visibilityIs: '可见范围：{{estado}}',
-  publicExplain: '目前 Weë 上的动态都是公开的。',
   profileReal: '真实主页',
   profileWee: 'Weë 主页',
-  multimedia: '媒体',
   actionWithBadge: '{{accion}}，{{insignia}}',
   removeVideo: '移除视频',
   removePhotoNumber: '移除第 {{numero}} 张照片',

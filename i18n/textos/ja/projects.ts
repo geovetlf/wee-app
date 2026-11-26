@@ -32,4 +32,14 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'このプロジェクトに足りないものは？',
   whatIsMissingNote: 'ロゴ、写真、広告、動画、音楽、ドキュメントなど、Weëのどのスペシャリストでもここに追加できます。',
   createSomethingNew: '新規作成',
+  /* N — Rediseño de «Mis proyectos» (2026-11-05): contador, búsqueda, orden, fecha y vacío de la lista. */
+  count_one: '{{contador}}件のプロジェクト',
+  count_other: '{{contador}}件のプロジェクト',
+  updatedOn: '{{fecha}}に更新',
+  searchPlaceholder: 'プロジェクトを検索',
+  sortUpdated: '最近更新した順',
+  sortName: '名前順',
+  noMatches: '検索に一致するプロジェクトはありません。',
+  emptySpaceTitle: 'あなたのクリエイティブな場所はここから',
+  moreActions: 'その他の操作',
 };

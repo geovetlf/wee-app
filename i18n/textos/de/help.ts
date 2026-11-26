@@ -6,7 +6,7 @@
  * Tratamiento informal (du). Lo legal va con el término exacto
  * ("Nutzungsbedingungen", "Datenschutzerklärung"); los nombres de Weë y los
  * emojis de cada pregunta se copian tal cual. "Cómo lo hice" se dice como en
- * el Wäll: "So ist es entstanden".
+ * el Ẅall: "So ist es entstanden".
  */
 export const help: typeof import('../es/help').help = {
   title: 'Hilfe',
@@ -18,9 +18,9 @@ export const help: typeof import('../es/help').help = {
   legalTitle: 'Nutzungsbedingungen und Datenschutz',
   legalBody: 'Deine Daten gehören dir. Weë nutzt deine E-Mail-Adresse und dein Profil nur, damit die App funktioniert: anmelden, deine Beiträge, deine Credits und deine Kreationen anzeigen. Wir verkaufen deine Daten nicht.',
   legalPending: 'Die vollständigen Nutzungsbedingungen und die Datenschutzerklärung werden vor dem Start auf wee.zone veröffentlicht. Weë ist im Aufbau: Manche Funktionen nutzen Testdaten, und wir sagen klar, wo das passiert.',
-  footer: 'Weë · World Encode Entity · Version 1.0.0',
+  footer: 'Weë · WORLD OF EXPRESSION & EVOLUTION · Version 1.0.0',
   q1: 'Was ist Weë?',
-  a1: 'Weë (World Encode Entity) ist das soziale Netzwerk für Menschen, die mit Künstlicher Intelligenz erschaffen: Hier entdeckst, lernst, erschaffst, teilst und verbindest du dich. Die KI ist der Motor; die Community ist das Herz.',
+  a1: 'Weë (WORLD OF EXPRESSION & EVOLUTION) ist das soziale Netzwerk für Menschen, die mit Künstlicher Intelligenz erschaffen: Hier entdeckst, lernst, erschaffst, teilst und verbindest du dich. Die KI ist der Motor; die Community ist das Herz.',
   q2: 'Was ist der Unterschied zwischen Realem Profil und Weë Profil?',
   a2: 'Dein Reales Profil ist deine gewohnte Identität, und die App ist weiß. Dein Weë Profil ist deine Identität zum Erschaffen mit KI: ein eigener Avatar und ein eigener Name für deine Kreationen, und damit wird die App dunkel, damit du immer weißt, als wer du gerade unterwegs bist. Du wechselst zwischen beiden über das Menü ☰ oder den Knopf in der Kopfzeile.',
   q3: 'Wie funktioniert Weë AI?',
@@ -38,6 +38,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'Das ist der Chat von Weë: private Unterhaltungen mit anderen Menschen aus der Community, mit Text, Fotos und Sprachnachrichten.',
   q9: 'Was ist "So ist es entstanden"?',
   a9: 'Beim Veröffentlichen kannst du erzählen, welche Werkzeuge du benutzt hast, den Prompt und den Ablauf. So lernen andere von dir und du von ihnen, mit einem einzigen Tippen auf "Prompt kopieren".',
+  q10: 'Wie alt muss man sein, um Weë zu nutzen?',
+  a10: 'Weë ist nur für Personen ab {{edad}} Jahren verfügbar. Dein Geburtsdatum wird bei der Registrierung abgefragt und kann danach nicht mehr geändert werden.',
   heroTitle: 'Wie können wir dir helfen?',
   legalVisibility: 'Was du postest, ist für die Community sichtbar; was du in Weë AI erstellst, bleibt privat, bis du dich entscheidest, es zu veröffentlichen. Du kannst deine Beiträge und Projekte jederzeit löschen.',
   askPrefill: 'Eine Frage an Weë: ',

@@ -67,6 +67,28 @@ export const esLugar = (v: unknown): v is { kind: 'catalog' | 'custom'; label: s
 export const esPublicacion = (v: unknown): v is { id: string } =>
   !!v && typeof v === 'object' && !Array.isArray(v) && typeof (v as { id?: unknown }).id === 'string' && (v as { id: string }).id.length > 0;
 
+/* Los enlaces del flujo guiado, en Weë y en la versión profesional: lo privado no sale nunca. */
+export const enlaceDeCreatorFlow = (path: string) => ({
+  path,
+  parse: {
+    experienceId: (v: string) => (esId(v) ? v : undefined),
+    jobId: (v: string) => (esId(v) ? v : undefined),
+    workspace: (v: string) => (esId(v) ? v : undefined),
+    editorDocId: (v: string) => (esId(v) ? v : undefined),
+    preset: (v: string) => leerJson(v, esRespuesta),
+    presets: (v: string) => leerJson(v, esRespuestas),
+    creative: (v: string) => leerJson(v, esCreativo),
+  },
+  stringify: {
+    preset: escribirJson,
+    presets: escribirJson,
+    creative: escribirJson,
+    goal: nuncaEnLaUrl,
+    imageUri: nuncaEnLaUrl,
+    adjuntos: nuncaEnLaUrl,
+  },
+});
+
 export const TIPOS_DE_PUBLICACION = ['post', 'weel', 'image', 'video', 'text', 'question'] as const;
 
 /* ── La red de seguridad ───────────────────────────────────────────────────────────────────────────────────── */

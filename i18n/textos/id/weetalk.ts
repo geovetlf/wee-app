@@ -1,0 +1,58 @@
+/*
+ * INDONESIO — WeeTalk. El nombre es marca; los mensajes los escribe la gente y NUNCA pasan por aquí.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ *
+ * «Obrolan» es el chat (glosario § 4); «percakapan» es cada conversación. El modo efímero es «Mode
+ * sementara». Trato «Anda» (guía § 2). Los nombres de los temas son sustantivos cortos.
+ */
+export const weetalk: typeof import('../es/weetalk').weetalk = {
+  title: 'WeeTalk',
+  messagePlaceholder: 'Tulis pesan…',
+  send: 'Kirim',
+  empty: 'Anda belum punya percakapan',
+  emptyHint: 'Kirim pesan kepada seseorang dari profilnya',
+  loadFailed: 'Percakapan Anda tidak dapat dimuat',
+  sendFailed: 'Pesan tidak dapat dikirim',
+  attach: 'Lampirkan',
+  photo: 'Foto',
+  search: 'Cari...',
+  noConversations: 'Tidak ada percakapan',
+  deleteConversation: 'Hapus percakapan',
+  areYouSure: 'Anda yakin?',
+  messagePlaceholderShort: 'Pesan...',
+  firstMessage: 'Kirim pesan pertama',
+  photoSeen: 'Foto sudah dilihat',
+  photoOnce: 'Foto sekali lihat',
+  photoOpened: 'Sudah dibuka',
+  tapToView: 'Ketuk untuk melihat',
+  tapToClose: 'Ketuk untuk menutup',
+  theme: 'Tema',
+  background: 'Latar belakang',
+  permissions: 'Izin',
+  photoPermission: 'Diperlukan izin untuk mengakses foto',
+  audioPermission: 'Diperlukan izin untuk merekam audio',
+  imageFailed: 'Gambar tidak dapat dikirim',
+  noConversationsHint: 'Buka menu ⋮ di postingan mana pun dan pilih "Kirim lewat WeeTalk" untuk memulai percakapan pribadi',
+  ephemeralMode: 'Mode sementara',
+  noMessagesYet: 'Belum ada pesan',
+  youSaid: 'Anda: {{mensaje}}',
+  conversationStart: 'Ini adalah awal percakapan privat Anda',
+  beRespectful: 'Ingatlah untuk tetap saling menghormati dan menjaga privasi 🤝',
+  anonymousUser: 'Pengguna anonim',
+  ephemeralOn: 'Mode sementara aktif · Pesan terhapus saat Anda keluar',
+  cameraNeeded: 'Diperlukan akses ke kamera',
+  allow: 'Izinkan',
+  recordAudio: 'Rekam audio',
+  viewOnceOn: 'Lihat sekali saja',
+  keepInChat: 'Simpan di obrolan',
+  themeClassic: 'Klasik',
+  themeMidnight: 'Tengah Malam',
+  themeForest: 'Hutan',
+  themeSunset: 'Senja',
+  themeOcean: 'Samudra',
+  themePurple: 'Ungu',
+  imagePreview: '📷 Gambar',
+  audioPreview: '🎤 Audio',
+  today: 'Hari ini',
+};

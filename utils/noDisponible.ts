@@ -3,7 +3,7 @@
  *
  * El servidor manda un MOTIVO cerrado en los detalles de un NOT_AVAILABLE (`functions/src/engine/errors.ts`,
  * `MOTIVOS_DE_NO_DISPONIBLE`) y nunca el proveedor, el modelo ni la jurisdicción. «Inténtalo más tarde» solo se dice
- * cuando el motivo es pasajero; lo demás —en tu región, falta tu país, con estas opciones— se explica tal cual, y un
+ * cuando el motivo es pasajero; lo demás —con estas opciones— se explica tal cual; nunca se habla de región ni de país (la jurisdicción no es una conversación), y un
  * motivo que esta app no conozca se dice como «no disponible», sin más.
  *
  * Puro y sin imports: lo usan el servicio de Weë AI (`humanizeCreatorError`) y el compositor de «Crear mundo 3D», que
@@ -11,8 +11,6 @@
  */
 export const CLAVE_DE_NO_DISPONIBLE: Readonly<Record<string, string>> = Object.freeze({
   ahora_no: 'weeai.errNotAvailableNow',
-  en_tu_region: 'weeai.errNotAvailableRegion',
-  falta_tu_pais: 'weeai.errNotAvailableCountry',
   con_estas_opciones: 'weeai.errNotAvailableOptions',
   no_disponible: 'weeai.errNotAvailable',
 });

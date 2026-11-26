@@ -5,7 +5,7 @@
  *
  * Tratamiento informal (você). El mensaje de la otra persona llega por
  * `{{mensaje}}` y sale sin tocar. El emoji 🤝 se copia tal cual y "Privado"
- * es el botón del Wäll, citado con las mismas palabras. Apóstrofo tipográfico ’
+ * es el botón del Ẅall, citado con las mismas palabras. Apóstrofo tipográfico ’
  * siempre.
  */
 export const weetalk: typeof import('../es/weetalk').weetalk = {
@@ -35,7 +35,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   photoPermission: 'É preciso dar permissão para acessar as fotos',
   audioPermission: 'É preciso dar permissão para gravar áudio',
   imageFailed: 'Não foi possível enviar a imagem',
-  noConversationsHint: 'Toque em "Privado" em qualquer publicação para iniciar uma conversa anônima',
+  noConversationsHint: 'Abra o menu ⋮ de qualquer publicação e escolha "Enviar pelo WeeTalk" para iniciar uma conversa privada',
   ephemeralMode: 'Modo efêmero',
   noMessagesYet: 'Ainda não há mensagens',
   youSaid: 'Você: {{mensaje}}',

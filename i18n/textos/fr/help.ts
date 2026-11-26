@@ -6,7 +6,7 @@
  * Tratamiento informal (tu). Lo legal va con el término exacto
  * ("Conditions d’utilisation", "Politique de confidentialité"); los nombres de
  * Weë, los especialistas y el símbolo ☰ se copian tal cual. "Cómo lo hice"
- * se dice como en el Wäll: "Comment j’ai fait".
+ * se dice como en el Ẅall: "Comment j’ai fait".
  */
 export const help: typeof import('../es/help').help = {
   title: 'Aide',
@@ -18,9 +18,9 @@ export const help: typeof import('../es/help').help = {
   legalTitle: 'Conditions d’utilisation et confidentialité',
   legalBody: 'Tes données t’appartiennent. Weë utilise ton adresse e-mail et ton profil uniquement pour faire fonctionner l’application : te connecter, afficher tes publications, tes Credits et tes créations. Nous ne vendons pas tes informations.',
   legalPending: 'Les conditions d’utilisation complètes et la politique de confidentialité seront publiées sur wee.zone avant le lancement. Weë est en construction : certaines fonctionnalités utilisent des données de test, et nous le disons clairement là où c’est le cas.',
-  footer: 'Weë · World Encode Entity · version 1.0.0',
+  footer: 'Weë · WORLD OF EXPRESSION & EVOLUTION · version 1.0.0',
   q1: 'Qu’est-ce que Weë ?',
-  a1: 'Weë (World Encode Entity) est le réseau social des personnes qui créent avec l’Intelligence Artificielle : ici, tu découvres, tu apprends, tu crées, tu partages et tu te connectes. L’IA est le moteur ; la communauté est le cœur.',
+  a1: 'Weë (WORLD OF EXPRESSION & EVOLUTION) est le réseau social des personnes qui créent avec l’Intelligence Artificielle : ici, tu découvres, tu apprends, tu crées, tu partages et tu te connectes. L’IA est le moteur ; la communauté est le cœur.',
   q2: 'Quelle est la différence entre le Profil Réel et le Profil Weë ?',
   a2: 'Ton Profil Réel est ton identité de toujours, et l’application est blanche. Ton Profil Weë est ton identité pour créer avec l’IA : un avatar et un nom bien à toi pour publier tes créations, et avec lui l’application passe en sombre pour que tu saches toujours avec qui tu participes. Tu passes de l’un à l’autre depuis le menu ☰ ou le bouton de l’en-tête.',
   q3: 'Comment fonctionne Weë AI ?',
@@ -38,6 +38,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'C’est le chat de Weë : des conversations privées avec d’autres personnes de la communauté, avec du texte, des photos et des notes vocales.',
   q9: 'Qu’est-ce que "Comment j’ai fait" ?',
   a9: 'En publiant, tu peux raconter quels outils tu as utilisés, le prompt et le processus. Ainsi, d’autres personnes apprennent de toi, et toi d’elles, en un seul appui sur "Copier le prompt".',
+  q10: 'Quel âge faut-il avoir pour utiliser Weë ?',
+  a10: 'Weë est réservé aux personnes de {{edad}} ans ou plus. Ta date de naissance t’est demandée à l’inscription et, une fois enregistrée, elle ne peut plus être modifiée.',
   heroTitle: 'Comment pouvons-nous t’aider ?',
   legalVisibility: 'Ce que tu publies est visible par la communauté ; ce que tu crées dans Weë AI reste privé jusqu’à ce que tu décides de le publier. Tu peux supprimer tes publications et tes projets quand tu veux.',
   askPrefill: 'Une question pour Weë : ',

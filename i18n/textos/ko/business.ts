@@ -77,7 +77,7 @@ export const business: typeof import('../es/business').business = {
   yesterday: '어제',
 
   /* ══ LOS OCHO MÓDULOS (2026-09-16) ══════════════════════════════════════ */
-  slogan: '비즈니스를 만들고, 관리하고, 알리고, 키워요.',
+  slogan: '패션, 스타일, 뷰티, 비주얼 콘텐츠 제작.',
 
   modMyBusinessHint: '비즈니스를 만들고 관리해요',
   modProductsHint: '내 제품과 가격',
@@ -179,11 +179,11 @@ export const business: typeof import('../es/business').business = {
   share: '공유',
   shareHint: '휴대폰의 공유 창이 열려요. 원하는 앱을 고르세요.',
   shareToWee: 'Weë에 공유',
-  shareWall: '내 Wäll',
+  shareWall: '내 Ẅall',
   shareCommunities: '커뮤니티',
   shareProfile: 'Business Profile',
   shareNothing: '먼저 무언가를 만들면 여기에서 공유할 수 있어요.',
-  shareText: 'Weë Business로 만들었어요',
+  shareText: 'WeëFashion으로 만들었어요',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: '내 데이터 올리기',

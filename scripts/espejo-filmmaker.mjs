@@ -80,6 +80,8 @@ export const ARCHIVOS_DEL_ESPEJO = Object.freeze([
   'core/language.ts',
   'core/content/asset.ts',
   'core/registry/capabilities.ts',
+  /* Ola 3b: el contrato de capacidades de modelo (`validarPlano`): la app valida con la MISMA regla que el servidor. */
+  'core/model-capability.ts',
   ...RAICES_DEL_NUCLEO_3D,
 ]);
 

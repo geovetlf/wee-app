@@ -1,11 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import SelectorDeVersion from './workspace/SelectorDeVersion';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Pressable, StatusBar, Text, Platform, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from './IconoDireccional';
+import { useDireccion } from '../hooks/useDireccion';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { precargarDemo } from '../utils/precargaDeLaDemo';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
@@ -13,6 +17,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SPACING, ICON_SIZE, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import { DireccionDelGesto, maquinaDeLaPildora } from '../utils/gestoHorizontal';
+import { RellenoDeMarca } from './GradienteDeMarca';
+import AvatarDisplay from './avatars/AvatarDisplay';
+import { useCampanita, useAvisosDeLosPersonajes, avisoSinLeer } from '../hooks/useCampanita';
+import HojaDeAlterEgos from './HojaDeAlterEgos';
 
 const isWeb = Platform.OS === 'web';
 
@@ -24,9 +32,6 @@ const WEB_ICONS: Record<string, string> = {
   'eye-off': '🙈',
   'storefront': '🏪',
 };
-
-/** La firma de marca del Home. Va debajo del logo y no se traduce. */
-const LEMA_DE_MARCA = 'Imagina · Crea · Conecta';
 
 /*
  * Cuánto sitio hay que dejarle a los controles a cada lado de la marca.
@@ -48,7 +53,8 @@ const LEMA_DE_MARCA = 'Imagina · Crea · Conecta';
  * teléfono estrecho la marca se ciñe sola —el logo mantiene su proporción y el
  * lema se ajusta— en vez de meterse debajo del selector.
  */
-const ANCHO_CON_SELECTOR = scale(90);
+/* Con alter egos (2026-11-23) la mitad Weë lleva el avatar, el nombre y ▾: la píldora crece (unos 136). */
+const ANCHO_CON_SELECTOR = scale(140);
 const ANCHO_SIN_SELECTOR = scale(52);
 
 /*
@@ -92,16 +98,51 @@ interface HeaderProps {
    * correrlo, que es lo que pasaría si compartieran línea.
    */
   conMarca?: boolean;
+  /**
+   * LA CABECERA DE LA PORTADA (rediseño del 2026-11-15): ☰ · logo · buscar ·
+   * notificaciones · avatar.
+   *
+   * Solo la pide el Home. Es una VARIANTE: el resto de pantallas que montan
+   * este encabezado no la piden y siguen exactamente igual. Con ella:
+   *
+   *  · el logo va a la izquierda, junto al ☰, y sin eslogan (el eslogan se
+   *    queda en la landing y en el título de la pestaña);
+   *  · a la derecha van la lupa, la campana y el avatar, que abren las mismas
+   *    pantallas de siempre —Buscar, Notificaciones y el perfil—. Navegar lo
+   *    hace quien monta la cabecera, que es quien conoce su pila;
+   *  · el selector Real/Weë no se pinta aquí: vive en el menú ☰ y en la barra
+   *    lateral, con la misma lógica de cambio de perfil y de tema;
+   *  · la campana no lleva punto de no leídas (decisión del dueño);
+   *  · sin sesión no hay campana ni avatar: queda la lupa y el botón de entrar.
+   */
+  portada?: boolean;
+  onSearchPress?: () => void;
+  onNotificationsPress?: () => void;
+  onProfilePress?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, conMarca }) => {
+const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, conMarca, portada, onSearchPress, onNotificationsPress, onProfilePress }) => {
   const { theme, setThemeMode } = useTheme();
   const t = useT();
   const { user } = useAuth();
-  const { hasWeeProfile, activeProfileType, switchIdentity } = useUserProfile();
+  const { userProfile, hasWeeProfile, activeProfileType, switchIdentity, weeProfile } = useUserProfile();
+  /*
+   * LA HOJA DE ALTER EGOS (2026-11-23). La mitad Weë de la píldora dice «avatar + nombre ▾» del alter ego de turno; tocarla
+   * cuando ya está puesta abre la hoja «Cambiar de cara» con todos. Un punto rojo en la píldora si algún personaje que no
+   * está puesto tiene avisos. El gesto izquierda/derecha no cambia: alterna con el último alter ego usado.
+   */
+  const [hojaDeCaras, setHojaDeCaras] = useState(false);
+  const avisosDeLosPersonajes = useAvisosDeLosPersonajes();
+  const otraCaraConAvisos = Object.entries(avisosDeLosPersonajes).some(([id, aviso]) => id !== userProfile?.uid && avisoSinLeer(aviso));
+  /* El punto rojo de la campanita (decisión del dueño, 2026-11-23). */
+  const campanitaEncendida = useCampanita();
   /* El ancho manda sobre cuánto puede ocupar la marca: se recalcula al girar. */
   const { width: anchoDePantalla } = useWindowDimensions();
   const conSelectorDeIdentidad = !!user && hasWeeProfile;
+  /* Demo (docs/WEE-DEMO.md): con la sesión abierta, se precargan las imágenes de la demo una sola vez. */
+  useEffect(() => {
+    if (user && process.env.EXPO_PUBLIC_DEMO_MEDIOS) void precargarDemo();
+  }, [user]);
   const anchoDeLaMarca = Math.max(
     scale(64),
     anchoDePantalla - (conSelectorDeIdentidad ? ANCHO_CON_SELECTOR : ANCHO_SIN_SELECTOR) * 2
@@ -285,10 +326,17 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
    * regla no dependa de la plataforma.
    */
   const tocarMitad = (destino: 'real' | 'hidi') => {
-    if (maquina.alTocar()) elegirIdentidad(destino);
+    if (!maquina.alTocar()) return;
+    /* La mitad Weë ya puesta abre la lista de alter egos; la otra mitad cambia, como siempre. */
+    if (destino === 'hidi' && (identidadPedida.current ?? activeProfileType) === 'hidi') {
+      setHojaDeCaras(true);
+      return;
+    }
+    elegirIdentidad(destino);
   };
   const { triggerScrollToTop } = useScroll();
   const insets = useSafeAreaInsets();
+  const dir = useDireccion();
   const navigation = useNavigation<any>();
 
   /*
@@ -354,14 +402,14 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
       */}
       <View style={conMarca ? styles.banda : undefined}>
         <View style={[styles.content, conMarca && styles.contentConMarca]} pointerEvents="box-none">
-          <View style={styles.leftSection}>
+          <View style={[styles.leftSection, portada && styles.izquierdaDePortada]}>
             {/* Back or hamburger menu */}
             {onBackPress ? (
               <TouchableOpacity onPress={onBackPress} activeOpacity={0.7} style={styles.menuButton} accessibilityRole="button" accessibilityLabel={t('common.back')}>
                 {isWeb ? (
-                  <Text style={{ fontSize: 20, color: textColor }}>←</Text>
+                  <Text style={[{ fontSize: 20, color: textColor }, dir.espejo]}>←</Text>
                 ) : (
-                  <Ionicons name="arrow-back" size={scale(23)} color={textColor} />
+                  <IconoDireccional name="arrow-back" size={scale(23)} color={textColor} />
                 )}
               </TouchableOpacity>
             ) : onMenuPress ? (
@@ -374,9 +422,12 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
               </TouchableOpacity>
             ) : null}
 
+            {/* App | Creator: solo en la web. */}
+            {isWeb && <SelectorDeVersion puesta="app" corta />}
+
             {/* Logo, cuando comparte línea con los controles (todo menos el Home) */}
             {!conMarca && (
-              <TouchableOpacity onPress={handleLogoPress} activeOpacity={0.7} style={styles.logoContainer}>
+              <TouchableOpacity onPress={handleLogoPress} activeOpacity={0.7} style={[styles.logoContainer, portada && styles.logoDePortada]} accessibilityRole="button" accessibilityLabel={t('home.logoHome')}>
                 <Image
                   source={(transparent || activeProfileType === 'hidi') ? require('../assets/images/weelogo-dark.png') : require('../assets/images/weelogo.png')}
                   style={styles.weeLogo}
@@ -384,12 +435,22 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                   priority="high"
                   cachePolicy="memory-disk"
                 />
+                {/* En la portada, el eslogan va debajo del logo, en la lengua de la interfaz (decisión del dueño, 2026-11-15). Una línea: si no cabe, se corta limpio. */}
+                {portada ? (
+                  <Text
+                    style={[styles.lema, { color: transparent ? 'rgba(255,255,255,0.65)' : theme.colors.textSecondary }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={!isWeb}
+                  >
+                    {t('nav.brandSlogan')}
+                  </Text>
+                ) : null}
               </TouchableOpacity>
             )}
           </View>
 
           {/* Actions */}
-          <View style={styles.actions}>
+          <View style={[styles.actions, portada && styles.derechaDePortada]}>
             {/*
               Los Credits ya no viven aquí: se mudaron al menú ☰, debajo de los
               dos perfiles, que es donde está el resto de lo que es "tu cuenta".
@@ -399,7 +460,37 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
               campana.
             */}
             {/* Cambiar de identidad: visible si tiene Perfil Weë. */}
-            {user && hasWeeProfile && (
+            {/*
+              LA PORTADA: buscar, notificaciones y tú. Tres botones del mismo
+              tamaño, con sitio para el dedo, y ninguno relleno: el único color
+              de la cabecera es el del logo.
+            */}
+            {portada && (
+              <>
+                <TouchableOpacity onPress={onSearchPress} activeOpacity={0.7} style={styles.botonDePortada} accessibilityRole="button" accessibilityLabel={t('home.search')}>
+                  <Ionicons name="search-outline" size={scale(22)} color={textColor} />
+                </TouchableOpacity>
+                {user && (
+                  <TouchableOpacity onPress={onNotificationsPress} activeOpacity={0.7} style={styles.botonDePortada} accessibilityRole="button" accessibilityLabel={campanitaEncendida ? t('nav.notificationsUnread') : t('nav.notifications')}>
+                    <Ionicons name="notifications-outline" size={scale(22)} color={textColor} />
+                    {campanitaEncendida ? <View style={[styles.puntoDeCampanita, { borderColor: theme.colors.background }]} /> : null}
+                  </TouchableOpacity>
+                )}
+                {user && (
+                  <TouchableOpacity onPress={onProfilePress} activeOpacity={0.7} style={styles.botonDePortada} accessibilityRole="button" accessibilityLabel={t('nav.myProfile')}>
+                    <AvatarDisplay
+                      size={scale(30)}
+                      avatarType={userProfile?.avatarType || 'predefined'}
+                      avatarId={userProfile?.avatarId || 'male'}
+                      photoURL={typeof userProfile?.photoURL === 'string' ? userProfile.photoURL : undefined}
+                      photoURLThumbnail={typeof userProfile?.photoURLThumbnail === 'string' ? userProfile.photoURLThumbnail : undefined}
+                      backgroundColor={theme.colors.accent}
+                    />
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+            {user && hasWeeProfile && !portada && (
               (
                 /* El deslizamiento se reconoce aquí, en código nativo; el toque sigue siendo de cada mitad. */
                 <GestureDetector gesture={gestoDeLaPildora}>
@@ -430,7 +521,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                         accessibilityRole="button"
                         accessibilityState={{ selected: puesta }}
                         aria-selected={puesta}
-                        accessibilityLabel={t(puesta ? 'menu.profileActive' : 'menu.switchToProfile', { perfil: t(opcion.clave) })}
+                        accessibilityLabel={opcion.id === 'hidi' && weeProfile?.displayName
+                          ? t(puesta ? 'menu.profileActive' : 'menu.switchToProfile', { perfil: weeProfile.displayName })
+                          : t(puesta ? 'menu.profileActive' : 'menu.switchToProfile', { perfil: t(opcion.clave) })}
+                        accessibilityHint={opcion.id === 'hidi' && puesta ? t('alterEgo.switchFace') : undefined}
                         /* El atenuado del dedo encima, como lo daba la pastilla; la puesta no se atenúa. */
                         style={({ pressed }) => [
                           styles.selectorSegmento,
@@ -438,6 +532,32 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                           pressed && !puesta && styles.selectorSegmentoPulsado,
                         ]}
                       >
+                        {/* El perfil puesto lleva el degradado de marca (2026-11-05); el otro sigue neutro. */}
+                        {puesta && <RellenoDeMarca radio={BORDER_RADIUS.full} />}
+                        {opcion.id === 'hidi' && weeProfile ? (
+                          /* La mitad Weë: el avatar CUADRADO del alter ego de turno, su nombre (contenido, no se traduce) y ▾. */
+                          <View style={styles.selectorAlterEgo}>
+                            <AvatarDisplay
+                              size={scale(16)}
+                              cuadrado
+                              avatarType={weeProfile.avatarType || 'predefined'}
+                              avatarId={weeProfile.avatarId || 'ghost'}
+                              photoURL={typeof weeProfile.photoURL === 'string' ? weeProfile.photoURL : undefined}
+                              photoURLThumbnail={typeof weeProfile.photoURLThumbnail === 'string' ? weeProfile.photoURLThumbnail : undefined}
+                              backgroundColor={theme.colors.accent}
+                            />
+                            <Text
+                              style={[styles.selectorTexto, styles.selectorNombre, {
+                                color: puesta ? '#1F2937' : (transparent ? 'rgba(255,255,255,0.75)' : theme.colors.textSecondary),
+                                fontWeight: puesta ? FONT_WEIGHT.semibold : FONT_WEIGHT.medium,
+                              }]}
+                              numberOfLines={1}
+                            >
+                              {weeProfile.displayName || opcion.etiqueta}
+                            </Text>
+                            <Ionicons name="chevron-down" size={scale(11)} color={puesta ? '#1F2937' : theme.colors.textSecondary} />
+                          </View>
+                        ) : (
                         <Text
                           style={[styles.selectorTexto, {
                             color: puesta ? '#1F2937' : (transparent ? 'rgba(255,255,255,0.75)' : theme.colors.textSecondary),
@@ -448,6 +568,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                         >
                           {opcion.etiqueta}
                         </Text>
+                        )}
+                        {opcion.id === 'hidi' && otraCaraConAvisos ? <View style={[styles.puntoDeLaPildora, { borderColor: theme.colors.background }]} /> : null}
                       </Pressable>
                     );
                   })}
@@ -455,6 +577,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                 </GestureDetector>
               )
             )}
+            {user && hasWeeProfile && <HojaDeAlterEgos visible={hojaDeCaras} onClose={() => setHojaDeCaras(false)} />}
 
             {/*
               La campana se fue al pie de la aplicación (fase 2E-77).
@@ -470,6 +593,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
                 onPress={handleLoginPress}
                 activeOpacity={0.7}
               >
+                <RellenoDeMarca radio={BORDER_RADIUS.md} />
                 <Text style={styles.loginButtonText}>{t('menu.signIn')}</Text>
               </TouchableOpacity>
             )}
@@ -515,7 +639,8 @@ const Header: React.FC<HeaderProps> = ({ onMenuPress, onBackPress, transparent, 
               numberOfLines={1}
               adjustsFontSizeToFit={!isWeb}
             >
-              {LEMA_DE_MARCA}
+              {/* La firma de marca: el eslogan de Weë en la lengua de la interfaz (decisión del dueño, 2026-11-04). */}
+              {t('nav.brandSlogan')}
             </Text>
           </View>
         )}
@@ -594,6 +719,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: scale(0),
   },
+  /* Solo en la portada: deja encoger el logo antes que empujar los controles de la derecha fuera de la pantalla. */
+  izquierdaDePortada: {
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  derechaDePortada: {
+    flexShrink: 0,
+    gap: scale(2),
+  },
   menuButton: {
     padding: SPACING.xs,
     marginRight: scale(2),
@@ -602,6 +736,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.sm,
+  },
+  /* En la portada el logo comparte fila con tres botones: se deja encoger en un teléfono estrecho (`contain` conserva la proporción). */
+  logoDePortada: {
+    flexShrink: 1,
+    minWidth: 0,
+    /* El logo arriba y el eslogan debajo, alineados por el principio de la línea. */
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 0,
+  },
+  /* Lupa, campana y avatar: 40 de lado, que con la separación de la fila da sitio de sobra al dedo. */
+  botonDePortada: {
+    width: scale(40),
+    height: scale(40),
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: scale(20),
+  },
+  /* El punto rojo: arriba a la derecha de la campana, con un aro del color del fondo para que se lea en los dos temas. */
+  puntoDeCampanita: {
+    position: 'absolute',
+    top: scale(8),
+    right: scale(9),
+    width: scale(10),
+    height: scale(10),
+    borderRadius: scale(5),
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
   },
   logo: {
     height: scale(32),
@@ -679,6 +841,26 @@ const styles = StyleSheet.create({
   },
   selectorTexto: {
     fontSize: FONT_SIZE.xs,
+  },
+  /* La mitad Weë con alter ego: avatar, nombre y ▾ en fila; el nombre se corta con puntos antes de empujar nada. */
+  selectorAlterEgo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: scale(4),
+    maxWidth: scale(96),
+  },
+  selectorNombre: {
+    flexShrink: 1,
+  },
+  puntoDeLaPildora: {
+    position: 'absolute',
+    top: -1,
+    end: -1,
+    width: scale(9),
+    height: scale(9),
+    borderRadius: scale(5),
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
   },
   switchButtonText: {
     fontSize: FONT_SIZE.xs,

@@ -436,10 +436,29 @@ check('49) el orden: primero spendCredits sola; la IA después de lo social, la 
   && ['brainChat', 'creatorRun', 'generateVideo', 'generateAvatarWithGemini'].every((f) => posicion(f) > posicion('votePoll') && posicion(f) > posicion('getCreditsBalance') && posicion(f) > posicion('creditsAdmin'))
   && ['validatePurchase', 'restorePurchase', 'nacimientoDeCuenta'].every((f) => posicion(f) === grupos.grupos.length - 1));
 const exportadas = Object.entries(require(path.resolve(RAIZ, 'functions/lib/index.js'))).filter(([, x]) => x && x.__endpoint).map(([k]) => k);
-const decididas = new Set([...vivas, ...grupos.no_se_despliegan.map((n) => n.funcion)]);
-check('50) toda función que el código exporta está decidida: viva (con su grupo) o, si es nueva, en «no se despliegan» con su porqué',
-  exportadas.every((f) => decididas.has(f)) && grupos.no_se_despliegan.every((n) => !enGrupos.includes(n.funcion) && n.porque.length > 30),
+const primeros = grupos.primeros_despliegues || [];
+const enPrimeros = primeros.flatMap((g) => g.funciones);
+const decididas = new Set([...vivas, ...grupos.no_se_despliegan.map((n) => n.funcion), ...enPrimeros]);
+check('50) toda función que el código exporta está decidida: viva (con su grupo) o, si es nueva, en «no se despliegan» o en un primer despliegue declarado, con su porqué',
+  exportadas.every((f) => decididas.has(f)) && grupos.no_se_despliegan.every((n) => !enGrupos.includes(n.funcion) && !enPrimeros.includes(n.funcion) && n.porque.length > 30),
   exportadas.filter((f) => !decididas.has(f)).join(', ') || `${exportadas.length} exportadas`);
+
+/* Los primeros despliegues declarados: solo funciones NUEVAS y exportadas, un grupo pequeño y explícito, con su secuencia. */
+check('51) cada primer despliegue declarado es de funciones NUEVAS (no vivas, ni en otro grupo), exportadas, con objetivo válido, paso y secuencia',
+  enPrimeros.length === new Set(enPrimeros).size && primeros.every((g) => /^[a-z0-9-]+$/.test(g.id) && g.funciones.length >= 1
+    && g.funciones.every((f) => !vivas.includes(f) && !enGrupos.includes(f) && exportadas.includes(f))
+    && plan.leerObjetivo(g.funciones.map((f) => `functions:${f}`).join(',')).errores.length === 0
+    && Number.isInteger(g.paso) && Array.isArray(g.secuencia) && g.secuencia.length > g.paso && g.porque.length > 40),
+  enPrimeros.join(', ') || 'ninguno');
+const { decidir: decidirPermitido } = await import(pathToFileURL(path.resolve(RAIZ, 'ops/permitido.mjs')).href);
+const sinVivas = { funciones: [] };
+const siempreSi = () => true;
+check('52) permitido.mjs: un primer despliegue declarado pasa SOLO; mezclado con otra función o con otro objetivo, se bloquea; las no declaradas, como antes',
+  primeros.every((g) => decidirPermitido({ manifiesto: sinVivas, funciones: g.funciones, contiene: siempreSi, candidato: 'X', grupos }).permitido
+    && !decidirPermitido({ manifiesto: { funciones: [{ funcion: 'votePoll', commit: 'a' }] }, funciones: [...g.funciones, 'votePoll'], contiene: siempreSi, candidato: 'X', grupos }).permitido
+    && !decidirPermitido({ manifiesto: sinVivas, funciones: g.funciones, otros: ['storage'], contiene: siempreSi, candidato: 'X', grupos }).permitido)
+  && decidirPermitido({ manifiesto: sinVivas, funciones: ['evalRun'], contiene: siempreSi, candidato: 'X', grupos }).permitido
+  && /grupos\.json/.test(leer('ops/permitido.mjs')) && /grupos \}\);/.test(leer('ops/permitido.mjs')));
 
 /* ── E. Documentado ─────────────────────────────────────────────────────── */
 const doc = leer('docs/DEPLOYMENT.md');

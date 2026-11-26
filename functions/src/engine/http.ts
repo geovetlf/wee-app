@@ -98,6 +98,27 @@ export async function fetchBytes(url: string, options: FetchOptions): Promise<{ 
   }
 }
 
+/**
+ * SUBE BYTES CRUDOS CON UN PUT a la dirección de subida que dio un proveedor (p. ej. la de WaveSpeed). Sin cabecera de
+ * autorización salvo la que el proveedor devolvió con la dirección: esa dirección ya lleva su propia firma.
+ */
+export async function putBytes(url: string, bytes: Buffer, options: { headers?: Record<string, string>; timeoutMs?: number; provider: string }): Promise<void> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 180_000);
+  try {
+    const response = await fetch(url, { method: 'PUT', headers: { ...(options.headers || {}) }, body: new Uint8Array(bytes), signal: controller.signal });
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      throw new ProviderError(`${options.provider}: la subida respondió ${response.status}: ${sanitizeForLog(text)}`, options.provider, response.status, response.status >= 500);
+    }
+  } catch (error) {
+    if (error instanceof ProviderError) throw error;
+    throw new ProviderError(`${options.provider}: ${sanitizeForLog(error)}`, options.provider);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** Espera a que una tarea asíncrona termine (video, imagen en cola…). */
@@ -302,13 +323,28 @@ const rutaLimpia = (path: string): boolean =>
  * que enseña la app cambian.
  */
 export function direccionDeLaCuenta(url: unknown, cuenta: string): DireccionDeLaCuenta {
+  return direccionBajo(url, !cuenta || /[/\s]/.test(cuenta) ? null : `users/${cuenta}/`);
+}
+
+/**
+ * LA MISMA REGLA PARA LA CARPETA DE UNA WEË PAGE (`pages/<pageId>/`, F1 del plan de alter egos, 2026-11-23): el logo y
+ * la portada de una Página ya no suben a la carpeta de la cuenta, porque su URL pública delataba de qué cuenta era. De
+ * quién es la Página no lo decide esto —lo decide `savePage` con `pages/{pageId}/private/ownership`, y las reglas de
+ * Storage al subir—; esto solo exige que la foto esté en la carpeta de ESA Página, sin trucos.
+ */
+export function direccionDeLaPagina(url: unknown, pageId: string): DireccionDeLaCuenta {
+  return direccionBajo(url, !pageId || /[/\s]/.test(pageId) ? null : `pages/${pageId}/`);
+}
+
+/** `prefijo` null = el dueño de la carpeta no es válido: la dirección es ajena (en el mismo orden de siempre). */
+function direccionBajo(url: unknown, prefijo: string | null): DireccionDeLaCuenta {
   if (typeof url !== 'string' || !esDireccionDelStorageDeWee(url)) return { ok: false, motivo: 'no_es_de_wee' };
   /* El cubo, con la MISMA lectura que usa quien lee: una dirección de otro cubo, o ilegible, tampoco es de Weë. */
   const objeto = objetoDelStorageDeWee(url);
   if (!objeto || objeto === 'fuera_del_cubo') return { ok: false, motivo: 'no_es_de_wee' };
   const { path } = objeto;
   if (!rutaLimpia(path)) return { ok: false, motivo: 'malformada' };
-  if (!cuenta || /[/\s]/.test(cuenta) || !path.startsWith(`users/${cuenta}/`)) return { ok: false, motivo: 'ajena' };
+  if (!prefijo || !path.startsWith(prefijo)) return { ok: false, motivo: 'ajena' };
   const cubo = nombreDelCuboDeWee();
   if (!/^https?:\/\/[^/]+\/v0\/b\//.test(url)) return { ok: true, path, url: `gs://${cubo}/${path.split('/').map(encodeURIComponent).join('/')}` };
   const inicioDeLaConsulta = url.indexOf('?');

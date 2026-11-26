@@ -1,5 +1,5 @@
 /*
- * Weë Writer, dentro de Weë Studio. El texto que escribe la persona NUNCA pasa por aquí: solo las herramientas que lo trabajan.
+ * Weë Writer, dentro de WeëStudio. El texto que escribe la persona NUNCA pasa por aquí: solo las herramientas que lo trabajan.
  *
  * Este archivo es el MOLDE: de él sale el tipo que tiene que cumplir el resto
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.

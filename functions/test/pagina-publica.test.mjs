@@ -595,8 +595,9 @@ console.log('\n── F · Enchufada donde tiene que estar ──');
     !/isPrivate == false/.test(bloqueDePosts) && !/isPrivate != true/.test(bloqueDePosts));
   /* CONTROL: y no se tocó a quién se le permite escribir. */
   check('50) control: las condiciones de autoría siguen intactas',
-    /request\.resource\.data\.userId == request\.auth\.uid/.test(bloqueDePosts)
-    && /request\.resource\.data\.userId == \("hidi_" \+ request\.auth\.uid\)/.test(bloqueDePosts)
+    /* F3 de alter egos (2026-11-23): la autoría es `esMia` (cuenta, cara heredada y alter egos de la cuenta). */
+    /esMia\(request\.resource\.data\.userId\)/.test(bloqueDePosts)
+    && /function esMia\(id\) \{\s*\n\s*return id == request\.auth\.uid \|\| id == identidadWeeHeredadaDe\(request\.auth\.uid\)/.test(reglas)
     && /hasOnly\(\['views', 'agreementCount'/.test(bloqueDePosts)
     && /allow read: if true;/.test(bloqueDePosts),
     'la tercera condición era la del Perfil Biz, que ya no existe');

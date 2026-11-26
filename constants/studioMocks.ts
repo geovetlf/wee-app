@@ -1,7 +1,7 @@
 /*
  * CREACIONES DE MENTIRA, PARA PODER MIRAR LA PANTALLA.
  *
- * Weë Studio todavía no genera nada: esta fase es la experiencia, no la IA. La
+ * WeëStudio todavía no genera nada: esta fase es la experiencia, no la IA. La
  * galería necesita algo que enseñar para que se pueda juzgar si el sitio se
  * entiende, así que aquí hay cuatro piezas —una de cada tipo— con el aspecto
  * que tendrán las de verdad.
@@ -58,8 +58,8 @@ export const CREACIONES_DE_MUESTRA: CreacionDeMuestra[] = [
  * (`components/creator/FilaDeCreaciones.tsx`).
  *
  * La fila no sabe de tipos: le llega la etiqueta ya resuelta a una clave y el
- * icono ya elegido. Weë Studio etiqueta por tipo —imagen, video, voz,
- * documento— y Weë Design por clase de diseño, y las dos entran igual.
+ * icono ya elegido. WeëStudio etiqueta por tipo —imagen, video, voz,
+ * documento— y WeëDesign por clase de diseño, y las dos entran igual.
  *
  * La traducción NO se hace aquí: un archivo de `constants/` se importa fuera de
  * React, donde no hay traductor, así que lo que viaja es la clave y quien pinta

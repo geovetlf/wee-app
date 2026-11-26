@@ -42,8 +42,12 @@ const DERECHA = soloCodigo(leer('components/RightSidebar.tsx'));
 const CAJON = soloCodigo(leer('components/DrawerMenu.tsx'));
 const CATALOGO = leer('constants/weeMenu.ts');
 
-/* Las once opciones que la barra pinta con `<Opcion id=…>`. */
-const IDS = [...LATERAL.matchAll(/<Opcion\s+id="([a-zA-Z]+)"/g)].map((m) => m[1]);
+/*
+ * Las opciones que la barra pinta. Desde el rediseño del 2026-11-15 no las escribe una a una: recorre `WEE_MENU`, el
+ * catálogo que comparte con el cajón, así que la lista se lee de ahí.
+ */
+const TROZO_DEL_ORDEN = CATALOGO.slice(CATALOGO.indexOf('export const WEE_MENU'));
+const IDS = /WEE_MENU\.map\(/.test(LATERAL) ? [...TROZO_DEL_ORDEN.slice(0, TROZO_DEL_ORDEN.indexOf('];')).matchAll(/'([a-zA-Z]+)'/g)].map((m) => m[1]) : [];
 
 // ════════════════════════════════════════════════════════════════════════════
 console.log('\n── A · La barra lee la clave, no el español ──');
@@ -79,7 +83,7 @@ console.log('\n── A · La barra lee la clave, no el español ──');
     if (!m) return null;
     const [, modulo, k, label] = m;
     /* Credits, ËContact, Weëls, WeeTalk y Weë AI son marca: dicen lo mismo a propósito. */
-    const marca = /^(Credits|ËContact|ẄContact|Weëls|WeeTalk|Weë AI)$/.test(label);
+    const marca = /^(Credits|ËContact|ẄContact|Weëls|WeeTalk|Weë AI|WeëAI|WeëPages|Weë Pages|MyWeës)$/.test(label);
     return !marca && EN(`${modulo}.${k}`) === label ? id : null;
   }).filter(Boolean);
   check('5) en inglés no queda ningún label español del catálogo', enEspanol.length === 0, enEspanol.join(' '));
@@ -104,23 +108,24 @@ console.log('\n── B · Los otros textos de la barra ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
   const pares = [
-    ['7) Inicio', 'nav.home', 'Inicio', /label=\{t\('nav\.home'\)\}/],
-    ['8) Buscar', 'nav.search', 'Buscar', /label=\{t\('nav\.search'\)\}/],
-    ['9) PERFIL', 'menu.sectionProfile', 'PERFIL', /\{t\('menu\.sectionProfile'\)\}/],
-    ['10) EXPLORA', 'menu.sectionExplore', 'EXPLORA', /\{t\('menu\.sectionExplore'\)\}/],
-    ['11) Crear mi perfil Weë', 'menu.createWeeProfile', 'Crear mi perfil Weë', /t\('menu\.createWeeProfile'\)/],
+    /* Rediseño del 2026-11-15: los textos propios de la barra son otros. Inicio y Buscar entran por el catálogo (Inicio / Wäll, Explorar). */
+    ['7) Inicio / Wäll', 'menu.homeWall', 'Inicio / Ẅall', /clave: 'menu\.homeWall'/, CATALOGO],
+    ['8) Explorar', 'menu.explore', 'Explorar', /clave: 'menu\.explore'/, CATALOGO],
+    ['9) Mensajes', 'nav.messages', 'Mensajes', /label=\{t\('nav\.messages'\)\}/, LATERAL],
+    ['10) Personalizar', 'menu.customize', 'Personalizar', /t\('menu\.customize'\)/, LATERAL],
+    ['11) Crear mi perfil Weë', 'menu.createWeeProfile', 'Crear mi perfil Weë', /t\('menu\.createWeeProfile'\)/, soloCodigo(leer('components/inicio/SelectorDeIdentidad.tsx'))],
   ];
-  for (const [nombre, clave, español, patron] of pares) {
+  for (const [nombre, clave, español, patron, fuente] of pares) {
     check(`${nombre} sale de ${clave}`,
-      patron.test(LATERAL) && ES(clave) === español && EN(clave) !== español,
+      patron.test(fuente) && ES(clave) === español && EN(clave) !== español,
       ES(clave) + ' / ' + EN(clave));
   }
 
-  check('12) Ocultar / Ver especialistas sale de sus dos claves',
-    /accessibilityLabel=\{t\(creatorOpen \? 'menu\.hideSpecialists' : 'menu\.showSpecialists'\)\}/.test(LATERAL)
-    && ES('menu.hideSpecialists') === 'Ocultar especialistas' && ES('menu.showSpecialists') === 'Ver especialistas'
-    && EN('menu.hideSpecialists') === 'Hide specialists' && EN('menu.showSpecialists') === 'Show specialists',
-    EN('menu.hideSpecialists') + ' / ' + EN('menu.showSpecialists'));
+  check('12) el desplegable de especialistas ya no existe: WeëAI es una fila del catálogo (Home 0+, 2026-11-24) y la tarjeta conserva sus claves (nombre y lema)',
+    /<Opcion id="creator"/.test(LATERAL) && !/creatorOpen|hideSpecialists|showSpecialists/.test(LATERAL)
+    && /t\('nav\.weeAi'\)/.test(leer('components/inicio/TarjetaWeeAi.tsx')) && /t\('home\.weeAiTagline'\)/.test(leer('components/inicio/TarjetaWeeAi.tsx'))
+    && ES('home.weeAiTagline') === 'Crea, desarrolla y transforma tus ideas' && EN('home.weeAiTagline') !== ES('home.weeAiTagline'),
+    ES('home.weeAiTagline') + ' / ' + EN('home.weeAiTagline'));
 
   /* Y no queda ninguna de las siete escrita a mano. */
   const quedan = ['label="Inicio"', 'label="Buscar"', '>PERFIL<', '>EXPLORA<',
@@ -148,9 +153,9 @@ console.log('\n── C · La columna derecha ──');
   check('15) ninguna de las tres sigue escrita a mano', quedan.length === 0, quedan.join(' '));
 
   /* Y lo de 5C sigue donde estaba, intacto. */
-  check('15) lo que cerró 5C no se movió',
-    /accessibilityLabel=\{t\('nav\.openWeeAi'\)\}/.test(DERECHA) && /\{t\('nav\.goToWeeAi'\)\}/.test(DERECHA)
-    && /\{t\('nav\.weeAiQuestion'\)\}/.test(DERECHA) && /\{t\('nav\.weeAiPitch'\)\}/.test(DERECHA));
+  check('15) lo que cerró 5C se mudó a la tarjeta de WeëAI de la portada, con sus claves; la columna derecha ya no la repite',
+    /accessibilityLabel=\{t\('nav\.openWeeAi'\)\}/.test(leer('components/inicio/TarjetaWeeAi.tsx')) && /\{t\('nav\.weeAiQuestion'\)\}/.test(leer('components/inicio/TarjetaWeeAi.tsx'))
+    && !/WeeCreator|weeAiQuestion/.test(DERECHA));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -171,33 +176,39 @@ console.log('\n── D · Ni claves duplicadas, ni catálogo tocado ──');
   check('17) los ids y los emojis del catálogo son los de siempre',
     /realProfile: \{ id: 'realProfile', icono: 'perfilReal', clave: 'menu\.realProfile', emoji: '👤', label: 'Perfil Real' \}/.test(CATALOGO)
     && /settings: \{ id: 'settings', icono: 'engranaje', clave: 'menu\.settings', emoji: '⚙️', label: 'Configuración' \}/.test(CATALOGO));
-  check('17) y "Weë AI" sigue siendo marca, sin pasar por clave en la barra',
-    /label=\{MENU_ITEM\.creator\.label\}/.test(LATERAL) && /creator: 'Weë AI'/.test(leer('i18n/textos/en/menu.ts')));
+  check('17) y «WeëAI» sigue siendo marca: sale de su clave y dice lo mismo en los dos idiomas',
+    /t\('nav\.weeAi'\)/.test(leer('components/inicio/TarjetaWeeAi.tsx')) && ES('nav.weeAi') === 'WeëAI' && EN('nav.weeAi') === 'WeëAI');
 
   check('18) las rutas de la barra no cambiaron',
-    /navigation\.navigate\('WeeProfileCreation'\)/.test(LATERAL)
-    && /navigation\.navigate\('EContact'\)/.test(LATERAL)
-    && /navigation\.navigate\('SavedPosts'\)/.test(LATERAL)
+    /* Alter egos (2026-11-23): crear una cara sale de la lista de caras común (`HojaDeAlterEgos`); la agenda de la cara
+     * puesta vuelve a la barra, dentro de «Tu mundo», y sigue también en Mi Weë. */
+    /<ListaDeCaras \/>/.test(LATERAL) && /navegarEnLaRaiz\('WeeProfileCreation'\)/.test(leer('components/HojaDeAlterEgos.tsx'))
+    && /conCuenta\('EContact'\)/.test(LATERAL) && /navigate\('EContact'\)/.test(leer('screens/ProfileScreen.tsx'))
+    && /conCuenta\('SavedPosts'\)/.test(LATERAL)
     && /navigation\.navigate\('Settings'\)/.test(LATERAL)
     && /navigation\.navigate\('Help'\)/.test(LATERAL)
-    && /navigation\.navigate\('Specialist', \{ id: exp\.id \}\)/.test(LATERAL));
-  check('19) ni la lógica: sesión, identidad y pliegue siguen igual',
+    && /navigation\.navigate\('WeeCreator'\)/.test(LATERAL) && !/'Specialist'/.test(LATERAL));
+  check('19) ni la lógica: sesión e identidad siguen igual; el cambio de perfil es el de siempre (switchIdentity + tema)',
     /onPress=\{handleLogout\}/.test(LATERAL) && /onPress=\{requireLogin\}/.test(LATERAL)
     && /user \? goTab\('Profile'\) : requireLogin\(\)/.test(LATERAL)
-    && /setCreatorOpen\(\(v\) => !v\)/.test(LATERAL) && /\{creatorOpen && \(/.test(LATERAL));
+    /* Con varias caras el cambio vive en la hoja común: el mismo switchIdentity y el tema del destino. */
+    && /switchIdentity\(id\);\s*setThemeMode\('dark'\);/.test(leer('components/HojaDeAlterEgos.tsx')) && /switchIdentity\('real'\);\s*setThemeMode\('light'\);/.test(leer('components/HojaDeAlterEgos.tsx')));
   /* Mismo orden de siempre; «Mis creaciones» (Fase 11) entra justo detrás de «Mis proyectos», dentro de Weë Creator. */
   check('19) y el orden de las opciones es el mismo',
-    IDS.join(' ') === 'realProfile weeProfile credits econtact communities weels weetalk projects creations saved settings help',
+    /* WeëPages (2026-11-02) va junto a la agenda: las Páginas son de la cuenta, no un sitio que explorar. */
+    IDS.join(' ') === 'home weels explore communities projects pages mywees saved history credits settings language help',
     IDS.join(' '));
 
   /*
    * LO QUE VIENE DE LOS DATOS NO SE TRADUCE: el nombre de la agenda sale de la
    * identidad activa y los nombres de las experiencias son de Weë.
    */
-  check('20) el nombre de la agenda sigue viniendo de la identidad activa',
-    /<Opcion id="econtact" label=\{nombreLista\}/.test(LATERAL) && !/t\(nombreLista\)/.test(LATERAL));
-  check('20) y los nombres de los especialistas se pintan crudos',
-    /label=\{exp\.name\}/.test(LATERAL) && !/t\(exp\.name\)/.test(LATERAL));
+  check('20) el nombre de la agenda sigue viniendo de la identidad activa, allí donde se ofrece (MyWeës); la barra ya no la lleva',
+    /const \{ nombreLista: nombreDeLaAgenda \} = useIdentidadActiva\(\);/.test(LATERAL) && !/t\(nombreDeLaAgenda\)/.test(LATERAL)
+    && /const \{ nombreLista \} = useIdentidadActiva\(\);/.test(leer('components/mywees/SelectorDeDestinos.tsx')) && !/t\(nombreLista\)/.test(leer('components/mywees/SelectorDeDestinos.tsx')));
+  check('20) y los nombres de las experiencias se pintan crudos, del catálogo, allí donde se ofrecen (MyWeës); la barra ya no las lista',
+    !/exp\.name/.test(LATERAL)
+    && /nombreVisibleDeExperiencia\(id, exp\?\.name \?\? id\)/.test(leer('components/mywees/SelectorDeDestinos.tsx')) && !/t\(exp/.test(leer('components/mywees/SelectorDeDestinos.tsx')));
 
   /* Nadie se montó un traductor propio ni un ternario de idioma. */
   check('20) sin sistemas paralelos ni ternarios de idioma',

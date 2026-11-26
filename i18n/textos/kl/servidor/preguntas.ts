@@ -1,0 +1,55 @@
+/*
+ * GROENLANDÉS / KALAALLISUT (kl · kl-GL) — las preguntas del flujo guiado de Weë AI (43)
+ * (ver `../../es/servidor/preguntas.ts`). Traducción hecha por agentes de IA, SIN revisión humana nativa (2026-11-03).
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Kalaallisut, NO danés. Preguntas en modo interrogativo («…-piuk?» 2sg→3sg, «…-vit?» 2sg intransitivo,
+ * «…-ssaviuk?» futuro) con «?» final y sin «¿». Interrogativos: «suna» (qué, absolutivo), «sumik» (qué,
+ * instrumental tras antipasiva), «sorleq» (cuál), «qassinut» (para cuántos), «qaqugu» (cuándo), «sumi» (dónde).
+ * «Isikkoq» = estilo (glosario, baja-pendiente). Casi todo «pendiente de confirmación nativa».
+ */
+export const preguntas: typeof import('../../es/servidor/preguntas').preguntas = {
+  designWhat: 'Suna pisariaqartippiuk? Oqaluttuarfiginga, aallarnissamullu siunnersuissaanga',
+  designName: 'Ateq allagarluunniit suna takutikkusuppiuk?',
+  designFeel: 'Ilisarnaatit qanoq misigititsissava?',
+  designMessage: 'Suna nalunaarutigerusuppiuk?',
+  designWhere: 'Sumi saqqummiussaviuk?',
+  designItem: 'Nioqqutissiaq suna ilusilersorusuppiuk?',
+  designLook: 'Qanoq isikkoqartoq takorloorpiuk?',
+  designMachine: 'Angallat maskiinaluunniit suna takorloorpiuk?',
+  designEra: 'Piffissaq sorleq?',
+  designPlace: 'Sumiiffik avatangiisilluunniit suna pilersikkusuppiuk?',
+  designInout: 'Inip iluaniippa imaluunniit silamiippa?',
+  designWho: 'Kina inuttaasorluunniit suna pilersikkusuppiuk?',
+  designDraw: 'Takusassatut isikkoq sorleq kissaatigiviuk?',
+  studioType: 'Video qanoq ittoq?',
+  studioStyle: 'Isikkoq sorleq kissaatigiviuk?',
+  studioWhere: 'Sumi saqqummiussaviuk?',
+  photoAction: 'Assit qanoq iliorfigissavarput?',
+  photoDetail: 'Qanoq ittoq kissaatigiviuk?',
+  writerWhat: 'Suna allassavarput?',
+  writerTone: 'Allaaseq qanoq ittoq?',
+  writerLanguage: 'Oqaatsit sorliit atorlugit?',
+  musicWhat: 'Suna pilersikkusuppiuk?',
+  musicStyle: 'Nipilersorneq qanoq ittoq?',
+  musicMood: 'Misigissutsit qanoq ittut?',
+  musicVoice: 'Nipi sorleq?',
+  beautyWhat: 'Suna misiligassaviuk?',
+  beautyOccasion: 'Sumut atussaviuk?',
+  chefWhat: 'Suna iliorusuppit?',
+  chefChange: 'Assimi suna allanngortikkusuppiuk?',
+  chefPeople: 'Inunnut qassinut?',
+  chefTime: 'Qanoq sivisutigisumik piffissaqarpit?',
+  chefDays: 'Ullunut qassinut?',
+  homeWhat: 'Suna iliorusuppit?',
+  homeSpace: 'Ini sorleq?',
+  homeStyle: 'Isikkoq sorleq?',
+  businessWhat: 'Qanoq ikiorsinnaavakkit?',
+  businessTone: 'Qanoq pisortatigoortumik?',
+  travelWhat: 'Suna pisariaqartippiuk?',
+  travelVibe: 'Angalanermi matumani sumik ujarlerpit?',
+  travelDates: 'Qaqugu angalassavit?',
+  travelInterest: 'Suna kissaatiginerpaaviuk?',
+  travelPace: 'Qanoq sukkatigisumik?',
+  brainWhat: 'Qanoq ikiorsinnaavakkit?',
+};

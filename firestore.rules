@@ -7,6 +7,38 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // EDAD MÍNIMA DE WEË: 18 AÑOS. El mismo número y la misma cuenta que
+    // `functions/src/identity/edad.ts` (servidor) y `utils/edadMinima.ts` (app);
+    // `functions/test/edad-minima.test.mjs` exige que los tres coincidan.
+    //
+    // Fechas de CALENDARIO, no milisegundos: entra quien cumple 18 hoy. Y «hoy»
+    // es la fecha civil en UTC−12, la última zona del planeta en cambiar de día:
+    // así nadie entra antes de que sea su cumpleaños en su propia zona.
+    // `birthDate` es `AAAA-MM-DD`; cualquier otra cosa, una fecha que no existe
+    // (31 de abril, 29 de febrero de un año no bisiesto) o una futura → no.
+    function edadMinimaDeWee() {
+      return 18;
+    }
+    function esBisiesto(a) {
+      return (a % 4 == 0 && a % 100 != 0) || a % 400 == 0;
+    }
+    function diasDelMes(a, m) {
+      return m == 2 ? (esBisiesto(a) ? 29 : 28) : (m in [4, 6, 9, 11] ? 30 : 31);
+    }
+    function cumpleEdadMinimaEn(a, m, d, hoy) {
+      return a + edadMinimaDeWee() < hoy.year() ||
+        (a + edadMinimaDeWee() == hoy.year() &&
+          (m < hoy.month() || (m == hoy.month() && d <= hoy.day())));
+    }
+    function fechaDeNacimientoAdulta(f) {
+      return f is string && f.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        fechaRealYAdulta(int(f.split('-')[0]), int(f.split('-')[1]), int(f.split('-')[2]));
+    }
+    function fechaRealYAdulta(a, m, d) {
+      return a >= 1900 && m >= 1 && m <= 12 && d >= 1 && d <= diasDelMes(a, m) &&
+        cumpleEdadMinimaEn(a, m, d, request.time - duration.value(12, 'h'));
+    }
+
     // ADMINISTRACIÓN: una sesión con el claim `admin`. El claim lo pone el
     // servidor con el SDK de administración; ningún cliente puede ponérselo.
     // Es lo que distingue lo que Weë AFIRMA (oficial, verificado, destacado)
@@ -43,9 +75,36 @@ service cloud.firestore {
       return [request.auth.uid, identidadWeeHeredadaDe(request.auth.uid)];
     }
 
-    // Credit Engine (docs/CREDITS.md): el saldo vive en el perfil y SOLO lo
-    // escribe el servidor (Cloud Functions). Ninguna escritura del cliente
-    // puede crear, cambiar ni borrar estos campos.
+    // ─── LAS CARAS DE UNA CUENTA, SIN PREFIJOS (F3 del plan de alter egos, 2026-11-23) ───
+    //
+    // Una cuenta tiene su Perfil Real y hasta 5 Perfiles Weë (alter egos). El
+    // primero heredado conserva `hidi_<uid>`; los nuevos son entidades opacas
+    // (`ent_…`) y su forma no dice de quién son. De quién son lo dice
+    // `accounts/{cuenta}.identidadesWee`, que escribe SOLO el servidor en la
+    // misma transacción que crea o retira el alter ego (`accounts` no admite
+    // ninguna escritura del cliente: nadie se añade una cara ajena).
+    //
+    // COSTE: `exists` y `get` del mismo documento cuentan UNA lectura por
+    // petición. `esMia` corta antes de leer cuando el id es la cuenta o su cara
+    // heredada, así que lo heredado no paga nada más. Las listas (forma A de F0,
+    // `hasAny(misIdentidades())`) pagan esa única lectura.
+    function identidadesExtraDeLaCuenta() {
+      let ref = /databases/$(database)/documents/accounts/$(request.auth.uid);
+      return exists(ref) ? get(ref).data.get('identidadesWee', []) : [];
+    }
+    function misIdentidades() {
+      return misIdentidadesHeredadas().concat(identidadesExtraDeLaCuenta());
+    }
+    function esMia(id) {
+      return id == request.auth.uid || id == identidadWeeHeredadaDe(request.auth.uid)
+        || id in identidadesExtraDeLaCuenta();
+    }
+
+    // Credit Engine (docs/CREDITS.md): el saldo SOLO lo escribe el servidor
+    // (Cloud Functions). F-06: su sitio es `creditAccounts/{uid}` (abajo), que
+    // solo lee su dueño; mientras dure la transición el perfil lleva una copia
+    // (el espejo de las apps viejas). Ninguna escritura del cliente puede crear,
+    // cambiar ni borrar estos campos en el perfil.
     function creditFields() {
       return ['creditsBalance', 'creditsLifetimeEarned', 'creditsLifetimeSpent', 'creditsInitializedAt'];
     }
@@ -67,6 +126,14 @@ service cloud.firestore {
     }
     function touchesEcontactFields() {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny(econtactFields());
+    }
+
+    // LAS COMUNIDADES DE UNA CARA LAS APUNTA EL SERVIDOR (docs/COMUNIDADES-IDENTIDAD.md).
+    // `joinedCommunities` es la lista de un perfil concreto; la escriben las callables
+    // de comunidades al unirse, salir o crear, en la misma transacción que la membresía.
+    // Al crear el perfil puede nacer vacía, como siempre; después ya no la toca el cliente.
+    function touchesCommunityFields() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(['joinedCommunities']);
     }
 
     // LO DE LA CUENTA NO VA EN EL PERFIL PÚBLICO. `users/{id}` lo lee cualquiera,
@@ -99,6 +166,20 @@ service cloud.firestore {
     }
     function touchesIdentityCoreFields() {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny(identityCoreFields());
+    }
+
+    // EL ESTADO DE LA CUENTA LO PONE EL SERVIDOR (eliminar cuenta, 2026-11-22).
+    // Desactivar y reactivar pasan por `eliminarCuenta` / `reactivarCuenta`, que
+    // también apagan el pase y ocultan o muestran las publicaciones. Si el cliente
+    // pudiera escribir estos campos, podría saltarse el plazo o el borrado.
+    function estadoDeCuentaFields() {
+      return ['cuentaEstado', 'desactivadaEn', 'borrarEn'];
+    }
+    function createsEstadoDeCuentaFields() {
+      return request.resource.data.keys().hasAny(estadoDeCuentaFields());
+    }
+    function touchesEstadoDeCuentaFields() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(estadoDeCuentaFields());
     }
 
     // LA IDENTIDAD DE UN PERFIL NO SE REESCRIBE (Fase 11.x). `uid` y
@@ -176,14 +257,36 @@ service cloud.firestore {
     // comprobar propiedad alguna, así que quitarlas no solo limpia — cierra un
     // hueco por el que cualquiera con sesión podía escribir como el negocio de
     // otra persona.
+    // Con alter egos (F3, 2026-11-23): cualquiera de las caras de la cuenta (`esMia`).
     function ownsPost() {
-      return resource.data.userId == request.auth.uid ||
-        resource.data.userId == ("hidi_" + request.auth.uid);
+      return esMia(resource.data.userId);
+    }
+
+    // === PERFILES PÚBLICOS (seguridad de `users`, 2026-10-07) ===
+    //
+    // La cara pública de cada documento de `users`, copiada por el servidor
+    // (`functions/src/identity/perfilPublico.ts`) con LISTA BLANCA: nombre visible,
+    // foto, bio, contadores, referencia pública. Nunca saldo, país, idioma,
+    // `linkedAccountId`, email, nombre real, fecha de nacimiento ni avatar IA.
+    // La lee cualquiera —el muro pinta autores sin sesión—, pero el listado va
+    // con techo: sin sesión, consultas de hasta 30 (resolver autores por tandas);
+    // con sesión, hasta 100 (el buscador). Nadie la escribe salvo el servidor.
+    function esCaraDeLaCuenta(datos) {
+      return esMia(datos.get('uid', ''));
+    }
+    match /publicProfiles/{perfilId} {
+      allow get: if true;
+      allow list: if request.query.limit != null &&
+        (request.query.limit <= 30 || (isAuthenticated() && request.query.limit <= 100));
+      allow write: if false;
     }
 
     // === USUARIOS ===
     //
     // ⚠ DEUDA CONOCIDA: ESTE DOCUMENTO MEZCLA LA CUENTA Y EL PERFIL.
+    // (2026-10-07: la copia pública ya existe —ver PERFILES PÚBLICOS, arriba—; el
+    // cierre de la lectura es la FASE 2, retenida hasta espejo + relleno + cliente;
+    // los campos de cuenta siguen aquí hasta la limpieza, que va con autorización.)
     //
     // `allow read: if true` es correcto para un perfil público —nombre, foto,
     // bio— y es lo que el muro necesita para pintar a quien publicó, incluso
@@ -196,6 +299,20 @@ service cloud.firestore {
     // cuenta real, así que leerlo deshace la separación de identidades que es
     // la razón de ser del Perfil Weë.
     //
+    // F-06 (2026-10-14): el SALDO ya tiene su sitio privado, `creditAccounts/{uid}`
+    // (abajo). Hasta el contrato (P6 del runbook docs/F06-RUNBOOK.md) el perfil
+    // sigue llevando una copia para las apps viejas; tras P6 deja de llevarla.
+    //
+    // RIESGO RESIDUAL ACEPTADO Y DOCUMENTADO (F-06, D3): mover `linkedAccountId`
+    // NO cerraría la fuga de identidad. El uid guardado del Perfil Weë ES
+    // `hidi_<uid de la cuenta>` y es público en `users.uid`, `posts.userId`,
+    // conversaciones y avisos (`ownsPost` de arriba lo compara así), de modo que
+    // de un post del Perfil Weë se llega al Perfil Real en dos lecturas, con o sin
+    // `linkedAccountId`. El cierre real son identificadores opacos para el Perfil
+    // Weë con el vínculo solo en el servidor (`entities.ownerAccountId`): una
+    // migración XL de posts, votos, conversaciones, avisos y reglas que es una
+    // fase propia y espera decisión del dueño. No se mueve el campo a medias.
+    //
     // NO SE ARREGLA CON UNA REGLA, y por eso aquí solo queda la costura. Se
     // arregla separando lo que nunca debió estar junto: el perfil público en
     // `users/{uid}` y lo de la cuenta en `users/{uid}/private/**`, que ya está
@@ -204,8 +321,20 @@ service cloud.firestore {
     // cablea Identity a producción, que es justo donde el modelo canónico
     // (Account ≠ Perfil) deja de ser contrato y pasa a ser esquema.
     match /users/{userId} {
-      // Cualquiera puede leer perfiles públicos
+      // LECTURA DE `users` — FASE 1: COMO EN PRODUCCIÓN (seguridad de `users`, 2026-10-07).
+      //
+      // El cierre de `users` (solo su dueño lo lee; los demás, `publicProfiles`)
+      // NO va en este archivo: vive en `ops/despliegue/reglas/users-cierre.fase2.rules`
+      // y sustituye EXACTAMENTE el bloque marcado de abajo. Cerrarlo antes de que
+      // el espejo esté desplegado, el relleno verificado y el cliente nuevo
+      // publicado dejaría vacíos el muro, los perfiles ajenos y el buscador; por
+      // eso `ops/permitido.mjs` (`cierreDeUsers`) no deja publicar unas reglas
+      // que cierren `users` sin esas tres condiciones escritas en
+      // `ops/produccion.json` → `cierreDeUsers`. Mientras tanto la exposición es
+      // la de hoy en producción (ruleset de c3515b3): ni mejor ni peor.
+      // <fase-1:lectura-de-users>
       allow read: if true;
+      // </fase-1:lectura-de-users>
 
       // Solo el dueño puede crear/actualizar su perfil
       // Permite crear perfil real (uid == auth.uid) o Perfil Weë (uid == "hidi_" + auth.uid).
@@ -220,8 +349,14 @@ service cloud.firestore {
       // Y el Perfil Real nace con el mismo `linkedAccountId` que podría ponerse
       // después (Fase 11.x-4A): ninguno, o el de su propia cara Weë. Antes solo
       // se vigilaba al actualizar y se podía nacer ya apuntando a una cara ajena.
+      //
+      // ALTER EGOS (F3, 2026-11-23): el cliente sigue pudiendo crear SOLO estas
+      // dos formas —el Real y la cara heredada `hidi_<uid>`, para las apps
+      // viejas—. Un alter ego opaco (`users/ent_…`) lo crea únicamente el
+      // servidor (`crearAlterEgo`), en la misma transacción que su entidad y que
+      // `accounts.identidadesWee`; por eso aquí no hay rama para él.
       allow create: if isAuthenticated() && !createsCreditFields() && !createsEcontactFields() && !createsAccountFields() &&
-        !createsIdentityCoreFields() &&
+        !createsIdentityCoreFields() && !createsEstadoDeCuentaFields() &&
         ((request.auth.uid == request.resource.data.uid && userId == request.auth.uid &&
           (!('profileType' in request.resource.data) || request.resource.data.profileType == 'real') &&
           (!('linkedAccountId' in request.resource.data) ||
@@ -239,10 +374,23 @@ service cloud.firestore {
       // el sistema de follows es código muerto —570 líneas sin una sola
       // pantalla que las use, sustituido por ËContact— así que la rama no
       // servía a nada vivo y sí permitía escribirle a otro `followers: 9999999`.
-      allow update: if isAuthenticated() && !touchesCreditFields() && !touchesEcontactFields() && !touchesAccountFields() &&
-        !touchesIdentityFields() && linkedAccountIdValido() && !touchesIdentityCoreFields() &&
+      // EL PAÍS DE LA CUENTA SE FIJA EN EL REGISTRO (jurisdicción, 2026-10-07).
+      //
+      // `country` es la jurisdicción que lee el servidor (functions/src/engine/
+      // jurisdiccion.ts) y nunca se vuelve a pedir. Quien aún no lo tenía puede
+      // ponerlo (el registro); una vez puesto, no se cambia ni se borra desde
+      // el cliente: nadie «se muda» para cambiar de ruta.
+      function paisFijo() {
+        return !('country' in resource.data) || !(resource.data.country is string) || resource.data.country == '' ||
+          request.resource.data.get('country', null) == resource.data.country;
+      }
+      allow update: if isAuthenticated() && !touchesCreditFields() && !touchesEcontactFields() && !touchesAccountFields() && !touchesCommunityFields() &&
+        !touchesIdentityFields() && linkedAccountIdValido() && !touchesIdentityCoreFields() && !touchesEstadoDeCuentaFields() && paisFijo() &&
+        // El Real, o un Perfil Weë de la cuenta: el heredado o un alter ego de
+        // `accounts.identidadesWee` (F3). Un alter ego no puede ganarse un
+        // `linkedAccountId` (`linkedAccountIdValido` solo deja al Real).
         (request.auth.uid == resource.data.uid ||
-         (resource.data.uid == ("hidi_" + request.auth.uid) &&
+         (esMia(resource.data.uid) &&
           resource.data.profileType == 'hidi'));
 
       allow delete: if false; // No permitir eliminar usuarios
@@ -267,11 +415,88 @@ service cloud.firestore {
       function camposPrivadosDeCuenta() {
         return ['realName', 'birthDate', 'gender', 'updatedAt'];
       }
+      // LA FECHA DE NACIMIENTO: OBLIGATORIA, DE 18+ Y FIJA (edad mínima de Weë).
+      //
+      // Al crear la cuenta privada, la fecha tiene que venir y dar 18 años o
+      // más (`fechaDeNacimientoAdulta`, arriba). Una vez guardada no se mueve:
+      // nadie puede «cumplir» el requisito cambiándola después. Quien aún no la
+      // tenía (perfiles antiguos) solo puede ponerla, y solo si es de 18+.
+      function fechaDeNacimientoFija() {
+        return ('birthDate' in resource.data && resource.data.birthDate is string && resource.data.birthDate != '')
+          ? request.resource.data.get('birthDate', null) == resource.data.birthDate
+          : ('birthDate' in request.resource.data && fechaDeNacimientoAdulta(request.resource.data.birthDate));
+      }
       match /private/{documento} {
         allow read: if esDuenyoDelPerfil(userId);
-        allow create, update: if esDuenyoDelPerfil(userId) && documento == 'account' &&
-          request.resource.data.keys().hasOnly(camposPrivadosDeCuenta());
+        allow create: if esDuenyoDelPerfil(userId) && documento == 'account' &&
+          request.resource.data.keys().hasOnly(camposPrivadosDeCuenta()) &&
+          'birthDate' in request.resource.data &&
+          fechaDeNacimientoAdulta(request.resource.data.birthDate);
+        allow update: if esDuenyoDelPerfil(userId) && documento == 'account' &&
+          request.resource.data.keys().hasOnly(camposPrivadosDeCuenta()) &&
+          fechaDeNacimientoFija();
         allow delete: if false;
+      }
+
+      // LA FICHA DEL PERSONAJE (Perfil Weë): quién es, cómo habla, qué no diría.
+      //
+      // Privada: solo su dueño la lee y la escribe, y el servidor por encima de
+      // las reglas. SOLO existe el documento `ficha`, con los campos de
+      // `utils/personajeFicha.ts` y topes de largo; cualquier otro documento de
+      // esta subcolección (`autonomia`, la bandeja de aprobación…) lo escribe
+      // únicamente el servidor, así que nadie puede encenderse la autonomía ni
+      // aprobarse sus propias acciones desde la app.
+      // EL DUEÑO DE UN PERSONAJE: el documento del Perfil Weë guarda en `uid` su
+      // identificador (`hidi_<cuenta>`), no la cuenta; por eso `esDuenyoDelPerfil`
+      // —que compara `uid` con la sesión— no lo reconoce. Se exige la forma canónica:
+      // el id es el de una cara Weë de esta sesión y el documento lo confirma.
+      // Con alter egos (F3): la heredada o una de `accounts.identidadesWee`
+      // (`esMia`). Lecturas: users/{id} + accounts/{cuenta} = 2 como mucho.
+      function esDuenyoDelPersonaje(idDePerfil) {
+        let perfil = get(/databases/$(database)/documents/users/$(idDePerfil)).data;
+        return isAuthenticated() && esMia(idDePerfil) &&
+          perfil.uid == idDePerfil && perfil.profileType == 'hidi';
+      }
+      match /character/{documento} {
+        // Crear y actualizar con la MISMA validación (separados: edad-minima vigila que nadie use «create, update» en esta zona).
+        function fichaValida() {
+          return request.resource.data.keys().hasOnly(['version', 'nombre', 'resumen', 'personalidad', 'rasgos', 'tono',
+            'trasfondo', 'temas', 'limites', 'ejemploDeVoz', 'saludo', 'idiomas', 'nivel', 'actualizadoEn']) &&
+            request.resource.data.version == 1 &&
+            request.resource.data.nombre is string && request.resource.data.nombre.size() <= 240 &&
+            request.resource.data.resumen is string && request.resource.data.resumen.size() <= 1120 &&
+            request.resource.data.personalidad is string && request.resource.data.personalidad.size() <= 3200 &&
+            request.resource.data.trasfondo is string && request.resource.data.trasfondo.size() <= 6000 &&
+            request.resource.data.limites is string && request.resource.data.limites.size() <= 2400 &&
+            request.resource.data.ejemploDeVoz is string && request.resource.data.ejemploDeVoz.size() <= 2400 &&
+            request.resource.data.saludo is string && request.resource.data.saludo.size() <= 1200 &&
+            request.resource.data.rasgos is list && request.resource.data.rasgos.size() <= 8 &&
+            request.resource.data.temas is list && request.resource.data.temas.size() <= 8 &&
+            request.resource.data.idiomas is list && request.resource.data.idiomas.size() <= 4 &&
+            request.resource.data.tono in ['cercano', 'formal', 'humoristico', 'poetico', 'directo', 'misterioso'] &&
+            request.resource.data.nivel in ['basico', 'alto'];
+        }
+        allow read: if esDuenyoDelPersonaje(userId);
+        allow create: if esDuenyoDelPersonaje(userId) && documento == 'ficha' && fichaValida();
+        allow update: if esDuenyoDelPersonaje(userId) && documento == 'ficha' && fichaValida();
+        allow delete: if false;
+      }
+
+      // Bandeja de aprobaciones/avisos y registro de «lo que hizo tu personaje»
+      // (docs/AUTONOMIA.md): los escribe SOLO el servidor; los lee el dueño.
+      match /characterInbox/{avisoId} {
+        allow read: if esDuenyoDelPersonaje(userId);
+        allow write: if false;
+      }
+      match /characterLog/{entradaId} {
+        allow read: if esDuenyoDelPersonaje(userId);
+        allow write: if false;
+      }
+      // El estado de cada archivo del material (procesando / listo / error): lo escribe
+      // `procesarMaterialDelPersonaje`; el dueño solo lo lee. Borrar va por `materialPersonaje`.
+      match /characterMaterial/{archivoId} {
+        allow read: if esDuenyoDelPersonaje(userId);
+        allow write: if false;
       }
 
       // Guardados: solo el dueño lee y escribe sus marcadores
@@ -285,97 +510,87 @@ service cloud.firestore {
       }
     }
 
-    // === COMUNIDADES ===
+    // === COMUNIDADES (docs/COMUNIDADES-IDENTIDAD.md) ===
+    //
+    // LA COMUNIDAD SE GOBIERNA POR IDENTIDAD Y LA ESCRIBE EL SERVIDOR (2026-11-05, decisiones 1–3 del dueño).
+    //
+    // Antes la creaba la CUENTA desde el cliente (`createdBy` y `moderators` con
+    // uids) y cualquiera movía `memberCount` y escribía su `members/...`. Eso
+    // dejaba tres fallos: unirse desde el Perfil Weë apuntaba al Perfil Real,
+    // crear sumaba tres miembros, y administrar dependía de la cuenta, así que
+    // una cara heredaba los permisos de la otra. Ahora crear, unirse, salir,
+    // papeles y propiedad pasan por las callables de `functions/src/social/comunidades.ts`,
+    // que comprueban con `users` que la cara es de la sesión, en transacciones.
+    //
+    // Lo público (este documento) lleva solo la referencia pública del perfil
+    // creador y del dueño (`creatorProfile`/`ownerProfile`: entityId + tipo).
+    // La cuenta y el uid del perfil viven en `private/ownership`, que no lee
+    // ningún cliente. Las comunidades heredadas conservan su `createdBy`.
     match /communities/{communityId} {
-      // Cualquiera puede leer comunidades
       allow read: if true;
 
-      // QUIÉN CREÓ UNA COMUNIDAD LO DICE LA SESIÓN, NO EL DOCUMENTO (Fase 11.x-4A).
-      //
-      // Decía `if isAuthenticated()` a secas: `createdBy` y `moderators` los
-      // ponía el cliente, y son justo lo que después decide quién la edita. Se
-      // podía crear una comunidad a nombre de otra persona, o darse por
-      // moderador de una que nunca fue suya.
-      //
-      // Una comunidad de usuario la crea la CUENTA —como un negocio: es de la
-      // cuenta, no de una cara—, que queda de creadora y de única moderadora,
-      // y nace con los contadores a cero (o con su creador ya dentro). Las
-      // oficiales no las crea nadie desde la app: solo una sesión con el claim
-      // `admin`, que es quien siembra el catálogo.
-      //
       // EL NOMBRE DE UNA OFICIAL ESTÁ RESERVADO, AUNQUE LA OFICIAL AÚN NO EXISTA.
-      // La app encuentra una comunidad por su `slug` y la siembra crea cada
-      // oficial con id = slug. Si una persona llegaba antes con ese slug o con
-      // ese id, ocupaba el sitio de la oficial: la app la enseñaba en su lugar
-      // —traducida como si fuera de Weë— y la siembra no podía crearla. Ahora ni
-      // el slug ni el id de una oficial los toma nadie que no sea administración,
-      // ni al crear ni cambiando después el slug de su comunidad.
-      //
       // La lista es la de `constants/comunidadesOficiales.ts` (una por temática
       // de `constants/communityCategories.ts`); `functions/test/comunidades-siembra.test.mjs`
-      // falla si las dos dejan de coincidir.
+      // falla si las dos dejan de coincidir. El servidor la repite en
+      // `SLUGS_OFICIALES` (functions/src/social/comunidades.ts) y la prueba
+      // `comunidades-identidad` exige que digan lo mismo.
       function slugsOficiales() {
         return ['cine-animacion', 'arte-creatividad', 'creadores-influencers', 'negocios-emprendimiento',
                 'tecnologia-ia', 'gaming-mundos-virtuales', 'educacion-aprendizaje', 'futuro-sociedad'];
-      }
-      function ocupaUnNombreOficial() {
-        return communityId in slugsOficiales() ||
-          request.resource.data.get('slug', '') in slugsOficiales();
-      }
-      function comunidadDeUsuario() {
-        return request.resource.data.createdBy == request.auth.uid &&
-          request.resource.data.moderators == [request.auth.uid] &&
-          request.resource.data.get('isOfficial', false) == false &&
-          request.resource.data.get('memberCount', 0) in [0, 1] &&
-          request.resource.data.get('postCount', 0) == 0 &&
-          !ocupaUnNombreOficial();
       }
       function comunidadOficialDeAdministracion() {
         return esAdministracion() &&
           request.resource.data.get('isOfficial', false) == true;
       }
-      allow create: if isAuthenticated() && (comunidadDeUsuario() || comunidadOficialDeAdministracion());
+      // Una persona ya no crea comunidades desde el cliente: lo hace `createCommunity`.
+      // Solo una sesión de administración siembra las oficiales.
+      allow create: if isAuthenticated() && comunidadOficialDeAdministracion();
 
-      // La autoría no se reescribe: `createdBy` e `isOfficial` son de por vida,
-      // y la lista de moderadores solo la cambia quien la creó.
-      function tocaLaAutoriaDeLaComunidad() {
-        return request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdBy', 'isOfficial']) ||
-          (request.resource.data.diff(resource.data).affectedKeys().hasAny(['moderators']) &&
-           resource.data.get('createdBy', '') != request.auth.uid);
-      }
-      // Ni se pasa después a un slug oficial: sería la misma ocupación por la
-      // puerta de la edición. Una comunidad que YA lo tenía puede seguir
-      // editándose; lo que no puede es tomarlo.
-      function tomaUnSlugOficial() {
-        return request.resource.data.diff(resource.data).affectedKeys().hasAny(['slug']) &&
-          request.resource.data.get('slug', '') in slugsOficiales() &&
-          !esAdministracion();
-      }
+      // Lo ÚNICO que queda escribible desde el cliente es `postCount`, de uno en
+      // uno: es de las publicaciones, que esta fase no cambia. `memberCount`,
+      // `moderators`, `createdBy`, el dueño, el nombre o el estado ya no: los
+      // mueve el servidor al validar la identidad.
+      allow update: if isAuthenticated() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['postCount', 'updatedAt']) &&
+        contadorSano('postCount');
 
-      // Solo moderadores pueden actualizar la comunidad
-      // O cualquier usuario autenticado puede actualizar contadores, de uno en uno
-      allow update: if isAuthenticated() && !tocaLaAutoriaDeLaComunidad() && !tomaUnSlugOficial() &&
-        (request.auth.uid in resource.data.moderators ||
-         resource.data.get('createdBy', '') == request.auth.uid ||
-         (request.resource.data.diff(resource.data).affectedKeys()
-           .hasOnly(['memberCount', 'postCount', 'updatedAt'])
-          && contadorSano('memberCount') && contadorSano('postCount')));
+      allow delete: if false;
 
-      allow delete: if false; // No permitir eliminar comunidades
-
-      // Subcolección de miembros (real o HIDI). El documento se llama como la
-      // identidad que se une, y dice ser esa misma identidad: no otra.
+      // Miembros por identidad (`members/{uid del perfil}`): llevan el papel y la
+      // cuenta, así que ningún cliente los lee ni los escribe. Lo suyo —y solo de
+      // la cara con la que actúa— se lo da `listMyCommunities`.
       match /members/{memberId} {
-        allow read: if true;
-        allow create: if isAuthenticated() &&
-          (request.auth.uid == memberId || ("hidi_" + request.auth.uid) == memberId) &&
-          request.resource.data.get('userId', memberId) == memberId;
-        allow update: if isAuthenticated() &&
-          (request.auth.uid == memberId || ("hidi_" + request.auth.uid) == memberId) &&
-          request.resource.data.get('userId', memberId) == memberId;
-        allow delete: if isAuthenticated() &&
-          (request.auth.uid == memberId || ("hidi_" + request.auth.uid) == memberId);
+        allow read, write: if false;
       }
+      // La propiedad privada (cuenta y uid del creador y del dueño): solo el servidor.
+      match /private/{documento} {
+        allow read, write: if false;
+      }
+      match /{sub=**} {
+        allow read, write: if false;
+      }
+    }
+    // Reserva de slugs y operaciones idempotentes de las comunidades: solo el servidor.
+    match /communitySlugs/{slug} {
+      allow read, write: if false;
+    }
+    match /communityOperations/{clave} {
+      allow read, write: if false;
+    }
+
+    // === LA MARCA «PERSONAJE WEË» SOLO LA PONE EL SERVIDOR (auditoría 2026-11-22, C2) ===
+    // `autonomo: true` dice «lo escribió la IA de un personaje»; `ocultaPorDesactivacion`
+    // lo pone la desactivación de la cuenta. Ningún cliente los crea ni los cambia, y
+    // el texto de algo escrito por la IA no se reescribe a mano (seguiría marcado como
+    // IA con palabras de otro). Borrarlo, su autor sí puede.
+    function sinMarcasDelServidor() {
+      return !('autonomo' in request.resource.data) && !('ocultaPorDesactivacion' in request.resource.data);
+    }
+    function marcaIntacta(camposDelTexto) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['autonomo', 'ocultaPorDesactivacion'])
+        && !(resource.data.get('autonomo', false) == true
+             && request.resource.data.diff(resource.data).affectedKeys().hasAny(camposDelTexto));
     }
 
     // === POSTS ===
@@ -386,9 +601,9 @@ service cloud.firestore {
       // Solo usuarios autenticados pueden crear posts.
       // Se publica con la identidad real o con la Weë (hidi), y SIEMPRE tienen
       // que ser identidades de esta misma cuenta.
-      allow create: if isAuthenticated() && visibilidadDeclarada() &&
-        (request.resource.data.userId == request.auth.uid ||
-         request.resource.data.userId == ("hidi_" + request.auth.uid));
+      // Con alter egos (F3): cualquiera de las caras de la cuenta (`esMia`).
+      allow create: if isAuthenticated() && visibilidadDeclarada() && sinMarcasDelServidor() &&
+        esMia(request.resource.data.userId);
 
       // El autor puede actualizar su post, o cualquier usuario autenticado puede actualizar contadores.
       // `poll` queda fuera de los dos caminos: los votos solo los escribe el servidor.
@@ -407,13 +622,14 @@ service cloud.firestore {
       // editando igual: esto no mira con qué cara se firmó, solo que no cambie.
       allow update: if isAuthenticated() && !touchesPoll() && visibilidadDeclarada() && (
         (ownsPost() && !request.resource.data.diff(resource.data).affectedKeys()
-          .hasAny(['userId', 'isRepost', 'originalPostId', 'createdAt'])) ||
+          .hasAny(['userId', 'isRepost', 'originalPostId', 'createdAt'])
+         && marcaIntacta(['content', 'imageUrls', 'imageUrlsThumbnails', 'videoUrl', 'isWeel'])) ||
         // Permitir actualizar solo contadores (views, agreementCount, etc.),
         // y solo de uno en uno: ver `contadorSano`.
         (request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['views', 'agreementCount', 'disagreementCount', 'likes', 'comments', 'shares', 'reposts', 'updatedAt'])
+          .hasOnly(['views', 'agreementCount', 'disagreementCount', 'fireCount', 'laughCount', 'likes', 'comments', 'shares', 'reposts', 'updatedAt'])
          && contadorSano('views') && contadorSano('agreementCount')
-         && contadorSano('disagreementCount') && contadorSano('likes')
+         && contadorSano('disagreementCount') && contadorSano('fireCount') && contadorSano('laughCount') && contadorSano('likes')
          && contadorSano('comments') && contadorSano('shares') && contadorSano('reposts'))
       );
 
@@ -456,7 +672,16 @@ service cloud.firestore {
     // publicación. Al cambiarlo solo se mueven `type` y `createdAt`: ni el
     // votante ni la publicación cambian, así que nadie se apropia de un voto
     // ajeno ni muda el suyo a otra publicación.
+    /*
+     * REACCIONES (2026-11-16): además de `agree` y `disagree` —que siguen siendo válidos para los votos ya guardados—, `fire` (Fuego) y
+     * `laugh` (Risa). Lista cerrada, mismo documento `{cuenta}_{publicación}` (un voto por persona: una reacción se cambia por otra),
+     * mismos controles de dueño. Sus contadores (`fireCount`, `laughCount`) se mueven de uno en uno como los demás (`contadorSano`).
+     */
     function tipoDeVotoValido() {
+      return request.resource.data.type in ['agree', 'disagree', 'fire', 'laugh'];
+    }
+    /* Los comentarios solo admiten las dos de siempre: Fuego y Risa son de las publicaciones. */
+    function tipoDeVotoDeComentarioValido() {
       return request.resource.data.type in ['agree', 'disagree'];
     }
     match /votes/{voteId} {
@@ -486,12 +711,12 @@ service cloud.firestore {
         request.resource.data.userId == request.auth.uid &&
         request.resource.data.commentId is string &&
         voteId == 'comment_' + request.auth.uid + '_' + request.resource.data.commentId &&
-        tipoDeVotoValido();
+        tipoDeVotoDeComentarioValido();
       allow update: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
          resource.data.userId == ("hidi_" + request.auth.uid)) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['type', 'createdAt']) &&
-        tipoDeVotoValido();
+        tipoDeVotoDeComentarioValido();
       allow delete: if isAuthenticated() &&
         (resource.data.userId == request.auth.uid ||
          resource.data.userId == ("hidi_" + request.auth.uid));
@@ -501,18 +726,18 @@ service cloud.firestore {
     match /comments/{commentId} {
       allow read: if true;
 
-      allow create: if isAuthenticated() &&
-        (request.resource.data.userId == request.auth.uid ||
-         request.resource.data.userId == ("hidi_" + request.auth.uid));
+      // Con alter egos (F3): cualquiera de las caras de la cuenta (`esMia`).
+      allow create: if isAuthenticated() && sinMarcasDelServidor() &&
+        esMia(request.resource.data.userId);
 
       // El autor edita su comentario, pero no su autoría (Fase 11.x-4A): ni de
       // quién es, ni de qué publicación cuelga, ni a quién responde, ni cuándo
       // se escribió. Por la misma razón que en `posts`.
       allow update: if isAuthenticated() && (
-        ((resource.data.userId == request.auth.uid ||
-          resource.data.userId == ("hidi_" + request.auth.uid)) &&
+        (esMia(resource.data.userId) &&
          !request.resource.data.diff(resource.data).affectedKeys()
-           .hasAny(['userId', 'postId', 'parentCommentId', 'createdAt'])) ||
+           .hasAny(['userId', 'postId', 'parentCommentId', 'createdAt'])
+         && marcaIntacta(['content', 'imageUrl'])) ||
         // Permitir actualizar contadores, de uno en uno
         (request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(['likes', 'agreementCount', 'disagreementCount'])
@@ -520,9 +745,7 @@ service cloud.firestore {
          && contadorSano('disagreementCount'))
       );
 
-      allow delete: if isAuthenticated() &&
-        (resource.data.userId == request.auth.uid ||
-         resource.data.userId == ("hidi_" + request.auth.uid));
+      allow delete: if isAuthenticated() && esMia(resource.data.userId);
     }
 
     // === LIKES (legacy, mantener para retrocompatibilidad) ===
@@ -557,13 +780,11 @@ service cloud.firestore {
     //
     // Las cuatro combinaciones son válidas —real↔real, real↔Weë, Weë↔real y
     // Weë↔Weë— y cada una es UN SOLO documento.
+    //
+    // Con alter egos (F3, 2026-11-23) cada Perfil Weë lleva su propia lista, y
+    // las caras de la sesión salen de `misIdentidades()` (arriba): Real,
+    // heredada y las de `accounts.identidadesWee`.
     match /econtacts/{contactId} {
-      // Las identidades con las que esta sesión aparece en los datos ya
-      // escritos. Salen de la frontera de compatibilidad de arriba, que es el
-      // sitio donde vive la forma heredada.
-      function misIdentidades() {
-        return misIdentidadesHeredadas();
-      }
       // ¿Participa alguno de MIS perfiles en esta relación?
       function participo() {
         return resource.data.users.hasAny(misIdentidades());
@@ -617,9 +838,23 @@ service cloud.firestore {
     // el seguidor es una de las DOS caras de quien escribe (la real o
     // `hidi_<uid>`, nunca la de otro), no se sigue a uno mismo, y el documento
     // lleva exactamente lo que escribía: los dos ids y la fecha.
+    //
+    // ALTER EGOS (F3, decisión D6 del dueño, 2026-11-23): el seguidor es
+    // cualquiera de las caras de la cuenta (`esMia`), y las caras de una misma
+    // cuenta SÍ pueden seguirse entre sí (Jay sigue a Lina). Se quitó el
+    // bloqueo «ni a la otra cara de la misma cuenta»; seguirse a uno mismo
+    // —el MISMO id— sigue prohibido.
     match /follows/{followId} {
       function seguidorDeQuienEscribe(followerId) {
-        return followerId == request.auth.uid || followerId == ("hidi_" + request.auth.uid);
+        return esMia(followerId);
+      }
+      // Decisión del dueño (2026-11-23, F4): el Perfil Real no sigue a ninguno de
+      // sus alter egos, y ningún alter ego sigue al Perfil Real de su cuenta. Los
+      // alter egos SÍ se siguen entre sí (D6). Sin lecturas nuevas: `esMia` usa
+      // accounts/{cuenta}, que ya leyó `seguidorDeQuienEscribe` (caché).
+      function realYAlterEgoNoSeSiguen(followerId, followingId) {
+        return (followerId != request.auth.uid || !esMia(followingId))
+          && (followerId == request.auth.uid || followingId != request.auth.uid);
       }
       allow read: if true;
       allow create: if isAuthenticated() &&
@@ -629,9 +864,7 @@ service cloud.firestore {
         request.resource.data.followingId.size() > 0 &&
         seguidorDeQuienEscribe(request.resource.data.followerId) &&
         request.resource.data.followingId != request.resource.data.followerId &&
-        // Ni a la otra cara de la misma cuenta (segunda auditoría de cierre): seguirse a uno mismo por la otra puerta.
-        request.resource.data.followingId != request.auth.uid &&
-        request.resource.data.followingId != ("hidi_" + request.auth.uid) &&
+        realYAlterEgoNoSeSiguen(request.resource.data.followerId, request.resource.data.followingId) &&
         followId == request.resource.data.followerId + '_' + request.resource.data.followingId;
       allow update: if false;
       allow delete: if isAuthenticated() &&
@@ -653,18 +886,19 @@ service cloud.firestore {
     // cambia en lo que la app hace de verdad: marcarse como leído, o vaciarse
     // en el modo efímero. Las cuatro combinaciones Real/Weë siguen valiendo
     // igual: nada de esto mira con qué cara se habla, solo que sea tuya.
+    //
+    // ALTER EGOS (F3, 2026-11-23): «mía» es cualquiera de las caras de la cuenta
+    // (`misIdentidades()` / `esMia`), y dos caras de la MISMA cuenta pueden
+    // conversar entre sí (decisión D6: Jay ↔ Lina). Lecturas: accounts/{cuenta}
+    // una vez; en `messages`, más la conversación padre = 2.
     match /conversations/{conversationId} {
-      function misIdentidadesDeChat() {
-        return misIdentidadesHeredadas();
-      }
       function participo() {
-        return resource.data.participants.hasAny(misIdentidadesDeChat());
+        return resource.data.participants.hasAny(misIdentidades());
       }
 
-      // Solo participantes pueden leer
-      allow read: if isAuthenticated() &&
-        (request.auth.uid in resource.data.participants ||
-         ("hidi_" + request.auth.uid) in resource.data.participants);
+      // Solo participantes pueden leer. Forma A de F0: también las consultas
+      // `participants array-contains <cara>` con la cara que sea de la cuenta.
+      allow read: if isAuthenticated() && participo();
 
       // Una conversación es entre DOS identidades, una de ellas mía, y su ficha
       // de participantes habla exactamente de esas dos. Es lo que la app crea.
@@ -673,7 +907,7 @@ service cloud.firestore {
         request.resource.data.participants is list &&
         request.resource.data.participants.size() == 2 &&
         request.resource.data.participants[0] != request.resource.data.participants[1] &&
-        request.resource.data.participants.hasAny(misIdentidadesDeChat()) &&
+        request.resource.data.participants.hasAny(misIdentidades()) &&
         request.resource.data.participantsData is map &&
         request.resource.data.participantsData.keys().toSet() == request.resource.data.participants.toSet();
 
@@ -683,7 +917,7 @@ service cloud.firestore {
       function ultimoMensajeLegitimo() {
         return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastMessage']) ||
           (request.resource.data.lastMessage is map && (
-            (request.resource.data.lastMessage.get('senderId', '') in misIdentidadesDeChat() &&
+            (esMia(request.resource.data.lastMessage.get('senderId', '')) &&
              request.resource.data.lastMessage.get('senderId', '') in resource.data.participants) ||
             (resource.data.get('lastMessage', null) is map &&
              request.resource.data.lastMessage.diff(resource.data.lastMessage).affectedKeys().hasOnly(['read']) &&
@@ -695,12 +929,12 @@ service cloud.firestore {
       function presenciaPropia() {
         let antes = resource.data.get('activeInChat', []).toSet();
         let despues = request.resource.data.get('activeInChat', []).toSet();
-        return despues.difference(antes).union(antes.difference(despues)).hasOnly(misIdentidadesDeChat());
+        return despues.difference(antes).union(antes.difference(despues)).hasOnly(misIdentidades());
       }
       // El color de burbuja es de cada uno: solo el suyo.
       function colorPropio() {
         return request.resource.data.get('bubbleColors', {}).diff(resource.data.get('bubbleColors', {}))
-          .affectedKeys().hasOnly(misIdentidadesDeChat());
+          .affectedKeys().hasOnly(misIdentidades());
       }
 
       allow update: if isAuthenticated() && participo() &&
@@ -716,13 +950,13 @@ service cloud.firestore {
           return get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
         }
         function participoEnElChat() {
-          return participantesDelChat().hasAny(misIdentidadesDeChat());
+          return participantesDelChat().hasAny(misIdentidades());
         }
         // El remitente es una identidad MÍA y además una de las que participan:
         // no se escribe con la cara que no está en la conversación.
         function remitenteLegitimo() {
           let remitente = request.resource.data.get('senderId', '');
-          return remitente in misIdentidadesDeChat() && remitente in participantesDelChat();
+          return esMia(remitente) && remitente in participantesDelChat();
         }
         // El modo efímero vacía un mensaje efímero; no reescribe ninguno.
         function vaciadoEfimero() {
@@ -735,7 +969,7 @@ service cloud.firestore {
 
         allow read: if isAuthenticated() && participoEnElChat();
 
-        allow create: if isAuthenticated() && remitenteLegitimo() &&
+        allow create: if isAuthenticated() && remitenteLegitimo() && !('autonomo' in request.resource.data) &&
           request.resource.data.get('conversationId', conversationId) == conversationId;
 
         // Lo único que un participante cambia de un mensaje: marcarlo como
@@ -773,7 +1007,56 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // === BUSINESS FOLLOWS (WeeBiz) ===
+    // === BUSINESS FOLLOWS (datos históricos del proyecto anterior; se conservan para protegerlos hasta su auditoría aparte) ===
+    // === WEËPAGES (functions/src/social/pages.ts) ===
+    // Una Página es una entidad de la CUENTA, no una cara: vive aquí y no en
+    // `users`. Publicada la ve cualquiera; en borrador, solo su cuenta dueña.
+    // Ninguna se escribe desde el cliente: dueño, @usuario único y fotos se
+    // validan en `savePage`, y los seguidores en `followPage`.
+    //
+    // DE QUÉ CUENTA ES UNA PÁGINA YA NO ESTÁ EN EL DOCUMENTO PÚBLICO (F1 del plan
+    // de alter egos, 2026-11-23). Una Página publicada la lee cualquiera, y
+    // llevaba `ownerAccountId` = el uid de la cuenta: unía la Página con la
+    // cuenta y, por ella, con su Perfil Real. Ahora la propiedad vive en
+    // `pages/{pageId}/private/ownership` (como `private/ownership` de las
+    // comunidades), la escribe `savePage` y solo la lee la cuenta dueña. Las
+    // páginas antiguas que aún llevan el campo público se siguen leyendo con él
+    // hasta que su dueño las vuelva a guardar (el servidor lo borra entonces).
+    // Las Páginas de una cuenta se listan por su índice privado,
+    // `accounts/{cuenta}/pages/{pageId}`.
+    match /pages/{pageId} {
+      function propiedadDeLaPagina() {
+        return /databases/$(database)/documents/pages/$(pageId)/private/ownership;
+      }
+      function esMiPagina() {
+        return isAuthenticated() && exists(propiedadDeLaPagina())
+          && get(propiedadDeLaPagina()).data.ownerAccountId == request.auth.uid;
+      }
+      allow get: if resource.data.status == 'published'
+        || (isAuthenticated() && resource.data.get('ownerAccountId', null) == request.auth.uid)
+        || esMiPagina();
+      // Consultas: las publicadas, o las heredadas de la cuenta por su campo antiguo.
+      allow list: if resource.data.status == 'published'
+        || (isAuthenticated() && resource.data.ownerAccountId == request.auth.uid);
+      allow write: if false;
+
+      // La propiedad: solo la lee su cuenta, solo la escribe el servidor.
+      match /private/{docId} {
+        allow get: if isAuthenticated() && docId == 'ownership'
+          && resource.data.ownerAccountId == request.auth.uid;
+        allow list, write: if false;
+      }
+    }
+    match /pageHandles/{handle} {
+      allow read: if true;
+      allow write: if false;
+    }
+    // Seguir una Página es una relación aparte de ËContact/ẄContact.
+    match /pageFollows/{followId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /businessFollows/{followId} {
       allow read: if true;
       allow create: if isAuthenticated() &&
@@ -782,7 +1065,7 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
 
-    // === BUSINESSES (WeeBiz) ===
+    // === BUSINESSES (datos históricos del proyecto anterior; se conservan para protegerlos hasta su auditoría aparte) ===
     match /businesses/{businessId} {
       // Cualquiera puede leer negocios
       allow read: if true;
@@ -796,7 +1079,7 @@ service cloud.firestore {
       // otro campo —al crear y al editar—, así que cualquiera podía registrarse
       // un negocio ya verificado y destacado. Ahora nace sin ninguna de las
       // dos cosas, activo y con los contadores a cero, que es exactamente lo
-      // que crea la app (`weeBizService.createBusiness`); y esos cuatro campos
+      // que creaba la app retirada; y esos cuatro campos
       // solo los cambia administración.
       function camposQueAfirmaWee() {
         return ['verified', 'featured', 'status', 'ownerId'];
@@ -820,7 +1103,7 @@ service cloud.firestore {
       // que el cliente RECALCULA leyendo hasta mil reseñas, así que saltan a
       // cualquier valor por diseño. Aquí solo se les exige que sean números
       // dentro de su rango; que nadie pueda ponerle un 5 al negocio que quiera
-      // exige contar en el servidor, y eso es de la fase de Weë Business.
+      // exigiría contar en el servidor; no se hará: estas reglas solo protegen los datos históricos.
       // Vale igual para el dueño cuando los mueve: su negocio no tiene
       // contadores aparte. Si no los toca (editar el nombre), no se le miran,
       // para que un negocio antiguo con un dato raro no quede sin poder editarse.
@@ -864,7 +1147,7 @@ service cloud.firestore {
         // escribe: `reviews/{uid}`. Así una persona no puede tener dos reseñas
         // nuevas del mismo negocio —la segunda cae en el mismo documento y lo
         // ACTUALIZA— y nadie puede escribir la de otro. La app la escribe con
-        // `setDoc` en ese id (`weeBizService.createReview`). Las antiguas, con id
+        // `setDoc` en ese id (la app retirada lo hacía así). Las antiguas, con id
         // automático, se siguen leyendo y borrando, pero no se crean más así.
         // Segunda auditoría de cierre: solo los campos de una reseña, y una fecha que no viene del futuro (con
         // margen para el reloj del teléfono): una reseña con fecha futura se quedaba la primera de la lista
@@ -917,6 +1200,19 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Órdenes de compra de Credits (functions/src/payments): cada persona lee las suyas; las crea, confirma
+    // y cierra solo el servidor, y su snapshot (importe, moneda, tipo de cambio, Credits) no lo toca nadie.
+    match /paymentOrders/{orderId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow write: if false;
+    }
+
+    // Mercados de facturación (docs/PRECIOS-POR-MERCADO.md §3.1): moneda y tipo de cambio aprobado. Los lee
+    // el servidor; el cliente recibe lo que necesita por getCreditCost.
+    match /markets/{marketId} {
+      allow read, write: if false;
+    }
+
     // === TOKENS DE PUSH: UN SECRETO DEL APARATO, NUNCA EN UN PERFIL PÚBLICO ===
     //
     // Con un token de Expo cualquiera puede mandar avisos a ese teléfono, así
@@ -938,6 +1234,16 @@ service cloud.firestore {
            request.resource.data.locale.matches('^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$')));
       allow delete: if isAuthenticated() && request.auth.uid == uid;
     }
+    // EL SALDO DE UNA CUENTA (F-06). Un documento por cuenta, id = uid de
+    // Firebase Auth. Lo lee SOLO su dueño (la píldora de Credits lo escucha en
+    // tiempo real) y no lo escribe nadie desde fuera: solo el Credit Engine, en
+    // la misma transacción que el libro `creditTransactions`. Ni una sesión
+    // anónima de otra cuenta, ni otra cuenta autenticada, ni nadie sin sesión.
+    match /creditAccounts/{uid} {
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     // Acumulados para administración: solo servidor / consola
     match /creditStats/{statId} {
       allow read, write: if false;
@@ -949,7 +1255,7 @@ service cloud.firestore {
     }
 
     // === WALLETS / TRANSACTIONS (billetera anterior, solo lectura) ===
-    // Migrada al Credit Engine (users.creditsBalance + creditTransactions).
+    // Migrada al Credit Engine (creditAccounts/{uid} + creditTransactions).
     // Se conserva de solo lectura hasta que la migración termine; nadie escribe.
     match /wallets/{walletId} {
       allow read: if isAuthenticated() && request.auth.uid == walletId;
@@ -962,10 +1268,10 @@ service cloud.firestore {
 
     // === NOTIFICACIONES ===
     match /notifications/{notificationId} {
-      // Solo el destinatario puede leer sus notificaciones (real, HIDI o BIZ)
-      allow read: if isAuthenticated() &&
-        (resource.data.recipientId == request.auth.uid ||
-         resource.data.recipientId == ("hidi_" + request.auth.uid));
+      // Solo el destinatario puede leer sus notificaciones: cualquiera de las
+      // caras de la cuenta (F3, `esMia`). Vale también para la campanita de
+      // toda la cuenta, `recipientId in [sus caras]` (probado en F0).
+      allow read: if isAuthenticated() && esMia(resource.data.recipientId);
 
       // El remitente tiene que ser QUIEN ESCRIBE, no quien diga el documento.
       //
@@ -982,9 +1288,10 @@ service cloud.firestore {
       // Firmarlo con la cara propia no bastaba: cualquier sesión podía escribir
       // avisos de cualquier tipo, de cualquier tamaño y con cualquier campo para
       // cualquier `recipientId`, y cada uno es un push de verdad. Ahora:
-      //   · no se avisa a sí misma, ni a su otra cara (Real ↔ Weë);
+      //   · no se avisa a sí misma, ni a ninguna otra de sus caras (Real, Weë
+      //     heredado o alter egos: `misIdentidades()`, F3);
       //   · el tipo es uno de los que crea la app hoy (`notificationService`,
-      //     desde `useLikes`, `useComentarios` y `econtactService`). Los
+      //     desde `useLikes`, `useComentarios` y «Recrear este estilo»). Los
       //     históricos (`follow`, `mention`, `repost`, `reply`,
       //     `community_post`) se siguen LEYENDO, pero ningún cliente los crea;
       //   · solo los campos que escribe la app, con textos acotados (la app ya
@@ -994,11 +1301,18 @@ service cloud.firestore {
       // El nombre del push no sale de `senderName` (lo resuelve el servidor
       // desde el perfil de `senderId`) y el cupo por remitente es del servidor.
       function tiposDeAvisoQueCreaLaApp() {
-        return ['like', 'comment', 'econtact_request', 'econtact_accepted'];
+        // + 'recreate' (WeëAI sencillo, 2026-11-23): «Recrear este estilo» avisa al autor; mismos campos y mismas
+        //   comprobaciones que un «me gusta». No manda push (`social/avisos.ts` no lo conoce).
+        // − 'econtact_request' y 'econtact_accepted' (F1 del plan de alter egos, 2026-11-23): los escribe el
+        //   servidor en la misma transacción que la relación (`requestEContact`/`acceptEContact`). La app ya no
+        //   los crea, y así nadie fabrica uno sin que exista la solicitud.
+        return ['like', 'comment', 'recreate'];
       }
+      // Sin `recipientAccountId` (F1, 2026-11-23): la cuenta de quien recibe no la escribe ningún cliente. La
+      // escribía la app con lo que le devolvía `requestEContact`, y así unía la identidad con su cuenta.
       function camposDeAvisoDeLaApp() {
         return ['type', 'recipientId', 'senderId', 'senderName', 'senderAvatar', 'senderAvatarType',
-                'senderAvatarId', 'recipientAccountId', 'senderProfileType', 'postId', 'postContent',
+                'senderAvatarId', 'senderProfileType', 'postId', 'postContent',
                 'commentId', 'commentContent', 'read', 'createdAt'];
       }
       function textoDeAviso(campo, maximo) {
@@ -1011,7 +1325,7 @@ service cloud.firestore {
           aviso.keys().hasAll(['type', 'recipientId', 'senderId', 'senderName', 'read', 'createdAt']) &&
           aviso.type in tiposDeAvisoQueCreaLaApp() &&
           aviso.recipientId is string && aviso.recipientId.size() > 0 && aviso.recipientId.size() <= 200 &&
-          !(aviso.recipientId in misIdentidadesHeredadas()) &&
+          !(aviso.recipientId in misIdentidades()) &&
           aviso.senderName is string && aviso.senderName.size() <= 200 &&
           aviso.read == false &&
           aviso.createdAt is timestamp &&
@@ -1019,13 +1333,12 @@ service cloud.firestore {
           aviso.createdAt < request.time + duration.value(1, 'h') &&
           (!('senderProfileType' in aviso) || aviso.senderProfileType in ['real', 'wee']) &&
           textoDeAviso('senderAvatar', 2048) && textoDeAviso('senderAvatarType', 20) &&
-          textoDeAviso('senderAvatarId', 100) && textoDeAviso('recipientAccountId', 128) &&
+          textoDeAviso('senderAvatarId', 100) &&
           textoDeAviso('postId', 200) && textoDeAviso('commentId', 200) &&
           textoDeAviso('postContent', 400) && textoDeAviso('commentContent', 400);
       }
       allow create: if isAuthenticated() &&
-        (request.resource.data.senderId == request.auth.uid ||
-         request.resource.data.senderId == ("hidi_" + request.auth.uid)) &&
+        esMia(request.resource.data.senderId) &&
         avisoConLaFormaDeLaApp();
 
       // Solo el destinatario puede actualizar, y solo para marcarla como leída
@@ -1034,15 +1347,12 @@ service cloud.firestore {
       // mandarle a otra persona un aviso «de» un tercero sin pasar por el
       // `create` de arriba.
       allow update: if isAuthenticated() &&
-        (resource.data.recipientId == request.auth.uid ||
-         resource.data.recipientId == ("hidi_" + request.auth.uid)) &&
+        esMia(resource.data.recipientId) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
         request.resource.data.read == true;
 
       // Solo el destinatario puede eliminar sus notificaciones
-      allow delete: if isAuthenticated() &&
-        (resource.data.recipientId == request.auth.uid ||
-         resource.data.recipientId == ("hidi_" + request.auth.uid));
+      allow delete: if isAuthenticated() && esMia(resource.data.recipientId);
     }
 
     // === INTERÉS EN AI APPS (WEE Creator: "Avísame cuando esté") ===
@@ -1068,6 +1378,16 @@ service cloud.firestore {
       match /private/{document} {
         allow read, write: if false;
       }
+    }
+
+    // === WITE · TRANSFORM YOUR IDENTITY (Weëls, 2026-11-26) ===
+    // Los escribe solo el servidor (functions/src/wite, por generateVideo); la cuenta dueña lee los suyos.
+    // Ni el estado, ni la decisión, ni el consentimiento se pueden tocar desde la app.
+    match /identityTransformJobs/{jobId} {
+      // `resource == null`: la app empieza a escuchar su trabajo ANTES de que el servidor lo cree (un documento que no
+      // existe no enseña nada); sin esto el oyente moría con permission-denied y la pantalla se quedaba «En cola».
+      allow read: if isAuthenticated() && (resource == null || resource.data.accountId == request.auth.uid);
+      allow write: if false;
     }
 
     // Catálogo y precios de WEE Creator: solo servidor / consola
@@ -1106,6 +1426,36 @@ service cloud.firestore {
     match /aiGenerations/{generationId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
       allow write: if false;
+    }
+    // Pase de autonomía de cada personaje (docs/AUTONOMIA.md): lo escribe SOLO el
+    // servidor (programar, cobrar, pausar, apagar); el dueño lo lee para ver el
+    // estado. El id es el del Perfil Weë: el heredado (`hidi_<cuenta>`) o un
+    // alter ego de `accounts.identidadesWee` (F3, `esMia`; un pase por alter ego).
+    match /characterAutonomy/{perfilId} {
+      allow read: if isAuthenticated() && esMia(perfilId);
+      allow write: if false;
+    }
+    // Memoria de los personajes con IA (docs/AUTONOMIA.md): resúmenes de
+    // conversaciones (también de WeeTalk) y vectores. Privada: SOLO servidor;
+    // ningún cliente la lee ni la escribe, tampoco el dueño del personaje.
+    match /characterMemories/{recuerdoId} {
+      allow read, write: if false;
+    }
+    // Salud de la autonomía (fallos seguidos al pensar; para parar el reloj del
+    // pase cuando Weë falla). Solo servidor.
+    match /characterAutonomyHealth/{docId} {
+      allow read, write: if false;
+    }
+    // Encargos del personaje a Weë AI (imagen o vídeo de una publicación): los crea
+    // y los hace SOLO el servidor (`encargoDelPersonaje`); se cobran a la cuenta.
+    match /characterEncargos/{encargoId} {
+      allow read, write: if false;
+    }
+    // Auditoría de cuentas eliminadas (`functions/src/cuenta`): el id es una
+    // huella de la cuenta y dentro solo hay estado, fechas y recuentos, nunca
+    // datos personales. La escribe ÚNICAMENTE el servidor; nadie la lee.
+    match /accountDeletions/{huella} {
+      allow read, write: if false;
     }
     // Límites de uso por persona y día: solo servidor
     match /aiRateLimits/{limitId} {
@@ -1215,6 +1565,16 @@ service cloud.firestore {
       // No tiene por qué salir de aquí: es contabilidad interna del servidor.
       match /operations/{clave} {
         allow read, write: if false;
+      }
+
+      // EL ÍNDICE DE LAS WEË PAGES DE LA CUENTA (F1, 2026-11-23). La propiedad
+      // salió del documento público de la Página, así que «mis Páginas» ya no
+      // se puede consultar en `pages`; las lista este índice, que escribe
+      // `savePage` y lee solo la cuenta (no sus miembros: es la misma regla que
+      // edita la Página, `request.auth.uid` dueño).
+      match /pages/{pageId} {
+        allow read: if isAuthenticated() && request.auth.uid == accountId;
+        allow write: if false;
       }
     }
 
@@ -1338,6 +1698,26 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    // === BOOST (functions/src/boost, docs/BOOST.md) ===
+    // Promocionar una publicación propia. Todo lo escribe la callable `boost` con el Admin SDK: la reserva y la
+    // devolución de Credits pasan por el Credit Engine, y aquí nadie puede crear, cambiar ni borrar una campaña,
+    // inflar sus métricas o liberar un bloqueo. Cada cuenta lee SOLO sus campañas; las impresiones, el alcance y los
+    // clics (quién vio qué) no los lee ningún cliente, ni siquiera el dueño: él recibe los totales.
+    // Van entre `shots` y las producciones: no mueven la franja de Elements a Media Cloud y dejan a `productions` al final.
+    match /boostCampaigns/{campaignId} {
+      allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+      allow create, update, delete: if false;
+      match /{sub=**} {
+        allow read, write: if false;
+      }
+    }
+    match /boostPostLocks/{postId} {
+      allow read, write: if false;
+    }
+    match /boostSettings/{docId} {
+      allow read, write: if false;
+    }
+
     // === F1-B · WEË FILMMAKER: LAS PRODUCCIONES ===
     // La producción es la verdad creativa de una cuenta: su guion gráfico, con
     // escenas y planos. NO son las `scenes`/`shots` del Core —que en F1-D serán
@@ -1364,6 +1744,13 @@ service cloud.firestore {
       }
 
       match /productionRevisions/{revisionId} {
+        allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
+        allow create, update, delete: if false;
+      }
+
+      // Fase 8 · el registro de los renders: qué montaje, qué revisión, qué
+      // trabajo y qué material. Lo escribe solo la callable `renders`.
+      match /productionRenders/{renderId} {
         allow read: if isAuthenticated() && resource.data.ownerAccountId == request.auth.uid;
         allow create, update, delete: if false;
       }

@@ -1,6 +1,6 @@
 /*
  * DANÉS — lo que describe cada experiencia de WEË AI y los ejemplos que se tocan
- * para empezar. Los nombres —Weë Design, Weë Studio…— son marca y viven en
+ * para empezar. Los nombres —WeëDesign, WeëStudio…— son marca y viven en
  * constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
@@ -12,13 +12,13 @@
  * Dinamarca), el patio es la «terrasse», «un look para una fiesta» es «Et
  * festlook» y el CV, «CV» en mayúsculas, como en el resto de la app (Den Danske Ordbog admite «cv» y «CV»). Donde «Forbedr»
  * quedaría como imperativo que acaba en grupo de consonantes (guía § 3) se
- * reformula como la meta de Weë Photo: «Giv et foto bedre kvalitet». La narración de Weë Music es
+ * reformula como la meta de Weë Photo: «Giv et foto bedre kvalitet». La narración de WeëMusic es
  * «oplæsning». Un Weël es «en Weël». Los posesivos concuerdan: «mit foto», «mit
  * produkt», «min video», «dine fotos».
  *
- * Las áreas se traducen porque se leen; la marca de delante no: «Weë Studio ·
- * Fotos», «Weë Studio · Skønhed» (el «Beauty» del español es el nombre del área,
- * no la marca Weë Beauty) y «Weë Design · Bolig og indretning», con «og» en vez
+ * Las áreas se traducen porque se leen; la marca de delante no: «WeëStudio ·
+ * Fotos», «WeëStudio · Skønhed» (el «Beauty» del español es el nombre del área,
+ * no la marca Weë Beauty) y «WeëDesign · Bolig og indretning», con «og» en vez
  * de «&»: así se llama esa sección en cualquier revista o tienda danesa.
  * `tellTheSpecialist` nombra al experto como complemento («Fortæl
  * {{especialista}}, hvad …»), así la marca no se declina, y el hueco aparece una
@@ -34,7 +34,7 @@ export const creator: typeof import('../es/creator').creator = {
   beauty: 'Makeup, hår, skæg, outfits og nye looks',
   chef: 'Din personlige kok: madideer, opskrifter og menuer',
   home: 'Boligindretning, interiørdesign, renovering og haver',
-  business: 'Forretningsidéer, marketing, CV, dokumenter og præsentationer',
+  business: 'Mode, stil, skønhed og produktion af visuelt indhold.',
   travel: 'Planlæg din rejse: hvor du skal hen, hvad du kan lave og hvordan du kommer rundt',
   brain: 'Ved du ikke, hvor du skal lede? Spørg Weë',
   designEx1: 'Et logo til min virksomhed',
@@ -70,10 +70,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: 'Jeg ved ikke, hvor jeg skal starte',
   brainEx2: 'Forklar det her på en enkel måde',
   brainEx3: 'Oversæt denne tekst',
-  areaStudioPhotos: 'Weë Studio · Fotos',
-  areaStudioVideos: 'Weë Studio · Videoer',
-  areaStudioBeauty: 'Weë Studio · Skønhed',
-  areaDesignHome: 'Weë Design · Bolig og indretning',
+  areaStudioPhotos: 'WeëStudio · Fotos',
+  areaStudioVideos: 'WeëStudio · Videoer',
+  areaStudioBeauty: 'WeëStudio · Skønhed',
+  areaDesignHome: 'WeëDesign · Bolig og indretning',
   areaHomeName: 'Bolig og indretning',
   tellTheSpecialist: 'Fortæl {{especialista}}, hvad du gerne vil. Du får to eller tre enkle spørgsmål, og resten klares for dig. Bagefter kan du slå resultatet op direkte i dit fællesskab.',
   exampleQuoted: '”{{ejemplo}}”',

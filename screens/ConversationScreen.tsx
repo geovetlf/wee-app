@@ -17,17 +17,19 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { IconoDeTrazo } from '../components/icons/IconoDeTrazo';
+import IconoDireccional from '../components/IconoDireccional';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Audio } from 'expo-av';
-import { uploadAudioToCloudinary } from '../services/cloudinaryService';
 import { useTheme } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { messagesService, Message, Conversation, ParticipantData, claveDeAvisoGuardado } from '../services/messagesService';
-import { uploadMessageImageFromUri, uploadViewOncePhoto } from '../services/storageService';
+/* Todo al Storage de Weë, a la carpeta privada de la conversación (decisión del dueño, 2026-11-26: sin Cloudinary). */
+import { uploadMessageAudio, uploadMessageImageFromUri, uploadViewOncePhoto } from '../services/storageService';
 import { notify } from '../utils/notify';
 import { cloudinaryThumb } from '../services/cloudinaryService';
 import AvatarDisplay from '../components/avatars/AvatarDisplay';
@@ -37,14 +39,17 @@ import { SPACING } from '../constants/design';
 import { styles } from './ConversationScreen.styles';
 import { CHAT_THEMES, CHAT_WALLPAPERS, getThemeById, ChatTheme } from '../constants/chatThemes';
 import { InboxStackParamList } from '../navigation/InboxStackNavigator';
+import EtiquetaPersonajeWee from '../components/personaje/EtiquetaPersonajeWee';
 
 type ConvRoute = RouteProp<InboxStackParamList, 'Conversation'>;
 
 const ConversationScreen = () => {
   const { theme } = useTheme();
+  /* Monocromo (2026-11-16): la tinta del tema (#0A0A0A / #FAFAFA) dice el estado activo; el dorado→naranja queda para la acción principal. */
+  const tinta = theme.dark ? '#FAFAFA' : '#0A0A0A';
   const { t, formato } = useIdioma();
   const { user } = useAuth();
-  const { userProfile } = useUserProfile();
+  const { userProfile, activeProfileType } = useUserProfile();
   const nav = useNavigation();
   const route = useRoute<ConvRoute>();
   const insets = useSafeAreaInsets();
@@ -64,8 +69,32 @@ const ConversationScreen = () => {
   const [chatWallpaper, setChatWallpaper] = useState<string | null>(null);
   const [showThemePicker, setShowThemePicker] = useState(false);
 
-  // Get current theme
-  const chatTheme = getThemeById(chatThemeId);
+  /*
+   * EL TEMA DE LA CONVERSACIÓN SIGUE A LA CARA QUE LA TIENE (decisión del dueño, 2026-11-05).
+   *
+   * Cada conversación es de una identidad: la del perfil activo. La del Perfil Real se ve con fondo blanco,
+   * como el resto de la app clara, y la del Perfil Weë en oscuro, como la app oscura del Perfil Weë. El tema
+   * que la persona elige en la paleta conserva sus burbujas y su acento; en el Perfil Real solo cambian el
+   * fondo, la cabecera, la barra de escribir y los grises (y en el «Clásico», además, la burbuja del otro, que
+   * pasa a gris claro).
+   */
+  const temaElegido = getThemeById(chatThemeId);
+  const chatTheme: ChatTheme = activeProfileType !== 'hidi'
+    ? {
+        ...temaElegido,
+        backgroundColor: '#FFFFFF',
+        headerBackground: '#FFFFFF',
+        headerText: '#1F2937',
+        headerIcon: '#6B7280',
+        ...(temaElegido.id === 'classic' ? { otherBubble: '#F3F4F6', otherBubbleText: '#1F2937', otherMetaText: 'rgba(31,41,55,0.5)' } : {}),
+        inputBarBackground: '#FFFFFF',
+        inputBackground: '#F3F4F6',
+        inputText: '#1F2937',
+        inputPlaceholder: '#9CA3AF',
+        datePillBackground: '#F3F4F6',
+        datePillText: '#6B7280',
+      }
+    : temaElegido;
 
   const myUid = userProfile?.uid || user?.uid;
   /* El respaldo solo se PINTA en la cabecera (no se guarda en ningún sitio): por eso sí pasa por t(). */
@@ -233,10 +262,9 @@ const ConversationScreen = () => {
     try {
       /*
        * La foto única va al Storage de Weë, donde se puede borrar; la normal, por
-       * el camino de siempre. La RUTA física es de la CUENTA (`user.uid`), que es
-       * lo único que `storage.rules` deja escribir; el mensaje lo firma la cara
-       * activa (`myUid`), que es atribución. Con el Perfil Weë activo, subir bajo
-       * la cara dejaba la foto denegada por las reglas.
+       * el camino de siempre. Desde los alter egos (F4/F6, 2026-11-23) la RUTA es la de la CARA que
+       * envía (`users/<cara>/weetalk/…`, `myUid`): `storage.rules` la admite para el Real, la heredada y cada
+       * alter ego de la sesión, y así la dirección no delata la cuenta que hay detrás de un alter ego.
        *
        * 'Foto única' y '📷 Imagen' NO son texto de interfaz: son MARCAS DE DATOS que se guardan como `content` del
        * mensaje y del último mensaje de la conversación, y así están en los mensajes de siempre. Nadie las ve tal
@@ -244,7 +272,7 @@ const ConversationScreen = () => {
        * (`claveDeAvisoGuardado` en services/messagesService.ts; `cuerpoDelMensaje` en functions/src/social/avisos.ts).
        * Cambiarlas sería migrar datos. Lo vigila functions/test/i18n-marcas-de-mensaje.test.mjs.
        */
-      const url = viewOnce ? await uploadViewOncePhoto(uri, user.uid, convId) : await uploadMessageImageFromUri(uri, myUid);
+      const url = viewOnce ? await uploadViewOncePhoto(uri, myUid, convId) : await uploadMessageImageFromUri(uri, myUid, convId);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
     } catch (e) {
       notify(t('common.error'), t('weetalk.imageFailed'));
@@ -365,7 +393,7 @@ const ConversationScreen = () => {
       if (durationSec < 1) return;
 
       setSending(true);
-      const audioUrl = await uploadAudioToCloudinary(uri, `audio/${myUid}`);
+      const audioUrl = await uploadMessageAudio(uri, myUid, convId);
       await messagesService.sendMessage(convId, myUid, '🎤 Audio', 'audio', audioUrl, false, durationSec);
       setSending(false);
     } catch (e) {
@@ -381,14 +409,13 @@ const ConversationScreen = () => {
     try {
       /*
        * La foto única va al Storage de Weë, donde se puede borrar; la normal, por
-       * el camino de siempre. La RUTA física es de la CUENTA (`user.uid`), que es
-       * lo único que `storage.rules` deja escribir; el mensaje lo firma la cara
-       * activa (`myUid`), que es atribución. Con el Perfil Weë activo, subir bajo
-       * la cara dejaba la foto denegada por las reglas.
+       * el camino de siempre. Desde los alter egos (F4/F6, 2026-11-23) la RUTA es la de la CARA que
+       * envía (`users/<cara>/weetalk/…`, `myUid`): `storage.rules` la admite para el Real, la heredada y cada
+       * alter ego de la sesión, y así la dirección no delata la cuenta que hay detrás de un alter ego.
        *
        * Las marcas 'Foto única' / '📷 Imagen' son datos, no interfaz: ver `confirmSendImage`.
        */
-      const url = viewOnce ? await uploadViewOncePhoto(uri, user.uid, convId) : await uploadMessageImageFromUri(uri, myUid);
+      const url = viewOnce ? await uploadViewOncePhoto(uri, myUid, convId) : await uploadMessageImageFromUri(uri, myUid, convId);
       await messagesService.sendMessage(convId, myUid, viewOnce ? 'Foto única' : '📷 Imagen', 'image', url, viewOnce);
     } catch (e) {
       notify(t('common.error'), t('weetalk.imageFailed'));
@@ -486,7 +513,7 @@ const ConversationScreen = () => {
                   {fmtTime(item.timestamp)}
                 </Text>
                 {mine && (
-                  <Ionicons name={item.read ? 'checkmark-done' : 'checkmark'} size={13} color={chatTheme.otherMetaText} style={{ marginLeft: 2 }} />
+                  <IconoDeTrazo name={item.read ? 'checkmark-done' : 'checkmark'} size={13} color={chatTheme.otherMetaText} style={{ marginLeft: 2 }} />
                 )}
               </View>
             </View>
@@ -500,7 +527,7 @@ const ConversationScreen = () => {
             ]}>
               {item.ephemeral && (
                 <View style={styles.ephemeralIcon}>
-                  <Ionicons name="eye-off" size={10} color="#fff" />
+                  <IconoDeTrazo name="eye-off" size={10} color="#fff" />
                 </View>
               )}
               {item.type === 'image' && item.viewOnce ? (
@@ -511,19 +538,19 @@ const ConversationScreen = () => {
                  */
                 mine ? (
                   <View style={styles.viewOnceSender}>
-                    <Ionicons name="eye-off" size={20} color={metaColor} />
+                    <IconoDeTrazo name="eye-off" size={20} color={metaColor} />
                     <Text style={[styles.viewOnceText, { color: metaColor }]}>
                       {item.viewOnceOpened || !item.imageUrl ? t('weetalk.photoOpened') : t('weetalk.photoOnce')}
                     </Text>
                   </View>
                 ) : item.viewOnceOpened || !item.imageUrl ? (
                   <View style={styles.viewOnceOpened}>
-                    <Ionicons name="eye-off-outline" size={20} color={metaColor} />
+                    <IconoDeTrazo name="eye-off-outline" size={20} color={metaColor} />
                     <Text style={[styles.viewOnceText, { color: metaColor }]}>{t('weetalk.photoSeen')}</Text>
                   </View>
                 ) : (
                   <TouchableOpacity style={styles.viewOnceTap} onPress={() => openViewOnce(item)}>
-                    <Ionicons name="eye" size={24} color={bubbleText} />
+                    <IconoDeTrazo name="eye" size={24} color={bubbleText} />
                     <Text style={[styles.viewOnceText, { color: bubbleText }]}>{t('weetalk.tapToView')}</Text>
                   </TouchableOpacity>
                 )
@@ -542,11 +569,14 @@ const ConversationScreen = () => {
                 </Text>
               )}
               <View style={styles.meta}>
+                {item.autonomo ? (
+                  <EtiquetaPersonajeWee style={[styles.time, { color: metaColor }]} />
+                ) : null}
                 <Text style={[styles.time, { color: metaColor }]}>
                   {fmtTime(item.timestamp)}
                 </Text>
                 {mine && (
-                  <Ionicons name={item.read ? 'checkmark-done' : 'checkmark'} size={13} color={metaColor} style={{ marginLeft: 2 }} />
+                  <IconoDeTrazo name={item.read ? 'checkmark-done' : 'checkmark'} size={13} color={metaColor} style={{ marginLeft: 2 }} />
                 )}
               </View>
             </View>
@@ -560,7 +590,7 @@ const ConversationScreen = () => {
   if (loading) {
     return (
       <View style={[styles.screen, { backgroundColor: theme.colors.background, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
+        <ActivityIndicator size="large" color={tinta} />
       </View>
     );
   }
@@ -570,7 +600,7 @@ const ConversationScreen = () => {
       {/* Header */}
       <View style={[styles.header, { backgroundColor: chatTheme.headerBackground, borderColor: chatTheme.headerBackground, paddingTop: insets.top + SPACING.md }]}>
         <TouchableOpacity onPress={() => nav.goBack()} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.back')}>
-          <Ionicons name="chevron-back" size={26} color={chatTheme.headerText} />
+          <IconoDireccional name="chevron-back" size={26} color={chatTheme.headerText} />
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.headerUser} activeOpacity={0.7}>
@@ -585,7 +615,7 @@ const ConversationScreen = () => {
         </TouchableOpacity>
 
         <TouchableOpacity hitSlop={8} onPress={() => setShowThemePicker(true)} style={styles.ephemeralBtn} accessibilityRole="button" accessibilityLabel={t('weetalk.theme')}>
-          <Ionicons name="color-palette-outline" size={20} color={chatTheme.headerIcon} />
+          <IconoDeTrazo name="color-palette-outline" size={20} color={chatTheme.headerIcon} />
         </TouchableOpacity>
         {/* Un interruptor, y se dice como tal: un lector de pantalla tiene que saber si está puesto. */}
         <TouchableOpacity
@@ -596,14 +626,14 @@ const ConversationScreen = () => {
           accessibilityState={{ checked: ephemeral }}
           accessibilityLabel={t('weetalk.ephemeralMode')}
         >
-          <Ionicons name={ephemeral ? 'eye-off' : 'eye-off-outline'} size={20} color={ephemeral ? '#22C55E' : chatTheme.headerIcon} />
+          <IconoDeTrazo name={ephemeral ? 'eye-off' : 'eye-off-outline'} size={20} color={ephemeral ? tinta : chatTheme.headerIcon} />
         </TouchableOpacity>
       </View>
 
       {/* Ephemeral banner */}
       {ephemeral && (
         <View style={[styles.ephemeralBanner, { backgroundColor: 'rgba(34,197,94,0.1)' }]}>
-          <Ionicons name="eye-off" size={14} color="#22C55E" />
+          <IconoDeTrazo name="eye-off" size={14} color={tinta} />
           <Text style={styles.ephemeralBannerText}>{t('weetalk.ephemeralOn')}</Text>
         </View>
       )}
@@ -647,7 +677,7 @@ const ConversationScreen = () => {
               </View>
             ) : (
               <View style={styles.emptyState}>
-                <Ionicons name="chatbubble-ellipses-outline" size={56} color={chatTheme.inputPlaceholder} style={{ opacity: 0.3 }} />
+                <IconoDeTrazo name="chatbubble-ellipses-outline" size={56} color={chatTheme.inputPlaceholder} style={{ opacity: 0.3 }} />
                 <Text style={[styles.emptyText, { color: chatTheme.inputPlaceholder }]}>{t('weetalk.firstMessage')}</Text>
               </View>
             )
@@ -663,13 +693,13 @@ const ConversationScreen = () => {
               ))}
             </View>
             <TouchableOpacity onPress={stopRecording} style={styles.recordingStopBtn} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-              <Ionicons name="send" size={18} color="#fff" />
+              <IconoDireccional name="send" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         ) : (
           <View style={[styles.inputBar, { backgroundColor: chatTheme.inputBarBackground, borderColor: chatTheme.inputBackground, paddingBottom: Math.max(insets.bottom, 6) }]}>
             <TouchableOpacity style={[styles.cameraBtn, { backgroundColor: chatTheme.accent }]} onPress={() => setCameraOpen(true)} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.photo')}>
-              <Ionicons name="camera" size={20} color={chatTheme.accentText} />
+              <IconoDeTrazo name="camera" size={20} color={chatTheme.accentText} />
             </TouchableOpacity>
             <View style={[styles.inputWrap, { backgroundColor: chatTheme.inputBackground }]}>
               <TextInput
@@ -685,15 +715,15 @@ const ConversationScreen = () => {
               />
               {text.trim() ? (
                 <TouchableOpacity onPress={send} disabled={sending} style={[styles.sendBtn, { backgroundColor: chatTheme.accent }]} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-                  {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <Ionicons name="send" size={16} color={chatTheme.accentText} />}
+                  {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <IconoDireccional name="send" size={16} color={chatTheme.accentText} />}
                 </TouchableOpacity>
               ) : (
                 <View style={styles.inputActions}>
                   <TouchableOpacity style={styles.inputActionBtn} onPressIn={startRecording} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.recordAudio')}>
-                    <Ionicons name="mic-outline" size={22} color={chatTheme.inputPlaceholder} />
+                    <IconoDeTrazo name="mic-outline" size={22} color={chatTheme.inputPlaceholder} />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.inputActionBtn} onPress={pickImage} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.attach')}>
-                    <Ionicons name="image-outline" size={22} color={chatTheme.inputPlaceholder} />
+                    <IconoDeTrazo name="image-outline" size={22} color={chatTheme.inputPlaceholder} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -724,7 +754,7 @@ const ConversationScreen = () => {
               </View>
             ) : (
               <View style={styles.emptyState}>
-                <Ionicons name="chatbubble-ellipses-outline" size={56} color={chatTheme.inputPlaceholder} style={{ opacity: 0.3 }} />
+                <IconoDeTrazo name="chatbubble-ellipses-outline" size={56} color={chatTheme.inputPlaceholder} style={{ opacity: 0.3 }} />
                 <Text style={[styles.emptyText, { color: chatTheme.inputPlaceholder }]}>{t('weetalk.firstMessage')}</Text>
               </View>
             )
@@ -740,13 +770,13 @@ const ConversationScreen = () => {
               ))}
             </View>
             <TouchableOpacity onPress={stopRecording} style={styles.recordingStopBtn} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-              <Ionicons name="send" size={18} color="#fff" />
+              <IconoDireccional name="send" size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         ) : (
           <View style={[styles.inputBar, { backgroundColor: chatTheme.inputBarBackground, borderColor: chatTheme.inputBackground, paddingBottom: androidKbHeight > 0 ? 10 : Math.max(insets.bottom, 16) }]}>
             <TouchableOpacity style={[styles.cameraBtn, { backgroundColor: chatTheme.accent }]} onPress={() => setCameraOpen(true)} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.photo')}>
-              <Ionicons name="camera" size={20} color={chatTheme.accentText} />
+              <IconoDeTrazo name="camera" size={20} color={chatTheme.accentText} />
             </TouchableOpacity>
             <View style={[styles.inputWrap, { backgroundColor: chatTheme.inputBackground }]}>
               <TextInput
@@ -762,15 +792,15 @@ const ConversationScreen = () => {
               />
               {text.trim() ? (
                 <TouchableOpacity onPress={send} disabled={sending} style={[styles.sendBtn, { backgroundColor: chatTheme.accent }]} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-                  {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <Ionicons name="send" size={16} color={chatTheme.accentText} />}
+                  {sending ? <ActivityIndicator size="small" color={chatTheme.accentText} /> : <IconoDireccional name="send" size={16} color={chatTheme.accentText} />}
                 </TouchableOpacity>
               ) : (
                 <View style={styles.inputActions}>
                   <TouchableOpacity style={styles.inputActionBtn} onPressIn={startRecording} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.recordAudio')}>
-                    <Ionicons name="mic-outline" size={22} color={chatTheme.inputPlaceholder} />
+                    <IconoDeTrazo name="mic-outline" size={22} color={chatTheme.inputPlaceholder} />
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.inputActionBtn} onPress={pickImage} disabled={sending} accessibilityRole="button" accessibilityLabel={t('weetalk.attach')}>
-                    <Ionicons name="image-outline" size={22} color={chatTheme.inputPlaceholder} />
+                    <IconoDeTrazo name="image-outline" size={22} color={chatTheme.inputPlaceholder} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -785,7 +815,7 @@ const ConversationScreen = () => {
         <View style={styles.previewModal}>
           <View style={styles.previewHeader}>
             <TouchableOpacity onPress={() => setPreviewUri(null)} accessibilityRole="button" accessibilityLabel={t('common.close')}>
-              <Ionicons name="close" size={28} color="#fff" />
+              <IconoDeTrazo name="close" size={28} color="#fff" />
             </TouchableOpacity>
           </View>
 
@@ -799,14 +829,14 @@ const ConversationScreen = () => {
               accessibilityState={{ checked: previewViewOnce }}
               accessibilityLabel={t('weetalk.photoOnce')}
             >
-              <Ionicons name={previewViewOnce ? 'eye-off' : 'eye-outline'} size={20} color="#fff" />
+              <IconoDeTrazo name={previewViewOnce ? 'eye-off' : 'eye-outline'} size={20} color="#fff" />
               <Text style={styles.previewToggleText}>
                 {previewViewOnce ? t('weetalk.viewOnceOn') : t('weetalk.keepInChat')}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.previewSendBtn, { backgroundColor: chatTheme.accent }]} onPress={confirmSendImage} accessibilityRole="button" accessibilityLabel={t('weetalk.send')}>
-              <Ionicons name="send" size={22} color={chatTheme.accentText} />
+              <IconoDireccional name="send" size={22} color={chatTheme.accentText} />
             </TouchableOpacity>
           </View>
         </View>
@@ -852,13 +882,15 @@ const ConversationScreen = () => {
                       styles.wallpaperOption,
                       { backgroundColor: chatTheme.inputBackground },
                       chatWallpaper === w.url && styles.wallpaperOptionActive,
+                      /* El borde del fondo elegido, con el acento de marca del tema (2026-11-05). */
+                      chatWallpaper === w.url && { borderColor: theme.colors.accent },
                     ]}
                     onPress={() => pickWallpaper(w.url)}
                   >
                     {w.preview ? (
                       <Image source={{ uri: w.preview }} style={styles.wallpaperPreview} contentFit="cover" />
                     ) : (
-                      <Ionicons name="ban-outline" size={24} color={chatTheme.inputPlaceholder} />
+                      <IconoDeTrazo name="ban-outline" size={24} color={chatTheme.inputPlaceholder} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -867,7 +899,7 @@ const ConversationScreen = () => {
                   style={[styles.wallpaperOption, { backgroundColor: chatTheme.inputBackground }]}
                   onPress={pickCustomWallpaper}
                 >
-                  <Ionicons name="add" size={28} color={chatTheme.accent} />
+                  <IconoDeTrazo name="add" size={28} color={chatTheme.accent} />
                 </TouchableOpacity>
               </View>
             </ScrollView>

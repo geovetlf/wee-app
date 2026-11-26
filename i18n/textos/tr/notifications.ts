@@ -32,6 +32,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{comunidad}}: {{nombre}} yeni bir gönderi paylaştı',
   aCommunity: 'Topluluk',
   generic: '{{nombre}} seninle etkileşime geçti',
+  characterNotice: '{{nombre}} incelemen için bildirimler bıraktı',
   now: 'şimdi',
   markAllRead: 'Tümünü okundu olarak işaretle',
   all: 'Tümü',

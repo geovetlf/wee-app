@@ -278,8 +278,10 @@ console.log('\n── G · Preparar esto NO cambió nada de lo que ya funcionaba
   check('47) y ninguna de traducción es enrutable', !routable.some((c) => c.startsWith('translation.')));
   check('48) el catálogo creció en dos y nada más (y después, en world.generate)', core.CAPABILITY_CATALOG.length === 69, `${core.CAPABILITY_CATALOG.length} capacidades`);
   /* Más fal (excepción controlada, 2026-10-05): un proveedor, un modelo y un adaptador. */
-  check('49) los proveedores, modelos y adaptadores de siempre siguen igual, más fal',
-    datos.providers.length === 18 && datos.models.length === 33 && datos.adapters.length === 12 && datos.providers.some((p) => p.id === 'fal'),
+  /* Más byteplus-text (2026-11-23): un proveedor, un adaptador y sus dos modelos Seed, desactivado y fuera de las cadenas. */
+  /* Más wavespeed (2026-11-26, decisión del dueño): un proveedor, un adaptador y sus dos modelos, solo para WITE y fuera de las cadenas. */
+  check('49) los proveedores, modelos y adaptadores de siempre siguen igual, más fal, byteplus-text y wavespeed',
+    datos.providers.length === 20 && datos.models.length === 37 && datos.adapters.length === 14 && datos.providers.some((p) => p.id === 'fal') && datos.providers.some((p) => p.id === 'byteplus-text') && datos.providers.some((p) => p.id === 'wavespeed'),
     `${datos.providers.length} prov · ${datos.models.length} mod · ${datos.adapters.length} adap`);
   check('50) el registro real sigue sin errores de integridad', composicion.problemasDelRegistro().filter((p) => p.severity === 'error').length === 0);
   /* Y las matrices que sí estaban pendientes siguen exactamente donde estaban. */

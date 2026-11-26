@@ -21,7 +21,7 @@
  *   rever (no revisar) · informação (no informações) · ligar (no conectar)
  *   as minhas criações (con artículo, no "minhas criações")
  *
- * MARCA: "Weë Studio" y "Writer" no se traducen. Los formatos —PDF, MP4, 16:9—
+ * MARCA: "WeëStudio" y "Writer" no se traducen. Los formatos —PDF, MP4, 16:9—
  * y los segundos tampoco cambian de idioma.
  *
  * CUIDADO con los falsos amigos del español: "pronto" no es soon (va "Em
@@ -262,7 +262,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: 'Em breve',
   soonHint: 'Esta ferramenta já tem o seu lugar. Falta ligá-la.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Texto',
   textHint: 'Escreve qualquer conteúdo',
   exploreTitle: 'Explorar',
@@ -404,4 +404,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: 'Parei a criação. Os Credits reservados voltam ao teu saldo.',
   worldUploadFailed: 'Não consegui carregar a tua foto. Tenta de novo.',
   worldDailyLimit: 'Já usaste os mundos 3D de hoje. Se algum não sair, recuperas, e renovam-se todos os dias.',
+  filmmakerCardTitle: 'Realiza o teu filme',
+  filmmakerCardSub: 'Cenas, planos e movimentos de câmara, com a realização nas tuas mãos.',
+  filmmakerCardCta: 'Abrir Filmmaker',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: 'Cria',
+  heroAccent: 'sem limites.',
+  quickTitle: 'Criação rápida',
+  filmmakerEngineSub: 'Cria, realiza e edita os teus filmes com IA.',
+  projectsTitle: 'Projetos',
 };

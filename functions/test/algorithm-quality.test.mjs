@@ -2584,7 +2584,9 @@ console.log('\n─── S. S2-B.5 · Cierre de lo que quedaba de S2-B ───
   const filaDelMotor = leer('docs/RUNTIME.md').split('\n').find((l) => l.startsWith('| **Algorithm Engine** |')) ?? '';
   const numeroFuera = [
     [DOC.includes(`\`${ALGORITHM_CONTRACT_VERSION}\` desde S2-`), 'la fila `contract` de la sombra no dice el contrato vigente'],
-    [filaDelMotor.includes(`contrato ${ALGORITHM_CONTRACT_VERSION})`), 'docs/RUNTIME.md no dice el contrato vigente'],
+    /* (Misión de cierre) La fila separa main de producción —`contrato **1.12 en main**, **1.9 en producción**`—; el par lo
+     * vigila `algoritmo-produccion`, y aquí basta con que el número vigente sea el de main. */
+    [filaDelMotor.includes(`contrato **${ALGORITHM_CONTRACT_VERSION} en main**`), 'docs/RUNTIME.md no dice el contrato vigente'],
   ].filter(([ok]) => !ok).map(([, m]) => m);
   /* Ninguna fila que deje algo APLAZADO se llama «cerrado» a secas. */
   const cerradasConParteAbierta = B5_LINEAS.filter((l) => l.startsWith('| ')).map((l) => l.split(' | '))
@@ -3427,7 +3429,8 @@ const puntoDeclarado = (inicio, siguiente) => { const i = S18_PLANO.indexOf(inic
   const faltan = [
     ...['SUJETO         (D3)', '`subject === actual.id`', 'sin sujeto no se le atribuyen', '`motor-de-verificacion`', '`motor-de-feedback`', 'versión 2']
       .filter((x) => !entradaPlana.includes(x)).map((x) => `entrada: ${x}`),
-    ...(A.DESCRIPTOR_DE_VERIFICACION.version === 2 && A.DESCRIPTOR_DE_FEEDBACK.version === 2 ? [] : ['versiones de A6 y A7']),
+    /* A6 subió a 2 con D3 y a 3 en la misión de cierre (un corte del presupuesto cuenta lo no mirado como `unknown`); A7 sigue en 2. */
+    ...(A.DESCRIPTOR_DE_VERIFICACION.version === 3 && A.DESCRIPTOR_DE_FEEDBACK.version === 2 ? [] : ['versiones de A6 y A7']),
     ...(observacion.includes('una medida es del resultado si su `subject` es `actual.id`') ? [] : ['ObservacionDeEjecucion.signals']),
     ...['**d3 · el sujeto — cerrada', 'quien ejecuta produce sus medidas con el sujeto del resultado', 'quien llama a `cerrar` las entrega',
       '`motor-de-verificacion@2` y `motor-de-feedback@2`', 'no suma lo medido de otro sujeto'].filter((x) => !DECISIONES_S2C1.includes(x)).map((x) => `doc: ${x}`),

@@ -5,10 +5,10 @@
  *
  * El singular «Weël» del español no existe en japonés, que no tiene plural: la
  * marca va siempre como «Weëls» (guía § 9, «sin plural ni declinación»). El
- * «Wäll general» —el muro donde está todo el mundo, frente a los de cada
- * sección— es 総合Wäll. El botón «Ubicación» y la pantalla «Agregar ubicación»
+ * «Ẅall general» —el muro donde está todo el mundo, frente a los de cada
+ * sección— es 総合Ẅall. El botón «Ubicación» y la pantalla «Agregar ubicación»
  * son 場所 / 場所を追加: lo que se pone ahí es sobre todo el LUGAR del que habla
- * la publicación (glosario: 場所 es un lugar, como `weebiz.location`); 位置情報
+ * la publicación (glosario: 場所 es un lugar); 位置情報
  * queda para lo que sale del aparato, la zona aproximada (`removeMyLocation`).
  * «Galería» es 写真ライブラリ.
  * «Quitar» algo adjunto al borrador es 削除, lo corriente en esa X.
@@ -27,6 +27,12 @@ export const composer: typeof import('../es/composer').composer = {
   photoOrVideo: '写真・動画',
   camera: 'カメラ',
   location: '場所',
+  place: 'スポット',
+  gallery: '写真ライブラリ',
+  projects: 'プロジェクト',
+  createWithAi: 'AIで作成',
+  newPost: '新規投稿',
+  multimedia: 'メディア',
   poll: 'アンケート',
   sheetTitle: '作成',
   sheetSubtitle: '今日は何を投稿しますか？',
@@ -43,7 +49,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: '投稿オプションを開く',
   hideOptions: '投稿オプションを閉じる',
   currentDestination: '{{destino}}、現在の投稿先',
-  generalWall: '総合Wäll',
+  generalWall: '総合Ẅall',
   placeholderPollExtra: '補足があれば入力（任意）…',
   placeholderQuestion: 'コミュニティに何を質問しますか？',
   placeholderWeel: 'どんなWeëlsを、どのAIで作ったか書く…',
@@ -53,15 +59,10 @@ export const composer: typeof import('../es/composer').composer = {
   placeholderDefault: '投稿内容を入力…',
   postTextLabel: '投稿本文',
   weelHint: 'Weëls：最大{{segundos}}秒の動画です。Weëの外にも共有でき、その際は小さなウォーターマークが入ります。',
-  newPost: '新規投稿',
   you: 'あなた',
   shareWithCommunity: 'Weëのコミュニティに投稿',
-  publicVisibility: '公開',
-  visibilityIs: '公開範囲：{{estado}}',
-  publicExplain: '現在、Weëの投稿はすべて公開されます。',
   profileReal: 'リアルプロフィール',
   profileWee: 'Weëプロフィール',
-  multimedia: 'メディア',
   actionWithBadge: '{{accion}}、{{insignia}}',
   removeVideo: '動画を削除',
   removePhotoNumber: '{{numero}}枚目の写真を削除',

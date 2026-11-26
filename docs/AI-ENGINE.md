@@ -102,6 +102,34 @@ Se editan en la consola de Firestore o con la callable `engineAdmin` (solo uids 
 { "chain": [ { "provider": "seedance", "model": "dreamina-seedance-2-5-260628" } ], "policy": "quality-first" }
 ```
 
+## Ruta propia por función (`routeKey`) — p. ej. BytePlus para los personajes
+
+`aiRouting/{capacidad}` cambia una capacidad para TODO Weë. Cuando una sola función necesita otro proveedor, pide su **ruta propia** con `prefs.routeKey` (router.ts, `rutaPropia` / `prefsConRutaPropia`):
+
+- Si existe `aiRouting/{routeKey}` con `chain` no vacía, esa cadena manda para esa petición y se retira su elección por nombre (`allowedProviders`, `modelId`); el modelo lo dice cada eslabón (`chain[i].model`).
+- Si no existe, **no cambia nada**: la petición sigue exactamente como venía (su respaldo de siempre).
+- Todo lo demás se comprueba igual: proveedor activado, clave, capacidad, elegibilidad, límites diarios, interruptores.
+
+Hoy la usa una función: las acciones de los personajes autónomos (`personajes/acciones.ts`, `routeKey: 'character.text'`). Sin la ruta, van por DeepSeek por su nombre, como Weë Brain.
+
+**Poner BytePlus Seed como texto de los personajes, sin tocar código:**
+
+1. Consola de BytePlus: activar **Seed 2.0 Lite** (o **Mini**) para la cuenta de `ARK_API_KEY` y confirmar el id exacto de la versión (opcional: un punto de acceso `ep-…` y `ARK_TEXT_MODEL=ep-…`).
+2. `aiProviders/byteplus-text` → `{ "enabled": true }` (nace desactivado; tope por defecto `limits.maxCallsPerDay: 1000`).
+3. `aiRouting/character.text` →
+
+```json
+{ "chain": [ { "provider": "byteplus-text", "model": "seed-2-0-mini-260428" }, { "provider": "deepseek", "model": "deepseek-flash" } ], "policy": "balanced" }
+```
+
+DeepSeek queda de respaldo explícito (si BytePlus falla o no tiene clave). Para volver atrás, borrar `aiRouting/character.text`.
+
+**Por qué no `aiRouting/text.generate`:** cambiarlo movería a la vez Weë Chef, Studio, Travel… y **no movería a los personajes**: piden DeepSeek por su nombre (`allowedProviders: ['deepseek']`), que recorta cualquier cadena. Weë Brain tampoco se movería, por la misma razón. La cadena por defecto de `text.generate` (gemini → claude → openai) no se toca.
+
+**Tarifa:** `null` en `providers/byteplusText.ts` (`TARIFAS_OFICIALES_BYTEPLUS_TEXTO`) hasta confirmarla en la página oficial de precios de ModelArk para la región de la cuenta. Mientras tanto el libro guarda los tokens reales (`usage`, con `reasoningTokens`) y `providerCost: 0` con `providerMeta.tarifaPendiente: true`. Al confirmarla: ponerla en ese archivo o en `aiProviders/byteplus-text.models["<id>"].cost = { unit: "mtoken", usd: <entrada>, usdOutput: <salida> }`, y el coste medido sale solo. Las acciones del personaje no cobran Credits aparte (van en el pase).
+
+Fuentes oficiales: [Chat API](https://docs.byteplus.com/en/docs/ModelArk/Chat), [compatible con OpenAI](https://docs.byteplus.com/api/docs/ModelArk/1330626), [Chat vs Responses](https://docs.byteplus.com/api/docs/ModelArk/1585128), [precios](https://docs.byteplus.com/docs/modelark/model-pricing). Prueba: `functions/test/byteplus-text.test.mjs`.
+
 ## Proveedores preparados
 
 | Proveedor | Modalidad | Clave | Estado |
@@ -112,6 +140,7 @@ Se editan en la consola de Firestore o con la callable `engineAdmin` (solo uids 
 | FLUX (Black Forest Labs) | imagen y edición con la familia FLUX.2 (`flux-2-pro`, `flux-2-max`, `flux-2-flex`, `flux-2-klein-9b`) y la anterior (`flux-pro-1.1`, `flux-kontext-pro`); hasta 8 imágenes de referencia; cola asíncrona con `polling_url` | `BFL_API_KEY` | contrato según docs.bfl.ai (sept. 2026); pendiente de verificar con clave |
 | ByteDance Seedream | imagen: 5.0 pro (con descomposición en capas), 5.0 lite, 4.5 y 4.0 | `ARK_API_KEY` | pendiente de verificar |
 | MiniMax voz | voz | `MINIMAX_API_KEY` | pendiente de verificar |
+| BytePlus Seed (texto) — `byteplus-text` | texto con historial y sistema por la Chat API de ModelArk (`seed-2-0-lite-260428` equilibrado, por defecto; `seed-2-0-mini-260428` económico; o un `ep-…` de empresa) | `ARK_API_KEY` (+ `ARK_TEXT_MODEL`, `ARK_BASE_URL`) | **desactivado y fuera de toda cadena** (2026-11-23); `DOCUMENTATION_VERIFIED`; tarifa `null` hasta confirmarla; ver § Ruta propia por función |
 | Claude | LLM | `ANTHROPIC_API_KEY` | pendiente de verificar |
 | OpenAI | LLM | `OPENAI_API_KEY` | pendiente de verificar |
 | Música | música y efectos | — | **hueco preparado**; sin Suno hasta tener API oficial con licencia comercial |
@@ -328,7 +357,7 @@ Casos que además fijan el modelo en la cadena, porque la función depende de é
 | `video.*` | Familia Seedance | Decisión de producto (ver Weë Video Engine) |
 
 Funciones donde inventar sería el peor error usan **búsqueda con fuentes**
-(`text.search`): las citas de Weë Writers, la estrategia de Weë Business y el
+(`text.search`): las citas de Weë Writers, la estrategia de Weë Fashion (id `business`) y el
 presupuesto del menú de Weë Chef.
 
 ## Documentos y audio de entrada

@@ -2,7 +2,7 @@
  * ITALIANO — WEË DESIGN: diseñar y visualizar casi cualquier cosa física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Weë Design comparte con Weë Studio —"Mis creaciones", "Ver todas",
+ * Lo que WeëDesign comparte con WeëStudio —"Mis creaciones", "Ver todas",
  * "Creando...", "Creación lista"— vive en `studio` y se lee de allí.
  */
 export const design: typeof import('../es/design').design = {
@@ -90,12 +90,24 @@ export const design: typeof import('../es/design').design = {
   valStudioLight: 'Da studio',
 
   /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
+  kindProduct: 'Prodotto',
   kindInterior: 'Interni',
   kindArchitecture: 'Architettura',
   kindBoat: 'Barca',
   kindFurniture: 'Arredamento',
+  sampleShoe: 'Sneaker in pelle',
+  sampleGuitar: 'Chitarra elettrica',
   sampleLivingRoom: 'Soggiorno luminoso',
   samplePineHouse: 'Casa tra i pini',
   sampleYacht: 'Yacht di 15 metri',
   sampleArmchair: 'Poltrona in legno',
+  /* ── La portada de la demo YC (héroe, creación rápida, Design Studio, explorar) ── */
+  heroLead: 'Progetta',
+  heroAccent: 'senza limiti.',
+  brandingTitle: 'Branding',
+  objects3dTitle: 'Oggetti 3D',
+  designStudioTitle: 'Studio di design',
+  designStudioSub: 'Crea, modifica e visualizza design professionali con l’IA.',
+  openStudio: 'Apri lo studio',
+  fashionHint: 'Disegna abiti, collezioni e altro ancora.',
 };

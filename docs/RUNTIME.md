@@ -107,7 +107,7 @@ código vivo y **ninguna autoridad** en él ([`docs/ALGORITHM-ENGINE.md`](ALGORI
 
 | Pieza | Dónde | En uso (producción) | Estado | Qué hace ahí |
 |---|---|---|---|---|
-| **Algorithm Engine** | `functions/src/core/algorithm/` (A0–A9, S2-A, S2-B y S2-C.1, contrato 1.12) | solo `creator/sombra.ts`, el tercer camino de la sombra del plan, detrás de `aiSettings/sombra` (**cerrada por defecto**, por cuentas, sin comodín) | SOMBRA — sin autoridad de producción | decide sobre el plan del puente, se compara con Legacy y con el plan del Core y se tira. Ni Router, ni proveedor, ni Credits, ni materiales, ni aprendizaje |
+| **Algorithm Engine** | `functions/src/core/algorithm/` (A0–A9, S2-A, S2-B y S2-C.1; contrato **1.12 en main**, **1.9 en producción** —`creatorChat`, desplegada desde `05ab31b`—: S2 no ha corrido nunca en producción) | solo `creator/sombra.ts`, el tercer camino de la sombra del plan, detrás de `aiSettings/sombra` (**cerrada por defecto**, por cuentas, sin comodín) | SOMBRA — sin autoridad de producción | decide sobre el plan del puente, se compara con Legacy y con el plan del Core y se tira. Ni Router, ni proveedor, ni Credits, ni materiales, ni aprendizaje |
 
 **Qué significa exactamente ese SOMBRA.** Que el ciclo (`crearCicloAlgoritmico`) se
 crea desde un módulo vivo —la sombra, y solo ella— pero lo que decide no lo lee ningún
@@ -137,17 +137,17 @@ Estados: `EXISTS` · `PARTIAL` · `MISSING` · `CONNECTED` · `NOT CONNECTED` ·
 | Legacy | `creator/planner.ts`: `getPlanner()` → `templatePlanner` (plantillas de `creator/templates.ts`) o `llmPlanner` |
 | Core | `core/planner.ts` (`crearPlanner`) · composición `planner/index.ts` (`crearPlannerDeWee`) |
 | Consumidor | `screens/CreatorFlowScreen.tsx` → `services/creatorService.ts` → `creatorChat` / `creatorQuote` |
-| Runtime hoy | `creator/index.ts:275` `getPlanner().next(…)` — **Legacy sigue siendo la autoridad de ejecución**. Después de guardar el trabajo, `creator/sombra.ts` calcula EN PARALELO el plan del Core (`crearPlannerDeWee`), compara los dos ejes de `creator/paridad.ts` y lo guarda en `creatorJobs/{id}/private/sombra`. Desde S1, con un tercer camino opcional —el Algorithm Engine decide sobre el plan del puente— que se guarda en la misma sombra. Nada de eso se ejecuta ni se le enseña a nadie |
+| Runtime hoy | `creator/index.ts:357` `getPlanner().next(…)` — **Legacy sigue siendo la autoridad de ejecución**. Después de guardar el trabajo, `creator/sombra.ts` calcula APARTE —esperándola, sin tocar nada y sin autoridad— el plan del Core (`crearPlannerDeWee`), compara los dos ejes de `creator/paridad.ts` y lo guarda en `creatorJobs/{id}/private/sombra`. Desde S1, con un tercer camino opcional —el Algorithm Engine decide sobre el plan del puente— que se guarda en la misma sombra. Nada de eso se ejecuta ni se le enseña a nadie |
 | Runtime objetivo | Brain → Planner del Core → plan de capacidades |
 | Estrategia | **No son la misma función.** El planificador vivo conduce una conversación guiada por plantillas (preguntas con «🤷 No sé») y devuelve un plan por experiencia; el del Core convierte un *entendimiento* de Brain en un plan. Sustituir uno por otro cambiaría el producto (CLAUDE.md § 5 y § 10: las interfaces guiadas son la referencia y el orquestador central «no se adelanta»). El camino es un adaptador: las plantillas pasan a ser una fuente de planes del Planner, no un segundo planificador. No es de este bloque |
 | Puerta | `aiSettings/sombra` — **cerrada por defecto y SIN comodín**: sin lista de cuentas no se abre para nadie. No es la puerta del runtime (`aiSettings/runtime`) y no puede abrirla: la sombra no manda nada a ejecutar |
-| Producción | `creatorJobs`: 3 (los tres de `travel`, un paso `text.search`) |
+| Producción | `creatorJobs`: 3 en la foto de este mapa (los tres de `travel`, un paso `text.search`); la canary de S1 llegó a 4 ([`ALGORITHM-ENGINE.md`](ALGORITHM-ENGINE.md) § 17) |
 
 ### Workflow y Orchestrator — EXISTS · NOT CONNECTED · puerta ABIERTA a nivel de decisión
 
 | | |
 |---|---|
-| Legacy | el bucle de `creatorRun`: `creator/index.ts:463` `while (done.size < steps.length)` — elige el primer paso pendiente con sus dependencias hechas, lo ejecuta y guarda |
+| Legacy | el bucle de `creatorRun`: `creator/index.ts:637` `while (done.size < steps.length)` — elige el primer paso pendiente con sus dependencias hechas, lo ejecuta y guarda |
 | Core | `core/workflow.ts` (`prepararWorkflow`, `crearWorkflowEngine`) y `core/orchestrator.ts` (`crearOrchestrator`) · composiciones `workflow/index.ts`, `orchestrator/index.ts` |
 | Consumidor | `CreatorFlowScreen`, `SpecialistScreen`, `ChefScreen`, `ProjectScreen` → `services/creatorService.ts` → `creatorRun` |
 | Runtime hoy | el `while`. Las composiciones del Core no las carga ninguna ruta de producción |
@@ -240,10 +240,10 @@ módulo vivo. Se conectará con Publication; hoy no hay consumidor que migrar.
 ```
 CreatorFlowScreen
   → services/creatorService.ts
-    → creatorChat   creator/index.ts:186   getPlanner().next()            → creatorJobs (asking)
-    → creatorQuote  creator/index.ts:316   estimatePlan()                 → creatorJobs (planned)
-    → creatorRun    creator/index.ts:401   holdCredits()                  → creditTransactions
-         while (done.size < steps.length)                                  creator/index.ts:463
+    → creatorChat   creator/index.ts:264   getPlanner().next()  (:357)    → creatorJobs (asking)
+    → creatorQuote  creator/index.ts:444   estimatePlan()                 → creatorJobs (planned)
+    → creatorRun    creator/index.ts:552   holdCredits()        (:613)    → creditTransactions
+         while (done.size < steps.length)                                  creator/index.ts:637
            runCapability()                 gateway/index.ts:23
              engine.generate()             engine/index.ts:47
                router.execute()            engine/router.ts  → cadena, salud, límites, respaldo
@@ -294,6 +294,8 @@ Workflow del Core los acepta todos, ninguna de las 15 capacidades que usan falta
 su catálogo, y con un ejecutor de uno en uno el Orchestrator los despacha en el
 orden exacto del `while`. Además sabe algo que el `while` no: en 36 despachos hay
 dos pasos que no dependen entre sí (el clip y la voz de un vídeo) y hoy van en serie.
+
+> **Nota (2026-10-16, Gran Motor):** las cifras «28 capacidades» de esta sección son la MEDIDA DE F12-A, tomada antes de que la misión del mundo 3D añadiera `world.generate`. El registro actual (`engine/registry.ts`, `DEFAULT_ROUTING`) enruta **29** capacidades: las mismas 28 más `world.generate` (comprobado contando `DEFAULT_ROUTING` sobre `lib`). La equivalencia vigente del Router —29 capacidades × 16 escenarios, 0 divergencias injustificadas con la capa de compatibilidad— está en [`GRAN-MOTOR-A-ROUTER.md`](GRAN-MOTOR-A-ROUTER.md). Las medidas históricas no se reescriben.
 
 **P2 — Router.** Con la misma configuración, de las 28 capacidades que producción
 enruta: **6** iguales, **15** distintas y **7** sin proveedor real (hoy caen en modo demo, y el Core las daría por no disponibles). Ejemplos de lo que cambiaría en silencio:
@@ -495,7 +497,7 @@ Seguido por imports y llamadas, no por comentarios. `archivo:línea` en cada sal
 | Capacidad | Ruta de hoy | Ruta objetivo | Diferencia | Riesgo | Estrategia |
 |---|---|---|---|---|---|
 | **Texto de Weë Brain** | `brainChat` (`creator/brain.ts:246`) → `crearBrainDeWee` → pensador en línea → `engine.generate` (`:367`) con `modelId` + `allowedProviders` fijados (`:376`) | el mismo Brain; su pensador ejecuta por el conductor | hoy no hay trabajo, ni intentos, ni recuperación | BAJO: síncrono, 120 s, la liquidación se queda donde está | **primera capacidad a migrar**, detrás de la puerta |
-| **Pasos de texto de `creatorRun`** | `creatorRun` (`creator/index.ts:401`) → `while` (`:463`) → `runCapability` (`gateway/index.ts:23`) → `engine.generate` | workflow → conductor | el `while` no reintenta ni recupera; `deadlineAt` se pierde en `runCapability` | MEDIO: la liquidación es del trabajo entero | después del barrendero y la liquidación |
+| **Pasos de texto de `creatorRun`** | `creatorRun` (`creator/index.ts:552`) → `while` (`:637`) → `runCapability` (`gateway/index.ts:23`) → `engine.generate` | workflow → conductor | el `while` no reintenta ni recupera; `deadlineAt` se pierde en `runCapability` | MEDIO: la liquidación es del trabajo entero | después del barrendero y la liquidación |
 | **Imagen** | igual, con `planImage` fijando un solo proveedor (`engine/image.ts:31`) | igual | sin respaldo entre proveedores, a propósito | MEDIO | con `creatorRun` |
 | **Vídeo** | `creatorRun` → `videoEngine.generate` (`engine/video.ts:148`) → Seedance con sondeo cada 10 s dentro de la Function | trabajo → proveedor acepta → `waiting` → aviso del proveedor | hoy ocupa una Function hasta 25 min; la tarea **no se cancela** en el proveedor si vence | **ALTO** | **no se migra todavía** (§ 11.9) |
 | **Voz** | `creatorRun` → `runCapability` → ElevenLabs › MiniMax | igual | — | MEDIO | con `creatorRun` |
@@ -505,6 +507,8 @@ Seguido por imports y llamadas, no por comentarios. `archivo:línea` en cada sal
 | **`creatorJobs`** | documento escrito a mano; seis estados; sin intentos ni concesión | proyección del trabajo del Core con `ESTADO_CANONICO` | — | MEDIO: el cliente lo lee | los históricos **no se migran**: se quedan como están |
 | **`aiGenerations`** | una fila por intento, la escribe `engine/router.ts` | **las mismas filas**, por el puerto del ejecutor | ninguna en la forma | BAJO | hecho en el tramo 1 |
 | **Cobro de Credits** | reserva (débito real, `AUTHORIZED`) → proveedor → `completeCredits` / `refundCredits`, todo en la misma invocación | **igual, sin tocar** | ninguna | **P0** | § 11.9 |
+
+> **Actualización (integración `integracion/p0-edad-fase1`, 2026-10-07, SIN desplegar):** `index.ts` exporta **38** Functions en el código integrado (37 + `espejoDelPerfilPublico`, el disparador que escribe `publicProfiles`). Las cifras de este apartado son las de la fecha en que se escribió y se conservan como historia; producción no cambia hasta un despliegue autorizado.
 
 Un solo embudo hacia los proveedores (`engine.generate`, cuatro llamadores hoy —ver § 5—) más el avatar.
 Las 30 Functions desplegadas son las 30 que exporta `index.ts`; seis tocan IA.

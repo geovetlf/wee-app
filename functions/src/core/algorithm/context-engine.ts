@@ -187,6 +187,33 @@ export interface OpcionesDelContexto {
   metricas?: readonly DescriptorDeMetrica[];
 }
 
+/**
+ * ¿ESTÁN BIEN FORMADOS LOS REQUISITOS DE LA EVIDENCIA? `[]` si sí; un motivo por campo si no.
+ *
+ * Con la regla de B.1 (`motivoDeNumeroInvalido`) en los TRES números, no solo en
+ * `minConfidence`. `minSampleSize` y `maxAgeMs` se leían con `typeof === 'number'`,
+ * y `NaN` es un número: `n < NaN` y `edad > NaN` son falsos, así que un `NaN` —o un
+ * texto, que ni siquiera se miraba— apagaba el suelo de muestra o el de antigüedad
+ * sin decirlo, y se admitía lo que no debía. Es el mismo fallo que S2-B cerró para
+ * `minConfidence`. Una regla, exportada, porque la usan dos: A8, que con unos
+ * requisitos mal formados no admite nada, y el ciclo, que se para ANTES de A8 con
+ * `context_rejected` —una petición que corregir, no un ámbito sin respuesta—.
+ */
+export const problemasDeLosRequisitos = (req: unknown): readonly string[] => {
+  /* Ausentes, no hay nada que mirar. Algo que no es un objeto —un texto, una lista— apagaría todos los suelos en
+   * silencio, como un `NaN` en uno (revisión de la misión): está mal formado, como `problemasDelPresupuesto`. */
+  if (req === undefined || req === null) return [];
+  if (typeof req !== 'object' || Array.isArray(req)) return [`requirements: no es un objeto (${Array.isArray(req) ? 'array' : typeof req})`];
+  const r = req as Record<string, unknown>;
+  const salida: string[] = [];
+  for (const [campo, rango] of [['minConfidence', 'fraccion'], ['minSampleSize', 'noNegativo'], ['maxAgeMs', 'noNegativo']] as const) {
+    if (r[campo] === undefined) continue;
+    const malo = motivoDeNumeroInvalido(rango, r[campo]);
+    if (malo) salida.push(`requirements.${campo}: ${malo}`);
+  }
+  return salida;
+};
+
 export const crearMotorDeContexto = (opciones: OpcionesDelContexto = {}) => {
   const descriptores = new Map<string, DescriptorDeMetrica>(
     [...METRICAS_BASE, ...(opciones.metricas ?? [])].map((d) => [d.key, d]),
@@ -265,17 +292,17 @@ export const crearMotorDeContexto = (opciones: OpcionesDelContexto = {}) => {
     }
 
     /*
-     * (S2-B · B.1) EL MÍNIMO DE CONFIANZA DE LA DECISIÓN, con la regla de las
-     * restricciones (`motivoDeNumeroInvalido`): un `NaN` o un texto no apagan el
-     * suelo —con `valor < NaN` falso, se admitía todo sin decirlo—. Unos
+     * (S2-B · B.1) LOS REQUISITOS DE LA DECISIÓN, con la regla de las
+     * restricciones (`motivoDeNumeroInvalido`): un `NaN` o un texto no apagan un
+     * suelo —con `valor < NaN` falso, se admitía todo sin decirlo—. Primero fue
+     * `minConfidence`; `minSampleSize` y `maxAgeMs` tenían el mismo hueco y desde la
+     * misión de cierre van por la misma regla (`problemasDeLosRequisitos`). Unos
      * requisitos mal formados no se sirven: no se admite nada, y se dice por qué.
      */
-    if (req.minConfidence !== undefined) {
-      const malo = motivoDeNumeroInvalido('fraccion', req.minConfidence);
-      if (malo) {
-        porque.push(`requirements.minConfidence: ${malo}. Unos requisitos mal formados no se sirven: no se admite nada.`);
-        return vacia();
-      }
+    const requisitosRotos = problemasDeLosRequisitos(req);
+    if (requisitosRotos.length) {
+      porque.push(`${requisitosRotos.join('; ')}. Unos requisitos mal formados no se sirven: no se admite nada.`);
+      return vacia();
     }
     /*
      * (S2-C) Y LOS TOPES DE PENSAR, con la misma regla y el mismo veredicto que A1 y
@@ -539,12 +566,16 @@ export const paraDecision = (c: ConjuntoDeSenales): {
 };
 
 /**
- * PARA EL ROUTER: preparado, y NO consumido por nadie todavía.
+ * PARA EL ROUTER: PREPARADO / NO CONECTADO, por decisión (DD-26).
  *
  * Agrupado por proveedor y modelo, en orden CANÓNICO. Ni una ordenación por
  * rendimiento, ni un «mejor», ni un «recomendado»: eso sería elegir, y elegir
  * es del Router. La política define la frontera; la puntuación ordena dentro de
- * ella; A8 solo entrega la evidencia a quien puntúa, el día que puntúe con ella.
+ * ella. `RouterPorts` no tiene puerto para esto a propósito (registry, policy y
+ * costs; `algorithm-context` V8b): conectarlo es una decisión del Router —y de
+ * cuál: la autoridad de producción es `engine/router.ts` (DD-02)—, y antes hacen
+ * falta lo aprendido persistido (ALGORITHM-ENGINE.md § 13) y alguien que aprenda
+ * por implementación: `cerrar` nunca produce agregados con `providerId`.
  */
 export interface EvidenciaDeRuta {
   providerId: string;

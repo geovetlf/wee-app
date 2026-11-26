@@ -1,5 +1,5 @@
 /*
- * JAPONÉS — Weë Chef: la caja, las ocho funciones con sus paneles, los ajustes de la receta y Mis proyectos.
+ * JAPONÉS — WeëChef: la caja, las ocho funciones con sus paneles, los ajustes de la receta y Mis proyectos.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -16,6 +16,7 @@ export const chef: typeof import('../es/chef').chef = {
   description: 'レシピも献立も、食材のことも。\n家にあるもので作れます。',
 
   placeholder: 'アイデアや食材を入力、または写真を使用',
+  cookPrompt: '何を作りたいか教えてください…',
   addLabel: '写真を追加',
   cameraLabel: '写真を撮る',
   galleryLabel: '写真ライブラリから選択',
@@ -93,4 +94,11 @@ export const chef: typeof import('../es/chef').chef = {
   seeAll: 'すべて表示',
   projectsEmpty: 'Weëで作った料理はまだありません。',
   projectsEmptyHint: 'ここで作ったものは保存され、この一覧からまた開けます。',
+  /* ── La portada de la demo YC (héroe y fichas) ── */
+  heroLead: 'AIシェフが',
+  heroAccent: 'いつもそばに',
+  chipRecipes: 'レシピ',
+  chipMenus: 'メニュー',
+  chipHealthy: 'ヘルシー',
+  chipQuick: '時短',
 };

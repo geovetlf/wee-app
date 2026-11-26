@@ -13,6 +13,14 @@
  * descarga quedan a la vista del grafo en vez de esconderse en un `import()`.
  */
 import { downloadUrlFor, readImage } from './engine/http';
+import { sanitizeForLog } from './engine/sanitize';
+
+/*
+ * Gran Motor S2 (F-04): lo que se registra de una respuesta de Gemini son SUS MOTIVOS (finishReason, blockReason),
+ * nunca su contenido: el texto puede repetir el prompt, que lleva rasgos elegidos por la persona.
+ */
+const geminiReasons = (value: any): string =>
+  JSON.stringify({ finishReason: value?.finishReason ?? null, blockReason: value?.promptFeedback?.blockReason ?? null });
 
 // Project configuration
 // Bucket de Weë: el del proyecto activo (FIREBASE_CONFIG) salvo que STORAGE_BUCKET indique otro
@@ -127,7 +135,7 @@ export async function generateAvatarWithImagen(
   const prompt = buildAvatarPrompt(avatarConfig);
 
   console.log('Generating avatar with Gemini 3 Pro Image Preview...');
-  console.log('Prompt:', prompt.substring(0, 200) + '...');
+  console.log(`Prompt length: ${prompt.length} chars`);
 
   const ai = await getGenAI();
 
@@ -149,7 +157,7 @@ export async function generateAvatarWithImagen(
       'Avatar generation',
     );
   } catch (err: any) {
-    console.error('Gemini generateContent failed:', err.message || err);
+    console.error('Gemini generateContent failed:', sanitizeForLog(err, 300));
     throw err;
   }
 
@@ -158,13 +166,13 @@ export async function generateAvatarWithImagen(
 
   const candidates = response.candidates;
   if (!candidates || candidates.length === 0) {
-    console.error('Gemini response had no candidates:', JSON.stringify(response).substring(0, 500));
+    console.error('Gemini response had no candidates:', geminiReasons(response));
     throw new Error('No candidates in Gemini response');
   }
 
   const parts = candidates[0].content?.parts;
   if (!parts) {
-    console.error('Gemini response had no parts:', JSON.stringify(candidates[0]).substring(0, 500));
+    console.error('Gemini response had no parts:', geminiReasons(candidates[0]));
     throw new Error('No parts in Gemini response');
   }
 
@@ -179,7 +187,7 @@ export async function generateAvatarWithImagen(
   // Log text responses for debugging
   for (const part of parts) {
     if (part.text) {
-      console.error('Gemini returned text instead of image:', part.text);
+      console.error('Gemini returned text instead of image:', `${String(part.text).length} chars`);
     }
   }
 
@@ -287,7 +295,7 @@ export async function replacePersonWithAvatar(
       'Person replacement',
     );
   } catch (err: any) {
-    console.error('Gemini generateContent failed:', err.message || err);
+    console.error('Gemini generateContent failed:', sanitizeForLog(err, 300));
     throw err;
   }
 
@@ -296,13 +304,13 @@ export async function replacePersonWithAvatar(
 
   const candidates = response.candidates;
   if (!candidates || candidates.length === 0) {
-    console.error('Gemini response had no candidates:', JSON.stringify(response).substring(0, 500));
+    console.error('Gemini response had no candidates:', geminiReasons(response));
     throw new Error('No candidates in Gemini response');
   }
 
   const parts = candidates[0].content?.parts;
   if (!parts) {
-    console.error('Gemini response had no parts:', JSON.stringify(candidates[0]).substring(0, 500));
+    console.error('Gemini response had no parts:', geminiReasons(candidates[0]));
     throw new Error('No parts in Gemini response');
   }
 
@@ -317,7 +325,7 @@ export async function replacePersonWithAvatar(
   // Log any text response for debugging
   for (const part of parts) {
     if (part.text) {
-      console.error('Gemini returned text instead of image:', part.text);
+      console.error('Gemini returned text instead of image:', `${String(part.text).length} chars`);
     }
   }
 

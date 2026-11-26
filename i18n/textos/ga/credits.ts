@@ -1,0 +1,52 @@
+/*
+ * IRLANDÉS — Credits: el saldo, la recarga y el historial. «Credits» es marca y no se traduce
+ * (nunca «Creidmheasanna»); todo lo que lo rodea, sí. Ni los precios ni los cálculos pasan por aquí.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ */
+export const credits: typeof import('../es/credits').credits = {
+  title: 'Credits',
+  available: 'Credits ar fáil',
+  yourBalance: 'D\'iarmhéid',
+  currentBalance: 'Iarmhéid reatha',
+  free: 'Saor in aisce',
+  testTopUp: 'Breisiú tástála',
+  testTopUpReady: 'Breisiú tástála réidh',
+  testPrices: 'Praghsanna tástála fad atá Weë AI á thógáil againn',
+  topUp: 'Breisigh',
+  seeHistory: 'Féach ar an stair →',
+  seeHistoryLabel: 'Féach ar an stair',
+  history: 'Stair',
+  myWallet: 'Mo sparán',
+  earned: 'Faighte',
+  spent: 'Úsáidte',
+  noMovements: 'Gan idirbhearta fós',
+  testTopUpDone: '{{cantidad}} Credits curtha le do chuntas. Breisiú tástála atá ann: níor gearradh rud ar bith.',
+  balanceAfter: 'Iarmhéid: {{saldo}}',
+  topUpFailed: 'Níorbh fhéidir an breisiú a chur i gcrích. Bain triail eile as.',
+  terms: 'Breisiú tástála: ní ghearrtar rud ar bith fós. Tiocfaidh na praghsanna deiridh nuair a úsáidfidh Weë AI a chuid fíor-IS; idir an dá linn, taispeánann gach cruthú a chostas tástála sula dtosaíonn sé.',
+  youHaveLabel: 'Tá {{saldo}} Credits agat',
+  topUpButton: 'Breisigh {{cantidad}} Credits · tástáil',
+  txPurchase: 'Ceannach Credits',
+  txGrant: 'Credits faighte',
+  txRefund: 'Aisíocaíocht',
+  txUsage: 'Úsáid Credits',
+  txRefunded: 'Aisíoctha',
+  txPending: 'Ar siúl',
+  purchasesComingSoon: 'Beidh ceannach Credits ar fáil go luath. Ní féidir breisiú a dhéanamh anseo faoi láthair.',
+  topUpFailedTitle: 'Úps',
+  /* Migración de la UI (demo YC) integrada en el proyecto i18n global, 2026-11-05: traducción de IA, pendiente de revisión nativa. */
+  buyTitle: 'Cé mhéad Credits atá uait?',
+  buyRate: '{{precio}} = {{cantidad}} Credits',
+  buyButton: 'Ceannaigh {{cantidad}} Credits · {{precio}}',
+  buyLess: 'Níos lú',
+  buyMore: 'Níos mó',
+  buyNoticeTitle: 'Níl na híocaíochtaí ceangailte fós',
+  buyNoticeBody: 'Níor gearradh rud ar bith agus níor athraigh d\'iarmhéid.',
+  buyChecking: 'An siopa á sheiceáil…',
+  buyCatalogError: 'Níorbh fhéidir teacht ar an siopa. Tapáil chun triail eile a bhaint as.',
+  buyMarketUnavailable: 'Níl íocaíochtaí san airgeadra seo ar fáil fós. Níor gearradh rud ar bith.',
+  historyLoading: 'Idirbhearta á lódáil…',
+  historyError: 'Níorbh fhéidir an stair a lódáil.',
+  historyRetry: 'Bain triail eile as',
+};

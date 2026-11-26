@@ -1,5 +1,5 @@
 /*
- * CHINO TRADICIONAL (TAIWÁN) — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * CHINO TRADICIONAL (TAIWÁN) — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -19,8 +19,8 @@
  * `_other`. Lo que sí lleva el chino es clasificador: 票 para los votos, 張 para
  * las imágenes, 天 y 小時 para lo que queda, 則 para las publicaciones.
  *
- * Weë, Wäll, Weëls, Weël y WeeTalk se quedan en alfabeto latino dentro del hanzi:
- * son marca, y eso significa no traducir Y NO PASAR A HANZI. Nada de 牆 por Wäll.
+ * Weë, Ẅall, Weëls, Weël y WeeTalk se quedan en alfabeto latino dentro del hanzi:
+ * son marca, y eso significa no traducir Y NO PASAR A HANZI. Nada de 牆 por Ẅall.
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} 轉發了這則貼文',
@@ -83,7 +83,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: '留言',
   commentImageFailed: '無法上傳圖片，請再試一次。',
   commentSendFailed: '無法送出留言，請再試一次。',
-  shareText: '{{contenido}}\n\n創作於 Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\n創作於 Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: '來 Weë 看看這則貼文',
   commentsWithCount: '留言（{{total}}）',
   agreeWithComment: '贊同這則留言',
@@ -92,4 +92,22 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: '隱藏提示詞',
   copyPrompt: '複製提示詞',
   promptCopied: '已複製',
+  demoBadge: '示範',
+  demoBadgeLabel: '示範內容',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Ẅall 上還沒有貼文',
+  immersiveError: '無法載入 Ẅall',
+  immersiveEnd: '你已經看完了',
+  agreePost: '贊同',
+  disagreePost: '反對',
+  mute: '靜音',
+  unmute: '開啟聲音',
+  moreOptions: '更多選項',
+  seeMore: '展開',
+  seeLess: '收起',
+  openPost: '開啟貼文',
+  imageOf: '第 {{numero}}/{{total}} 張圖片',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: '火',
+  reactionLaugh: '笑',
 };

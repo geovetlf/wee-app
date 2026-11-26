@@ -149,7 +149,7 @@ console.log('\n── B · Ninguna partícula variable pegada a un hueco ──'
    */
   const VOCAL = { 는: 1, 가: 1, 를: 1, 와: 1, 로: 1 };
   const CONSONANTE = { 은: 1, 이: 1, 을: 1, 과: 1, 으로: 1 };
-  const MARCAS = /(Weë Brain|Weë AI|Weë Studio|Weë Travel|Weë Business|Weë Credits|WeeTalk|ËContact|Weëls|Credits|Weë)(은|는|이|가|을|를|와|과|으로|로)/gu;
+  const MARCAS = /(Weë Brain|Weë AI|Weë Studio|Weë Travel|Weë Business|Weë Fashion|Weë Credits|WeeTalk|ËContact|Weëls|Credits|Weë)(은|는|이|가|을|를|와|과|으로|로)/gu;
   const series = new Map();
   for (const modulo of modulos) {
     const ko = claves('ko', modulo);

@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useProduccion, nuevoIdDeEscena, nuevoIdDePlano } from '../hooks/useProduccion';
@@ -23,6 +23,7 @@ import { estadosDeLaProduccion, tituloDesdeLaIdea } from '../utils/presentacionD
 import { fraseDelFallo } from '../utils/mensajesDeFilmmaker';
 import { notify } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 type Ruta = RouteProp<MainStackParamList, 'Production'>;
 
@@ -33,7 +34,7 @@ type Ruta = RouteProp<MainStackParamList, 'Production'>;
  *
  *   · con `productionId`, la producción abierta: su cabecera, el storyboard
  *     —escenas y planos—, la línea de tiempo y el panel Director;
- *   · sin él, lo que se escribió en Weë Studio a punto de convertirse en
+ *   · sin él, lo que se escribió en WeëStudio a punto de convertirse en
  *     producción (si se escribió algo) y tus producciones de verdad.
  *
  * Todo pasa por el servicio (`services/filmmakerService.ts`) y el estado
@@ -58,7 +59,7 @@ const InicioDeProducciones: React.FC<{ idea?: string; creativo?: Readonly<Record
   const hayIdea = !!idea?.trim();
   const volver = useCallback(() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Studio')), [navigation]);
   return (
-    <CreatorShell activeId="studio" overline={t('filmmaker.sectionName')} title={hayIdea ? t('filmmaker.newProduction') : t('filmmaker.myProductions')} breadcrumb="Weë Studio" onBack={volver}>
+    <CreatorShell activeId="studio" overline={t('filmmaker.sectionName')} title={hayIdea ? t('filmmaker.newProduction') : t('filmmaker.myProductions')} breadcrumb="WeëStudio" onBack={volver}>
       <View style={styles.columna}>
         {hayIdea && (
           <ProductionNewCard
@@ -198,6 +199,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
                   accessibilityLabel={v === 'storyboard' ? t('filmmaker.storyboard') : t('filmmaker.director')}
                   style={[styles.pestana, { backgroundColor: vistaMovil === v ? theme.colors.accent : theme.colors.card, borderColor: vistaMovil === v ? theme.colors.accent : theme.colors.border }]}
                 >
+                  <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={vistaMovil !== v} />
                   <Text style={[styles.pestanaTexto, { color: vistaMovil === v ? '#1F2937' : theme.colors.text }]}>
                     {v === 'storyboard' ? t('filmmaker.storyboard') : t('filmmaker.director')}
                   </Text>
@@ -212,7 +214,7 @@ const ProduccionAbierta: React.FC<{ productionId: string }> = ({ productionId })
   }
 
   return (
-    <CreatorShell activeId="studio" overline={t('filmmaker.sectionName')} title={titulo} breadcrumb="Weë Studio" onBack={volver}>
+    <CreatorShell activeId="studio" overline={t('filmmaker.sectionName')} title={titulo} breadcrumb="WeëStudio" onBack={volver}>
       {contenido}
     </CreatorShell>
   );
@@ -229,4 +231,4 @@ const styles = StyleSheet.create({
   pestanaTexto: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.semibold as any },
 });
 
-export default enTemaClaro(ProductionScreen);
+export default enTemaOscuro(ProductionScreen);

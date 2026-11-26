@@ -55,6 +55,20 @@ console.log('\n── A · «Mis creaciones»: sus estados, y de quién es ─�
   check('9) borrar pide confirmación que funciona también en web', /confirmAction\(t\('creaciones\.delete'\), t\('creaciones\.deleteConfirm'\), t\('creaciones\.delete'\), true, t\)/.test(pantalla) && /assetsService\.eliminar\(asset\.assetId\)/.test(pantalla));
   check('10) abrir una creación vuelve a su trabajo, si lo tiene', /navigation\.navigate\('CreatorFlow', \{ experienceId, jobId: asset\.provenance\.jobId \}\)/.test(pantalla));
   check('11) vive dentro de Weë AI, con su entrada en el menú', /activeId="creations"/.test(pantalla) && /creations/.test(leer('constants/weeMenu.ts')));
+  /*
+   * La App pinta la biblioteca rediseñada (N, 2026-11-05) con su propia galería —`RejillaDeCreaciones` sigue siendo
+   * la de Weë Creator—: la misma lista, el mismo «cargar más», y además descargar desde la tarjeta con el servicio de
+   * descargas de siempre.
+   */
+  const galeria = leer('components/biblioteca/GaleriaDeCreaciones.tsx');
+  check('5b) la App pinta su galería con la misma lista y el mismo «cargar más»',
+    /<GaleriaDeCreaciones items=\{estado\.items\} columnas=\{columnas\} onOpen=\{abrir\} onDelete=\{eliminar\} onDownload=\{descargar\} \/>/.test(pantalla)
+    && (pantalla.match(/estado\.pagina\.hayMas && \(/g) || []).length === 2 && (pantalla.match(/t\('creaciones\.loadMore'\)/g) || []).length === 2);
+  check('5c) descargar desde la tarjeta: el servicio de siempre, y lo 3D pasa por lo que su licencia deja hacer',
+    /const resultado = await descargarCreacion\(url, asset\.kind, asset\.mimeType\);/.test(pantalla)
+    && /if \(asset\.kind === 'world' \|\| asset\.kind === 'model3d'\) \{\s*void abrirTresD\(asset, asset\.kind, url\);/.test(pantalla)
+    && /t\('creaciones\.download'\)/.test(galeria) && /vista\.estado === 'disponible'/.test(galeria));
+  check('5d) la galería tampoco enseña identificadores, proveedores ni porcentajes', !/provenance\.|%\s*\}|progress/i.test(sinComentarios(galeria)));
   check('12) y todos sus textos pasan por i18n', !/(title|label)=["'][A-Za-zÁ-ú ]{4,}["']/.test(sinComentarios(pantalla).replace(/t\([^)]*\)/g, '')));
 }
 

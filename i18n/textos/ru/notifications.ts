@@ -36,6 +36,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} опубликовал(а) в {{comunidad}}',
   aCommunity: 'одном из сообществ',
   generic: '{{nombre}} взаимодействовал(а) с вами',
+  characterNotice: '{{nombre}} оставляет вам уведомления на проверку',
   now: 'сейчас',
   markAllRead: 'Отметить все как прочитанные',
   all: 'Все',

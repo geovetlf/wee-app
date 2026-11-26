@@ -18,6 +18,8 @@ import { useNavigation } from '@react-navigation/native';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
 
 import { notify } from '../utils/notify';
+import { MARCA } from '../constants/marca';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 const LoginScreen: React.FC = () => {
   const { t, idioma } = useIdioma();
   const [email, setEmail] = useState('');
@@ -185,7 +187,7 @@ const LoginScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#F5B731" />
+        <ActivityIndicator size="large" color={MARCA.primario} />
         <Text style={styles.loadingText}>{t('auth.signingIn')}</Text>
       </View>
     );
@@ -218,7 +220,7 @@ const LoginScreen: React.FC = () => {
             {/* Logo y título */}
             <View style={styles.header}>
               <Image
-                source={require('../assets/images/weelogo-vertical.png')}
+                source={require('../assets/images/weelogo.png')}
                 style={styles.logo}
                 resizeMode="contain"
               />
@@ -277,6 +279,7 @@ const LoginScreen: React.FC = () => {
 
               {/* Login Button */}
               <TouchableOpacity style={styles.primaryButton} onPress={handleEmailLogin}>
+                <RellenoDeMarca radio={10} />
                 <Text style={styles.primaryButtonText}>{t('menu.signIn')}</Text>
               </TouchableOpacity>
 
@@ -361,9 +364,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 28,
   },
+  /* El logotipo horizontal, con «Weë» en gris oscuro: el vertical lleva la palabra en blanco y sobre este fondo blanco no se veía. */
   logo: {
-    width: 120,
-    height: 120,
+    width: 180,
+    height: 53,
     marginBottom: 16,
   },
   title: {
@@ -425,17 +429,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   forgotPasswordText: {
-    color: '#F5B731',
+    /* Enlaces sobre blanco: la punta honda del acento, que se lee mejor que el ámbar. */
+    color: MARCA.primarioOscuro,
     fontSize: 12,
     fontWeight: '500',
   },
   primaryButton: {
-    backgroundColor: '#F5B731',
+    backgroundColor: MARCA.primario,
     borderRadius: 10,
     padding: 12,
     alignItems: 'center',
     marginBottom: 14,
-    shadowColor: '#F5B731',
+    shadowColor: MARCA.primario,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -462,6 +467,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   googleButton: {
+    /* gap y no marginRight en el icono: el margen no se refleja en RTL y el icono quedaba pegado al texto. */
+    gap: 10,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#E5E7EB',
@@ -475,7 +482,6 @@ const styles = StyleSheet.create({
   googleLogo: {
     width: 17,
     height: 17,
-    marginRight: 10,
   },
   googleButtonText: {
     color: '#1F2937',
@@ -483,6 +489,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   anonymousButton: {
+    /* gap y no marginRight en el icono: el margen no se refleja en RTL y el icono quedaba pegado al texto. */
+    gap: 10,
     backgroundColor: '#F9FAFB',
     borderRadius: 10,
     padding: 12,
@@ -494,7 +502,6 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
   },
   anonymousIcon: {
-    marginRight: 10,
   },
   anonymousButtonText: {
     color: '#1F2937',
@@ -512,7 +519,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   registerLink: {
-    color: '#F5B731',
+    color: MARCA.primarioOscuro,
     fontSize: 12,
     fontWeight: '600',
   },

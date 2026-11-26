@@ -16,6 +16,12 @@
  * los datos de verdad no cambian —Hunyuan World sigue DISABLED y en revisión, lo comprueba el final—. No está en
  * `npm test`: necesita los emuladores y Java 21.
  *
+ * Los ENLACES DEL MUNDO Y DE SU VISTA PREVIA son https y con nombre de dominio (Bloque B2, 2026-11-06): desde el paquete E
+ * del Gran Motor el materializador solo descarga de un destino así (`destinoDeResultadoPermitido`: nada de http, IP ni
+ * nombres internos) y un `http://127.0.0.1` se rechazaba sin traer nada. La puerta no se toca: fal de mentira da enlaces
+ * `https://…invalid` —un dominio que no existe en ningún DNS— y el `fetch` de esta prueba desvía SOLO ese nombre al mismo
+ * servidor local (hace de CDN). La API de la cola sigue en 127.0.0.1, como siempre.
+ *
  *   firebase emulators:exec --only firestore,storage --project demo-wee-mundo \
  *     "node functions/test/mundo3d.emulator.mjs"
  */
@@ -24,6 +30,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { instalarCdnDePrueba } from './_cdn-de-prueba.mjs';
 
 const PROY = process.env.GCLOUD_PROJECT || '';
 if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_STORAGE_EMULATOR_HOST) {
@@ -32,6 +39,8 @@ if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_STORAGE_EMULAT
 if (!PROY.startsWith('demo-')) { console.log('✘ solo contra un proyecto de demostración'); process.exit(1); }
 
 /* ── fal de mentira, en esta máquina ───────────────────────────────────── */
+/* El CDN de los archivos: un nombre https que pasa la puerta del materializador y que el `fetch` de abajo sirve desde 127.0.0.1. */
+const CDN_DE_PRUEBA = 'https://cdn.prueba-mundo.invalid';
 const MODELO = 'fal-ai/hunyuan_world/image-to-world';
 const CLAVE = 'clave-de-prueba-que-no-es-real';
 const tareas = new Map(); /* id → { status, falla?, cancelada? } */
@@ -79,8 +88,8 @@ const servidor = http.createServer((req, res) => {
   if (tarea.cancelada) return enviar(400, { detail: 'Request was cancelled' });
   if (tarea.falla) return enviar(422, { detail: 'la generación falló' });
   return enviar(200, {
-    world_file: { url: `${base}/files/${m[1]}/world.bin`, content_type: 'application/octet-stream', file_name: 'world.bin', file_size: MUNDO.length },
-    preview_image: { url: `${base}/files/${m[1]}/vista.png`, content_type: 'image/png', file_name: 'vista.png', file_size: PNG.length },
+    world_file: { url: `${CDN_DE_PRUEBA}/files/${m[1]}/world.bin`, content_type: 'application/octet-stream', file_name: 'world.bin', file_size: MUNDO.length },
+    preview_image: { url: `${CDN_DE_PRUEBA}/files/${m[1]}/vista.png`, content_type: 'image/png', file_name: 'vista.png', file_size: PNG.length },
   });
 });
 await new Promise((ok) => servidor.listen(0, '127.0.0.1', ok));
@@ -88,6 +97,8 @@ process.env.FAL_QUEUE_URL = `http://127.0.0.1:${servidor.address().port}`;
 process.env.FAL_KEY = CLAVE;
 if (!/^http:\/\/127\.0\.0\.1:\d+$/.test(process.env.FAL_QUEUE_URL)) { console.log('✘ la cola de fal no apunta a esta máquina'); process.exit(1); }
 const pasar = (id, status, extra = {}) => tareas.set(id, { ...tareas.get(id), ...extra, status });
+/* El CDN de prueba (_cdn-de-prueba.mjs): SOLO `CDN_DE_PRUEBA` se desvía a este servidor; nada más cambia. */
+instalarCdnDePrueba(CDN_DE_PRUEBA, servidor);
 
 /* ── Weë, de verdad ───────────────────────────────────────────────────── */
 const require = createRequire(import.meta.url);
@@ -96,6 +107,8 @@ const admin = require('firebase-admin');
 admin.initializeApp({ projectId: PROY, storageBucket: `${PROY}.appspot.com` });
 const db = admin.firestore();
 const lib = (p) => require(path.resolve(here, '../lib', p));
+/* Cuenta Weë válida (identity/sesion.ts): estas cuentas de prueba se dan por enroladas; el enrolamiento tiene su suite (edad-minima, guest-sin-ia). */
+lib('identity/sesion.js').enrolamiento.leer = async () => true;
 const mundo = lib('creator/mundo.js');
 const rt = lib('runtime/index.js');
 const { creditEngine } = lib('credits/creditEngine.js');
@@ -137,6 +150,8 @@ for (const [letra, pais] of Object.entries(PAISES)) {
   const uid = cuentaDe(letra);
   await db.collection('users').doc(`doc_${uid}`).set({ uid, displayName: uid, ...(pais ? { country: pais } : {}) });
   await creditEngine.ensureAccount(uid);
+  // F-06: el saldo vive en creditAccounts (fuente canónica). El espejo de users lo mantiene el motor.
+  await db.collection('creditAccounts').doc(uid).update({ creditsBalance: SALDO });
   await db.collection('users').doc(`doc_${uid}`).update({ creditsBalance: SALDO });
 }
 /* La puerta, abierta SOLO para las cuentas de la prueba (X se queda fuera); fal, encendido en la configuración. */
@@ -151,7 +166,7 @@ const foto = async (uid) => {
   return `gs://${bucket.name}/${ruta}`;
 };
 const peticion = async (uid, extra = {}) => ({ contract: '1.0', modo: 'desde_imagen', imagen: { tipo: 'storage', url: await foto(uid) }, descripcion: 'Una plaza medieval abandonada', ...extra });
-const llamar = (uid, data) => intento(() => mundo.generateWorld.run({ auth: { uid }, data }));
+const llamar = (uid, data) => intento(() => mundo.generateWorld.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid }, data }));
 const uso = async (requestId) => (await db.collection('creditTransactions').doc(`usage_${requestId}`).get()).data();
 const saldo = async (uid) => (await db.collection('users').doc(`doc_${uid}`).get()).get('creditsBalance');
 const reembolsos = async (requestId) => (await db.collection('creditTransactions').where('requestId', '==', requestId).get()).docs.filter((d) => d.get('type') === 'refund');
@@ -181,8 +196,8 @@ console.log('\n── No disponible, sin mover nada ──');
   const region = await llamar(cuentaDe('S'), { op: 'crear', requestId: 'emu-mundo-S', creditosCotizados: 39, peticion: await peticion(cuentaDe('S')) });
   const sinPais = await llamar(cuentaDe('N'), { op: 'cotizar', peticion: await peticion(cuentaDe('N')) });
   check('puerta cerrada para la cuenta → «no disponible»; en España (bloqueada, aprobado en EE. UU.) → «no disponible en tu región»; sin país declarado → «falta tu país»',
-    codigo(cerrada) === 'failed-precondition · NOT_AVAILABLE · no_disponible' && codigo(region) === 'failed-precondition · NOT_AVAILABLE · en_tu_region'
-    && codigo(sinPais) === 'failed-precondition · NOT_AVAILABLE · falta_tu_pais', [cerrada, region, sinPais].map(codigo).join(' | '));
+    codigo(cerrada) === 'failed-precondition · NOT_AVAILABLE · no_disponible' && codigo(region) === 'failed-precondition · NOT_AVAILABLE · no_disponible'
+    && codigo(sinPais) === 'failed-precondition · NOT_AVAILABLE · no_disponible', [cerrada, region, sinPais].map(codigo).join(' | '));
   check('…y ninguno movió nada: ni una reserva, ni un Credit, ni un POST, ni un nombre de proveedor en lo que llega a la app',
     !(await uso('emu-mundo-S')) && (await saldo(cuentaDe('S'))) === SALDO && cuenta.post === 0
     /* «falta_tu_pais» lleva «fal» dentro: se busca el nombre del proveedor como palabra, y el país como valor exacto. */

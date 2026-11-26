@@ -1,0 +1,32 @@
+{
+  "displayName": "Weë · caído (comprobación externa)",
+  "documentation": {
+    "content": "Una comprobación externa falla. Si es get-wee.web.app (/post/…), las Functions no responden: la caída de H0 (12:33Z–17:53Z) fue por facturación, mira primero la cuenta de facturación. Si es www.wee.zone, la web pública no carga: mira el despliegue que sirve Vercel (con el freno, un push no lo cambia solo). docs/OBSERVABILITY.md",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "La comprobación de salud falla",
+      "conditionThreshold": {
+        "filter": "metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\" AND resource.type=\"uptime_url\" AND (resource.label.host=\"get-wee.web.app\" OR resource.label.host=\"www.wee.zone\")",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 1,
+        "duration": "60s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "1200s",
+            "perSeriesAligner": "ALIGN_NEXT_OLDER",
+            "crossSeriesReducer": "REDUCE_COUNT_FALSE",
+            "groupByFields": [
+              "resource.label.host"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "86400s"
+  }
+}

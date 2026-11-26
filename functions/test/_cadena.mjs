@@ -76,6 +76,24 @@ export const avisoDeLib = ({ faltan, viejos, huerfanos }) => {
   ].join('\n');
 };
 
+/*
+ * LÍMITE POR SUITE (Guardian · cadena, 2026-10-15). El límite de 600 s por suite es un cortafuegos contra cuelgues, no una cota de rendimiento.
+ * Medido (_cmd-hang/instr-*.json, 4 núcleos físicos / 8 lógicos, paralelo 4): las suites que lanzan miles de procesos `node` se vuelven 2-5 veces
+ * más lentas cuando corren a la vez que otras iguales, SIN saturar la CPU (utilización media 44-72 %: el cuello es la creación de procesos, no el
+ * cálculo). `guardia-envoltorios`: 288 s sola, 600 s en cadena (599,8 s en una tanda que pasó por 0,2 s y 600,0 s —cortada— en otras tres);
+ * `guardia-envoltorios2`: 147 s sola, 440-570 s en cadena; `guardia-cmd-colgado`: 97 s sola, 350-477 s en cadena.
+ * SOLO se AMPLÍA el cortafuegos de esas tres (≈ 6× y 8× su tiempo solo); el resto sigue con el global (`--limite-s`, 600 por defecto). NO se
+ * relaja ninguna cota de las suites ni se omite ninguna, y una suite que falle sigue contando como fallo o INTERMITENTE (ver `correr`).
+ * Un límite solo se añade aquí con la medición que lo justifica, por escrito.
+ */
+export const LIMITES_POR_SUITE_S = {
+  'test/guardia-envoltorios.test.mjs': 1800,
+  'test/guardia-envoltorios2.test.mjs': 1200,
+  'test/guardia-cmd-colgado.test.mjs': 1200,
+};
+/** El límite de una suite: el global, o el de `LIMITES_POR_SUITE_S` si es MAYOR (nunca se baja por debajo del global). */
+export const limiteDe = (suite, limiteMs, limites = LIMITES_POR_SUITE_S) => Math.max(limiteMs, (limites[suite] || 0) * 1000);
+
 const correrUna = (suite, limiteMs) => new Promise((resolve) => {
   const inicio = Date.now();
   const hijo = spawn(process.execPath, [suite], { cwd: FUNCIONES, env: process.env });
@@ -90,14 +108,14 @@ const correrUna = (suite, limiteMs) => new Promise((resolve) => {
 });
 
 /*
- * UNA SUITE QUE FALLA CON CARGA SE REPITE UNA VEZ, SOLA.
+ * UNA SUITE QUE FALLA SE REPITE UNA VEZ, SOLA, PARA SABER QUÉ FUE — NUNCA PARA DARLA POR BUENA.
  *
- * Catorce suites miden tiempos (p. ej. «el coste por decisión no crece con N»),
- * y con cuatro a la vez —o con la CPU compartida de la CI— una medida puede
- * salir torcida sin que el código haya cambiado. Al terminar la tanda, cada
- * suite que falló se repite una vez, sola: un fallo de verdad falla las dos
- * veces y la cadena sale en rojo; uno de carga pasa sola, y se DICE (nunca se
- * esconde). `--sin-repetir` desactiva esto.
+ * (Guardian · pruebas intermitentes, 2026-10-15.) Antes, una suite que fallaba con carga y pasaba al repetirla sola contaba como
+ * VERDE «con una nota». Eso esconde el problema: un fallo que desaparece al repetir sigue siendo un fallo, de una prueba defectuosa,
+ * de una carrera, de un orden o del entorno, y alguien tiene que averiguarlo. Ahora la repetición solo CLASIFICA: si pasa sola, la
+ * suite queda como INTERMITENTE —`ok: false`, la cadena sale en rojo, y se imprimen las dos salidas— y la causa se investiga
+ * (`node ops/guardian/verificar.mjs --dominios <d> --estabilidad 20` mide la tasa) y se corrige. Un fallo de verdad falla las dos
+ * veces y también sale en rojo. `--sin-repetir` desactiva la clasificación.
  */
 export const correr = async ({ suites, paralelo, limiteMs, alTerminar, repetir = true, correrSuite = correrUna }) => {
   const resultados = new Array(suites.length);
@@ -105,7 +123,7 @@ export const correr = async ({ suites, paralelo, limiteMs, alTerminar, repetir =
   const trabajador = async () => {
     while (siguiente < suites.length) {
       const i = siguiente++;
-      resultados[i] = await correrSuite(suites[i], limiteMs);
+      resultados[i] = await correrSuite(suites[i], limiteDe(suites[i], limiteMs));
       alTerminar(resultados[i]);
     }
   };
@@ -113,9 +131,9 @@ export const correr = async ({ suites, paralelo, limiteMs, alTerminar, repetir =
   if (repetir) {
     for (let i = 0; i < resultados.length; i++) {
       if (resultados[i].ok) continue;
-      const sola = await correrSuite(suites[i], limiteMs);
+      const sola = await correrSuite(suites[i], limiteDe(suites[i], limiteMs));
       if (sola.ok) {
-        resultados[i] = { ...sola, repetida: true, salidaConCarga: resultados[i].salida };
+        resultados[i] = { ...resultados[i], ok: false, intermitente: true, salidaConCarga: resultados[i].salida, salidaSola: sola.salida, msSola: sola.ms };
         alTerminar(resultados[i]);
       }
     }
@@ -140,16 +158,16 @@ const principal = async () => {
   const resultados = await correr({
     suites, paralelo, limiteMs, repetir: !args.includes('--sin-repetir'),
     alTerminar: (r) => {
-      if (r.repetida) { console.log(`✔ [sola] ${r.suite} pasó al repetirla sola (había fallado con carga) (${(r.ms / 1000).toFixed(1)} s)`); return; }
+      if (r.intermitente) { console.log(`✘ [intermitente] ${r.suite} falló y pasó al repetirla sola: INTERMITENTE, NO es un verde (la causa sigue sin resolver)`); return; }
       hechas++;
       console.log(`${r.ok ? '✔' : '✘'} [${String(hechas).padStart(3)}/${suites.length}] ${r.suite} (${(r.ms / 1000).toFixed(1)} s)`);
     },
   });
 
-  const repetidas = resultados.filter((r) => r.repetida);
+  const repetidas = resultados.filter((r) => r.intermitente);
   for (const r of repetidas) {
     const torcidas = r.salidaConCarga.split('\n').filter((l) => /^\s*✘/.test(l));
-    console.log(`\n· ${r.suite} falló con carga y pasó sola: ${torcidas.join(' | ') || 'sin detalle'}`);
+    console.log(`\n──────── ✘ INTERMITENTE: ${r.suite} ────────\nfalló: ${torcidas.join(' | ') || 'sin detalle'}\nrepetida sola: pasó. No es un verde: investígala (¿carrera, orden, estado compartido, medida sensible a la carga?).`);
   }
   const fallidas = resultados.filter((r) => !r.ok);
   for (const r of fallidas) {
@@ -161,7 +179,7 @@ const principal = async () => {
   /* Las líneas ✔ de cada suite, sin su línea de cierre («✔ todo bien», «✔ Todo en orden»…). */
   const comprobaciones = resultados.reduce((n, r) => n + (r.salida.match(/^\s*✔(?!\s*todo (bien|en orden))/gim) || []).length, 0);
   console.log(`\n${fallidas.length ? '✘' : '✔'} ${resultados.length - fallidas.length}/${resultados.length} suites`
-    + `${repetidas.length ? ` (${repetidas.length} tras repetirlas solas)` : ''}`
+    + `${repetidas.length ? ` (${repetidas.length} INTERMITENTES: pasaron al repetirlas solas y NO cuentan como verde)` : ''}`
     + ` · ${comprobaciones} comprobaciones ✔ · ${((Date.now() - inicio) / 1000).toFixed(0)} s`);
   process.exit(fallidas.length ? 1 : 0);
 };

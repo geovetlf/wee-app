@@ -70,7 +70,7 @@ console.log('\n── A · Ni un texto de interfaz escrito a mano ──');
    * a mano —la pista de accesibilidad de la lupa— pasó a `home.searchHint` al
    * entrar el japonés, así que vuelve a estar vigilado como todos.
    */
-  const MARCA = /^(Weë|Weël|Weëls|Wäll|WeeTalk|ËContact|ËContacts|ẄContact|ẄContacts|Credits|Weë AI|Weë AI ›|Weë AI Engine|Weë Biz|Weë Studio|Studio|Weë Design|Design|Weë Brain|Brain|Writer|WEE|Biz|Flow|Media|Reposts|Likes|Email|Avatares|OK|IA|AI|Weë v1\.0\.0|World Encode Entity)$/;
+  const MARCA = /^(Weë|Weël|Weëls|Wäll|WeeTalk|ËContact|ËContacts|ẄContact|ẄContacts|Credits|Weë AI|Weë AI ›|Weë AI Engine|Weë Biz|Weë Studio|Studio|Weë Design|Design|Weë Brain|Brain|Writer|WEE|Biz|Flow|Media|Reposts|Likes|Email|Avatares|OK|IA|AI|Weë v1\.0\.0|WORLD OF EXPRESSION & EVOLUTION)$/;
   const TECNICO = /^(0\.00|S\/\.|https?:\/\/)/;
   const EXCEPCIONES = ['components/ErrorBoundary.tsx'];
   const RUIDO = /^(Promise|void|string|number|boolean|T|C|any|unknown|Post|View|Text|React|null|undefined|Props|Record|Partial)$/;
@@ -119,11 +119,6 @@ console.log('\n── B · Las once áreas grandes, una por una ──');
     ['el avatar con IA', 'screens/AiAvatarScreen.tsx', /t\('aiAvatar\./],
     ['el alta guiada', 'screens/OnboardingScreen.tsx', /t\('onboarding\./],
     ['el Perfil Weë', 'screens/WeeProfileCreationScreen.tsx', /t\('onboarding\.wee/],
-    ['el directorio Biz', 'screens/WeeBizScreen.tsx', /t\('weebiz\./],
-    ['una categoría Biz', 'screens/WeeBizCategoryScreen.tsx', /t\('weebiz\./],
-    ['un perfil Biz', 'screens/WeeBizProfileScreen.tsx', /t\('weebiz\./],
-    ['los productos Biz', 'screens/WeeBizProductsScreen.tsx', /t\('weebiz\./],
-    ['el alta Biz', 'screens/WeeBizRegisterScreen.tsx', /t\('weebiz\./],
     ['Buscar', 'screens/SearchScreen.tsx', /t\('search\./],
     ['la comunidad', 'screens/CommunityScreen.tsx', /t\('communities\./],
     ['el perfil ajeno', 'screens/UserProfileScreen.tsx', /t\('profile\./],
@@ -167,19 +162,16 @@ console.log('\n── C · Los catálogos guardan claves, no frases ──');
     && (AYUDA.match(/answer: 'help\.a\d'/g) || []).length === 9);
   check('5) y quien pinta las resuelve',
     /\{t\(item\.question\)\}/.test(AYUDA) && /\{t\(item\.answer[,)]/.test(AYUDA));
-  check('5) el emoji de cada pregunta se copia tal cual', /\{item\.emoji\} \{t\(item\.question\)\}/.test(AYUDA));
+  /* 2026-11-16: la Ayuda ya no usa emojis; cada pregunta lleva un icono de la familia IconoWee, que es un identificador (no se traduce). */
+  check('5) el icono de cada pregunta es un identificador de la familia, no una frase ni un emoji', /<IconoWee name={item.icono}/.test(AYUDA) && !/emoji:/.test(AYUDA));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
 console.log('\n── D · Lo que NO se traduce ──');
 // ════════════════════════════════════════════════════════════════════════════
 {
-  const BIZ = leer('screens/WeeBizProfileScreen.tsx') + leer('screens/WeeBizProductsScreen.tsx');
-  check('6) el nombre de un negocio y el de un producto se pintan crudos',
-    !/t\(\s*business\.|t\(\s*product\./.test(BIZ));
-  check('6) y cuando una frase los nombra, entran por hueco',
-    /t\('weebiz\.deleteProductConfirm', \{ nombre: product\.name \}\)/.test(BIZ)
-    && /\{\{nombre\}\}/.test(esT.weebiz.deleteProductConfirm) && /\{\{nombre\}\}/.test(enT.weebiz.deleteProductConfirm));
+  /* El nombre de un negocio o un producto (WeeBiz) ya no se pinta: retirado por decisión del dueño el 2026-11-03: era del proyecto antiguo. */
+  check('6) el módulo weebiz salió de los dos diccionarios', !('weebiz' in esT) && !('weebiz' in enT));
 
   const BUSCAR = leer('screens/SearchScreen.tsx');
   check('7) lo que se escribe en el buscador no pasa por el traductor',
@@ -236,7 +228,7 @@ console.log('\n── F · Ni un sistema paralelo, ni un término prohibido ─�
   check('13) ni el texto suelto de ninguna pantalla', enTexto.length === 0, enTexto.join(' | '));
   check('14) y la marca correcta sí está donde toca',
     ES('menu.creator') === 'Weë AI' && EN('menu.creator') === 'Weë AI'
-    && leer('utils/feedFilters.ts').includes("label: 'Weë Studio' }"));
+    && leer('utils/feedFilters.ts').includes("label: 'WeëStudio' }"));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -270,8 +262,8 @@ console.log('\n── G · El diccionario, cuadrado de punta a punta ──');
   });
   check('16) todas las que pide el cliente existen — ' + pedidas.size, faltan.length === 0, faltan.join(' · '));
 
-  /* 17 · Los cinco módulos nuevos, registrados en los dos índices. */
-  for (const modulo of ['aiAvatar', 'onboarding', 'weebiz', 'search', 'help']) {
+  /* 17 · Los cuatro módulos nuevos que siguen (weebiz se retiró el 2026-11-03), registrados en los dos índices. */
+  for (const modulo of ['aiAvatar', 'onboarding', 'search', 'help']) {
     for (const idioma of ['es', 'en']) {
       const indice = leer('i18n/textos/' + idioma + '/index.ts');
       check('17) ' + modulo + ' registrado en ' + idioma,
@@ -286,7 +278,7 @@ console.log('\n── G · El diccionario, cuadrado de punta a punta ──');
   for (const m of modEn) {
     for (const [k, v] of Object.entries(enT[m])) {
       if (!String(v).trim()) vacias.push(m + '.' + k);
-      const sinMarcas = String(v).replace(/Weë|Weël|Weëls|Wäll|ËContacts?|ẄContacts?|Résumé|café/g, '');
+      const sinMarcas = String(v).replace(/Weë|Weël|Weëls|Wäll|ËContacts?|ẄContacts?|Résumé|café|Albán|Belém|Reykjavík/g, '');
       if (/[áéíóúñ¿¡]/.test(sinMarcas)) conAcento.push(m + '.' + k + ' = ' + v);
     }
   }

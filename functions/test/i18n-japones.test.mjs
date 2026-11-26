@@ -87,7 +87,7 @@ const EN = Object.fromEntries(aplanar(en));
  * nombre de variable), los escapes (`\n` son dos caracteres, y la `n` es una
  * letra latina), y las marcas de Weë, que van en latino por regla.
  */
-const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls|Wäll|ËContact|ẄContact|Credits|Weë/gu;
+const MARCAS = /MyWeës|WeëAI|Weë(?:Studio|Design|Chef|Music|Fashion|Travel)|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls|Ẅall|ËContact|ẄContact|Credits|Weë/gu;
 const sinLoAjeno = (v) => String(v)
   .replace(/\{\{[\w.]+\}\}/g, ' ')
   .replace(/\\[nrt]/g, ' ')
@@ -112,7 +112,8 @@ console.log('\n── A · `ja-JP` de punta a punta, sin lógica para el japoné
   check('2) y su locale principal, `ja-JP`, está entre los contemplados',
     idiomas.LOCALES_CONTEMPLADOS.includes('ja-JP'));
   check('3) el registro lo sirve con su propio diccionario, no por un alias',
-    registro.DICCIONARIOS.ja === ja && registro.idiomasConDiccionario().includes('ja'));
+    /* Con su sección del servidor el registro sirve {...ja, ...servidor}: se exige que CADA módulo sea el suyo (el mismo objeto), y que la sección esté. */
+    Object.keys(ja).every((s) => registro.DICCIONARIOS.ja[s] === ja[s]) && !!registro.DICCIONARIOS.ja.preguntas && registro.idiomasConDiccionario().includes('ja'));
 
   const disponibles = registro.idiomasConDiccionario();
   const elegir = (elegido, aparato) => resolver.elegirIdioma(elegido, aparato, disponibles);
@@ -191,6 +192,10 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
    * `SIN_TEXTO` con su porqué—.
    */
   const SIN_TEXTO = new Set([
+    /* «WeëPages» es el nombre de la función (marca) y se escribe igual en todos los idiomas. */
+    'menu.pages',
+    /* Weë Music: R&B, «dB» y MIDI son siglas o unidades que se escriben igual en japonés. */
+    'music.genre_rnb', 'music.eqDb', 'music.export_midi', 'music.capMidi',
     /* Un usuario de muestra de una red social («@my_shop»): un @usuario solo admite letras latinas. */
     /*
      * El botón único de un aviso informativo. En las apps japonesas —iOS,
@@ -205,6 +210,9 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
      */
     'business.businessPlan', 'business.businessCoach', 'business.pricing', 'business.brandKit',
     'business.customerInsights', 'business.businessIdeas', 'business.shareProfile',
+    /* WeëTravel (2026-11-06): «DEMO» marca los datos simulados del prototipo y «Travel Safe» es la marca de la sección; se
+       escriben igual. «OK» es el botón único de un aviso, como common.accept (glosario, § 10.6). */
+    'travel.demo', 'travel.travelSafe', 'travel.accept',
   ]);
   const sinJapones = JA.filter(([k, v]) => !SIN_TEXTO.has(k) && /\p{L}/u.test(sinLoAjeno(v)) && !JAPONES.test(sinLoAjeno(v)));
   check('17) todo lo que tiene letras está escrito en japonés',
@@ -463,11 +471,11 @@ console.log('\n── I · Las marcas de Weë, exactamente como son ──');
    * dejaría pasar exactamente el error que se busca.
    */
   const LISTA = ['WEE', 'Weë', 'WeëAI', 'Weë AI', 'Weë Studio', 'Weë Chef', 'Weë Design', 'Weë Travel', 'Weë Business',
-    'Weë Music', 'Weë Inspira', 'Weëls', 'Wäll', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain',
+    'Weë Music', 'Weë Inspira', 'Weëls', 'Ẅall', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain',
     'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
   const bienEscrita = LISTA.every((m) => m === m.normalize('NFC'))
-    && 'Weë'.codePointAt(2) === 0xEB && 'Wäll'.codePointAt(1) === 0xE4 && 'ËContact'.codePointAt(0) === 0xCB && 'ẄContact'.codePointAt(0) === 0x1E84;
-  check('47) la lista de marcas está escrita con sus caracteres de verdad (NFC, ë U+00EB, ä U+00E4, Ë U+00CB, Ẅ U+1E84)', bienEscrita);
+    && 'Weë'.codePointAt(2) === 0xEB && 'Ẅall'.codePointAt(0) === 0x1E84 && 'ËContact'.codePointAt(0) === 0xCB && 'ẄContact'.codePointAt(0) === 0x1E84;
+  check('47) la lista de marcas está escrita con sus caracteres de verdad (NFC, ë U+00EB, Ë U+00CB, Ẅ U+1E84)', bienEscrita);
   /* Cada marca que el español dice en una clave, el japonés la dice igual, byte a byte. */
   const escapar = (m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const perdidas = [];
@@ -529,6 +537,15 @@ console.log('\n── J · Traducciones defectuosas ──');
    * en `DISTINTAS_A_PROPOSITO` con su porqué; si no, es una inconsistencia.
    */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* WeëPages: «Usuario» es el nombre de usuario (@) de una página, no la persona. */
+    'pages.f_handle',
+    /* WeëPages: «Biografía» de un personaje o una marca es su trayectoria (経歴), no el «自己紹介» de una persona. */
+    'pages.f_biography',
+    /* WeëPages: «Redes sociales» son los enlaces a los perfiles de la página, no un «SNS投稿»; y «Seguir» una página es «フォロー», no el «追いかける» de la cámara de Studio. */
+    'pages.f_socialLinks', 'pages.follow',
+    'music.groupMood', 'music.groupVoice', 'music.fxTitle', 'music.instr_vocals',
+    /* Weë Music: el mismo rótulo español, otro contexto — «Género» musical (no el sexo), «Ambiente» y «Voz» de una canción (no el sonido ambiente ni la voz en off), «Efectos» de audio y «Resumen» de una selección. */
+    'music.groupGenre', 'music.transformTitle', 'music.reviewTitle',
     /* «Personas» como estilo de avatar es «人物»; la del Chef cuenta comensales («人数»). */
     'avatar.stylePeople',
     /* «Nuevo producto» de muestra en el calendario de un restaurante es un plato nuevo («新メニュー»); el título del formulario de Weë Biz es «商品の追加». */
@@ -553,8 +570,6 @@ console.log('\n── J · Traducciones defectuosas ──');
     'business.profileContact',
     /* «Publicaciones»: en Writer es un tipo de texto, lo que se escribe para las redes (SNS投稿), no las publicaciones de Weë. */
     'studio.wrPosts',
-    /* «Destacados»: los negocios destacados del directorio (注目のビジネス), no las publicaciones destacadas del Home. */
-    'weebiz.featured',
     /* «Corto / Medio / Largo»: el largo del pelo (ショート / ミディアム / ロング), no la duración de un vídeo (短め / 標準 / 長め). */
     'aiAvatar.hairShort', 'aiAvatar.hairMedium', 'aiAvatar.hairLong',
     /* «Mejorar»: mejorar un texto (改善), no la calidad de una imagen (画質を改善). */
@@ -567,12 +582,28 @@ console.log('\n── J · Traducciones defectuosas ──');
     'studio.smNatural',
     /* «Materiales»: el coste de los materiales de un precio (材料費), no de qué está hecho un objeto en Weë Design (素材). */
     'business.pricingMaterials',
-    /* «Servicios»: la categoría de negocios profesionales del directorio (専門サービス), no el gasto de luz, agua e internet (光熱費・通信費). */
-    'weebiz.catProfessionalServices',
-    /* «Seguir»: seguir a un negocio (フォロー), no el movimiento de cámara que va detrás del sujeto (追いかける). */
-    'weebiz.follow',
     /* «N días»: lo que dura un viaje se dice «10泊11日», sin 間; lo que dura una encuesta, 3日間. */
     'weeai.tripDays_other',
+    /* «sin límites.»: la segunda mitad del héroe de la demo YC; el verbo va al final y cada sección termina con el suyo (作れます。, デザイン。). */
+    'design.heroAccent',
+    /* WeëTravel (2026-11-06): la misma frase española, otro sentido que en otro módulo — «Lista» de lugares (リスト), no el
+       estado «Lista» de weeai (完了); «Preferencias» los gustos del viaje (好み), no los ajustes de settings (環境設定);
+       «Historia» la categoría de lugares (歴史), no el relato de fashion (ストーリー); «Restaurar» el itinerario (復元), no una
+       foto de studio (画像を修復); «Cartel» un letrero de la calle (看板), no un póster de studio (ポスター); «Subir»/«Bajar»
+       reordenan paradas (上へ移動/下へ移動), no la grúa de la cámara de studio (上昇/下降); «Transporte» como modo de
+       desplazarse es el transporte público (公共交通), no la categoría de gasto (交通). */
+    'travel.viewList', 'travel.wzPreferences', 'travel.catHistory', 'travel.restore', 'travel.visionSign', 'travel.moveUp', 'travel.moveDown',
+    'travel.modeTransit',
+    /* «Ubicación» de Ajustes (decisión del dueño 2026-11-06: un solo pin, sistema visual de Ajustes; sin el «📍» del título
+       coincide en español con composer.location): es el permiso y el servicio de ubicación del aparato (位置情報, como en
+       los ajustes del sistema), no el lugar que se añade a una publicación o a una página (場所). */
+    'settings.location',
+    /* MyWeës (2026-11-15): «Tu espacio» es el rincón personal de accesos (あなたのスペース), no «Tu espacio» de weeai, que es el sitio
+       del que la persona sube una foto (空間の写真). */
+    'mywees.emptyTitle',
+    /* Ficha del personaje (2026-11-22): «Medio» es el nivel de autonomía (ミドル, en serie con ベーシック), no la duración de un vídeo (標準);
+       «Duración» es el periodo que la autonomía queda encendida, en días (期間), no el largo de un vídeo (長さ). */
+    'character.durationLabel',
   ]);
   const porFrase = new Map();
   for (const [k, v] of JA) {

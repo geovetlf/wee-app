@@ -27,6 +27,8 @@ export interface WeeProject {
   userId: string;
   name: string;
   emoji: string;
+  /** 'borradores' en el proyecto de Borradores de WeëAI; ausente en los demás. */
+  tipo?: 'borradores';
   createdAt: any;
   updatedAt: any;
 }
@@ -84,6 +86,25 @@ export const projectsService = {
     if (projectId) {
       await updateDoc(doc(db, 'creatorProjects', projectId), { updatedAt: Timestamp.now() });
     }
+  },
+
+  /**
+   * BORRADORES (WeëAI sencillo, 2026-11-23): un proyecto más, marcado con `tipo: 'borradores'` (una clave, no una frase).
+   * Se crea la primera vez que hace falta; su nombre lo pinta quien lo muestra con `t('publicar.borradores')`, y el que se
+   * guarda es solo el respaldo (la persona puede renombrarlo como cualquier proyecto).
+   */
+  findDrafts: async (uid: string): Promise<WeeProject | null> => {
+    const snap = await getDocs(query(projects(), where('userId', '==', uid), where('tipo', '==', 'borradores'), limit(1)));
+    return snap.empty ? null : ({ id: snap.docs[0].id, ...snap.docs[0].data() } as WeeProject);
+  },
+
+  ensureDrafts: async (uid: string, nombreDeRespaldo: string): Promise<WeeProject> => {
+    const existente = await projectsService.findDrafts(uid);
+    if (existente) return existente;
+    const now = Timestamp.now();
+    const data = { userId: uid, name: nombreDeRespaldo.trim().slice(0, 60), emoji: '📝', tipo: 'borradores' as const, createdAt: now, updatedAt: now };
+    const ref = await addDoc(projects(), data);
+    return { id: ref.id, ...data };
   },
 
   jobsForProject: async (uid: string, projectId: string): Promise<CreatorJob[]> => {

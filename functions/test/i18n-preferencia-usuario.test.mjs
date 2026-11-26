@@ -92,11 +92,12 @@ console.log('\n── A · Detección inicial: qué idioma sale de fábrica ─�
     aleman.idioma === 'de' && aleman.locale === 'de-AT', `${aleman.locale}`);
 
   /* Un idioma que Weë todavía no habla: se salta y sigue buscando. */
-  const nordico = elegir(null, ['is-IS', 'fr-CA']);
+  /* El islandés tiene diccionario desde 2026-11-03: el idioma que Weë no habla es ahora el suajili. */
+  const nordico = elegir(null, ['sw-KE', 'fr-CA']);
   check('3) un idioma que Weë no habla no bloquea: sigue por la lista',
     nordico.idioma === 'fr', `${nordico.idioma}`);
 
-  const perdido = elegir(null, ['is-IS']);
+  const perdido = elegir(null, ['sw-KE']);
   check('4) y si no hay ninguno conocido, el respaldo es inglés',
     perdido.idioma === 'en' && perdido.origen === 'reserva', `${perdido.origen}`);
 }
@@ -121,7 +122,7 @@ console.log('\n── B · La prioridad: lo elegido gana SIEMPRE ──');
    * Al revés también tiene que fallar: si lo guardado ya no es un idioma que
    * Weë hable —porque se retiró—, no se queda colgado; vuelve al aparato.
    */
-  const retirado = elegir('is', ['it-IT']);
+  const retirado = elegir('sw', ['it-IT']);
   check('7) un idioma guardado que ya no existe cae al aparato, no al vacío',
     retirado.idioma === 'it' && retirado.origen === 'aparato', `${retirado.idioma}`);
 
@@ -195,7 +196,8 @@ console.log('\n── C · Las variantes NO se colapsan en un solo locale ──
   check('17) un locale guardado sabe a qué variante pertenece',
     idiomas.varianteDelLocale('pt-AO')?.locale === 'pt-PT'
     && idiomas.varianteDelLocale('zh-Hant-TW')?.locale === 'zh-TW'
-    && idiomas.varianteDelLocale('de-DE') === undefined);
+    && idiomas.varianteDelLocale('de-DE')?.locale === 'de-DE' /* con el suizo (lote L1), el alemán ya tiene variantes */
+    && idiomas.varianteDelLocale('fr-FR') === undefined);
 }
 
 console.log('\n── D · Dónde vive la preferencia ──');
@@ -478,7 +480,7 @@ console.log('\n── I · El aparato nombra el idioma dos veces, y la segunda c
   check('56) H · la elección manual y el respaldo siguen mandando igual',
     elegir('ko', ['pt', 'pt-PT']).idioma === 'ko'
     && elegir('ko', ['pt', 'pt-PT']).origen === 'elegido'
-    && delAparato(['is-IS']).origen === 'reserva');
+    && delAparato(['sw-KE']).origen === 'reserva');
 
   /*
    * I–J · LOS DICCIONARIOS NO SE HAN TOCADO. Este arreglo vive entero en

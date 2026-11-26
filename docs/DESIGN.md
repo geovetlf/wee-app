@@ -62,7 +62,7 @@ Cada una lleva un valor por defecto **recomendado** que no se ha aplicado.
 | D5 | Formatos | A) 1:1, 4:5, 9:16 y 16:9 · B) A + impresión · C) Solo 1:1 y 9:16 | **A** |
 | D6 | Referencias que sube la persona | A) Inspiración de estilo (`image.reference`) · B) Una base que se transforma · C) Ocultar el botón hasta decidir | **A** |
 | D7 | Puertas sin capacidad detrás (maqueta 3D, recorrido, antes/después) | A) Llevarlas a lo que existe (Studio, Hogar & Diseño, imagen) · B) Retirarlas · C) Esperar a un proveedor 3D | **A** |
-| D8 | Memoria de marca o brand kit | A) Nada en la primera versión · B) Memoria de proyecto compartida con Weë Business · C) Solo en Weë Business | **A ahora, B después** |
+| D8 | Memoria de marca o brand kit | A) Nada en la primera versión · B) Memoria de proyecto compartida con Weë Fashion (id `business`) · C) Solo en Weë Fashion | **A ahora, B después** |
 | D9 | Uso comercial y moderación propia | A) No prometer exclusividad, cláusula en los términos y revisión legal antes de anunciar logos · B) Etiquetar los logos como «propuesta» · C) Una regla que rechace imitar marcas o personas reales | **A + C** |
 
 ## 5. Plan por fases

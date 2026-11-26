@@ -51,4 +51,14 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: '這個專案還少了什麼？',
   whatIsMissingNote: 'logo、照片、廣告、影片、音樂或文件：Weë 的每一位專家都能往這裡加點東西。',
   createSomethingNew: '創作新東西',
+  /* N — Rediseño de «Mis proyectos» (2026-11-05): contador, búsqueda, orden, fecha y vacío de la lista. */
+  count_one: '{{contador}} 個專案',
+  count_other: '{{contador}} 個專案',
+  updatedOn: '更新於 {{fecha}}',
+  searchPlaceholder: '搜尋專案',
+  sortUpdated: '最近更新',
+  sortName: '名稱',
+  noMatches: '沒有符合搜尋的專案。',
+  emptySpaceTitle: '你的創作空間從這裡開始',
+  moreActions: '更多操作',
 };

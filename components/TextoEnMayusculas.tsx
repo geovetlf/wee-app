@@ -1,7 +1,7 @@
 import React from 'react';
 import { Text, TextProps } from 'react-native';
 import { useIdioma } from '../contexts/IdiomaContext';
-import { sinEspaciadoSiSeUne } from '../i18n/caja';
+import { enMayusculas, sinEspaciadoSiSeUne } from '../i18n/caja';
 
 /*
  * UN RÓTULO EN MAYÚSCULAS, CON LAS REGLAS DEL IDIOMA.
@@ -16,7 +16,7 @@ import { sinEspaciadoSiSeUne } from '../i18n/caja';
  */
 const TextoEnMayusculas: React.FC<Omit<TextProps, 'children'> & { children: string }> = ({ children, ...props }) => {
   const { locale } = useIdioma();
-  return <Text {...props} style={[props.style, sinEspaciadoSiSeUne(children)]}>{children.toLocaleUpperCase(locale)}</Text>;
+  return <Text {...props} style={[props.style, sinEspaciadoSiSeUne(children)]}>{enMayusculas(children, locale)}</Text>;
 };
 
 export default TextoEnMayusculas;

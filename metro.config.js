@@ -4,6 +4,10 @@
 // (p. ej. npm install) tumbe el bundler.
 const { getDefaultConfig } = require('expo/metro-config');
 const path = require('path');
+const { exigirConfigWeb } = require('./scripts/exigir-config-web.cjs');
+
+// En Vercel, una web sin configuración de Firebase no llega a construirse (ver el script).
+exigirConfigWeb();
 
 const config = getDefaultConfig(__dirname);
 
@@ -17,5 +21,10 @@ config.resolver.blockList = [
   projectDir('ios'),
   projectDir('design'),
 ];
+
+/* TEMPORAL-CAPTURAS: no versionar. */
+const realNM = require('fs').realpathSync(path.join(__dirname, 'node_modules'));
+config.watchFolders = [...(config.watchFolders || []), realNM];
+config.resolver.nodeModulesPaths = [...(config.resolver.nodeModulesPaths || []), realNM];
 
 module.exports = config;

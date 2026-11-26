@@ -3,7 +3,12 @@ import { NavigationContainer, DarkTheme, getPathFromState as rutaDesdeEstado } f
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Alert, Platform, View } from 'react-native';
 import * as Linking from 'expo-linking';
+import { esPantallaDeTravel } from './screens/travel/rutas';
 import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
+/* Import por peso (no del índice del paquete): así solo se empaquetan estos tres TTF y no los siete. */
+import { Manrope_400Regular } from '@expo-google-fonts/manrope/400Regular';
+import { Manrope_500Medium } from '@expo-google-fonts/manrope/500Medium';
+import { Manrope_600SemiBold } from '@expo-google-fonts/manrope/600SemiBold';
 import { aplicarInter } from './utils/aplicarInter';
 import { INTER } from './constants/typography';
 
@@ -44,10 +49,12 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 }
 
 import { ThemeProvider } from './contexts/ThemeContext';
-import { IdiomaProvider } from './contexts/IdiomaContext';
+import { IdiomaProvider, useT } from './contexts/IdiomaContext';
 import SincronizarIdioma from './components/SincronizarIdioma';
+import EntradaDemo from './components/EntradaDemo';
 import { AuthProvider } from './contexts/AuthContext';
 import { UserProfileProvider } from './contexts/UserProfileContext';
+import TemaDelPerfil from './components/TemaDelPerfil';
 import { ScrollProvider } from './contexts/ScrollContext';
 import { PushNotificationProvider } from './contexts/PushNotificationContext';
 import { LocationProvider } from './contexts/LocationContext';
@@ -56,14 +63,16 @@ import { ComentariosProvider } from './contexts/ComentariosContext';
 import MainStackNavigator from './navigation/MainStackNavigator';
 import { refNavegacion } from './navigation/refNavegacion';
 import {
-  TIPOS_DE_PUBLICACION, esCreativo, esId, esLugar, esRespuesta, esRespuestas, escribirJson, leerJson, nuncaEnLaUrl, sinObjetosSueltos,
+  TIPOS_DE_PUBLICACION, enlaceDeCreatorFlow, esCreativo, esId, esLugar, esRespuesta, esRespuestas, escribirJson, leerJson, nuncaEnLaUrl, sinObjetosSueltos,
 } from './navigation/enlaces';
 import ErrorBoundary from './components/ErrorBoundary';
 import { crearTraductor } from './i18n/traducir';
-import { DICCIONARIOS } from './i18n/diccionarios';
+import { almacen } from './i18n/carga';
 import { localeDeEmergencia } from './i18n/emergencia';
 import { FILMMAKER_EN_LA_APP } from './constants/studioExperiences';
 import { MUNDO_3D_EN_LA_APP } from './constants/studioExperiences';
+import { VERSION_PROFESIONAL_EN_LA_WEB } from './constants/espacioProfesional';
+import { MARCA } from './constants/marca';
 // SplashScreen de React removido - el splash nativo de Android es suficiente
 
 /*
@@ -93,7 +102,7 @@ const CustomDarkTheme = {
     ...DarkTheme.colors,
     background: '#0A0A0A',
     card: '#0A0A0A',
-    primary: '#F5B731',
+    primary: MARCA.primario,
   },
   fonts: FUENTES_WEE,
 };
@@ -124,14 +133,38 @@ const shouldHandleUrl = (url: string) => {
  * useT(): lee la lengua que IdiomaContext deja dicha —la misma que usa la
  * pantalla de error— y traduce con el traductor de siempre.
  */
-const tituloDeWee = (): string => crearTraductor(localeDeEmergencia(), DICCIONARIOS)('nav.documentTitle');
+/* Con lo que haya cargado (el español y el inglés siempre; el resto en cuanto el proveedor lo carga). */
+const tituloDeWee = (): string => {
+  const t = crearTraductor(localeDeEmergencia(), almacen.diccionarios());
+  /* «Weë - <eslogan>»: el eslogan entra por interpolación, en la misma lengua que el resto del título. */
+  return t('nav.documentTitle', { eslogan: t('nav.brandSlogan') });
+};
 
 /*
  * El nombre de la RUTA no se enseña nunca: es un identificador interno en inglés («Settings», «CreatorFlow»,
- * «WeeBizRegister») y una persona danesa lo leía en la pestaña. Sin título propio, la pestaña dice «Weë» en su idioma.
+ * «Specialist») y una persona danesa lo leía en la pestaña. Sin título propio, la pestaña dice «Weë» en su idioma.
  */
 const documentTitle = {
   formatter: (options?: { title?: string }): string => options?.title ?? tituloDeWee(),
+};
+
+/*
+ * EL TÍTULO TAMBIÉN CAMBIA CUANDO CAMBIA EL IDIOMA.
+ *
+ * React Navigation solo reescribe `document.title` al navegar o cuando una
+ * pantalla cambia sus opciones. Elegir otro idioma no es ninguna de las dos
+ * cosas, así que la pestaña seguía con el eslogan de la lengua anterior hasta
+ * la siguiente pantalla. Esto no pinta nada: escucha al traductor y, cuando
+ * cambia (también cuando termina de cargarse el diccionario elegido), vuelve a
+ * pasar el título actual por el MISMO formateador de arriba.
+ */
+const TituloAlCambiarDeIdioma: React.FC = () => {
+  const t = useT();
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined' || !refNavegacion.isReady()) return;
+    document.title = documentTitle.formatter(refNavegacion.getCurrentOptions() as { title?: string } | undefined);
+  }, [t]);
+  return null;
 };
 
 // Configuración de linking para deep links y universal links
@@ -191,6 +224,10 @@ const linking: any = {
               Landing: '',
               Feed: 'feed/:communitySlug?',
               HomeFeed: 'all',
+              /* Prueba aparte del Home con más impacto (2026-11-24): /home/nuevo. El Home de verdad no cambia. */
+              HomeImpacto: 'nuevo',
+              /* Segunda prueba aparte, «Universos» (2026-11-24): /home/universos. */
+              HomeUniversos: 'universos',
             },
           },
           Create: 'create',
@@ -212,6 +249,23 @@ const linking: any = {
       Search: 'search',
       Settings: 'settings',
       Studio: 'studio',
+      /* La Weë versión creator: cada sección con su dirección, para abrirla por enlace y recargar. */
+      ...(!VERSION_PROFESIONAL_EN_LA_WEB ? {} : { EspacioProfesional: {
+        path: 'creator',
+        screens: {
+          WeeCreator: '',
+          Specialist: 'seccion/:id',
+          CreatorFlow: enlaceDeCreatorFlow('weeai/:experienceId'),
+          Projects: 'proyectos',
+          Project: 'proyecto/:id',
+          MisCreaciones: 'creaciones',
+          /* Solo dentro de Weë versión creator: la configuración y la billetera de la cuenta, en su marco. */
+          Settings: 'ajustes',
+          Wallet: 'billetera',
+          /* WeëTravel dentro de creator: la misma ruta y la misma lectura de la dirección, en su marco (/creator/travel/<pantalla>/<id>). */
+          Travel: { path: 'travel/:pantalla/:id?', parse: { pantalla: (v: string) => (esPantallaDeTravel(v) ? v : 'descubrir'), id: (v: string) => (/^[A-Za-z0-9_,-]{1,80}$/.test(v) ? v : undefined) } },
+        },
+      } }),
       /* Con la puerta de Filmmaker cerrada (constants/studioExperiences.ts), la producción no tiene enlace. */
       ...(FILMMAKER_EN_LA_APP ? { Production: {
         path: 'studio/produccion/:productionId?',
@@ -234,6 +288,47 @@ const linking: any = {
       /* Con la puerta de «Crear mundo 3D» cerrada, tampoco tiene enlace. Ni la foto (es local) ni las palabras de la persona viajan en la dirección. */
       ...(MUNDO_3D_EN_LA_APP ? { Mundo3D: { path: 'studio/mundo-3d', stringify: { imageUri: nuncaEnLaUrl, descripcion: nuncaEnLaUrl } } } : {}),
       Design: 'design',
+      /*
+       * LA MIGRACIÓN DE LA DEMO YC (2026-11-03). Sin dirección propia, React Navigation escribía /Specialist?id=… o /Wall
+       * y al recargar no sabía leerlos: se volvía al Inicio. Cada ruta tiene ahora la suya; los alias mantienen vivas las
+       * que ya se escribieron. Nada privado viaja en la dirección.
+       */
+      Specialist: { path: 'weeai/seccion/:id', alias: ['Specialist'] },
+      /* WeëTravel: /travel/<pantalla>/<id>. Solo identificadores de los datos DEMO viajan en la dirección. */
+      Travel: { path: 'travel/:pantalla/:id?', parse: { pantalla: (v: string) => (esPantallaDeTravel(v) ? v : 'descubrir'), id: (v: string) => (/^[A-Za-z0-9_,-]{1,80}$/.test(v) ? v : undefined) } },
+      Wall: { path: 'wall', alias: ['Wall'] },
+      Boost: { path: 'boost/:tipo/:id', alias: ['Boost'] },
+      /* Boost: historial y detalle de las promociones de la cuenta (docs/BOOST.md). Solo el id opaco de la campaña viaja. */
+      BoostCampaigns: 'boost/promociones',
+      BoostCampaign: 'boost/promocion/:campaignId',
+      WeePages: { path: 'pages', alias: ['WeePages'] },
+      WeePage: { path: 'page/:pageId', alias: ['WeePage'] },
+      /*
+       * MYWEËS E HISTORIAL (rediseño del 2026-11-15). Dos direcciones, sin nada privado en ellas: la organización de
+       * MyWeës vive en el dispositivo y el historial se lee con la sesión. `personalizar` es solo cómo se abre la pantalla.
+       */
+      MyWees: { path: 'mywees', alias: ['MyWees'], parse: { personalizar: (v: string) => v === 'true' || v === '1' } },
+      Historial: { path: 'historial', alias: ['Historial'] },
+      /*
+       * LO QUE UN INVITADO PUEDE ABRIR POR ENLACE Y RECARGAR. Sin dirección propia, React Navigation escribía el nombre
+       * interno (`/Reels`, `/WeeCreator`) y luego no sabía leerlo: recargar llevaba al Inicio. El alias mantiene vivos
+       * los enlaces que ya circulan. Ninguna publicación viaja en la dirección: el feed de Weëls carga las suyas.
+       */
+      Reels: { path: 'weels', alias: ['Reels', 'reels'] },
+      TransformarIdentidad: { path: 'weels/transformar', alias: ['TransformarIdentidad'] },
+      WeeCreator: { path: 'weeai', alias: ['WeeCreator'] },
+      CrearVideo: { path: 'weeai/video', alias: ['CrearVideo'] },
+      CrearPublicacion: { path: 'weeai/crear', alias: ['CrearPublicacion'] },
+      Plantillas: { path: 'weeai/plantillas', alias: ['Plantillas'] },
+      Herramientas: { path: 'weeai/herramientas', alias: ['Herramientas'] },
+      /* Weë Filmmaker ARCHIVADO (2026-11-23): sin la puerta, tampoco tiene enlaces. */
+      ...(FILMMAKER_EN_LA_APP ? {
+        Filmmaker: { path: 'weeai/filmmaker', alias: ['Filmmaker'] },
+        FilmmakerTandas: { path: 'weeai/filmmaker/tandas', alias: ['FilmmakerTandas'] },
+      } : {}),
+      Help: { path: 'help', alias: ['Help'] },
+      Login: { path: 'login', alias: ['Login'] },
+      Register: { path: 'register', alias: ['Register'] },
       PostDetail: {
         path: 'post/:postId',
         parse: {
@@ -267,26 +362,7 @@ const linking: any = {
        * reabre ESE trabajo en vez de empezar otro—; las respuestas ya elegidas y las elecciones creativas, como JSON
        * validado. El objetivo escrito, la foto (`blob:` o con su token de descarga) y los adjuntos no salen nunca.
        */
-      CreatorFlow: {
-        path: 'weeai/:experienceId',
-        parse: {
-          experienceId: (v: string) => (esId(v) ? v : undefined),
-          jobId: (v: string) => (esId(v) ? v : undefined),
-          workspace: (v: string) => (esId(v) ? v : undefined),
-          editorDocId: (v: string) => (esId(v) ? v : undefined),
-          preset: (v: string) => leerJson(v, esRespuesta),
-          presets: (v: string) => leerJson(v, esRespuestas),
-          creative: (v: string) => leerJson(v, esCreativo),
-        },
-        stringify: {
-          preset: escribirJson,
-          presets: escribirJson,
-          creative: escribirJson,
-          goal: nuncaEnLaUrl,
-          imageUri: nuncaEnLaUrl,
-          adjuntos: nuncaEnLaUrl,
-        },
-      },
+      CreatorFlow: enlaceDeCreatorFlow('weeai/:experienceId'),
       /*
        * EL COMPOSITOR (la pantalla de la pila principal; la pestaña «create» es el marcador del botón +). El tipo, la
        * comunidad y el lugar elegido —que es público: es lo que se lee en la publicación— viajan; el borrador
@@ -355,6 +431,10 @@ export default function App() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    /* La tipografía de WeëAI (constants/estiloWeeAi.ts): solo estos tres pesos. Wall y ☰ siguen en Inter. */
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
   });
 
   /*
@@ -390,6 +470,9 @@ export default function App() {
                 por debajo del idioma a propósito.
               */}
               <SincronizarIdioma />
+              {/* El tema sigue al perfil: Real claro, Weë oscuro, venga el cambio de donde venga. */}
+              <TemaDelPerfil />
+              <EntradaDemo />
               <ScrollProvider>
                 <TabBarProvider>
                   {/*
@@ -398,6 +481,7 @@ export default function App() {
                     navegar. Es la puerta oficial de React Navigation para eso.
                   */}
                   <NavigationContainer ref={refNavegacion} linking={linking} documentTitle={documentTitle} theme={CustomDarkTheme}>
+                    <TituloAlCambiarDeIdioma />
                     <PushNotificationProvider>
                       {/*
                         La ubicación va por dentro de la navegación, como las

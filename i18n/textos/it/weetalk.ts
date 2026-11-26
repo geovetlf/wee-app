@@ -34,7 +34,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   photoPermission: 'Serve un’autorizzazione per accedere alle foto',
   audioPermission: 'Serve un’autorizzazione per registrare l’audio',
   imageFailed: 'Non è stato possibile inviare l’immagine',
-  noConversationsHint: 'Tocca "Privato" in un post qualsiasi per iniziare una conversazione anonima',
+  noConversationsHint: 'Apri il menu ⋮ di un post qualsiasi e scegli "Invia con WeeTalk" per iniziare una conversazione privata',
   ephemeralMode: 'Modalità effimera',
   noMessagesYet: 'Non ci sono ancora messaggi',
   youSaid: 'Tu: {{mensaje}}',

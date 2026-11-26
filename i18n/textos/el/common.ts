@@ -1,0 +1,35 @@
+/*
+ * GRIEGO — Textos comunes de toda la app. Tipado contra el español.
+ * «Volver» = «Πίσω»; «Aceptar» = «OK», como en en y en los diálogos griegos de sistema.
+ */
+export const common: typeof import('../es/common').common = {
+  cancel: 'Ακύρωση',
+  save: 'Αποθήκευση',
+  delete: 'Διαγραφή',
+  close: 'Κλείσιμο',
+  back: 'Πίσω',
+  next: 'Επόμενο',
+  done: 'Τέλος',
+  accept: 'OK',
+  send: 'Αποστολή',
+  share: 'Κοινοποίηση',
+  retry: 'Δοκίμασε ξανά',
+  mediaUnavailable: 'Αυτό το αρχείο δεν είναι διαθέσιμο',
+  loading: 'Φόρτωση…',
+  error: 'Σφάλμα',
+  somethingWentWrong: 'Κάτι πήγε στραβά',
+  noResults: 'Κανένα αποτέλεσμα',
+  notAvailable: 'Μη διαθέσιμο',
+  comingSoon: 'Σύντομα',
+  new: 'Νέο',
+  seeAll: 'Προβολή όλων →',
+  guest: 'Επισκέπτης',
+  anonymousUser: 'Ανώνυμος χρήστης',
+  user: 'Χρήστης',
+  yes: 'Ναι',
+  no: 'Όχι',
+  loadMore: 'Φόρτωση περισσότερων αναρτήσεων',
+  postsCount_one: '{{cantidad}} ανάρτηση',
+  postsCount_other: '{{cantidad}} αναρτήσεις',
+  someone: 'Κάποιος',
+};

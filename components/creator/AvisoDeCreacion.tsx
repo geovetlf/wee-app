@@ -31,7 +31,7 @@ interface Props {
 /**
  * "CREANDO…" Y "CREACIÓN LISTA", UNA SOLA VEZ.
  *
- * Estaba escrito dos veces, copiado renglón por renglón en Weë Studio y en Weë
+ * Estaba escrito dos veces, copiado renglón por renglón en WeëStudio y en Weë
  * Design: los mismos dos iconos, el mismo botón de cerrar, las mismas sombras y
  * el mismo `bottom` con el teclado sumado. Dos copias de lo mismo no son dos
  * decisiones, son una decisión y una que se quedará atrás: el día que el aviso
@@ -40,8 +40,8 @@ interface Props {
  *
  * ── Y dice la verdad sobre lo que hay ───────────────────────────────────────
  *
- * "Esto es una demostración: todavía no hay nada generado de verdad." Weë Studio
- * y Weë Design todavía no crean nada —su botón enciende un temporizador— y el
+ * "Esto es una demostración: todavía no hay nada generado de verdad." WeëStudio
+ * y WeëDesign todavía no crean nada —su botón enciende un temporizador— y el
  * aviso lo dice en voz alta en vez de hacer como que sí. Cuando una sección se
  * conecte de verdad, pasa `clavePista={null}` y la línea desaparece; lo que no
  * se hace nunca es quitarla antes de que sea cierto.

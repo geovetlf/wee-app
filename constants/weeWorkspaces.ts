@@ -63,17 +63,17 @@ export const WORKSPACES: readonly WorkspaceId[] = ['studio', 'design', 'travel',
  * lo mismo sobre las mismas. El guard compara una con otra.
  *
  * Weë Writer está en el Studio por decisión de producto (B3.10 §1.1) y todavía
- * no tiene entrada en `EXPERIENCE_AREA`: le falta su cabecera —"Weë Studio ·
+ * no tiene entrada en `EXPERIENCE_AREA`: le falta su cabecera —"WeëStudio ·
  * Writer"— con sus claves en los dos idiomas. Eso es B3.13, no esto.
  */
 export const WORKSPACE_DE_LA_EXPERIENCIA: Readonly<Record<string, WorkspaceId>> = {
-  /* Weë Studio: el hub creativo. Imágenes, video, voz, texto y documentos. */
+  /* WeëStudio: el hub creativo. Imágenes, video, voz, texto y documentos. */
   studio: 'studio',
   photo: 'studio',
   beauty: 'studio',
   writer: 'studio',
 
-  /* Weë Design: lo que se diseña y se visualiza, dentro y fuera de una casa. */
+  /* WeëDesign: lo que se diseña y se visualiza, dentro y fuera de una casa. */
   design: 'design',
   home: 'design',
 
@@ -161,7 +161,7 @@ export interface Adjunto {
  *
  * Es la razón de ser de un lugar de trabajo (CLAUDE.md §10): todas las cajas de
  * Weë AI son el mismo cerebro, y lo único que cambia de una a otra es lo que
- * viaja con lo que la persona escribe. Si alguien entró en Weë Design por
+ * viaja con lo que la persona escribe. Si alguien entró en WeëDesign por
  * Interiores y ya adjuntó la foto de su salón, preguntarle "¿tienes una foto
  * del espacio?" es hacerle repetir lo que tiene delante.
  *
@@ -223,4 +223,9 @@ export interface ContextoDeExperiencia {
   imageUri?: string;
   /** El documento del editor que pidió ayuda (Weë Writer). */
   editorDocId?: string;
+  /**
+   * La plantilla de la portada de WeëAI de la que se viene (solo interfaz): sirve para dar crédito a quien la publicó y para
+   * volver a intentar con otra foto SIN perderla. No viaja al servidor ni cambia lo que se crea.
+   */
+  plantilla?: { titulo: string; autor?: string };
 }

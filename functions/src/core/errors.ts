@@ -113,6 +113,8 @@ export const DESDE_ENGINE: Record<string, WeeErrorCode> = {
   RATE_LIMITED: 'RATE_LIMIT',
   DUPLICATE_REQUEST: 'DUPLICATE_REQUEST',
   NOT_AVAILABLE: 'CAPABILITY_UNAVAILABLE',
+  /* Guest AI Gate (2026-10-07): la sesión es de invitado; para el Core es un fallo de autorización. */
+  ACCOUNT_REQUIRED: 'AUTH_ERROR',
 };
 
 /** De los códigos del Credit Engine a los del Core. */

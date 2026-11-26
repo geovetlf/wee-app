@@ -1,11 +1,15 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import CabeceraDeModuloPro from '../creator/CabeceraDeModuloPro';
 import { ENTRADAS_POR_PANEL, CLAVE_DEL_PANEL, PanelDeChef, EntradaDeChef } from '../../constants/chefTools';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -26,7 +30,7 @@ interface Props {
  *
  * ── No es otra pantalla ──────────────────────────────────────────────────────
  *
- * Tocar una función no navega: cambia lo que enseña la pantalla de Weë Chef. Así
+ * Tocar una función no navega: cambia lo que enseña la pantalla de WeëChef. Así
  * volver es instantáneo, no se acumula una pila de rutas por pasear entre
  * funciones y lo escrito sigue donde estaba. Es la misma decisión que en Weë
  * Studio, y el gesto de atrás de Android vuelve aquí antes de salir.
@@ -40,10 +44,16 @@ interface Props {
  */
 const ChefPanel: React.FC<Props> = ({ panel, onVolver, onElegir, porFila }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
+  const pro = useEnEspacioProfesional();
 
   return (
-    <View style={styles.panel}>
+    <View style={[styles.panel, pro && styles.panelPro]}>
+      {pro ? (
+        <CabeceraDeModuloPro nombre={t(CLAVE_DEL_PANEL[panel])} pista={t('chef.panelHint')} onVolver={onVolver} />
+      ) : (
+      <>
       {/* Cabecera: volver y el nombre de la función. Sin nada más. */}
       <View style={styles.cabecera}>
         <TouchableOpacity
@@ -54,7 +64,7 @@ const ChefPanel: React.FC<Props> = ({ panel, onVolver, onElegir, porFila }) => {
           accessibilityLabel={t('common.back')}
           style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
         >
-          <Ionicons name="chevron-back" size={scale(24)} color={theme.colors.text} />
+          <IconoDireccional name="chevron-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.titulo, { color: theme.colors.text }]} numberOfLines={1}>
           {t(CLAVE_DEL_PANEL[panel])}
@@ -62,8 +72,10 @@ const ChefPanel: React.FC<Props> = ({ panel, onVolver, onElegir, porFila }) => {
       </View>
 
       <Text style={[styles.pista, { color: theme.colors.textSecondary }]}>{t('chef.panelHint')}</Text>
+      </>
+      )}
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.dentro}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.dentro, pro && styles.dentroPro]}>
         <View style={styles.rejilla}>
           {ENTRADAS_POR_PANEL[panel].map((entrada) => (
             <TouchableOpacity
@@ -76,7 +88,8 @@ const ChefPanel: React.FC<Props> = ({ panel, onVolver, onElegir, porFila }) => {
             >
               <View style={[
                 styles.entrada,
-                { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+                { backgroundColor: c.superficie, borderColor: c.superficieAlta },
+                pro && styles.entradaPro,
                 isWeb && ({ cursor: 'pointer' } as any),
               ]}>
                 <Ionicons name={entrada.icono as any} size={scale(22)} color={theme.colors.text} />
@@ -94,6 +107,9 @@ const ChefPanel: React.FC<Props> = ({ panel, onVolver, onElegir, porFila }) => {
 
 const styles = StyleSheet.create({
   panel: { flex: 1 },
+  panelPro: { gap: 14 },
+  dentroPro: { paddingHorizontal: 0 },
+  entradaPro: { borderRadius: 14, shadowOpacity: 0, elevation: 0 },
   cabecera: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -114,7 +130,6 @@ const styles = StyleSheet.create({
   hueco: { padding: SPACING.xs },
   entrada: {
     borderRadius: scale(16),
-    borderWidth: StyleSheet.hairlineWidth,
     paddingVertical: SPACING.lg,
     paddingHorizontal: SPACING.md,
     gap: SPACING.sm,

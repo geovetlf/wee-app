@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { voteService, VoteType, VoteStats } from '../services/voteService';
+import { voteService, VoteType, VoteStats, CONTADOR_DE_VOTO } from '../services/voteService';
 
 interface UseVoteOptions {
   postId: string;
@@ -25,10 +25,32 @@ interface UseVoteReturn {
   refreshStats: () => Promise<void>;
 }
 
+/** Las estadísticas tal como quedan cuando el voto de la persona pasa a `nuevo` (null = sin voto). */
+function conVoto(prev: VoteStats, nuevo: VoteType | null): VoteStats {
+  const contadores: Record<string, number> = {
+    agreementCount: prev.agreementCount,
+    disagreementCount: prev.disagreementCount,
+    fireCount: prev.fireCount ?? 0,
+    laughCount: prev.laughCount ?? 0,
+  };
+  if (prev.userVote) contadores[CONTADOR_DE_VOTO[prev.userVote]] = Math.max(0, contadores[CONTADOR_DE_VOTO[prev.userVote]] - 1);
+  if (nuevo) contadores[CONTADOR_DE_VOTO[nuevo]] += 1;
+  return {
+    ...prev,
+    agreementCount: contadores.agreementCount,
+    disagreementCount: contadores.disagreementCount,
+    fireCount: contadores.fireCount,
+    laughCount: contadores.laughCount,
+    userVote: nuevo,
+  };
+}
+
 export function useVote({ postId, userId, initialStats }: UseVoteOptions): UseVoteReturn {
   const [stats, setStats] = useState<VoteStats>({
     agreementCount: initialStats?.agreementCount ?? 0,
     disagreementCount: initialStats?.disagreementCount ?? 0,
+    fireCount: initialStats?.fireCount ?? 0,
+    laughCount: initialStats?.laughCount ?? 0,
     totalVotes: (initialStats?.agreementCount ?? 0) + (initialStats?.disagreementCount ?? 0),
     agreementPercentage: 0,
     userVote: initialStats?.userVote ?? null,
@@ -78,47 +100,9 @@ export function useVote({ postId, userId, initialStats }: UseVoteOptions): UseVo
     setIsLoading(true);
     setError(null);
 
-    // Optimistic update
+    // Optimistic update: quitar el voto si repite el mismo tipo; si no, agregar o cambiar (los contadores se mueven de uno en uno)
     const previousStats = { ...stats };
-    const wasAgree = stats.userVote === 'agree';
-    const wasDisagree = stats.userVote === 'disagree';
-
-    let newAgreementCount = stats.agreementCount;
-    let newDisagreementCount = stats.disagreementCount;
-
-    if (type === 'agree') {
-      if (wasAgree) {
-        // Quitar voto
-        newAgreementCount--;
-        setStats(prev => ({ ...prev, agreementCount: newAgreementCount, userVote: null }));
-      } else {
-        // Agregar o cambiar
-        if (wasDisagree) newDisagreementCount--;
-        newAgreementCount++;
-        setStats(prev => ({
-          ...prev,
-          agreementCount: newAgreementCount,
-          disagreementCount: newDisagreementCount,
-          userVote: 'agree',
-        }));
-      }
-    } else {
-      if (wasDisagree) {
-        // Quitar voto
-        newDisagreementCount--;
-        setStats(prev => ({ ...prev, disagreementCount: newDisagreementCount, userVote: null }));
-      } else {
-        // Agregar o cambiar
-        if (wasAgree) newAgreementCount--;
-        newDisagreementCount++;
-        setStats(prev => ({
-          ...prev,
-          agreementCount: newAgreementCount,
-          disagreementCount: newDisagreementCount,
-          userVote: 'disagree',
-        }));
-      }
-    }
+    setStats(prev => conVoto(prev, prev.userVote === type ? null : type));
 
     try {
       await voteService.toggleVote(postId, userId, type);
@@ -142,19 +126,7 @@ export function useVote({ postId, userId, initialStats }: UseVoteOptions): UseVo
     const previousStats = { ...stats };
 
     // Optimistic update
-    if (stats.userVote === 'agree') {
-      setStats(prev => ({
-        ...prev,
-        agreementCount: prev.agreementCount - 1,
-        userVote: null,
-      }));
-    } else if (stats.userVote === 'disagree') {
-      setStats(prev => ({
-        ...prev,
-        disagreementCount: prev.disagreementCount - 1,
-        userVote: null,
-      }));
-    }
+    setStats(prev => conVoto(prev, null));
 
     try {
       await voteService.removeVote(postId, userId);

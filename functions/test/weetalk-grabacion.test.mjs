@@ -151,7 +151,7 @@ if (efecto && funciones.stopRecording) {
   const enviar = ejecutable(funciones.stopRecording, {
     ...compartido, convId: 'conv-1', myUid: 'u1', setRecording: espia(), setRecordDuration: espia(),
     pulseAnim: { stopAnimation() {}, setValue() {} }, recordStartTime: { current: Date.now() - 5000 }, setSending: espia(),
-    uploadAudioToCloudinary: espia(async () => 'https://audio'), messagesService,
+    uploadMessageAudio: espia(async () => 'https://audio'), messagesService,
   });
   const limpiar = ejecutable(efecto.limpieza, compartido);
   const envio = enviar();

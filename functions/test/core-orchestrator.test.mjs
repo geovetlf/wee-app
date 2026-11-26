@@ -26,6 +26,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { cpuDe } from './_cpu.mjs';
 
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -499,9 +500,9 @@ console.log('\n── N · Sin estado, determinista y concurrente ──');
   check('121) mil pasos se coordinan en un tiempo razonable', (() => {
     const steps = Array.from({ length: 1000 }, (_, i) => ({ id: `p${i}`, capability: 'text.generate', purpose: `p${i}` }));
     const m = montar({ id: 'wf_mil_0001', contract: '1.1', goal: 'g', steps });
-    const t0 = performance.now();
-    const d = m.orchestrator.avanzar(pet(m.prepared.iniciar(trace).run, 1));
-    return d.dispatch.length === 256 && d.warnings.includes('dispatch_capped') && performance.now() - t0 < 5000;
+    /* CPU del proceso, no reloj de pared (functions/test/_cpu.mjs). */
+    const { valor: d, ms } = cpuDe(() => m.orchestrator.avanzar(pet(m.prepared.iniciar(trace).run, 1)));
+    return d.dispatch.length === 256 && d.warnings.includes('dispatch_capped') && ms < 5000;
   })(), 'con tope propio de 256 a la vez');
 }
 
@@ -598,13 +599,14 @@ console.log('\n── Q · Lo que se encontró probando ──');
     const steps = Array.from({ length: n }, (_, i) => ({ id: `p${i}`, capability: 'text.generate', purpose: `p${i}`, ...(i ? { dependsOn: [`p${i - 1}`] } : {}) }));
     const m = montar({ id: 'wf_q_cadena_0001', contract: '1.1', goal: 'g', steps });
     let actual = m.prepared.iniciar(trace).run;
-    const t0 = performance.now();
-    for (let i = 0; i < 200; i++) {
-      const paso = m.orchestrator.avanzar(pet(actual, i));
-      if (!paso.dispatch.length) break;
-      actual = m.orchestrator.informar(pet(paso.run, i, { outcome: { stepId: paso.dispatch[0].stepId, kind: 'succeeded', at: i, outputRefs: [`a${i}`] } })).run;
-    }
-    return performance.now() - t0 < 4000;
+    const { ms } = cpuDe(() => {
+      for (let i = 0; i < 200; i++) {
+        const paso = m.orchestrator.avanzar(pet(actual, i));
+        if (!paso.dispatch.length) break;
+        actual = m.orchestrator.informar(pet(paso.run, i, { outcome: { stepId: paso.dispatch[0].stepId, kind: 'succeeded', at: i, outputRefs: [`a${i}`] } })).run;
+      }
+    });
+    return ms < 4000;
   })(), '500 pasos encadenados, 200 ciclos de avanzar e informar');
 }
 

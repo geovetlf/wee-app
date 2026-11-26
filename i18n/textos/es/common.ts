@@ -16,6 +16,7 @@ export const common = {
   send: 'Enviar',
   share: 'Compartir',
   retry: 'Inténtalo de nuevo',
+  mediaUnavailable: 'Este archivo no está disponible',
   loading: 'Cargando…',
   error: 'Error',
   somethingWentWrong: 'Algo salió mal',

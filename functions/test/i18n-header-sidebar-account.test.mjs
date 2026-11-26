@@ -143,8 +143,10 @@ console.log('\n── D · Nada más se movió ──');
   check('16) la condición del perfil activo no cambió',
     /\{!user \? t\('menu\.tapToSignIn'\) : activeProfileType === 'hidi' \? t\('menu\.activeWee'\) : t\('menu\.activeReal'\)\}/.test(LATERAL));
   check('16) y la identidad activa se sigue leyendo de su contexto',
-    /const \{ userProfile, activeProfileType, hasWeeProfile \} = useUserProfile\(\);/.test(LATERAL)
-    && /const \{ hasWeeProfile, activeProfileType, switchIdentity \} = useUserProfile\(\);/.test(CABECERA));
+    /* Rediseño del 2026-11-15: la barra lateral lleva el selector de identidad (pide `switchIdentity`) y la cabecera de portada pinta el avatar (pide `userProfile`). */
+    /* Alter egos (2026-11-23): la barra deja el cambio de cara a la lista común y la cabecera lee además el alter ego de turno. */
+    /const \{ userProfile, activeProfileType \} = useUserProfile\(\);/.test(LATERAL)
+    && /const \{ userProfile, hasWeeProfile, activeProfileType, switchIdentity, weeProfile \} = useUserProfile\(\);/.test(CABECERA));
 
   /* 17 · La autenticación, intacta en las dos. */
   check('17) la autenticación no se tocó',
@@ -155,7 +157,7 @@ console.log('\n── D · Nada más se movió ──');
   check('18) la navegación de la fila de la cuenta es la de siempre',
     /onPress=\{\(\) => \(user \? goTab\('Profile'\) : requireLogin\(\)\)\}/.test(LATERAL));
   check('19) y las rutas no cambiaron',
-    /navigation\.navigate\('WeeProfileCreation'\)/.test(LATERAL) && /navigation\.navigate\('Settings'\)/.test(LATERAL)
+    /<ListaDeCaras \/>/.test(LATERAL) && /navigation\.navigate\('Settings'\)/.test(LATERAL)
     && /navigation\.navigate\('WeeCreator'\)/.test(LATERAL));
 
   /* 23 y 24 · Ni el diseño ni el responsive: los estilos son los de antes. */

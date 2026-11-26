@@ -9,7 +9,7 @@
  *       con_estas_opciones y no_disponible (también el caso real de hoy: Hunyuan World, sin elegir en ninguna parte).
  *   B · Lo que sale hacia la app: el código y el motivo; ni proveedor, ni modelo, ni capacidad, ni jurisdicción, ni
  *       escalón, en NINGÚN error controlado.
- *   C · La app: cada motivo con su clave, en los dieciséis diccionarios, sin nombres de proveedores; y solo «ahora no»
+ *   C · La app: cada motivo con su clave, en todos los diccionarios de los idiomas listos, sin nombres de proveedores; y solo «ahora no»
  *       se puede reintentar.
  *
  * Sin red, sin proveedor real, sin Firebase. $0.
@@ -78,11 +78,11 @@ console.log('\n── A · Cada motivo sale de la CAUSA de los descartes ──'
 {
   const terra = proveedor('terra', [TERRITORIAL]);
   const r = router({ terra }, configuracion(['terra']));
-  check('A1) aquí no y en otra jurisdicción sí (ES bloqueada, US aprobada) → «en_tu_region»', (await motivoDe(r, { jurisdicciones: ['ES'] })) === 'en_tu_region');
-  check('A2) también si aquí está pendiente de revisión pero en otra ya se aprobó (JP) → «en_tu_region»', (await motivoDe(r, { jurisdicciones: ['JP'] })) === 'en_tu_region');
-  check('A3) sin jurisdicción conocida, y en alguna sí estaría → «falta_tu_pais» (la que declara el Perfil Real)', (await motivoDe(r)) === 'falta_tu_pais');
+  check('A1) aquí no y en otra jurisdicción sí (ES bloqueada, US aprobada) → genérico «no_disponible»: la jurisdicción no es una conversación', (await motivoDe(r, { jurisdicciones: ['ES'] })) === 'no_disponible');
+  check('A2) también si aquí está pendiente de revisión pero en otra ya se aprobó (JP) → genérico', (await motivoDe(r, { jurisdicciones: ['JP'] })) === 'no_disponible');
+  check('A3) sin jurisdicción conocida → genérico (nunca «indica tu país»)', (await motivoDe(r)) === 'no_disponible');
   const conFuente = router({ terra }, configuracion(['terra']), { jurisdiccionesDe: async () => undefined });
-  check('A4) lo mismo si la cuenta no declara país: la fuente de la cuenta no sabe → «falta_tu_pais»', (await motivoDe(conFuente)) === 'falta_tu_pais');
+  check('A4) lo mismo si la cuenta no declara país → genérico', (await motivoDe(conFuente)) === 'no_disponible');
   check('A5) y en una jurisdicción aprobada no hay «no disponible»: se ejecuta', (await lanzado(() => r.execute(peticion({ jurisdicciones: ['US'] })))) === null && terra.llamadas === 1);
 }
 {
@@ -130,12 +130,13 @@ console.log('\n── A · Cada motivo sale de la CAUSA de los descartes ──'
   check('A12) lo que pidió la operación —calidad reservada, otra familia, un tope de Credits, un modelo fijado— → «con_estas_opciones»',
     motivos.every((m) => m === 'con_estas_opciones'), motivos.join(','));
 }
-check('A13) y la regla es pura y ordenada: pasajera > falta tu país > en tu región > opciones > no disponible', (() => {
+check('A13) y la regla es pura y ordenada: pasajera > opciones > no disponible; lo territorial nunca cambia la frase', (() => {
   const m = E.motivoDeNoDisponible;
   return m([]) === 'no_disponible'
     && m([{ causa: 'configuracion' }, { causa: 'pasajera' }]) === 'ahora_no'
-    && m([{ causa: 'elegibilidad', estado: 'BLOCKED_FOR_JURISDICTION', enOtraJurisdiccion: true }, { causa: 'peticion' }]) === 'en_tu_region'
-    && m([{ causa: 'elegibilidad', estado: 'JURISDICTION_UNKNOWN', enOtraJurisdiccion: true }, { causa: 'elegibilidad', estado: 'BLOCKED_FOR_JURISDICTION', enOtraJurisdiccion: true }]) === 'falta_tu_pais'
+    && m([{ causa: 'elegibilidad', estado: 'BLOCKED_FOR_JURISDICTION', enOtraJurisdiccion: true }, { causa: 'peticion' }]) === 'con_estas_opciones'
+    && m([{ causa: 'elegibilidad', estado: 'JURISDICTION_UNKNOWN', enOtraJurisdiccion: true }, { causa: 'elegibilidad', estado: 'BLOCKED_FOR_JURISDICTION', enOtraJurisdiccion: true }]) === 'no_disponible'
+    && E.MOTIVOS_DE_NO_DISPONIBLE.join() === 'ahora_no,con_estas_opciones,no_disponible'
     && m([{ causa: 'elegibilidad', estado: 'BLOCKED_FOR_JURISDICTION', enOtraJurisdiccion: false }]) === 'no_disponible'
     && m([{ causa: 'elegibilidad', estado: 'REVIEW_REQUIRED' }]) === 'no_disponible'
     && m([{ causa: 'peticion' }, { causa: 'configuracion' }]) === 'con_estas_opciones';
@@ -167,7 +168,7 @@ console.log('\n── B · Hacia la app, el código y el motivo: nada de dentro 
 }
 
 /* ═══ C · LA APP ═══════════════════════════════════════════════════════════ */
-console.log('\n── C · La app: cada motivo, su clave, en los dieciséis idiomas ──');
+console.log('\n── C · La app: cada motivo, su clave, en todos los idiomas listos ──');
 {
   const cargar = crearCargador({
     dobles: {
@@ -181,11 +182,14 @@ console.log('\n── C · La app: cada motivo, su clave, en los dieciséis idio
   const M = cargar('utils/crearMundo3D.ts');
   check('C1) la app entiende EXACTAMENTE los motivos que manda el motor', iguales(Object.keys(ND.CLAVE_DE_NO_DISPONIBLE).sort(), [...E.MOTIVOS_DE_NO_DISPONIBLE].sort()));
   const DICCIONARIOS = cargar('i18n/diccionarios.ts').DICCIONARIOS;
+  /* Cuántos tiene que haber, del CATÁLOGO (antes «=== 16»): uno por idioma listo y uno por variante, como la 38b de
+   * i18n.test.mjs. Exige lo mismo que el 16 sin tocarse cuando entra un idioma; los diccionarios EN CURSO no cuentan. */
+  const ESPERADOS = cargar('i18n/idiomas.ts').idiomasDisponibles().reduce((n, i) => n + (i.variantes?.length || 1), 0);
   const unicos = []; for (const [codigo, d] of Object.entries(DICCIONARIOS)) if (!unicos.some(([, otro]) => otro === d)) unicos.push([codigo, d]);
   const valor = (d, clave) => clave.split('.').reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), d);
   const claves = Object.values(ND.CLAVE_DE_NO_DISPONIBLE);
   const faltan = unicos.flatMap(([codigo, d]) => claves.filter((k) => typeof valor(d, k) !== 'string' || !valor(d, k).trim()).map((k) => `${codigo}:${k}`));
-  check(`C2) cada motivo tiene su clave, con texto en los ${unicos.length} diccionarios`, unicos.length === 16 && faltan.length === 0, faltan.join(' '));
+  check(`C2) cada motivo tiene su clave, con texto en los ${unicos.length} diccionarios`, ESPERADOS >= 16 && unicos.length === ESPERADOS && faltan.length === 0, faltan.join(' '));
   const PROVEEDORES = /\b(fal|hunyuan|tencent|seedance|gemini|flux|seedream|elevenlabs)\b/i;
   const textos = unicos.flatMap(([, d]) => claves.map((k) => valor(d, k)));
   check('C3) ninguno de esos textos nombra un proveedor ni un modelo; y solo «ahora no» invita a volver a intentarlo (en español)',
@@ -197,12 +201,14 @@ console.log('\n── C · La app: cada motivo, su clave, en los dieciséis idio
   const t = crearTraductor('es', DICCIONARIOS, {});
   const humanizar = (reason) => CREATOR.humanizeCreatorError({ code: 'functions/failed-precondition', message: 'Ahora mismo no hay una IA disponible para esto. Inténtalo más tarde.', details: { code: 'NOT_AVAILABLE', reason } }, t, 'es');
   check('C5) en todo Weë AI (`humanizeCreatorError`), «no disponible» se dice por su motivo, aunque la frase que llegue sea la vieja',
-    humanizar('en_tu_region') === 'Esta función no está disponible actualmente en tu región.' && humanizar('falta_tu_pais') === 'Para usar esta función, indica tu país en tu Perfil Real.'
+    humanizar('en_tu_region') === 'Esta función no está disponible actualmente.' && humanizar('falta_tu_pais') === 'Esta función no está disponible actualmente.'
     && humanizar('raro') === 'Esta función no está disponible actualmente.' && !/más tarde/.test(humanizar('no_disponible')));
   const mundo = (reason) => M.errorDelMundo3D({ code: 'functions/failed-precondition', details: { code: 'NOT_AVAILABLE', reason } });
   check('C6) en «Crear mundo 3D», solo «ahora no» se reintenta; el resto es «no disponible» con su clave y sin reintento',
     mundo('ahora_no').reintentable === true && mundo('ahora_no').tipo === 'reintentable'
-    && ['en_tu_region', 'falta_tu_pais', 'con_estas_opciones', 'no_disponible'].every((r) => mundo(r).tipo === 'no_disponible' && mundo(r).reintentable === false && mundo(r).clave === ND.CLAVE_DE_NO_DISPONIBLE[r]));
+    && ['con_estas_opciones', 'no_disponible'].every((r) => mundo(r).tipo === 'no_disponible' && mundo(r).reintentable === false && mundo(r).clave === ND.CLAVE_DE_NO_DISPONIBLE[r])
+    /* Un motivo regional de una versión vieja del servidor se dice como el genérico. */
+    && ['en_tu_region', 'falta_tu_pais'].every((r) => mundo(r).tipo === 'no_disponible' && mundo(r).reintentable === false && mundo(r).clave === 'weeai.errNotAvailable'));
 }
 check('C7) esta suite está en la cadena de `npm test`', /no-disponible\.test\.mjs/.test(leer('functions/package.json')));
 

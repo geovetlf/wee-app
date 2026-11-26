@@ -30,6 +30,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
+/* Cuenta Weë válida (identity/sesion.ts): esta suite prueba otra cosa con cuentas enroladas; la condición tiene su suite, edad-minima.test.mjs. */
+require('../lib/identity/sesion.js').enrolamiento.leer = async () => true;
 const here = path.dirname(fileURLToPath(import.meta.url));
 const lib = (p) => require(path.resolve(here, '../lib/' + p));
 const leer = (p) => fs.readFileSync(path.resolve(here, '../../' + p), 'utf8');
@@ -380,7 +382,7 @@ console.log('\n── D · Las puertas de verdad rechazan una dirección ajena a
 // ════════════════════════════════════════════════════════════════════════════
 {
   const AJENA = enStorage('users/uAna/no-existe.png', { host: 'https://evil.example' });
-  const intento = (callable, data, uid = 'uAna') => callable.run({ auth: { uid }, data }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
+  const intento = (callable, data, uid = 'uAna') => callable.run({ auth: { token: { firebase: { sign_in_provider: 'password' } }, uid }, data }).then((v) => ({ ok: true, v }), (e) => ({ ok: false, e }));
   const rechazo = (r, frase) => !r.ok && r.e && r.e.message === frase && (r.e.code === 'invalid-argument' || r.e instanceof EngineError);
 
   const { brainChat, brainQuote } = lib('creator/brain.js');
@@ -452,9 +454,10 @@ console.log('\n── E · Una sola regla, en el código ──');
     && (BRAIN.match(/assertAttachmentUrl\(data\.documentUrl, uid, 'document'\)/g) || []).length === 2
     && (BRAIN.match(/assertAttachmentUrl\(data\.audioUrl, uid, 'audio'\)/g) || []).length === 2);
   check('E6) creatorChat (al crear y al adjuntar), generateVideo (partida, último cuadro y referencias) y avatarReplacement (las dos fotos)',
-    (CREATOR.match(/assertInputImageUrl\(data\.imageUrl, uid\)/g) || []).length === 2
+    /* + creatorQuote sin trabajo (WeëAI sencillo, 2026-11-23): la foto que se cotiza pasa por la misma puerta → 3. */
+    (CREATOR.match(/assertInputImageUrl\(data\.imageUrl, uid\)/g) || []).length === 3
     && /assertInputImageUrl\(inputImage, uid\)/.test(VIDEO) && /assertInputImageUrl\(data\.lastFrameImage, uid\)/.test(VIDEO)
-    && /values\.slice\(0, 30\)\.map\(\(value\) => assertInputImageUrl\(value, uid\)\)/.test(VIDEO)
+    && /values\.slice\(0, 30\)\.map\(\(value\) => \(typeof value === 'string' && activosAutorizados\.includes\(value\) \? value : assertInputImageUrl\(value, uid\)\)\)/.test(VIDEO)
     && /assertInputImageUrl\(request\.data\?\.selfieUrl, request\.auth\.uid\)/.test(AVATAR) && /assertInputImageUrl\(request\.data\?\.avatarUrl, request\.auth\.uid\)/.test(AVATAR));
 
   /*

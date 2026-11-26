@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import CreatorShell from '../components/creator/CreatorShell';
@@ -37,6 +37,7 @@ import {
 import { notify } from '../utils/notify';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
 /**
  * «CREAR MUNDO 3D» — WEË STUDIO → 3D WORLD → CREAR MUNDO 3D.
@@ -272,7 +273,7 @@ const Mundo3DScreen: React.FC = () => {
   /* ── Con la puerta cerrada: ni una llamada. ───────────────────────────── */
   if (!MUNDO_3D_EN_LA_APP) {
     return (
-      <CreatorShell activeId="studio" overline={t('studio.world3dTitle')} title={t('studio.xpCreateWorld')} breadcrumb="Weë Studio" onBack={volver}>
+      <CreatorShell activeId="studio" overline={t('studio.world3dTitle')} title={t('studio.xpCreateWorld')} breadcrumb="WeëStudio" onBack={volver}>
         <View style={[styles.box, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           <Text style={[styles.boxTitle, { color: theme.colors.text }]}>{t('common.notAvailable')}</Text>
           <Text style={[styles.boxText, { color: theme.colors.textSecondary }]}>{t('studio.pendWorld')}</Text>
@@ -291,7 +292,7 @@ const Mundo3DScreen: React.FC = () => {
   const ocupado = presentacion.ocupado || subiendo;
 
   return (
-    <CreatorShell activeId="studio" overline={t('studio.world3dTitle')} title={t('studio.xpCreateWorld')} breadcrumb="Weë Studio" onBack={volver}>
+    <CreatorShell activeId="studio" overline={t('studio.world3dTitle')} title={t('studio.xpCreateWorld')} breadcrumb="WeëStudio" onBack={volver}>
       <Text style={[styles.intro, { color: theme.colors.textSecondary }]}>{t('studio.worldIntro')}</Text>
 
       {estado.fase === 'completado' && estado.mundo ? (
@@ -378,6 +379,7 @@ const Mundo3DScreen: React.FC = () => {
               accessibilityRole="button"
               accessibilityState={{ disabled: desactivada }}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!principal} />
               <Text style={principal ? styles.buttonText : [styles.secondaryText, { color: theme.colors.text }]}>{etiquetaDe(accion)}</Text>
             </TouchableOpacity>
           );
@@ -479,4 +481,4 @@ const styles = StyleSheet.create({
 });
 
 /* Weë AI es de la cuenta, no de un perfil: el taller se ve claro con las dos caras. */
-export default enTemaClaro(Mundo3DScreen);
+export default enTemaOscuro(Mundo3DScreen);

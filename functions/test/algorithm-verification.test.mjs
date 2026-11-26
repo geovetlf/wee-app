@@ -576,5 +576,70 @@ check('108 · y el conjunto de evaluadores está acotado por presupuesto, no por
     actual: res('r', { outputs: Array.from({ length: 500 }, (_, i) => sal(`k${i}`, 'x')) }),
   }).metricas.porEvaluador <= A.TOPES_MAXIMOS.maxEvaluators);
 
+console.log('\n─── Misión de cierre · la clave de señal de cada estado ───');
+
+check('CM1 · cada uno de los seis estados tiene una clave de señal que pasa la regla de nombres de las señales',
+  A.ESTADOS.length === 6 && A.ESTADOS.every((e) => A.senalValida({ key: A.claveDeEstado(e), value: true, source: 'derived' })),
+  A.ESTADOS.map((e) => `${e}→${A.claveDeEstado(e)}`).join(' · '));
+check('CM2 · `pass_with_uncertainty` se publica como `verification.passWithUncertainty`; los otros cinco, como antes',
+  A.claveDeEstado('pass_with_uncertainty') === 'verification.passWithUncertainty'
+  && ['pass', 'fail', 'partial', 'unknown', 'inconclusive'].every((e) => A.claveDeEstado(e) === `verification.${e}`));
+const conIncertidumbreCM = verificar(PIDE_CALIDAD);
+check('CM3 · REGRESIÓN · un veredicto `pass_with_uncertainty` publica solo señales que el motor puede volver a leer',
+  conIncertidumbreCM.status === 'pass_with_uncertainty' && conIncertidumbreCM.signals.length > 0
+  && conIncertidumbreCM.signals.every((s) => A.senalValida(s))
+  && conIncertidumbreCM.signals.some((s) => s.key === 'verification.passWithUncertainty'),
+  JSON.stringify(conIncertidumbreCM.signals.map((s) => s.key)));
+check('CM3b · y ninguna clave publicada por A6, para ningún estado, se queda fuera de la regla',
+  [verificar(PIDE_CALIDAD), conEval(evaluador('e1', 'fail', 0.4)).verificar(PIDE_CALIDAD), conEval(evaluador('e2', 'pass', 0.95)).verificar(PIDE_CALIDAD)]
+    .every((r) => r.signals.every((s) => A.senalValida(s))));
+
+console.log('\n─── Misión de cierre · un corte del presupuesto no da por bueno lo que no miró ───');
+
+const TODO_BIEN_CM = { expected: Array.from({ length: 12 }, (_, i) => ({ kind: `k${i}` })), actual: res('r', { outputs: Array.from({ length: 12 }, (_, i) => sal(`k${i}`, 'x')) }) };
+const enteroCM = verificar(TODO_BIEN_CM);
+const cortadoCM = verificar({ ...TODO_BIEN_CM, budget: { maxChecks: 3 } });
+check('CM16 · CONTROL · con presupuesto de sobra, todo lo pedido está y el veredicto es `pass`',
+  enteroCM.status === 'pass' && enteroCM.passed === true, enteroCM.status);
+check('CM17 · REGRESIÓN · cortado por el tope de comprobaciones, lo no mirado entra como `unknown` —no se deja fuera— y el veredicto NO es `pass`',
+  cortadoCM.metricas.budgetExhausted === true && cortadoCM.status !== 'pass' && cortadoCM.passed !== true
+  && cortadoCM.findings.some((x) => x.status === 'unknown' && x.by === 'budget')
+  && cortadoCM.findings.length === enteroCM.findings.length,
+  `${cortadoCM.status} · ${cortadoCM.findings.length} hallazgos (entero: ${enteroCM.findings.length})`);
+check('CM18 · y un duro sin mirar no deja pasar: el veredicto queda en `unknown`',
+  cortadoCM.findings.some((x) => x.hard && x.by === 'budget') && cortadoCM.status === 'unknown',
+  `${cortadoCM.findings.filter((x) => x.hard && x.by === 'budget').length} duros sin mirar · ${cortadoCM.status}`);
+check('CM19 · A6 sube a `motor-de-verificacion@3`: cambia lo que decide cuando se corta (regla de `AlgorithmDescriptor.version`)',
+  A.DESCRIPTOR_DE_VERIFICACION.version === 3);
+
+/* La MISMA comprobación dos veces en la petición —el mismo objeto—, justo donde se corta (revisión de código). */
+const repetidaCM = { id: 'zz:repetida', type: 'structural.status', hard: false, severity: 'bajo' };
+const conRepetidaCM = verificar({ actual: res('r'), checks: [repetidaCM, repetidaCM], budget: { maxChecks: 1 } });
+check('CM23 · REGRESIÓN · lo que no se miró entra UNA vez por comprobación, aunque la petición la traiga dos veces',
+  conRepetidaCM.metricas.budgetExhausted === true
+  && conRepetidaCM.findings.filter((x) => x.checkId === 'zz:repetida').length === 1
+  && conRepetidaCM.because.some((b) => b.includes('1 sin mirar')),
+  `${conRepetidaCM.findings.filter((x) => x.checkId === 'zz:repetida').length} hallazgos de zz:repetida · ${conRepetidaCM.because.slice(-1)[0]}`);
+let tCM24 = 0;
+const porTiempoCM = A.crearMotorDeVerificacion({ ahora: () => (tCM24 += 10) }).verificar({ ...TODO_BIEN_CM, budget: { maxLatencyMs: 25 } });
+check('CM24 · REGRESIÓN · si el corte es por TIEMPO, se dice el tope que se acabó (`maxLatencyMs`), no «comprobaciones»',
+  porTiempoCM.metricas.budgetExhausted === true
+  && porTiempoCM.findings.some((x) => x.by === 'budget' && x.because.includes('maxLatencyMs'))
+  && porTiempoCM.because.some((b) => b.includes('tope de pensar (maxLatencyMs)')),
+  String(porTiempoCM.because.slice(-1)[0]).slice(0, 120));
+/*
+ * BLOCKED — HUMAN DECISION (revisión de arquitectura; DECISIONES-PENDIENTES, «la frontera sobre lo que se describe»).
+ * La lectura por responsabilidad también se aplica a lo que DESCRIBE: el resultado observado, la metadata de un evento
+ * de A7 y la de una capacidad. Hoy un `storagePath` legítimo en una salida es un `fail` duro —y A7 lo aprendería—, y
+ * `pricingModel` o `supportsWebhook` no pasan como metadata. Se FIJA tal cual para que conectar el cierre no lo pase por
+ * alto: cambiarlo es la decisión del dueño, y esta comprobación tendrá que cambiar con ella.
+ */
+const observadoCM = verificar({ expected: [{ kind: 'image' }], actual: res('r', { outputs: [{ ...sal('image', 'a'), metadata: { storagePath: 'x' } }] }) });
+check('CM25 · BLOCKED — HUMAN DECISION · la frontera por responsabilidad también lee lo OBSERVADO y lo que DESCRIBE: un `storagePath` en una salida es hoy un `fail` duro, y `pricingModel` o `supportsWebhook` no pasan como metadata',
+  observadoCM.status === 'fail' && observadoCM.findings.some((x) => x.type === 'authority.implementation' && x.hard)
+  && A.metadataSegura({ pricingModel: 'per-second' }).reason === 'authority_violation'
+  && A.metadataSegura({ supportsWebhook: true }).reason === 'authority_violation',
+  `${observadoCM.status} · ${A.metadataSegura({ pricingModel: 'per-second' }).reason} · ${A.metadataSegura({ supportsWebhook: true }).reason}`);
+
 console.log(failures ? `\n${failures} comprobación(es) fallaron` : '\nA6: verifica lo que puede, dice lo que no sabe, y propone sin ejecutar');
 process.exit(failures ? 1 : 0);

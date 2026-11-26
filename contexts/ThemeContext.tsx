@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { Appearance, ColorSchemeName, Animated, Easing, StyleSheet, Platform, StatusBar } from 'react-native';
 import * as NavigationBar from 'expo-navigation-bar';
+import { MARCA, ACENTO } from '../constants/marca';
+import { FamiliaDeTextoContext } from './FamiliaDeTextoContext';
 
 /*
  * Dos temas y el del sistema. Hubo un tercero —morado— que se encendía con el
@@ -21,6 +23,27 @@ export interface Theme {
     accent: string;
     accentLight: string;
     accentDark: string;
+    /** Punta clara del acento (amarillo dorado). */
+    primaryLight: string;
+    /** Punta honda del acento (naranja profundo). */
+    primaryDark: string;
+    /** Iconos y etiquetas de la navegación activa. */
+    activeColor: string;
+    /** Texto encima del acento o del degradado de marca. */
+    onPrimary: string;
+    /** Extremos del degradado de marca (el degradado completo lo pinta components/GradienteDeMarca.tsx). */
+    primaryGradientStart: string;
+    primaryGradientEnd: string;
+    /** Acento de interacción (violeta): estados activos, foco, enlaces. Nunca una acción primaria: esa es `accent`. Sale de constants/marca.ts (ACENTO). */
+    interaction: string;
+    /** Velo del acento de interacción para fondos suaves. */
+    interactionSoft: string;
+    /** Velo fuerte: el lado puesto del selector de identidad. */
+    interactionStrong: string;
+    /** Contorno de una tarjeta destacada con el acento de interacción. */
+    interactionBorder: string;
+    /** Texto encima de un relleno del acento de interacción. */
+    onInteraction: string;
     like: string;
     error: string;
     glow: string;
@@ -33,19 +56,31 @@ export interface Theme {
 const lightTheme: Theme = {
   dark: false,
   colors: {
-    primary: '#F5B731',
+    /* El color de marca sale de constants/marca.ts (degradado amarillo dorado → naranja, 2026-11-05). */
+    primary: MARCA.primario,
     background: '#FFFFFF',
     surface: '#F8F9FA',
     card: '#FFFFFF',
     text: '#1F2937',
     textSecondary: '#6B7280',
     border: '#E5E7EB',
-    accent: '#F5B731',
-    accentLight: '#FFC94D',
-    accentDark: '#E5A020',
+    accent: MARCA.primario,
+    accentLight: MARCA.primarioClaro,
+    accentDark: MARCA.primarioOscuro,
+    primaryLight: MARCA.primarioClaro,
+    primaryDark: MARCA.primarioOscuro,
+    activeColor: MARCA.activo,
+    onPrimary: MARCA.sobrePrimario,
+    primaryGradientStart: MARCA.degradado.colores[0],
+    primaryGradientEnd: MARCA.degradado.colores[2],
+    interaction: ACENTO.claro.interaccion,
+    interactionSoft: ACENTO.claro.velo,
+    interactionStrong: ACENTO.claro.veloFuerte,
+    interactionBorder: ACENTO.claro.borde,
+    onInteraction: ACENTO.claro.sobre,
     like: '#EF4444',
     error: '#EF4444',
-    glow: 'rgba(245, 183, 49, 0.15)',
+    glow: MARCA.velo(0.15),
     backdrop: 'rgba(0, 0, 0, 0.4)',
     success: '#22C55E',
     warning: '#F59E0B',
@@ -55,19 +90,31 @@ const lightTheme: Theme = {
 const darkTheme: Theme = {
   dark: true,
   colors: {
-    primary: '#F5B731',
+    /* El color de marca sale de constants/marca.ts (degradado amarillo dorado → naranja, 2026-11-05). */
+    primary: MARCA.primario,
     background: '#0A0A0A',
     surface: '#1C1C1E',
     card: '#111111',
     text: '#FFFFFF',
     textSecondary: '#98989D',
     border: '#38383A',
-    accent: '#F5B731',
-    accentLight: '#FFC94D',
-    accentDark: '#E5A020',
+    accent: MARCA.primario,
+    accentLight: MARCA.primarioClaro,
+    accentDark: MARCA.primarioOscuro,
+    primaryLight: MARCA.primarioClaro,
+    primaryDark: MARCA.primarioOscuro,
+    activeColor: MARCA.activo,
+    onPrimary: MARCA.sobrePrimario,
+    primaryGradientStart: MARCA.degradado.colores[0],
+    primaryGradientEnd: MARCA.degradado.colores[2],
+    interaction: ACENTO.oscuro.interaccion,
+    interactionSoft: ACENTO.oscuro.velo,
+    interactionStrong: ACENTO.oscuro.veloFuerte,
+    interactionBorder: ACENTO.oscuro.borde,
+    onInteraction: ACENTO.oscuro.sobre,
     like: '#FF6B6B',
     error: '#FF6B6B',
-    glow: 'rgba(245, 183, 49, 0.25)',
+    glow: MARCA.velo(0.25),
     backdrop: 'rgba(0, 0, 0, 0.7)',
     success: '#22C55E',
     warning: '#F59E0B',
@@ -147,6 +194,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       StatusBar.setBackgroundColor(theme.colors.background);
       StatusBar.setBarStyle(theme.dark ? 'light-content' : 'dark-content');
     }
+    /*
+     * En la web se le dice al navegador qué esquema pinta la página. Sin declararlo, algunos navegadores móviles oscurecen
+     * por su cuenta una página clara (modo oscuro forzado): con el Perfil Real la app es clara y así se queda.
+     */
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.documentElement.style.colorScheme = theme.dark ? 'dark' : 'only light';
+    }
   }, [theme]);
 
   /*
@@ -220,6 +274,42 @@ export const useTheme = (): ThemeContextType => {
  * funcionando igual y todo lo que queda fuera —el cajón el primero— sigue
  * exactamente como estaba.
  */
+/** Cuántas pantallas de WeëAI hay montadas: mientras haya alguna, la barra de estado y el esquema de color van en oscuro. */
+let pantallasOscuras = 0;
+
+/**
+ * EL TEMA OSCURO FIJO DE WEËAI (decisión del dueño, 2026-11-16): WeëAI, su wallet y Mis proyectos son de la CUENTA y se ven siempre
+ * oscuros, con el Perfil Real y con el Perfil Weë. Mismo mecanismo que `TemaClaro`: reemplaza el tema por el oscuro dentro de su árbol.
+ * Además alinea la barra de estado, la barra de navegación y el `color-scheme` de la web mientras haya una pantalla de WeëAI a la vista.
+ */
+export const TemaOscuro: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { theme: externo, themeMode, setThemeMode } = useTheme();
+  const externoOscuro = useRef(externo.dark);
+  externoOscuro.current = externo.dark;
+  useEffect(() => {
+    pantallasOscuras += 1;
+    const aplicar = (oscuro: boolean) => {
+      try {
+        if (Platform.OS === 'android') NavigationBar.setButtonStyleAsync(oscuro ? 'light' : 'dark');
+        if (Platform.OS !== 'web') StatusBar.setBarStyle(oscuro ? 'light-content' : 'dark-content');
+        else if (typeof document !== 'undefined') document.documentElement.style.colorScheme = oscuro ? 'dark' : 'only light';
+      } catch {
+        /* Sin estas barras se sigue: el tema ya es oscuro dentro de la pantalla. */
+      }
+    };
+    aplicar(true);
+    return () => {
+      pantallasOscuras -= 1;
+      if (pantallasOscuras <= 0) aplicar(externoOscuro.current);
+    };
+  }, []);
+  return (
+    <ThemeContext.Provider value={{ theme: darkTheme, themeMode, setThemeMode }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+
 export const TemaClaro: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { themeMode, setThemeMode } = useTheme();
   return (
@@ -236,6 +326,18 @@ export const TemaClaro: React.FC<{ children: ReactNode }> = ({ children }) => {
  * tema por su cuenta ANTES de montar el marco: si el proveedor viviera dentro,
  * el marco saldría claro y el contenido que la pantalla ya ha pintado, oscuro.
  */
+export const enTemaOscuro = <P extends object>(Pantalla: React.ComponentType<P>): React.FC<P> => {
+  const Envuelta: React.FC<P> = (props) => (
+    <TemaOscuro>
+      <FamiliaDeTextoContext.Provider value="manrope">
+        <Pantalla {...props} />
+      </FamiliaDeTextoContext.Provider>
+    </TemaOscuro>
+  );
+  Envuelta.displayName = `enTemaOscuro(${Pantalla.displayName || Pantalla.name || 'Pantalla'})`;
+  return Envuelta;
+};
+
 export const enTemaClaro = <P extends object>(Pantalla: React.ComponentType<P>): React.FC<P> => {
   const Envuelta: React.FC<P> = (props) => (
     <TemaClaro>

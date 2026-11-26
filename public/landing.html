@@ -6,12 +6,17 @@
   tres identidades con Biz, botones a una ficha de Google Play que no existe): los textos
   salen de la Ayuda de la app (i18n/textos/es/help.ts). Inventario y lo que queda
   pendiente del dueño: docs/LEGADO-HIDETOK.md.
+  El eslogan (título, og:title, twitter:title y h1) va en ESPAÑOL, la lengua de esta página estática
+  (lang="es"): no hay servidor que la sirva por idioma. En la app sale de nav.brandSlogan, por idioma.
+  Tabla y motivos: docs/ESLOGAN.md.
+  El 2026-11-06 salió la sección del directorio de negocios del proyecto anterior (su enlace del menú, sus estilos
+  y su bloque): se retiró definitivamente de Weë por decisión del dueño (docs/UX.md, ops/integracion/capacidades.mjs).
 -->
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Weë - La comunidad del futuro</title>
+  <title>Weë - Imagina · Crea · Conecta</title>
   <meta name="description" content="Weë es la red social de las personas que crean con Inteligencia Artificial: descubre, aprende, crea, comparte y conecta.">
   <meta name="theme-color" content="#F5B731">
   <link rel="icon" type="image/png" href="/img/icon.png">
@@ -19,13 +24,13 @@
   <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://wee.zone/">
-  <meta property="og:title" content="Weë - La comunidad del futuro">
+  <meta property="og:title" content="Weë - Imagina · Crea · Conecta">
   <meta property="og:description" content="Weë es la red social de las personas que crean con Inteligencia Artificial: descubre, aprende, crea, comparte y conecta.">
   <meta property="og:image" content="https://wee.zone/img/icon.png">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Weë - La comunidad del futuro">
+  <meta name="twitter:title" content="Weë - Imagina · Crea · Conecta">
   <meta name="twitter:description" content="La red social de las personas que crean con Inteligencia Artificial.">
 
   <meta name="robots" content="index, follow">
@@ -163,36 +168,6 @@
     .icon-blue { background: rgba(59,130,246,0.15); }
     .icon-pink { background: rgba(236,72,153,0.15); }
 
-    /* WEEBIZ SECTION */
-    .weebiz {
-      padding: 100px 24px;
-      background: linear-gradient(180deg, transparent 0%, rgba(124,58,237,0.05) 50%, transparent 100%);
-    }
-    .weebiz-inner {
-      max-width: 1200px; margin: 0 auto;
-      display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
-    }
-    .weebiz-content h2 {
-      font-size: clamp(28px, 4vw, 42px); font-weight: 800; margin-bottom: 16px;
-    }
-    .weebiz-content h2 span { color: var(--purple); }
-    .weebiz-content p { color: var(--text-secondary); font-size: 17px; line-height: 1.7; margin-bottom: 24px; }
-    .weebiz-tags { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 32px; }
-    .weebiz-tag {
-      padding: 8px 16px; border-radius: 100px; font-size: 13px; font-weight: 600;
-      background: rgba(124,58,237,0.12); color: var(--purple);
-    }
-    .weebiz-visual {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
-    }
-    .biz-card {
-      background: var(--dark-surface); border-radius: 16px; padding: 24px;
-      border: 1px solid rgba(255,255,255,0.06);
-    }
-    .biz-card-icon { font-size: 28px; margin-bottom: 12px; }
-    .biz-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-    .biz-card p { font-size: 13px; color: var(--text-secondary); }
-
     /* IDENTITIES */
     .identities {
       padding: 100px 24px;
@@ -237,8 +212,6 @@
     /* RESPONSIVE */
     @media (max-width: 768px) {
       .nav-links a:not(.nav-cta) { display: none; }
-      .weebiz-inner { grid-template-columns: 1fr; }
-      .weebiz-visual { grid-template-columns: 1fr 1fr; }
       .hero-buttons { flex-direction: column; align-items: center; }
     }
   </style>
@@ -251,7 +224,6 @@
       <img src="/img/logo-dark.png" alt="Weë" class="nav-logo">
       <div class="nav-links">
         <a href="#features">Funciones</a>
-        <a href="#weebiz">Weë Business</a>
         <a href="#identities">Perfiles</a>
         <a href="https://wee.zone/" class="nav-cta">Entrar</a>
       </div>
@@ -262,7 +234,7 @@
   <section class="hero">
     <div class="hero-content">
       <img src="/img/icon.png" alt="Weë" class="hero-icon">
-      <h1>La comunidad del futuro</h1>
+      <h1>Imagina · Crea · Conecta</h1>
       <p>Weë es la red social de las personas que crean con Inteligencia Artificial: aquí descubres, aprendes, creas, compartes y conectas. La IA es el motor; la comunidad es el corazón.</p>
       <div class="hero-buttons">
         <a href="https://wee.zone/" class="btn-primary">
@@ -306,51 +278,6 @@
         <div class="feature-icon icon-pink">&#128176;</div>
         <h3>Credits</h3>
         <p>Cada creación con Weë AI usa Credits. Antes de crear ves cuánto costará y, si algo falla, se devuelven.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- WEEBIZ -->
-  <section class="weebiz" id="weebiz">
-    <div class="weebiz-inner">
-      <div class="weebiz-content">
-        <h2>Impulsa tu negocio con <span>Weë Business</span></h2>
-        <p>Registra tu negocio, muestra tus productos, recibe reseñas y conecta directamente con clientes a través de WeeTalk. Todo desde la misma app.</p>
-        <div class="weebiz-tags">
-          <span class="weebiz-tag">Comida</span>
-          <span class="weebiz-tag">Belleza</span>
-          <span class="weebiz-tag">Servicios</span>
-          <span class="weebiz-tag">Tiendas</span>
-          <span class="weebiz-tag">Salud</span>
-          <span class="weebiz-tag">Tecnología</span>
-          <span class="weebiz-tag">Creadores</span>
-          <span class="weebiz-tag">+12 más</span>
-        </div>
-        <a href="https://wee.zone/" class="btn-primary">
-          Registra tu negocio
-        </a>
-      </div>
-      <div class="weebiz-visual">
-        <div class="biz-card">
-          <div class="biz-card-icon">&#127828;</div>
-          <h4>Restaurantes</h4>
-          <p>Menú, delivery, reseñas</p>
-        </div>
-        <div class="biz-card">
-          <div class="biz-card-icon">&#128135;</div>
-          <h4>Belleza</h4>
-          <p>Citas, portafolio, precios</p>
-        </div>
-        <div class="biz-card">
-          <div class="biz-card-icon">&#128187;</div>
-          <h4>Tech</h4>
-          <p>Servicios, proyectos, equipo</p>
-        </div>
-        <div class="biz-card">
-          <div class="biz-card-icon">&#127891;</div>
-          <h4>Educación</h4>
-          <p>Cursos, tutorías, academia</p>
-        </div>
       </div>
     </div>
   </section>

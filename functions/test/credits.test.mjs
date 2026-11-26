@@ -143,7 +143,16 @@ const engine = createCreditEngine({
 });
 
 const profile = (uid, extra = {}) => db.docs.set(`users/doc_${uid}`, { uid, displayName: uid, ...extra });
-const balanceOf = (uid) => db.read(`users/doc_${uid}`).creditsBalance;
+/* F-06: el saldo vive en creditAccounts/{uid} y el perfil es su espejo; si los dos no coinciden, NaN (la aserción falla). */
+const balanceOf = (uid) => {
+  const enPerfil = db.read(`users/doc_${uid}`)?.creditsBalance;
+  const enCuenta = db.read(`creditAccounts/${uid}`)?.creditsBalance;
+  return enPerfil === enCuenta ? enPerfil : NaN;
+};
+const ponerSaldo = (uid, saldo) => {
+  db.docs.get(`users/doc_${uid}`).creditsBalance = saldo;
+  db.docs.get(`creditAccounts/${uid}`).creditsBalance = saldo;
+};
 const txs = (uid) => [...db.docs.entries()].filter(([p, d]) => p.startsWith('creditTransactions/') && d.userId === uid).map(([p, d]) => ({ id: p.split('/').pop(), ...d }));
 
 console.log('\n── Cuenta: migración desde wallets + bienvenida (idempotente) ──');
@@ -187,7 +196,7 @@ await rejects('nadie puede reutilizar la operación de otra cuenta', () => engin
 console.log('\n── Concurrencia: dos gastos a la vez sobre saldo para uno solo ──');
 profile('cai');
 await engine.ensureAccount('cai');
-db.docs.get('users/doc_cai').creditsBalance = 60;
+ponerSaldo('cai', 60);
 const results = await Promise.allSettled([
   engine.spendCredits({ userId: 'cai', service: 'ai_video', amount: 50, requestId: 'race_1', source: 'test' }),
   engine.spendCredits({ userId: 'cai', service: 'ai_video', amount: 50, requestId: 'race_2', source: 'test' }),
@@ -269,7 +278,9 @@ check('video: el mismo clip con Seedance 2.0 cuesta USD 1.51 y sube de tramo', M
 const v25 = priceVideo({ modelId: SM.SEEDANCE_2_5, durationSec: 10, resolution: '1080p' }, real);
 check('video: Seedance 2.5 a 1080p va al tramo máximo', Math.abs(v25.usd - 5.6862) < 0.01 && v25.service === 'ai_video_max', `${v25.usd}`);
 const vRef = priceVideo({ modelId: SM.SEEDANCE_2_0, durationSec: 5, resolution: '720p', inputVideoSec: 5 }, real);
-check('video: con video de entrada se usa la tarifa reducida y se pagan los segundos de entrada', Math.abs(vRef.usd - (216000 * 4.3) / 1e6) < 0.001, `${vRef.usd}`);
+/* Corrección P0 Seedance (2026-10-07): el precio pasa por la petición efectiva, la misma que el cuerpo, y con vídeo de
+   entrada esa petición cotiza el techo del modelo (R22, 15 s en 2.0), no los segundos que declara quien llama. */
+check('video: con video de entrada se usa la tarifa reducida y se paga el techo de entrada del modelo (R22), como en la puerta', Math.abs(vRef.usd - (432000 * 4.3) / 1e6) < 0.001 && vRef.detail.inputVideoSec === 15, `${vRef.usd}`);
 const vSim = priceVideo({ modelId: SM.SEEDANCE_2_0_FAST, durationSec: 10, resolution: '720p' }, simulated);
 check('video: en modo prueba manda el catálogo del Credit Engine, no el coste', vSim.credits === CREDIT_COSTS.ai_video && vSim.usd > 0);
 check('video: la duración se recorta al máximo del modelo antes de cobrar', priceVideo({ modelId: SM.SEEDANCE_2_0, durationSec: 40, resolution: '480p' }, real).detail.durationSec === 15);

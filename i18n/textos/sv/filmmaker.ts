@@ -12,12 +12,12 @@
  * y una producción se cuenta «tagning för tagning». Por eso la TOMA —cada vídeo que Weë genera para un plano, que se
  * puede repetir— no puede ser también «tagning»: es «version», la palabra con la que el resto de Weë dice «hazlo otra
  * vez» (`weeai.anotherVersion`, «Skapa en ny version»). «Bild» se descartó para el plano aunque los tipos de plano de
- * Weë Studio sean «-bild» (närbild, halvbild): en una app que crea imágenes, «Lägg till bild» o «Generera den här
+ * WeëStudio sean «-bild» (närbild, halvbild): en una app que crea imágenes, «Lägg till bild» o «Generera den här
  * bilden» se leerían como «añadir/generar una imagen». Las dos palabras, «scen» y «tagning», son de género común, así
  * que los motivos de F1-D, que hablan de un plano o de una escena sin decir cuál, empiezan por «Den».
  *
  * El storyboard es «Bildmanus» (el término sueco de la producción de cine) y el panel Director, «Regi»; dirigir una
- * escena o un plano, «Regissera». La duración es «Längd» como en Weë Studio (`studio.optDuration`): «Mållängd»,
+ * escena o un plano, «Regissera». La duración es «Längd» como en WeëStudio (`studio.optDuration`): «Mållängd»,
  * «Total längd». La proporción es «Bildförhållande» y «Formato», «Format», como `studio.optFormat`. Los personajes son
  * «Karaktärer» (`studio.charactersTitle`), su vestuario, «klädsel», y una línea de diálogo, «replik». «Atardecer» es
  * «Solnedgång», como el tema de WeeTalk, y «Amanecer», «Soluppgång»: es la pareja exacta del español. «Gryning»
@@ -31,7 +31,7 @@
  * devolución, «få tillbaka» (`weeai.creditsNote`).
  *
  * REVISIÓN (nativa). Se confirma «tagning» para el plano y «version» para la toma: «bild» chocaría de frente con la
- * «bild» de Weë Studio («Bilder», «Bild till video», donde es la imagen de partida), y en la escuela sueca de cine
+ * «bild» de WeëStudio («Bilder», «Bild till video», donde es la imagen de partida), y en la escuela sueca de cine
  * la cadena es «bildruta, tagning, scen, sekvens». Los tipos de plano de Studio («Närbild», «Halvbild») son tamaños
  * de encuadre («bildutsnitt»), no la unidad: «Tagning 2 · Närbild» se lee bien. «Version» vale para la toma y para la versión
  * guardada de la producción porque nunca comparten pantalla: la toma vive en el panel de generación y la otra en el
@@ -45,7 +45,7 @@
  * «Escena 1 · Plano 2» es «Scen 1 · tagning 2»: solo la primera palabra va en mayúscula, como pide el sueco.
  *
  * Se escriben igual que en español o en inglés porque no se traducen: TikTok, YouTube y YouTube Shorts (plataformas),
- * y «Format», que es la palabra sueca. Weë, Weë Studio y Credits son marca y no se declinan («ditt Weë-konto»).
+ * y «Format», que es la palabra sueca. Weë, WeëStudio y Credits son marca y no se declinan («ditt Weë-konto»).
  */
 export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   sectionName: 'Flera scener',
@@ -57,20 +57,20 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   createProduction: 'Skapa produktion',
   creatingProduction: 'Skapar produktionen…',
   openProduction: 'Öppna {{titulo}}',
-  goToStudio: 'Gå till Weë Studio',
+  goToStudio: 'Gå till WeëStudio',
   loadMore: 'Visa mer',
   backToList: 'Tillbaka till dina produktioner',
   updatedAgo: 'Uppdaterad {{cuando}}',
 
   emptyListTitle: 'Inga produktioner ännu',
-  emptyListText: 'Börja i Weë Studio: öppna Videor, välj ”Flera scener” och tala om för Weë vad du vill berätta.',
+  emptyListText: 'Börja i WeëStudio: öppna Videor, välj ”Flera scener” och tala om för Weë vad du vill berätta.',
   emptyArchived: 'Du har inga arkiverade produktioner.',
   emptyStoryboardTitle: 'Den här produktionen har inga scener ännu',
   emptyStoryboardText: 'Lägg till den första och bygg upp berättelsen tagning för tagning.',
   addFirstScene: 'Lägg till den första scenen',
 
   yourIdea: 'Din idé',
-  ideaFromStudio: 'Idén skriver du i Weë Studio. Om du vill ändra den går du tillbaka dit.',
+  ideaFromStudio: 'Idén skriver du i WeëStudio. Om du vill ändra den går du tillbaka dit.',
   whereWillItPlay: 'Var ska den visas?',
   otherFormat: 'Annat format',
   continueOne: 'Eller fortsätt med en av dina produktioner',
@@ -368,4 +368,160 @@ export const filmmaker: typeof import('../es/filmmaker').filmmaker = {
   takeReasonConflict: 'Den versionen har redan begärts på ett annat sätt.',
   takeReasonDone: 'Den versionen är redan klar: du hittar den i ”Mina skapelser”.',
   takeReasonInvalid: 'Den gick inte att förbereda för generering.',
+  /* Primera capa de Filmmaker (2026-11-17). PROVISIONAL en inglés, SIN traducir (pendiente de traducción y revisión nativa). */
+  hubTitle: 'Create your production',
+  hubSub: 'Talk to Weë and bring your idea to life',
+  hubPlaceholder: 'Tell me what you want to create…',
+  hubTypeSection: 'Choose the project type',
+  hubTypeSectionHint: 'What do you want to produce today?',
+  hubTypeFilm: 'Film',
+  hubTypeFilmSub: 'Cinematic feature film',
+  hubTypeShort: 'Short film',
+  hubTypeShortSub: 'A short-length story',
+  hubTypeSeries: 'Series',
+  hubTypeSeriesSub: 'Seasons and episodes',
+  hubTypeAd: 'Ad',
+  hubTypeAdSub: 'Advertising and commercial content',
+  hubTypeSeriesWhy: 'Series is coming soon.',
+  hubCreateError: 'We could not create your production.',
+  hubCreating: 'Creating your production…',
+  hubNeedSession: 'Sign in to create your production.',
+  hubAuto: 'Auto',
+  hubSeconds: '{{n}} s',
+  hubFormatLabel: 'Format, length and model',
+  hubBrain: 'Weë Brain',
+  hubContinue: 'Continue your production',
+  hubNotYet: 'Not available yet',
+  /* Taller de Idea de Filmmaker (2026-11-17). PROVISIONAL en inglés, SIN traducir (pendiente de traducción y revisión nativa). */
+  attachTitle: 'Add to your idea',
+  attachPaste: 'Paste text',
+  attachPasteHint: 'Paste your script or notes here. Adding names, conflicts and genre improves the result.',
+  attachPastePlaceholder: 'Paste or write your text…',
+  attachPasteCount: '{{n}} / {{max}}',
+  attachPasteUse: 'Use text',
+  askDoneNeedIdea: 'Tell me a little more about your idea in the box below to continue.',
+  ideaFieldDone: 'Done',
+  /* Universo de Filmmaker (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  stagesLabel: 'Production stages',
+  stageIdea: 'Idea',
+  stageUniverse: 'Universe',
+  stageBatches: 'Batches',
+  stageProduction: 'Production',
+  stageJoin: 'Join',
+  stageOutput: 'Output',
+  stageSoon: 'This stage arrives in an upcoming phase.',
+  uniTitle: 'The universe of your film',
+  uniCharacters: 'Characters',
+  uniPlaces: 'Places',
+  uniObjects: 'Objects',
+  uniEmptyCharacters: 'No characters yet. Write the first one below: name — description.',
+  uniEmptyPlaces: 'No places yet. Write the first one below: name — description.',
+  uniEmptyObjects: 'No objects yet. Write the first one below: name — description.',
+  uniAddCharacter: 'Add a character: name — description',
+  uniAddPlace: 'Add a place: name — description',
+  uniAddObject: 'Add an object: name — description',
+  uniGroupMain: 'Main',
+  uniGroupImportant: 'Important',
+  uniGroupGroups: 'Groups',
+  uniGroupOther: 'Others',
+  uniRegenerateClosed: 'Closed: generating universe images is not authorized yet.',
+  uniApproveWhy: 'Add at least one character.',
+  uniContinue: 'Continue to Batches',
+  uniOpenSheet: 'Open sheet',
+  sheetTitle: 'Sheet',
+  sheetName: 'Name',
+  sheetLine: 'Description',
+  sheetGroup: 'Group',
+  sheetRemove: 'Remove',
+  sheetRemoveSure: 'Tap again to remove',
+  /* Voz y sonidos de la ficha (ola 2, simplificado por el dueño). PROVISIONAL en inglés, SIN traducir. */
+  sheetVoiceLabel: 'Character voice',
+  /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  uniExampleBadge: 'Example',
+  uniLoadExample: 'See an example universe',
+  uniClearExample: 'Remove the example',
+  uniEx1: 'Stubborn, brave lighthouse keeper. Guards a secret of the sea.',
+  uniEx2: 'Her older brother. A quiet sailor returning after years away.',
+  uniEx3: 'A curious reporter investigating the shipwreck.',
+  uniEx4: 'The villagers: fishermen and elders who see everything.',
+  uniEx5: 'An old lighthouse on a cliff, always in the fog.',
+  uniEx6: 'An antique compass that does not point north.',
+  /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  projOpen: 'Project settings',
+  projDuration: 'Duration',
+  projFormat: 'Format',
+  /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  ideaGreetShort: 'What short film do you want to create?',
+  ideaGreetFilm: 'What movie do you want to create?',
+  ideaGreetAd: 'What ad do you want to create?',
+  pillChange: 'Change the type or the style',
+  styleTitle: 'What style do you want?',
+  styleRealistic: 'Realistic',
+  styleScifi: 'Sci-fi',
+  styleFantasy: 'Fantasy',
+  styleAnime: 'Anime',
+  styleAnimation3d: '3D animation',
+  styleNoir: 'Film noir',
+  styleGothic: 'Gothic',
+  styleVintage: 'Vintage',
+  styleDocumentary: 'Documentary',
+  /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  styleCartoon: 'Cartoon',
+  styleClaymation: 'Claymation',
+  styleWatercolor: 'Watercolor',
+  stylePixel: 'Pixel art',
+  styleComic: 'Comic',
+  /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  pickTypeFirst: 'First choose the project type.',
+  /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  ideaKept: 'Your idea is still here: tap send to try again.',
+  stageOf: '{{etapa}} · {{n}} of {{total}}',
+  /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  projResolution: 'Resolution',
+  /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  hubRetry: 'Try again',
+  /* Claves nuevas (Universo y Capítulos). PROVISIONAL en inglés, SIN traducir. */
+  uniOriginMine: 'Yours',
+  uniOriginWee: 'Weë\'s suggestion',
+  uniOriginDoc: 'From the document',
+  uniWorldTitle: 'World',
+  uniWorldPlaceholder: 'Describe your world or leave it to Weë',
+  uniWorldWee: 'Weë suggests it from your story, type and style.',
+  uniWorldHint: 'Change it any time in your own words: for example, remove the volcano or add fog.',
+  uniFoundTitle: 'Characters found in your document: {{contador}}',
+  uniFoundAsk: 'Do you want to upload a character sheet, or shall I do it?',
+  uniFoundUpload: 'Upload a sheet',
+  uniFoundWee: 'You do it, Weë',
+  uniUploadImage: 'Upload an image',
+  uniUploadCreate: 'Create in Weë Images',
+  uniUploadHint: 'What you create stays in My projects: pick it later from the “+”.',
+  uniSheetMode: 'Character sheet',
+  uniSheetUpload: 'Upload sheet',
+  uniSheetWee: 'Let Weë interpret it',
+  sheetSoon: 'Soon: visual style and variants.',
+  /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  refFromProjects: 'From My projects',
+  refRoleReference: 'Reference',
+  refRoleCharacter: 'Character',
+  refRoleWorld: 'World',
+  refUploading: 'Uploading…',
+  refError: 'The image could not be uploaded. Tap to try again.',
+  refTooBig: 'The image is too large (10 MB maximum).',
+  refPermission: 'Allow access to your photos to upload an image.',
+  refRemove: 'Remove {{nombre}}',
+  refCharacterName: 'Character {{n}}',
+  refWorldName: 'World',
+  refPickerEmpty: 'You have no images created in Weë yet.',
+  refPickerError: 'We could not load your images.',
+  refWaitUpload: 'Wait for the image to finish uploading.',
+  hubSoon: 'Soon',
+  /* Claves nuevas de Universo (ola 2). PROVISIONAL en inglés, SIN traducir. */
+  attachImage: 'Image',
+  attachProjects: 'My projects',
+  attachText: 'Text',
+  attachDocument: 'Document',
+  attachHint: 'One image is enough. Your first image is the character.',
+  refRoleChange: 'Change the role of {{nombre}}',
 };

@@ -70,14 +70,32 @@ const conRegistro = fs.existsSync(path.resolve(raiz, 'i18n/revision')) ? fs.read
 for (const idioma of conRegistro) {
   const registro = JSON.parse(leer(`i18n/revision/${idioma}/registro.json`));
   const suyos = Object.fromEntries(L.aplanar(DICCIONARIOS[idioma] || {}));
-  const malas = registro.filter((e) => !e.clave || !(e.clave in suyos) || !e.revisor || !['humana', 'agente'].includes(e.tipo) || !/^\d{4}-\d{2}-\d{2}$/.test(e.fecha) || e.huella !== L.huellaDelValor(e.despues));
+  /*
+   * Una entrada cuya clave ya no existe NO se borra: es historia de la revisión. Se marca `obsoleta` con fecha y motivo,
+   * y entonces vale; sin marca, sigue siendo un fallo. Y al revés: marcar obsoleta una clave que existe es esconder
+   * una revisión vigente, y también falla (lo ejerce el control 13c).
+   */
+  const malas = registro.filter((e) => !e.clave || !L.claveDeRegistroValida(e, suyos) || !e.revisor || !['humana', 'agente'].includes(e.tipo) || !/^\d{4}-\d{2}-\d{2}$/.test(e.fecha) || e.huella !== L.huellaDelValor(e.despues));
   check(`13) ${idioma}: cada entrada dice qué clave, quién, de qué tipo, cuándo y con qué texto`, malas.length === 0, malas.slice(0, 3).map((e) => e.clave).join(' ') || `${registro.length} entradas`);
+  const obsoletas = registro.filter((e) => e.obsoleta);
+  check(`13b) ${idioma}: lo obsoleto se conserva entero (antes, después, revisor, fecha) y no cuenta en el estado`,
+    obsoletas.every((e) => e.antes && e.despues && e.revisor && e.fecha) && L.estadoDeRevision(Object.entries(suyos), registro).total === Object.keys(suyos).length,
+    obsoletas.map((e) => `${e.clave} (obsoleta ${e.obsoleta.fecha})`).join(' · ') || 'ninguna obsoleta');
   const agente = registro.filter((e) => e.tipo === 'agente');
   check(`14) ${idioma}: una revisión de agente se llama así y nunca cuenta como humana`,
     agente.every((e) => /agente|IA|AI/i.test(e.revisor) && !/humana/i.test(e.revisor.replace(/NO es una revisión humana/i, ''))) && L.estadoDeRevision(Object.entries(suyos), agente).humanas === 0);
   const e = L.estadoDeRevision(Object.entries(suyos), registro);
   check(`15) ${idioma}: el estado se calcula (humana / agente / cambió / sin revisar)`, e.humanas + e.agente + e.cambiadas + e.sinRevisar === e.total,
     `${e.humanas} humanas · ${e.agente} de agente · ${e.cambiadas} cambiaron · ${e.sinRevisar} sin revisar`);
+}
+/* Control de 13: obsoleta vale solo con la clave de verdad ausente, con fecha y con motivo. */
+{
+  const suyas = { 'a.vive': 'x' };
+  const obs = { fecha: '2026-11-03', motivo: 'la clave se retiró del cliente por una decisión de producto' };
+  check('13c) control: una clave ausente sin marca falla; marcada vale; marcar obsoleta una clave viva falla; sin motivo falla',
+    !L.claveDeRegistroValida({ clave: 'a.muerta' }, suyas) && L.claveDeRegistroValida({ clave: 'a.muerta', obsoleta: obs }, suyas)
+    && !L.claveDeRegistroValida({ clave: 'a.vive', obsoleta: obs }, suyas) && !L.claveDeRegistroValida({ clave: 'a.muerta', obsoleta: { fecha: '2026-11-03' } }, suyas)
+    && L.claveDeRegistroValida({ clave: 'a.vive' }, suyas));
 }
 /* Control: si el texto cambia después de revisarlo, la revisión deja de valer. */
 const parControl = [['x.y', 'Nyt']];

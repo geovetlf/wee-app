@@ -1,5 +1,5 @@
 /*
- * PORTUGUÉS DE PORTUGAL (pt-PT) — el Wäll: la publicación y todo lo que se puede
+ * PORTUGUÉS DE PORTUGAL (pt-PT) — el Ẅall: la publicación y todo lo que se puede
  * hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
@@ -23,7 +23,7 @@
  *   "Porque queres...?" en pregunta directa, que Brasil escribe "Por que"
  *   "Toda a grande conversa", con el artículo que Portugal no se salta
  *
- * MARCA: Weë, Wäll, Weëls y WeeTalk no se traducen. "Spam", "post" y "repost"
+ * MARCA: Weë, Ẅall, Weëls y WeeTalk no se traducen. "Spam", "post" y "repost"
  * tampoco: es la palabra que usa la gente también de este lado.
  *
  * EL CERO CAE AL REVÉS QUE EN BRASIL. `Intl.PluralRules('pt-PT')` deja el 0 en
@@ -91,7 +91,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'comentários',
   commentImageFailed: 'Não foi possível carregar a imagem. Tenta novamente.',
   commentSendFailed: 'Não foi possível enviar o comentário. Tenta novamente.',
-  shareText: '{{contenido}}\n\nCriado no Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nCriado no Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Vê esta publicação no Weë',
   commentsWithCount: 'Comentários ({{total}})',
   agreeWithComment: 'Concordar com este comentário',
@@ -100,4 +100,22 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: 'Ocultar prompt',
   copyPrompt: 'Copiar prompt',
   promptCopied: 'Copiado',
+  demoBadge: 'Demo',
+  demoBadgeLabel: 'Conteúdo de demonstração',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Ainda não há publicações no Ẅall',
+  immersiveError: 'Não conseguimos carregar o Ẅall',
+  immersiveEnd: 'Já viste tudo',
+  agreePost: 'Concordo',
+  disagreePost: 'Discordo',
+  mute: 'Silenciar',
+  unmute: 'Ativar som',
+  moreOptions: 'Mais opções',
+  seeMore: 'Ver mais',
+  seeLess: 'Ver menos',
+  openPost: 'Abrir publicação',
+  imageOf: 'Imagem {{numero}} de {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Fogo',
+  reactionLaugh: 'Riso',
 };

@@ -34,6 +34,7 @@ export const notifications: typeof import('../es/notifications').notifications =
   communityPost: '{{nombre}} skrev et opslag i {{comunidad}}',
   aCommunity: 'et fællesskab',
   generic: '{{nombre}} interagerede med dig',
+  characterNotice: '{{nombre}} har efterladt beskeder, du skal se på',
   now: 'nu',
   markAllRead: 'Markér alle som læst',
   all: 'Alle',

@@ -40,7 +40,7 @@
  * «कहाँ पोस्ट करें», encima de las casillas de los destinos.
  *
  * `multimedia` es «गैलरी»: el botón abre la galería de fotos y vídeos y su nombre
- * tiene que caber en una línea bajo el icono. El muro general es «मुख्य Wäll», el
+ * tiene que caber en una línea bajo el icono. El muro general es «मुख्य Ẅall», el
  * principal: «सामान्य» se leería como «corriente».
  *
  * La zona desde la que se publica se nombra como un estado, «पोस्ट में आपका
@@ -55,6 +55,12 @@ export const composer: typeof import('../es/composer').composer = {
   photoOrVideo: 'फ़ोटो या वीडियो',
   camera: 'कैमरा',
   location: 'जगह',
+  place: 'जगह',
+  gallery: 'गैलरी',
+  projects: 'प्रोजेक्ट',
+  createWithAi: 'AI से बनाएँ',
+  newPost: 'नई पोस्ट',
+  multimedia: 'गैलरी',
   poll: 'पोल',
   sheetTitle: 'बनाएँ',
   sheetSubtitle: 'आज क्या शेयर करना है?',
@@ -71,7 +77,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'पोस्ट करने के विकल्प दिखाएँ',
   hideOptions: 'पोस्ट करने के विकल्प छिपाएँ',
   currentDestination: '{{destino}}, अभी चुना हुआ',
-  generalWall: 'मुख्य Wäll',
+  generalWall: 'मुख्य Ẅall',
   placeholderPollExtra: 'चाहें तो कुछ और जोड़ें (ज़रूरी नहीं)…',
   placeholderQuestion: 'कम्यूनिटी से क्या पूछना है?',
   placeholderWeel: 'बताएँ कि आपने अपने Weël के लिए क्या बनाया और किस AI से…',
@@ -81,15 +87,10 @@ export const composer: typeof import('../es/composer').composer = {
   placeholderDefault: 'कुछ लिखें…',
   postTextLabel: 'पोस्ट का टेक्स्ट',
   weelHint: 'Weël: {{segundos}} सेकंड तक का वीडियो. Weë से बाहर शेयर करने पर इस पर छोटा-सा वॉटरमार्क लगता है.',
-  newPost: 'नई पोस्ट',
   you: 'आप',
   shareWithCommunity: 'Weë कम्यूनिटी के साथ शेयर करें',
-  publicVisibility: 'सार्वजनिक',
-  visibilityIs: 'कौन देख सकता है: {{estado}}',
-  publicExplain: 'अभी Weë पर सभी पोस्ट सार्वजनिक होती हैं.',
   profileReal: 'असली प्रोफ़ाइल',
   profileWee: 'Weë प्रोफ़ाइल',
-  multimedia: 'गैलरी',
   actionWithBadge: '{{accion}}, {{insignia}}',
   removeVideo: 'वीडियो हटाएँ',
   removePhotoNumber: 'फ़ोटो {{numero}} हटाएँ',

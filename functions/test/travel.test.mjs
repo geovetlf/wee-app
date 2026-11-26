@@ -94,7 +94,7 @@ console.log('\n── A · La undécima experiencia ──');
   }).outputText;
   const exp = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
 
-  check('2) la app la tiene entre las suyas', exp.getExperienceById('travel')?.name === 'Weë Travel');
+  check('2) la app la tiene entre las suyas', exp.getExperienceById('travel')?.name === 'WeëTravel');
   check('2) y es una sección visible del menú', exp.WEE_EXPERIENCES.some((e) => e.id === 'travel'));
   check('2) las diez de antes siguen todas', ['design', 'studio', 'photo', 'writer', 'music', 'beauty', 'chef', 'home', 'business', 'brain'].every((id) => !!exp.getExperienceById(id)));
   check('3) quien escribe "itinerario" llega a Weë Travel', exp.matchExperiences('itinerario')[0]?.id === 'travel');
@@ -102,7 +102,13 @@ console.log('\n── A · La undécima experiencia ──');
   check('3) sin robarle nada a Weë Chef', exp.matchExperiences('receta')[0]?.id === 'chef');
 
   check('4) entra en la barra lateral', /SPECIALIST_ORDER: SpecialistId\[\] = \['brain', 'design', 'music', 'studio', 'business', 'chef', 'travel'\]/.test(specialists));
-  check('4) y no hace falta ninguna ruta nueva', !/Travel(Screen|Flow|Home)/.test(leer('navigation/MainStackNavigator.tsx')));
+  /*
+   * Desde el 2026-11-06 el workspace de WeëTravel (seis módulos, prototipo DEMO) tiene UNA ruta propia, `Travel`
+   * (screens/travel/TravelScreen.tsx). Lo que no cambia: la conversación sigue siendo la de siempre (CreatorFlow) y no
+   * aparece ningún flujo ni portada paralelos de Travel en la pila.
+   */
+  const pila = leer('navigation/MainStackNavigator.tsx');
+  check('4) una sola ruta nueva (Travel, el workspace) y ningún flujo paralelo', (pila.match(/name="Travel"/g) || []).length === 1 && !/Travel(Flow|Home)/.test(pila) && /name="CreatorFlow"/.test(pila));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -383,7 +389,7 @@ console.log('\n── H · Del resultado a la publicación ──');
 
   check('42) al publicar queda apuntado de dónde viene', /sourceSection: EXPERIENCE_AREA\[experience\.id\]\?\.section \?\? experience\.id/.test(soloCodigo(flujo)));
   check('42) travel no se redirige a otra sección', !/travel/.test(soloCodigo(leer('constants/weeExperiences.ts')).slice(soloCodigo(leer('constants/weeExperiences.ts')).indexOf('EXPERIENCE_AREA'))));
-  check('43) y el muro sabe cómo se llama', /travel: 'Weë Travel'/.test(seccionFeed));
+  check('43) y el muro sabe cómo se llama', /travel: 'WeëTravel'/.test(seccionFeed));
 
   const ts = require('typescript');
   const js = ts.transpileModule(seccionFeed.replace(/^import .*$/m, ''), {
@@ -391,7 +397,7 @@ console.log('\n── H · Del resultado a la publicación ──');
   }).outputText;
   const feed = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
 
-  check('43) la etiqueta sale de lo que la publicación declara', feed.seccionDe({ sourceSection: 'travel' })?.nombre === 'Weë Travel');
+  check('43) la etiqueta sale de lo que la publicación declara', feed.seccionDe({ sourceSection: 'travel' })?.nombre === 'WeëTravel');
   check('43) y también de un trabajo publicado desde la sección', feed.seccionDe({ aiTools: ['Weë Travel'] })?.id === 'travel');
   check('43) nadie acaba etiquetado por escribir "viaje"', feed.seccionDe({ content: 'Qué viaje tan bonito' }) === undefined);
   check('44) el muro sí recoge lo que habla de viajes', feed.belongsToSection({ content: 'Mi itinerario por Japón' }, feed.SECTION_MARKERS.travel));
@@ -428,9 +434,9 @@ console.log('\n── J · El menú Burger ──');
    * aquí es que sigue siendo así —una lista, no una lista escrita a mano— y que
    * Travel entra en esa lista.
    */
-  check('49) el menú recorre la fuente única, sin lista propia', /WEE_EXPERIENCES\.map\(\(exp\) =>/.test(menu));
+  check('49) las experiencias se recorren desde su fuente única en el centro creativo; el menú recorre su catálogo y ya no las lista', /* WeëAI sencillo (2026-11-23, decisión del dueño): la portada ya no lista experiencias (ni Travel): solo Imagen, Video corto y Editar mi foto. */ !/PORTADA_DE_WEEAI|WEE_EXPERIENCES|travel/i.test(soloCodigo(leer('components/weeai/PortadaWeeAi.tsx'))) && /WEE_MENU\.map\(/.test(menu) && !/WEE_EXPERIENCES/.test(menu));
   check('49) y no hay ninguna entrada de Travel escrita a mano', !/travel/i.test(soloCodigo(menu)));
-  check('49) la barra lateral hace lo mismo', /WEE_EXPERIENCES\.map\(\(exp\) =>/.test(barra) && !/travel/i.test(soloCodigo(barra)));
+  check('49) la barra lateral hace lo mismo', /WEE_MENU\.map\(/.test(barra) && !/WEE_EXPERIENCES/.test(barra) && !/travel/i.test(soloCodigo(barra)));
 
   const ts = require('typescript');
   const js = ts.transpileModule(leerCrudo('constants/weeExperiences.ts'), {
@@ -441,7 +447,7 @@ console.log('\n── J · El menú Burger ──');
   const enElMenu = exp.WEE_EXPERIENCES.filter((e) => e.id === 'travel');
   check('50) Weë Travel está en el menú', enElMenu.length === 1, String(enElMenu.length));
   check('50) una sola vez, sin duplicados', exp.ALL_EXPERIENCES.filter((e) => e.id === 'travel').length === 1);
-  check('51) se lee "Weë Travel", ni "Travel" ni "Viajes"', enElMenu[0].name === 'Weë Travel');
+  check('51) se lee "Weë Travel", ni "Travel" ni "Viajes"', enElMenu[0].name === 'WeëTravel');
   check('51) con el avión delante', enElMenu[0].emoji === '✈️');
   check('51) y no está escondida como área de otra sección', !exp.EXPERIENCE_AREA.travel);
 
@@ -460,9 +466,10 @@ console.log('\n── J · El menú Burger ──');
   check('52) las otras seis no se movieron de sitio', orden.filter((id) => id !== 'travel').join(',') === 'brain,studio,design,music,chef,business');
 
   // La ruta: la de siempre, con su identificador.
-  check('53) el menú abre la pantalla de especialista', /navigateRoot\('Specialist', \{ id: category \}\)/.test(menu));
+  check('53) el centro creativo abre la pantalla de especialista, y el menú lleva al centro creativo', /* WeëAI sencillo: la portada ya no abre especialistas (su ruta sigue, dormida). */ /navigation\.navigate\('CrearPublicacion'/.test(leer('components/weeai/PortadaWeeAi.tsx')) && /navigateRoot\('WeeCreator'\)/.test(menu));
   check('53) y esa ruta existe una sola vez', (rutas.match(/<Stack\.Screen name="Specialist"/g) || []).length === 1);
-  check('53) sin ninguna ruta propia de Travel', !/name="Travel|TravelScreen|TravelHome/.test(rutas));
+  /* El menú sigue abriendo la portada de siempre; el workspace (2026-11-06) es la única ruta propia y se entra desde ella. */
+  check('53) el menú no abre otra portada de Travel: la única ruta propia es el workspace', (rutas.match(/name="Travel"/g) || []).length === 1 && !/TravelHome/.test(rutas) && !/navigateRoot\('Travel'/.test(menu));
   check('54) la pantalla resuelve el especialista por ese identificador', /useEspecialista\(id\)/.test(leer('screens/SpecialistScreen.tsx')));
 }
 
@@ -900,8 +907,10 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * arreglarla ahí lo arregla en todas partes. Lo que se vigila es que no
    * aparezca un segundo compositor por su cuenta.
    */
-  const pantallasQueCrean = ['components/Sidebar.tsx', 'screens/HomeScreen.tsx', 'screens/CommunityScreen.tsx', 'screens/LandingScreen.tsx'];
-  check('108) todas las superficies publican por la misma pantalla', pantallasQueCrean.every((f) => /navigate\('Create'/.test(soloCodigo(leer(f)))));
+  /* Rediseño del 2026-11-15: el Home ya no trae puerta de publicar; desde él se publica con el + de la barra global. */
+  const pantallasQueCrean = ['components/Sidebar.tsx', 'screens/HomeScreen.tsx', 'screens/CommunityScreen.tsx'];
+  check('108) todas las superficies publican por la misma pantalla (y el Home, por el + de la barra global)', pantallasQueCrean.every((f) => /navigate\('Create'/.test(soloCodigo(leer(f))))
+    && /irARaiz\('Create', \{ kind \}\)/.test(soloCodigo(leer('navigation/NavegacionGlobal.tsx'))) && !/navigate\('Create'/.test(soloCodigo(leer('screens/LandingScreen.tsx'))));
   check('108) y ninguna trae compositor propio', pantallasQueCrean.every((f) => !/<TextInput/.test(soloCodigo(leer(f)))));
 
   /*
@@ -928,7 +937,7 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * pantalla del texto en un móvil alto— y dos cajas grandes flotando en medio.
    */
   check('110) las acciones van en mosaicos, no en una barra al fondo', /const renderAcciones = \(\) => \(/.test(crear) && !/renderToolbar/.test(crear));
-  check('110) y cada una dice lo que hace, no solo un icono', ['Cámara', 'Multimedia', 'ËContact', 'Ubicación', 'Encuesta', 'Mis proyectos'].every((t) => crear.includes(`texto="${t}"`)));
+  check('110) y cada una dice lo que hace, no solo un icono', ['Cámara', 'Galería', 'ËContact', 'Lugar', 'Encuesta', 'Proyectos'].every((t) => crear.includes(`texto="${t}"`)));
   // Amigos tiene su sitio pero no engaña: apagado y avisando de que llega después.
   /*
    * ËContact será el nombre de la red de conexiones de Weë en todos los idiomas.
@@ -950,7 +959,7 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * Google SIN tipos MIME: solo enseñaba fotos, con el botón diciendo "Foto o
    * vídeo". La lista moderna sí pide las dos cosas. Comprobado en el aparato.
    */
-  check('110) foto y vídeo son la misma puerta, y se dice: Multimedia', /mediaTypes: \['images', 'videos'\]/.test(leer('screens/CreateScreen.tsx')) && /texto="Multimedia"/.test(crear) && !/Foto o vídeo/.test(crear));
+  check('110) foto y vídeo son la misma puerta, y se dice: Galería', /mediaTypes: \['images', 'videos'\]/.test(leer('screens/CreateScreen.tsx')) && /texto="Galería"/.test(crear) && !/Foto o vídeo|Multimedia/.test(crear));
   // Sobre el USO, no sobre la palabra: el comentario que explica el cambio la nombra.
   check('110) y no queda ningún enum obsoleto pidiendo medios', !/ImagePicker\.MediaTypeOptions/.test(leer('screens/CreateScreen.tsx')));
   /*
@@ -965,7 +974,7 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
   check('110) primero quién publica', crear.indexOf('styles.identidad') < crear.indexOf('{renderTextInput()}'));
   check('110) luego lo que cuenta, y después con qué', crear.indexOf('{renderTextInput()}') < crear.indexOf('{renderAcciones()}'));
   check('110) y al final dónde se comparte', crear.indexOf('{renderAcciones()}') < crear.indexOf('{renderDestinos()}'));
-  check('110) la cabecera dice qué estás haciendo', /Nueva publicación<\/Text>/.test(crear) && /Publicar<\/Text>/.test(crear));
+  check('110) la cabecera dice qué estás haciendo: una palabra, y el Publicar vive solo abajo', />Publicación<\/Text>/.test(crear) && !/styles\.postButton/.test(crear));
   /* El lugar elegido es un chip bajo el texto, parte de la publicación; y si
      no hay nada, no se pinta nada. Misma aserción que en composer.test.mjs. */
   check('110) el lugar elegido es un chip, y solo sale si hay algo', /const renderLugar = \(\) =>\s*\n?\s*place \|\| ubicacion \? \(/.test(crear) && /styles\.chipLugar/.test(crear));
@@ -975,9 +984,8 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * que se arrastraba, y arrastrando se escondían la mitad: quien no lo hacía
    * nunca supo que había encuesta. Ahora las cinco están a la vista en dos filas.
    */
-  check('110) las herramientas van en una sola fila, las seis a la vista y sin arrastrar',
-    /acciones: \{\s*flexDirection: 'row',\s*flexWrap: 'wrap',\s*justifyContent: 'space-between'/.test(crear) && !/ScrollView horizontal[\s\S]{0,240}styles\.acciones/.test(crear) && !/accionesFila/.test(crear));
-  check('110) el recuento no se mete dentro del nombre del botón', /texto="Multimedia"/.test(crear) && /insignia=\{fotosPuestas > 0/.test(crear));
+  check('110) las herramientas van en una sola fila que se desliza con suavidad si no caben', /acciones: \{\s*flexDirection: 'row',\s*alignItems: 'flex-start'/.test(crear) && /ScrollView\s+horizontal[\s\S]{0,200}styles\.acciones/.test(crear) && !/accionesFila/.test(crear));
+  check('110) el recuento no se mete dentro del nombre del botón', /texto="Galería"/.test(crear) && /insignia=\{fotosPuestas > 0/.test(crear));
   check('110) y el campo de texto es una hoja grande que crece, no un hueco fijo', /textInput: \{\s*minHeight: scale\(150\),/.test(crear) && !/minHeight: scale\(220\)/.test(crear));
 
   /*
@@ -998,7 +1006,7 @@ console.log('\n── U · El compositor social, el mismo para todo Weë ──'
    * Y el defecto que encontró la validación: al elegir, el chip se ensanchaba
    * —ganaba icono y negrita— y la rejilla entera se recolocaba bajo el dedo.
    */
-  check('111b) el hueco del check está reservado siempre', /styles\.destinoCheck,/.test(crear) && /destinoCheck: \{\s*width: scale\(20\),\s*height: scale\(20\)/.test(crear));
+  check('111b) el hueco de la marca está reservado siempre', /styles\.destinoCheck,/.test(crear) && /destinoCheck: \{\s*width: scale\(22\),\s*height: scale\(22\)/.test(crear));
   check('111b) y el peso de la letra no cambia al elegir', !/fontWeight: elegido \?/.test(crear));
   check('110) el botón se enciende cuando ya lleva algo puesto', /activa=\{!!place \|\| !!ubicacion\}/.test(crear) && /activa=\{attachedMedia\.length > 0\}/.test(crear));
 
@@ -1066,10 +1074,10 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
   // 16) Los nombres salen de la fuente única, y cada uno es el suyo.
   const nombres = Object.fromEntries(feed.destinosDisponibles().map((d) => [d.id, d.nombre]));
   check('117) el muro general se llama por su nombre', nombres.general === 'Muro general');
-  check('117) Travel dice "Weë Travel"', nombres.travel === 'Weë Travel');
-  check('117) Studio dice "Weë Studio"', nombres.studio === 'Weë Studio');
-  check('117) Design dice "Weë Design"', nombres.design === 'Weë Design');
-  check('117) Chef dice "Weë Chef"', nombres.chef === 'Weë Chef');
+  check('117) Travel dice "Weë Travel"', nombres.travel === 'WeëTravel');
+  check('117) Studio dice "Weë Studio"', nombres.studio === 'WeëStudio');
+  check('117) Design dice "Weë Design"', nombres.design === 'WeëDesign');
+  check('117) Chef dice "Weë Chef"', nombres.chef === 'WeëChef');
   check('117) y están los ocho que se aprobaron', ['general', 'travel', 'design', 'studio', 'chef', 'business', 'music', 'writer'].every((id) => !!nombres[id]) && feed.destinosDisponibles().length === 8);
   check('117) sin inventar secciones que no existen', !['kids', 'health', 'education', 'community', 'photography'].some((id) => nombres[id]));
 
@@ -1087,7 +1095,7 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
   // 17-19) El sitio desde el que se abre viene marcado, pero se puede cambiar.
   check('119) se preselecciona el sitio desde el que se abrió', /useState<string\[\]>\(\(\) => \[sourceSection \|\| MURO_GENERAL\]\)/.test(crear));
   check('119) y se puede añadir y quitar cualquiera', /actuales\.includes\(id\) \? actuales\.filter/.test(crear));
-  check('119) la lista de destinos sale de la fuente única', /destinosDisponibles\(\)/.test(crear) && !/'Weë Studio'|'Weë Design'/.test(crear));
+  check('119) «Publicar en» ya no nombra experiencias: el Wall y las comunidades de la persona', !/destinosDisponibles|NOMBRE_SECCION|'Weë Studio'|'Weë Design'/.test(crear) && /getJoinedCommunities/.test(crear));
 
   // 9-10) Home y las secciones respetan lo que la publicación dice.
   const home = soloCodigo(leer('screens/HomeScreen.tsx'));
@@ -1181,7 +1189,7 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
   check('125) y desaparece cuando ya no cabe nada', /\{!sinSitioParaMedios && \(/.test(crearCrudo));
 
   // Lo que se escribe vive en una tarjeta con su contador dentro, no en un renglón suelto.
-  check('125) la caja de escribir es una tarjeta cerrada', /tarjetaTexto: \{\s*borderWidth: 1,/.test(crearCrudo));
+  check('125) la caja de escribir es una superficie en tono, sin marco', /tarjetaTexto: \{\s*borderRadius/.test(crearCrudo) && !/tarjetaTexto: \{[^}]*borderWidth/.test(crearCrudo));
   check('125) que dice cuánto llevas de cuánto cabe', /\{postText\.length\}\/\{maxTextLength\}/.test(crearCrudo));
 
   // Dónde publicar es una pregunta con su bloque, no el último campo del formulario.
@@ -1207,9 +1215,9 @@ console.log('\n── V · Un post, varios sitios donde se lee ──');
    * distingue "Weë Chef" de "Weë Music" hasta que lo lees; el emoji sí, y sale
    * del catálogo de Weë para que no haya dos verdades.
    */
-  check('126) cada destino trae su cara del catálogo de Weë', /getExperienceById\(destino\.id\)/.test(crearCrudo) && /destinoEmoji/.test(crearCrudo));
-  check('126) y el muro general lleva la suya, que no es una experiencia: el globo', /name="globe-outline"/.test(crearCrudo.slice(crearCrudo.indexOf('const renderDestinos'), crearCrudo.indexOf('const renderPublicar'))));
-  check('126) el aro cae siempre en el mismo sitio: pegado al borde derecho del chip', /destino: \{\s*flexGrow: 1,\s*flexDirection: 'row',\s*alignItems: 'center',/.test(crearCrudo) && /destinoCheck: \{[\s\S]{0,120}marginLeft: 'auto',/.test(crearCrudo));
+  check('126) ningún destino pinta la cara de una experiencia: el Wall lleva el globo y cada comunidad el icono de comunidades', !/getExperienceById/.test(crearCrudo) && /'globo'/.test(crearCrudo) && /'comunidades'/.test(crearCrudo));
+  check('126) y el muro general lleva la suya, que no es una experiencia: el globo', /'globo'/.test(crearCrudo.slice(crearCrudo.indexOf('const renderDestinos'), crearCrudo.indexOf('const renderPublicar'))));
+  check('126) la marca cae siempre en el mismo sitio: pegada al borde final de la fila', /destino: \{\s*flexDirection: 'row',\s*alignItems: 'center',/.test(crearCrudo) && /destinoCheck: \{[\s\S]{0,120}marginStart: 'auto',/.test(crearCrudo));
   // Y el nombre entero: en una sola fila se cortaba —"Muro ge…"— y lo vimos en el teléfono.
   check('126) y el nombre del destino cabe entero: encoge antes que cortarse', /destinoTexto: \{\s*flexShrink: 1,/.test(crearCrudo) && crearCrudo.indexOf('styles.destinoIcono') < crearCrudo.indexOf('styles.destinoTexto'));
 

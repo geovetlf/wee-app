@@ -7,12 +7,13 @@ import { useT } from '../contexts/IdiomaContext';
 import { useAuth } from '../contexts/AuthContext';
 import CommunitiesEntry from './CommunitiesEntry';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
+import { RellenoDeMarca } from './GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
 /**
- * Columna derecha de escritorio: buscador, temáticas reales de la comunidad
- * y un atajo a Weë Creator. Sin datos inventados ni botones que no hacen nada.
+ * Columna derecha de escritorio: buscador y comunidades (buscar o crear).
+ * Sin datos inventados ni botones que no hacen nada.
  */
 const RightSidebar: React.FC = () => {
   const { theme } = useTheme();
@@ -73,25 +74,12 @@ const RightSidebar: React.FC = () => {
         </View>
       </View>
 
-      {/* Weë Creator */}
-      <TouchableOpacity
-        style={[styles.creatorCard, { backgroundColor: theme.colors.accent + '1A', borderColor: theme.colors.accent }]}
-        onPress={() => navigation.navigate('WeeCreator')}
-        activeOpacity={0.85}
-        /* La tarjeta entera es un solo control: su etiqueta, su título, su
-           frase y su botón se leen juntos o no se leen. Y el nombre del sitio
-           se escribe "Weë AI", que es como se llama. */
-        accessibilityLabel={t('nav.openWeeAi')}
-      >
-        <Text style={styles.creatorEmoji}>🤖</Text>
-        <Text style={[styles.creatorTitle, { color: theme.colors.text }]}>{t('nav.weeAiQuestion')}</Text>
-        <Text style={[styles.creatorText, { color: theme.colors.textSecondary }]}>
-          {t('nav.weeAiPitch')}
-        </Text>
-        <View style={[styles.creatorButton, { backgroundColor: theme.colors.accent }]}>
-          <Text style={styles.creatorButtonText}>{t('nav.goToWeeAi')}</Text>
-        </View>
-      </TouchableOpacity>
+      {/*
+        Aquí estaba la tarjeta «¿Qué quieres crear hoy?» que abría Weë AI. Se fue
+        con el rediseño del 2026-11-15: la portada lleva ahora su tarjeta de WeëAI
+        y la barra lateral izquierda, la suya; una tercera era decir lo mismo tres
+        veces en la misma pantalla.
+      */}
 
       {/* Pie */}
       <View style={styles.footer}>
@@ -102,7 +90,9 @@ const RightSidebar: React.FC = () => {
         <TouchableOpacity onPress={() => navigation.navigate('Help', { section: 'legal' })} activeOpacity={0.7}>
           <Text style={[styles.footerLink, { color: theme.colors.textSecondary }]}>{t('menu.privacy')}</Text>
         </TouchableOpacity>
-        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}> · © {year} Weë</Text>
+        {/* El separador va aparte: dentro de «· © 2026 Weë», en RTL el punto quedaba al otro lado del texto latino. */}
+        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}> · </Text>
+        <Text style={[styles.footerText, { color: theme.colors.textSecondary }]}>© {year} Weë</Text>
       </View>
     </ScrollView>
   );

@@ -257,6 +257,14 @@ aunque el allow venga de un `settings.local.json` personal.
 - pushes forzados o que borran ramas.
 
 **ask — necesita al dueño:**
+- **la historia de git: agente → propone → humano autoriza → commit**
+  (2026-10-03). `git commit` (también `--amend`), `merge`, `rebase`,
+  `cherry-pick`, `revert`, `am`, `pull`, `reset` a otra revisión, `update-ref`,
+  `commit-tree`, `branch -f/-M`, `checkout -B`, `switch -C`, crear tags o notas,
+  `fetch origen:destino`, `npm version`, `gh repo sync`, escribir en `.git/` (por
+  Bash o con Edit/Write), un alias de git (`-c alias.…` o un subcomando que git no
+  trae) y `sync_with_base_branch`/`set_auto_merge` de la app. Claude prepara el
+  cambio (edita, `git add`, propone el mensaje) y el dueño autoriza el commit;
 - `git push`, merge de PR, lanzar workflows, secretos y variables del repo,
   releases;
 - IAM y cualquier verbo de gcloud que cambie o EXPORTE algo;
@@ -270,8 +278,10 @@ aunque el allow venga de un `settings.local.json` personal.
 - editar —o escribir por Bash (redirección, `cp`, `sed -i`, `node fs.write…`)—
   en `.claude/**`, `.firebaserc`, `creditEngine.ts` o el Financial Core.
 
-**allow — el ciclo local:** pruebas, `tsc`, build, git de lectura, add y commit,
-emuladores `demo-*`, `npm run web:demo`, y crear o ver PR y runs.
+**allow — el ciclo local:** pruebas, `tsc`, build, git de lectura, `git add` y
+ramas nuevas, emuladores `demo-*`, `npm run web:demo`, y crear o ver PR y runs.
+(`git commit` estuvo aquí hasta el 2026-10-03, contra la regla de CLAUDE.md
+«commits solo cuando el usuario lo pida».)
 
 **El hook** (`.claude/hooks/guardia.mjs`) es la segunda barrera y hace un
 análisis **estructural**, no una comparación de texto.
@@ -318,7 +328,48 @@ análisis **estructural**, no una comparación de texto.
 | `firebase auth:export`, `functions:log`, `node …/reservas-colgadas.mjs` | pasaba | **ask** |
 | Monitor con `firebase deploy` dentro | sin analizar | **deny** |
 | entrada ilegible / analizador roto | fallaba abierto | **deny (exit 2)** |
-| `git commit -m "…firebase deploy…"`, `grep "firebase deploy" docs`, `firebase $FORMAT` sin palabra sensible | pasaba | pasa |
+| `grep "firebase deploy" docs`, `git log --grep "firebase deploy"`, `firebase $FORMAT` sin palabra sensible | pasaba | pasa |
+| `git commit`, `--amend`, `merge`, `rebase`, `cherry-pick`, `revert`, `pull`, `reset HEAD~1`, `-C dir commit`, `git ci` (alias) | pasaba | **ask** (2026-10-03) |
+| `echo 'x' && firebase deploy` (una palabra entre comillas simples delante) | pasaba con 7f79078 | **deny** (2026-10-03) |
+| `git rebase -x 'firebase deploy'`, `git submodule foreach …`, `git bisect run …` | pasaba | se analiza lo de dentro |
+
+**Las comillas simples (2026-10-03).** El tokenizador estructural de 7f79078 tomaba
+la comilla simple de CIERRE por una apertura nueva y se tragaba el resto de la
+orden: con cualquier palabra entre comillas simples delante, `firebase deploy`
+pasaba. La guardia anterior (3d30739, por líneas) sí lo veía. Lo vigila la sección
+N de `guardia-claude.test.mjs`, con sabotaje contra 7f79078.
+
+**Segunda pasada (revisión independiente, 2026-10-03).** Una revisión adversarial de
+solo lectura encontró rodeos de la política de historia y de los deny; se cerraron
+todos: la guardia mira también lo que un intérprete recibe por su ENTRADA (here-string,
+heredoc, `< archivo`, una tubería), los scripts que se ejecutan desde un archivo y los
+scripts de npm, los argumentos que llegan por xargs, las opciones agrupadas o pegadas,
+los escritores de PowerShell y de .NET sobre rutas protegidas, los bloques de PowerShell
+creados desde texto y el programa que llega en una variable; y lo que no puede leer
+(código entero en una variable, una entrada desconocida) lo pregunta. **Límite que
+queda:** lo que un programa construye en tiempo de ejecución (argumentos calculados
+dentro de un script) no se ve sin ejecutarlo; la frontera de verdad sigue siendo la
+credencial, y el push sigue preguntando.
+
+**Tercera ronda (2026-10-14).** 133 variantes más (encadenado, comillas, `$(…)`,
+`bash -c`/`cmd /c`/`powershell -Command`, rutas absolutas, `git -C`, variables, `env`,
+`xargs`, escapes, lectura de secretos y órdenes legítimas) en `guardia-rodeos.casos.json`,
+sección G de `guardia-rodeos.test.mjs`: 0 falsos positivos y 0 falsos negativos en ellas.
+Se corrigió una rebaja: `G=git; $G push --force` volvía a `ask` y vuelve a ser **deny**.
+**Falsos negativos que quedan** (lista `brechasConocidas`, decisión del dueño): una ruta
+de secreto armada en una variable (`f=…/.env.local; cat $f`) y los archivos que no están
+en la lista de secretos (`.env` sin sufijo, `serviceAccountKey.json`). La guardia es
+coincidencia estructural de TEXTO: ayuda, pero no es una frontera de seguridad.
+
+**¿Corre la guardia del repositorio?** Claude Code carga `.claude/` de la carpeta
+donde se abre la sesión, y una copia sin seguimiento se queda atrás sin que ningún
+diff lo enseñe (así corrió el checkout `Desktop/wee` hasta el 2026-10-03: settings de
+5592ac4 y guardia de 3d30739). `.claude/hooks/guardia-vigente.mjs` compara cada
+archivo de la guardia con su historia en `origin/main` y dice VIGENTE, ANTIGUA,
+AUSENTE, MAL_CABLEADA, DISTINTA_DE_MAIN o SIN_SEGUIMIENTO; corre en el hook
+**SessionStart** (avisa al dueño y a Claude, nunca impide abrir la sesión) y a mano
+(`node .claude/hooks/guardia-vigente.mjs [--contra <otro árbol>]`). Lo vigila
+`guardia-vigente.test.mjs`, que reconstruye aquella sesión con la historia real.
 
 **Para cambiarla:**
 - edita `.claude/` (Claude pregunta antes de hacerlo);
@@ -350,7 +401,20 @@ a ciegas: la web carga Firebase, el inicio de sesión de Google, Cloudinary y R2
 inicio de sesión sin que ninguna prueba local lo viera. El camino es `Content-Security-Policy-Report-Only` contra la
 web viva, leer qué bloquearía, y solo entonces imponerla. Llegan con el próximo despliegue de la web y del hosting.
 
+### Seguridad de `users` y cuenta Weë válida (integración 2026-10-07, sin desplegar)
+
+- `users/{id}` solo lo leerán su dueño y el servidor en la fase 2 (fase 2, retenida: `ops/despliegue/reglas/users-cierre.fase2.rules`; en fase 1 la lectura de `users` sigue como en producción hasta espejo + relleno verificado + cliente nuevo, y `ops/permitido.mjs` bloquea el cierre antes de tiempo); la cara pública es `publicProfiles/{id}` (lista blanca, escrita solo por `espejoDelPerfilPublico`, `list` limitado). Ver DD-15 en [DECISIONES-DELIBERADAS.md](DECISIONES-DELIBERADAS.md). Pruebas: `functions/test/users-privado.emulator.mjs` (las dos fases) y `functions/test/users-fases.test.mjs` (el bloqueo del orden).
+- Las callables que generan o cobran exigen **cuenta Weë válida** (`exigirCuentaWeeValida`, `functions/src/identity/sesion.ts`): sesión no anónima + `private/account.birthDate` que la regla pura única (`identity/edad.ts`) da por 18+ HOY + país del catálogo. Una fecha histórica de menor, inválida, futura o ausente → `ACCOUNT_REQUIRED` (corrección F). Auditoría de solo lectura: `scripts/auditoria-edades.mjs` (solo conteos).
+
 ## 7. Pendiente (requiere al dueño)
+
+- **Destino de las fechas de nacimiento históricas** (las de `private/account` anteriores a la regla de 18+ y los `birthDate` heredados en `users/{id}`): sin decidir si se conservan, se anonimizan o se borran.
+- **Cuentas sin país**: no pasan «cuenta Weë válida» (`ACCOUNT_REQUIRED`); sin decidir cómo se les pide.
+- **Flujo UX para completar el enrolamiento** de una cuenta autenticada que no lo terminó (fecha o país): hoy solo ve `ACCOUNT_REQUIRED`.
+- **Transición de las apps nativas antiguas** que aún leen perfiles ajenos de `users`.
+- **Segundo proveedor de vídeo** (hoy solo la familia Seedance).
+- **Cierre definitivo de `users`** (retirar la caída de transición del cliente y lo heredado del documento).
+- **Limpieza de datos legacy** de `users` (`scripts/limpiar-cuenta-en-users.mjs`, preparado, no ejecutado).
 
 - **Identidad propia de Claude**, sin Owner, sin facturación, sin IAM y sin
   secretos. La autonomía crece por automatización, no por privilegios.

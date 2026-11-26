@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  * Trato de «вы» en minúscula, con imperativo directo donde el ruso lo pide.
- * Los formatos —PDF, MP4— no cambian de idioma y "Weë Studio" y "Writer" son
+ * Los formatos —PDF, MP4— no cambian de idioma y "WeëStudio" y "Writer" son
  * marca: se escriben en alfabeto latino dentro de la frase cirílica, nunca
  * transliterados. Lo que sí es ruso son las unidades: los segundos van en «с».
  *
@@ -242,7 +242,7 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   soon: 'Скоро',
   soonHint: 'У этого инструмента уже есть своё место. Осталось его подключить.',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: 'Текст',
   textHint: 'Напишите любой текст',
   exploreTitle: 'Ещё',
@@ -383,4 +383,13 @@ export const studio: ConPlurales<typeof import('../es/studio').studio> = {
   worldCancelledNote: 'Я остановил создание. Зарезервированные Credits вернутся на ваш баланс.',
   worldUploadFailed: 'Не удалось загрузить ваше фото. Попробуйте ещё раз.',
   worldDailyLimit: 'Вы уже использовали 3D-миры на сегодня. Если какой-то не получится, он вернётся, а лимит обновляется каждый день.',
+  filmmakerCardTitle: 'Снимите свой фильм',
+  filmmakerCardSub: 'Сцены, кадры и движения камеры — режиссура в ваших руках.',
+  filmmakerCardCta: 'Открыть Filmmaker',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: 'Создавайте',
+  heroAccent: 'без границ.',
+  quickTitle: 'Быстрое создание',
+  filmmakerEngineSub: 'Создавайте, режиссируйте и монтируйте свои фильмы с ИИ.',
+  projectsTitle: 'Проекты',
 };

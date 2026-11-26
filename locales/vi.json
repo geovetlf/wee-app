@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë cần truy cập camera để bạn chụp ảnh cho bài viết, hồ sơ, WeeTalk và Weë AI.",
+    "NSMicrophoneUsageDescription": "Weë cần quyền truy cập micrô để bạn có thể ghi lại ý tưởng âm nhạc, giai điệu ngân nga, giọng hát tham khảo của chính bạn và tin nhắn thoại. Âm thanh chỉ được dùng khi bạn quyết định sử dụng.",
+    "NSPhotoLibraryUsageDescription": "Weë cần truy cập thư viện ảnh để bạn chọn ảnh và video cho bài viết, hồ sơ, WeeTalk và Weë AI.",
+    "NSPhotoLibraryAddUsageDescription": "Weë cần quyền lưu hình ảnh và video từ Weë AI vào thư viện ảnh của bạn khi bạn tải xuống.",
+    "NSLocationWhenInUseUsageDescription": "Weë dùng vị trí gần đúng của bạn để gợi ý địa điểm lân cận và khu vực của bạn khi bạn thêm vị trí vào bài viết, chỉ khi ứng dụng đang mở. Vị trí chính xác của bạn không bao giờ được hiển thị công khai."
+  }
+}

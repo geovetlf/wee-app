@@ -2,7 +2,7 @@
  * FRANCÉS — WEË CHEF: el sitio donde se cocina.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Chef comparte con Weë Studio —"Ver todos", "Ajustes", "Listo"— vive en
+ * Lo que Chef comparte con WeëStudio —"Ver todos", "Ajustes", "Listo"— vive en
  * `studio`, y las siete funciones que ya existían siguen en `weeai.chefAc…`.
  */
 export const chef: typeof import('../es/chef').chef = {
@@ -11,6 +11,7 @@ export const chef: typeof import('../es/chef').chef = {
 
   /* ── El compositor ────────────────────────────────────────────────────── */
   placeholder: 'Écris ton idée, tes ingrédients ou utilise une photo',
+  cookPrompt: 'Dis-moi ce que tu veux cuisiner…',
   addLabel: 'Ajouter une photo',
   cameraLabel: 'Prendre une photo',
   galleryLabel: 'Choisir une photo dans la galerie',
@@ -95,4 +96,11 @@ export const chef: typeof import('../es/chef').chef = {
   seeAll: 'Voir tout',
   projectsEmpty: 'Tu n’as encore rien cuisiné avec Weë.',
   projectsEmptyHint: 'Ce que tu crées ici est enregistré et tu le retrouves dans cette rangée.',
+  /* ── La portada de la demo YC (héroe y fichas) ── */
+  heroLead: 'Ton chef IA,',
+  heroAccent: 'toujours avec toi',
+  chipRecipes: 'Recettes',
+  chipMenus: 'Menus',
+  chipHealthy: 'Sain',
+  chipQuick: 'Rapide',
 };

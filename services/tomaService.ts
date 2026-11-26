@@ -64,6 +64,22 @@ export const tomaService = {
     }
   },
 
+  /** La producción de un vistazo (`shot.production`): cada unidad con su última toma y su vídeo. Solo lectura; `null` si no se pudo leer. */
+  produccion: async (productionId: string): Promise<unknown | null> => {
+    try {
+      const fn = httpsCallable<Record<string, unknown>, unknown>(functions, 'shots', { timeout: 30_000 });
+      return (await fn({ op: 'shot.production', productionId })).data;
+    } catch { return null; }
+  },
+
+  /** Si la producción se puede montar o qué falta (`shot.montage`), en esa revisión. Solo lectura; `null` si no se pudo leer. */
+  montaje: async (productionId: string, revision: number): Promise<unknown | null> => {
+    try {
+      const fn = httpsCallable<Record<string, unknown>, unknown>(functions, 'shots', { timeout: 30_000 });
+      return (await fn({ op: 'shot.montage', productionId, revision })).data;
+    } catch { return null; }
+  },
+
   /** La dirección con la que se ve un material de la cuenta, o `null` si no la hay. */
   urlDelMaterial: async (assetId: string): Promise<string | null> => {
     try {

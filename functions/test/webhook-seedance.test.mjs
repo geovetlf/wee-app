@@ -87,6 +87,33 @@ const seedance = sinComentarios(leer('functions/src/engine/providers/seedance.ts
 check('13) el sondeo de Seedance ya no lee los avisos guardados: el estado y el vídeo vienen del GET al proveedor',
   !/aiProviderCallbacks|callbackResult/.test(seedance) && /const state = await fetchJson<any>\(`\$\{arkBase\(\)\}\/contents\/generations\/tasks\/\$\{taskId\}`/.test(seedance));
 
+/* 14) Un aviso REPETIDO (el proveedor reintenta, o duplica el envío) no escribe otra cosa: mismo documento, misma respuesta.
+ *     Ningún aviso mueve dinero por sí mismo: el dinero lo mueve el runtime o el sondeo, nunca este puerto. */
+{
+  escritos.clear();
+  const primera = await llamar({ body: VALIDO });
+  /* `receivedAt` es la HORA del aviso y cambia por diseño en cada repetición (la repetición sobrescribe y la actualiza). Compararla tal cual hacía
+   * que esta comprobación fallara cuando el reloj avanzaba un milisegundo entre las dos llamadas (1 de cada ~30 ejecuciones, medido con
+   * ops/guardian/verificar.mjs --estabilidad 30): una carrera con el reloj, no un fallo del código. Se compara TODO menos el valor de la hora, y se
+   * exige que la hora esté. */
+  const instantanea = (mapa) => JSON.stringify([...mapa.entries()].map(([k, v]) => [k, { ...v, receivedAt: v?.receivedAt === undefined ? 'ausente' : 'presente' }]));
+  const enPrimera = instantanea(escritos);
+  const segunda = await llamar({ body: VALIDO });
+  const enSegunda = instantanea(escritos);
+  check('14) la comparación ignora el valor de la hora pero no su ausencia (regresión de la carrera con el reloj)',
+    instantanea(new Map([['d', { provider: 'p', status: 's', receivedAt: 1 }]])) === instantanea(new Map([['d', { provider: 'p', status: 's', receivedAt: 2 }]]))
+    && instantanea(new Map([['d', { provider: 'p', status: 's', receivedAt: 1 }]])) !== instantanea(new Map([['d', { provider: 'p', status: 's' }]]))
+    && instantanea(new Map([['d', { provider: 'p', status: 's', receivedAt: 1 }]])) !== instantanea(new Map([['d', { provider: 'p', status: 'otro', receivedAt: 1 }]])));
+  const claves = [...escritos.keys()];
+  /* `seedanceCallback` (el que guarda el aviso) contesta 200 con {ok:true}; `avisoDeProveedor` (el del runtime) contesta 202. */
+  check('14) un aviso repetido se contesta igual en `seedanceCallback` (200 las dos veces)',
+    primera.statusCode === 200 && segunda.statusCode === 200, `${primera.statusCode}/${segunda.statusCode}`);
+  check('14) y sigue habiendo UN solo documento, con el mismo contenido: la repetición lo sobrescribe, no lo duplica',
+    claves.length === 1 && enPrimera === enSegunda, claves.join(', '));
+  check('14) el aviso repetido no escribe en ninguna colección de dinero (creditTransactions, wallets, users…)',
+    claves.every((k) => !/creditTransactions|wallets|creditAccounts|users|aiGenerations|brainUsage/.test(k)), claves.join(', '));
+}
+
 firestore.getFirestore = getFirestoreReal;
 delete process.env.SEEDANCE_CALLBACK_TOKEN;
 console.log(failures ? `\n✘ ${failures} fallo(s)` : '\n✔ todo bien');

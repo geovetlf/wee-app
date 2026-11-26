@@ -9,7 +9,7 @@ import { postsDeLaSeccion } from './sectionFeed';
  *   era acotar QUÉ mirar. Aquellos muros se fueron; el filtro se queda porque
  *   sigue siendo una forma válida de acotar y no cuesta nada tenerlo.
  *
- * · POR SECCIÓN DE WEË —Weë Studio, Weë Travel…—. Lo usa el muro del Home, donde
+ * · POR SECCIÓN DE WEË —WeëStudio, WeëTravel…—. Lo usa el muro del Home, donde
  *   está todo junto y lo que quieres es acotar DE DÓNDE viene.
  *
  * Van separadas a propósito: el Home cambió de criterio y las paredes de sección
@@ -54,7 +54,7 @@ export const filterPosts = (posts: Post[], filter: FeedFilterId): Post[] => {
 
 /*
  * De dónde viene cada publicación. Es lo que una persona reconoce del producto
- * —"esto salió de Weë Travel"— y lo que ya decide quien publica al elegir sus
+ * —"esto salió de WeëTravel"— y lo que ya decide quien publica al elegir sus
  * destinos, así que no hay criterio nuevo que inventar.
  *
  * Los identificadores son los de `NOMBRE_SECCION` en `utils/sectionFeed.ts`; el
@@ -67,13 +67,13 @@ export type HomeSectionId = 'all' | 'studio' | 'travel' | 'music' | 'chef' | 'de
 
 /*
  * Siete, en este orden. "Todo" al entrar; después las secciones donde se
- * publica. Weë Design y Weë Business entraron con el carrusel de secciones del
+ * publica. WeëDesign y Weë Business entraron con el carrusel de secciones del
  * Home (2026-09-12): son destinos de publicación desde antes, así que el
  * reparto ya sabía repartirlos y solo faltaba poder elegirlos.
  */
 /*
  * SEIS DE LAS SIETE ETIQUETAS SON MARCA y se escriben igual en todos los
- * idiomas: Weë Studio, Weë Travel, Weë Music, Weë Chef, Weë Design y Weë
+ * idiomas: WeëStudio, WeëTravel, WeëMusic, WeëChef, WeëDesign y Weë
  * Business son nombres de Weë, no palabras. La séptima, "Todo", sí es interfaz,
  * así que guarda una CLAVE y la resuelve quien pinta —esto se importa fuera de
  * React y traducir aquí congelaría el idioma del arranque—. Es el mismo trato
@@ -86,12 +86,12 @@ export type HomeSectionId = 'all' | 'studio' | 'travel' | 'music' | 'chef' | 'de
  */
 export const HOME_SECTION_FILTERS: { id: HomeSectionId; label: string; clave?: string }[] = [
   { id: 'all', label: 'Todo', clave: 'home.filterAll' },
-  { id: 'studio', label: 'Weë Studio' },
-  { id: 'travel', label: 'Weë Travel' },
-  { id: 'music', label: 'Weë Music' },
-  { id: 'chef', label: 'Weë Chef' },
-  { id: 'design', label: 'Weë Design' },
-  { id: 'business', label: 'Weë Business' },
+  { id: 'studio', label: 'WeëStudio' },
+  { id: 'travel', label: 'WeëTravel' },
+  { id: 'music', label: 'WeëMusic' },
+  { id: 'chef', label: 'WeëChef' },
+  { id: 'design', label: 'WeëDesign' },
+  { id: 'business', label: 'WeëFashion' },
 ];
 
 export const filterBySection = (posts: Post[], filter: HomeSectionId): Post[] =>
@@ -141,3 +141,30 @@ export const filterBySections = (posts: Post[], elegidas: SeccionesElegidas): Po
   }
   return posts.filter((post) => dentro.has(post));
 };
+
+/*
+ * ─── LAS PASTILLAS DEL HOME (rediseño del 2026-11-15) ────────────────────────
+ *
+ * Dos, y de una en una: «Para ti» es el muro entero, tal como lo da el paginador;
+ * «Creatividad» son las publicaciones que vienen de las secciones creativas de
+ * Weë —las seis experiencias—, con el MISMO reparto que ya usaba el carrusel de
+ * secciones (`filterBySections` → `postsDeLaSeccion`). No hay criterio nuevo ni
+ * consulta nueva: es una selección fija de las secciones de siempre.
+ *
+ * «Siguiendo» no existe: la app no tiene un muro por contactos, y no se pinta
+ * una pastilla que no haría nada.
+ *
+ * Guardan CLAVES: este archivo se importa fuera de React.
+ */
+export type HomeFeedId = 'paraTi' | 'creatividad';
+
+export const SECCIONES_CREATIVAS: SeccionesElegidas = ['studio', 'travel', 'music', 'chef', 'design', 'business'];
+
+export const HOME_FEED_TABS: { id: HomeFeedId; clave: string; secciones: SeccionesElegidas }[] = [
+  { id: 'paraTi', clave: 'home.feedForYou', secciones: [] },
+  { id: 'creatividad', clave: 'home.feedCreativity', secciones: SECCIONES_CREATIVAS },
+];
+
+/** Las secciones que acotan el muro con esa pastilla puesta. Vacío = el muro entero. */
+export const seccionesDelFeed = (id: HomeFeedId): SeccionesElegidas =>
+  HOME_FEED_TABS.find((f) => f.id === id)?.secciones ?? [];

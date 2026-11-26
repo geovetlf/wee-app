@@ -9,6 +9,7 @@ import type { TomaDelPlano } from '../../../hooks/useTomaDePlano';
 import { CLAVE_DE_CALIDAD, fraseDelRechazoDeToma, resolucionVisible } from '../../../utils/mensajesDeFilmmaker';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS, OPACITY } from '../../../constants/design';
 import { scale } from '../../../utils/scale';
+import { RellenoDeMarca } from '../../GradienteDeMarca';
 
 const isWeb = Platform.OS === 'web';
 
@@ -114,6 +115,7 @@ const ProductionShotGeneration: React.FC<{ toma: TomaDelPlano; tipo: 'plano' | '
                 isWeb && ({ cursor: pidiendo ? 'default' : 'pointer' } as any),
               ]}
             >
+              <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!esta} />
               <Text style={[styles.opcionTexto, { color: esta ? '#1F2937' : theme.colors.text }]} numberOfLines={1}>{t(CLAVE_DE_CALIDAD[c])}</Text>
             </TouchableOpacity>
           );

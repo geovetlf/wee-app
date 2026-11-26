@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useIdioma } from '../../contexts/IdiomaContext';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 /*
  * ─── ¿Cuándo viajas? ────────────────────────────────────────────────────────
@@ -168,11 +170,11 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, bu
           style={[styles.flecha, { opacity: puedeRetroceder ? 1 : 0.3 }]}
           accessibilityLabel={t('weeai.previousMonth')}
         >
-          <Ionicons name="chevron-back" size={scale(20)} color={theme.colors.text} />
+          <IconoDireccional name="chevron-back" size={scale(20)} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={[styles.mes, { color: theme.colors.text }]}>{cabecera}</Text>
         <TouchableOpacity onPress={() => setMesVisible(dia(anio, mes + 1, 1))} style={styles.flecha} accessibilityLabel={t('weeai.nextMonth')}>
-          <Ionicons name="chevron-forward" size={scale(20)} color={theme.colors.text} />
+          <IconoDireccional name="chevron-forward" size={scale(20)} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -201,6 +203,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, bu
                 accessibilityLabel={diaEntero(fecha)}
                 accessibilityState={{ selected: extremo }}
               >
+                <RellenoDeMarca radio={BORDER_RADIUS.md} apagada={!extremo} />
                 <Text
                   style={[
                     styles.numero,
@@ -231,6 +234,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ onConfirm, onSkip, bu
           style={[styles.confirmar, { backgroundColor: salida ? theme.colors.accent : theme.colors.border }]}
           accessibilityLabel={t('weeai.confirmDates')}
         >
+          <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!salida} />
           <Text style={[styles.confirmarTexto, { color: salida ? '#1F2937' : theme.colors.textSecondary }]}>{t('common.done')}</Text>
         </TouchableOpacity>
       </View>

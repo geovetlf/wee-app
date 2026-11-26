@@ -1,0 +1,9 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Weë memerlukan akses kepada kamera supaya anda boleh mengambil foto untuk siaran, profil, WeeTalk dan Weë AI.",
+    "NSMicrophoneUsageDescription": "Weë memerlukan akses kepada mikrofon anda supaya anda boleh merakam idea muzik, melodi yang anda dendangkan, rujukan vokal anda sendiri dan mesej suara. Audio hanya digunakan jika anda memilih untuk menggunakannya.",
+    "NSPhotoLibraryUsageDescription": "Weë memerlukan akses kepada galeri supaya anda boleh memilih foto dan video untuk siaran, profil, WeeTalk dan Weë AI.",
+    "NSPhotoLibraryAddUsageDescription": "Weë memerlukan kebenaran untuk menyimpan imej dan video daripada Weë AI ke galeri anda apabila anda memuat turunnya.",
+    "NSLocationWhenInUseUsageDescription": "Weë menggunakan lokasi anggaran anda untuk mencadangkan tempat berdekatan dan kawasan anda apabila menambah lokasi pada siaran — hanya semasa aplikasi dibuka. Lokasi tepat anda tidak pernah dipaparkan secara umum."
+  }
+}

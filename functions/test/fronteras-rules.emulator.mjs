@@ -124,7 +124,7 @@ console.log('── A · Una notificación se firma con la identidad de quien es
   /*
    * Los avisos con la forma EXACTA que escribe la app (`notificationService.createNotification`: `addDoc` con
    * `read: false` y `createdAt: Timestamp.now()`, sin los campos `undefined`), uno por cada creador que la usa hoy:
-   * el like (antes `useLikes`, retirado el 2026-10-01 sin uso), `useComentarios` (comment) y `econtactService` (econtact_request / econtact_accepted).
+   * el like (antes `useLikes`, retirado el 2026-10-01 sin uso), `useComentarios` (comment). Los de ËContact ya no los crea la app (F1, 2026-11-23).
    */
   const ahora = () => new Date();
   const avatar = { senderAvatar: 'https://res.cloudinary.com/wee/image/upload/v1/avatars/ana.jpg', senderAvatarType: 'custom' };
@@ -138,11 +138,18 @@ console.log('── A · Una notificación se firma con la identidad de quien es
   await esperar('2) y con su Perfil Weë, que también es suyo (un comentario, como useComentarios)', 'PERMITE', 'PATCH', '/notifications/n2', {
     uid: ANA, body: doc(like(WEE_ANA, { type: 'comment', commentId: 'c1', commentContent: 'Qué bueno'.substring(0, 100) })),
   });
-  await esperar('2b) una solicitud de ËContact entre caras Weë, con la cuenta de quien recibe (econtactService)', 'PERMITE', 'PATCH', '/notifications/n2b', {
-    uid: ANA, body: doc({ type: 'econtact_request', recipientId: `hidi_${BETO}`, senderId: WEE_ANA, senderName: 'Ana Weë', senderAvatarType: 'predefined', senderAvatarId: 'av3', recipientAccountId: BETO, senderProfileType: 'wee', read: false, createdAt: ahora() }),
+  /*
+   * F1 del plan de alter egos (2026-11-23): los avisos de ËContact los escribe el SERVIDOR (requestEContact /
+   * acceptEContact) y ningún cliente escribe `recipientAccountId`, que unía la identidad que recibe con su cuenta.
+   */
+  await esperar('2b) una solicitud de ËContact escrita por el cliente: ya NO (la escribe el servidor)', 'DENIEGA', 'PATCH', '/notifications/n2b', {
+    uid: ANA, body: doc({ type: 'econtact_request', recipientId: `hidi_${BETO}`, senderId: WEE_ANA, senderName: 'Ana Weë', senderAvatarType: 'predefined', senderAvatarId: 'av3', senderProfileType: 'wee', read: false, createdAt: ahora() }),
   });
-  await esperar('2c) y la aceptación, desde la cuenta', 'PERMITE', 'PATCH', '/notifications/n2c', {
-    uid: ANA, body: doc({ type: 'econtact_accepted', recipientId: BETO, senderId: ANA, senderName: 'Ana', recipientAccountId: BETO, senderProfileType: 'real', read: false, createdAt: ahora() }),
+  await esperar('2c) ni la aceptación', 'DENIEGA', 'PATCH', '/notifications/n2c', {
+    uid: ANA, body: doc({ type: 'econtact_accepted', recipientId: BETO, senderId: ANA, senderName: 'Ana', senderProfileType: 'real', read: false, createdAt: ahora() }),
+  });
+  await esperar('2c-bis) ni un aviso de los que sí crea la app con la cuenta de quien recibe (recipientAccountId)', 'DENIEGA', 'PATCH', '/notifications/n2cb', {
+    uid: ANA, body: doc(like(ANA, { recipientAccountId: BETO })),
   });
   await esperar('2d) una vista previa de 100 emojis cortada como la corta la app (substring(0, 100)) cabe', 'PERMITE', 'PATCH', '/notifications/n2d', {
     uid: ANA, body: doc(like(ANA, { postContent: '🎬'.repeat(100).substring(0, 100) })),
@@ -327,14 +334,20 @@ console.log('\n── D · Weë Business y comunidades, desde la cuenta ──')
   check('26s) CONTROL: y la media se recalcula desde el cliente (recalculateAura)', (await escribir('/businesses/bApp', BETO, { auraScore: 4, reviewCount: 1 })) < 400);
   await esperar('26ac) CONTROL: Beto borra la suya', 'PERMITE', 'DELETE', `/businesses/bApp/reviews/${BETO}`, { uid: BETO });
 
-  await esperar('27) una comunidad se crea con la CUENTA como dueña', 'PERMITE', 'PATCH', '/communities/c1', {
+  /* Re-anclado (docs/COMUNIDADES-IDENTIDAD.md, decisión 3 del dueño (2026-11-05)): una comunidad ya no la crea la CUENTA desde el cliente; la crea `createCommunity` con la
+   * IDENTIDAD activa (Real o Weë) de dueña, que el servidor comprueba. Ver comunidades-identidad.emulator.mjs. */
+  await esperar('27) una comunidad ya no se crea desde el cliente, ni con la CUENTA como dueña', 'DENIEGA', 'PATCH', '/communities/c1', {
     uid: ANA, body: doc({ name: 'Weë Devs', slug: 'devs', createdBy: ANA, moderators: [ANA], memberCount: 0, postCount: 0, status: 'active' }),
   });
-  check('28) y sus contadores también se mueven de uno en uno',
-    (await escribir('/communities/c1', BETO, { memberCount: 1 })) < 400
-    && (await escribir('/communities/c1', BETO, { memberCount: 500 })) >= 400);
-  check('29) CONTROL: quien la creó sigue pudiendo editarla',
-    (await escribir('/communities/c1', ANA, { name: 'Weë Developers' })) < 400);
+  await esperar('27b) (la escribe el servidor)', 'PERMITE', 'PATCH', '/communities/c1', {
+    body: doc({ name: 'Weë Devs', slug: 'devs', createdBy: ANA, moderators: [ANA], memberCount: 0, postCount: 0, status: 'active' }),
+  });
+  check('28) su `memberCount` no lo mueve ningún cliente, ni de uno en uno; `postCount` sí, de uno en uno',
+    (await escribir('/communities/c1', BETO, { memberCount: 1 })) >= 400
+    && (await escribir('/communities/c1', BETO, { postCount: 1 })) < 400
+    && (await escribir('/communities/c1', BETO, { postCount: 500 })) >= 400);
+  check('29) y quien la creó tampoco la edita desde el cliente (updateCommunity, por identidad)',
+    (await escribir('/communities/c1', ANA, { name: 'Weë Developers' })) >= 400);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -418,6 +431,151 @@ console.log('\n── H · Lo de la cuenta, fuera del perfil público (cierre de
   await esperar('54) ni los escribe', 'DENIEGA', 'PATCH', '/users/perfilAna/private/account', { uid: BETO, body: doc({ realName: 'Beto' }) });
   await esperar('55) un campo fuera de la lista no entra ni siendo la dueña', 'DENIEGA', 'PATCH', '/users/perfilAna/private/account', { uid: ANA, body: doc({ realName: 'Ana', email: 'ana@wee.zone' }) });
   await esperar('56) y otro documento privado no se crea desde el cliente', 'DENIEGA', 'PATCH', '/users/perfilAna/private/otro', { uid: ANA, body: doc({ realName: 'Ana' }) });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+console.log('\n── F-06 · El saldo de Credits es de su dueña, y de nadie más ──');
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  /*
+   * `creditAccounts/{uid}`: lo lee SOLO su dueña y no lo escribe nadie desde
+   * fuera (solo el Credit Engine, que no pasa por las reglas). Se prueba con
+   * las cuatro clases de visitante: sin sesión, sesión anónima de otra cuenta,
+   * otra cuenta autenticada y la dueña. Y el muro sigue pintando a quien
+   * publicó sin sesión.
+   */
+  const ahora = Math.floor(Date.now() / 1000);
+  const anonima = (uid) => b64({ alg: 'none', typ: 'JWT' }) + '.' + b64({
+    iss: `https://securetoken.google.com/${PROY}`, aud: PROY, auth_time: ahora, user_id: uid, sub: uid, iat: ahora, exp: ahora + 3600,
+    firebase: { identities: {}, sign_in_provider: 'anonymous' },
+  }) + '.';
+  const como = async (quien, metodo, ruta, body) => {
+    const headers = { 'Content-Type': 'application/json' };
+    if (quien === 'nadie') { /* sin cabecera: sin sesión */ } else if (quien.anonima) headers.Authorization = `Bearer ${anonima(quien.anonima)}`;
+    else headers.Authorization = `Bearer ${sesion(quien)}`;
+    const res = await fetch(base + ruta, { method: metodo, headers, ...(body ? { body: JSON.stringify(body) } : {}) });
+    return res.status;
+  };
+  const debe = async (nombre, esperado, quien, metodo, ruta, body) => {
+    const status = await como(quien, metodo, ruta, body);
+    check(nombre, (status < 400) === (esperado === 'PERMITE'), `${esperado} · HTTP ${status}`);
+  };
+  const ANON = 'anon0000000000000000000009';
+  await sembrar('/users/perfilAnaF06', { uid: ANA, displayName: 'Ana', photoURL: 'https://res.cloudinary.com/wee/ana.jpg', profileType: 'real' });
+  await sembrar('/users/perfilAnaF06/private/account', { realName: 'Ana Pérez', birthDate: '1990-01-01', gender: 'female' });
+  await sembrar(`/creditAccounts/${ANA}`, { uid: ANA, creditsBalance: 240, creditsLifetimeEarned: 240, creditsLifetimeSpent: 0 });
+  await sembrar(`/creditAccounts/${ANON}`, { uid: ANON, creditsBalance: 240, creditsLifetimeEarned: 240, creditsLifetimeSpent: 0 });
+  const saldo = doc({ uid: ANA, creditsBalance: 999999, creditsLifetimeEarned: 999999, creditsLifetimeSpent: 0 });
+
+  await debe('F1) sin sesión, el muro lee el perfil público (nombre y foto)', 'PERMITE', 'nadie', 'GET', '/users/perfilAnaF06');
+  await debe('F2) sin sesión, el saldo NO', 'DENIEGA', 'nadie', 'GET', `/creditAccounts/${ANA}`);
+  await debe('F3) una sesión anónima de otra cuenta, tampoco', 'DENIEGA', { anonima: ANON }, 'GET', `/creditAccounts/${ANA}`);
+  await debe('F4) otra cuenta autenticada, tampoco', 'DENIEGA', BETO, 'GET', `/creditAccounts/${ANA}`);
+  await debe('F5) ni listando la colección entera', 'DENIEGA', BETO, 'GET', '/creditAccounts');
+  await debe('F6) ni con el identificador del Perfil Weë de Ana como sesión (el saldo es de la cuenta)', 'DENIEGA', WEE_ANA, 'GET', `/creditAccounts/${ANA}`);
+  await debe('F7) la dueña sí lo lee (la píldora lo escucha en tiempo real)', 'PERMITE', ANA, 'GET', `/creditAccounts/${ANA}`);
+  await debe('F8) y una sesión anónima lee el SUYO, que es su cuenta', 'PERMITE', { anonima: ANON }, 'GET', `/creditAccounts/${ANON}`);
+  await debe('F9) la dueña no se escribe el saldo', 'DENIEGA', ANA, 'PATCH', `/creditAccounts/${ANA}`, saldo);
+  await debe('F10) ni lo crea donde no existe', 'DENIEGA', `${ANON}2`, 'PATCH', `/creditAccounts/${ANON}2`, saldo);
+  await debe('F11) ni lo borra', 'DENIEGA', ANA, 'DELETE', `/creditAccounts/${ANA}`);
+  await debe('F12) ni otra cuenta se lo escribe', 'DENIEGA', BETO, 'PATCH', `/creditAccounts/${ANA}`, saldo);
+  await debe('F13) ni nadie sin sesión', 'DENIEGA', 'nadie', 'PATCH', `/creditAccounts/${ANA}`, saldo);
+  check('F14) el espejo de transición en el perfil sigue vedado al cliente',
+    (await escribir('/users/perfilAnaF06', ANA, { creditsBalance: 999999 })) >= 400);
+  /* Los datos privados de la cuenta: igual de cerrados para los tres visitantes. */
+  await debe('F15) private/account: sin sesión, no', 'DENIEGA', 'nadie', 'GET', '/users/perfilAnaF06/private/account');
+  await debe('F16) private/account: sesión anónima de otra cuenta, no', 'DENIEGA', { anonima: ANON }, 'GET', '/users/perfilAnaF06/private/account');
+  await debe('F17) private/account: otra cuenta autenticada, no', 'DENIEGA', BETO, 'GET', '/users/perfilAnaF06/private/account');
+  await debe('F18) private/account: la dueña, sí', 'PERMITE', ANA, 'GET', '/users/perfilAnaF06/private/account');
+  /* Crear el Perfil Weë sigue exigiendo su vínculo con la cuenta (F-06 no lo toca: D3). */
+  await debe('F19) crear el Perfil Weë sin linkedAccountId: no', 'DENIEGA', ANA, 'PATCH', `/users/${WEE_ANA}`, doc({ uid: WEE_ANA, profileType: 'hidi', displayName: 'Ana Weë' }));
+  /* Con OTRA cuenta y otro documento: una escritura que acaba en error de evaluación (F19) deja el documento bloqueado en el emulador (409), como ya les pasa a 26r/26ac. */
+  const CARLA = 'carla0000000000000000000003';
+  await debe('F20) con su linkedAccountId: sí', 'PERMITE', CARLA, 'PATCH', `/users/hidi_${CARLA}`, doc({ uid: `hidi_${CARLA}`, profileType: 'hidi', displayName: 'Carla Weë', linkedAccountId: CARLA }));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+console.log('\n── I · Edad mínima de Weë: 18, obligatoria y fija (functions/src/identity/edad.ts) ──');
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  /* «Hoy» como lo cuentan las reglas: la fecha civil en UTC−12. Las fechas se calculan desde ahí. */
+  const hoy = new Date(Date.now() - 12 * 3600_000);
+  const fecha = (anios, dias = 0) => {
+    const d = new Date(Date.UTC(hoy.getUTCFullYear() - anios, hoy.getUTCMonth(), hoy.getUTCDate() + dias));
+    return d.toISOString().slice(0, 10);
+  };
+  const esBisiestoHoy = hoy.getUTCMonth() === 1 && hoy.getUTCDate() === 29;
+  const CARLA = 'carla0000000000000000000003';
+  const DANI = 'dani00000000000000000000004';
+  const EVA = 'eva000000000000000000000005';
+  await sembrar('/users/perfilCarla', { uid: CARLA, displayName: 'Carla', profileType: 'real' });
+  await sembrar('/users/perfilDani', { uid: DANI, displayName: 'Dani', profileType: 'real' });
+  await sembrar('/users/perfilEva', { uid: EVA, displayName: 'Eva', profileType: 'real' });
+  /* Dani: un perfil antiguo cuya cuenta privada se guardó sin fecha. Eva: una menor que ya existía. Los siembra el servidor. */
+  await sembrar('/users/perfilDani/private/account', { realName: 'Dani' });
+  await sembrar('/users/perfilEva/private/account', { realName: 'Eva', birthDate: fecha(16) });
+
+  const privada = (uid, datos) => ({ uid, body: doc(datos) });
+  const RUTA = '/users/perfilCarla/private/account';
+  await esperar('57) 17 años (cumple 18 mañana) → no se crea la cuenta', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { realName: 'Carla', birthDate: fecha(18, 1) }));
+  await esperar('58) sin fecha de nacimiento → no', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { realName: 'Carla', gender: 'female' }));
+  await esperar('59) una fecha que no existe (30 de febrero) → no', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { birthDate: '2000-02-30' }));
+  await esperar('60) una fecha futura → no', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { birthDate: fecha(-1) }));
+  await esperar('61) otro formato → no', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { birthDate: '1990/01/01' }));
+  await esperar('62) un número en vez de una fecha → no', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { birthDate: 19900101 }));
+  await esperar('63) anterior a 1900 → no', 'DENIEGA', 'PATCH', RUTA, privada(CARLA, { birthDate: '1899-12-31' }));
+  if (!esBisiestoHoy) {
+    await esperar('64) cumple 18 HOY → sí', 'PERMITE', 'PATCH', RUTA, privada(CARLA, { realName: 'Carla', birthDate: fecha(18), gender: 'female' }));
+  } else {
+    await esperar('64) (29-02) 18 años y un día → sí', 'PERMITE', 'PATCH', RUTA, privada(CARLA, { realName: 'Carla', birthDate: fecha(18, -1), gender: 'female' }));
+  }
+  check('65) Ana (18+) no puede cambiar su fecha después, ni a otra de 18+', (await escribir('/users/perfilAna/private/account', ANA, { birthDate: '1980-01-01' })) >= 400);
+  check('66) ni borrarla', (await escribir('/users/perfilAna/private/account', ANA, { birthDate: null })) >= 400);
+  check('67) pero sí cambiar su nombre real sin tocar la fecha', (await escribir('/users/perfilAna/private/account', ANA, { realName: 'Ana P.' })) < 400);
+  check('68) una menor que ya existía no se hace mayor cambiando su fecha', (await escribir('/users/perfilEva/private/account', EVA, { birthDate: '1990-01-01' })) >= 400);
+  check('69) una cuenta antigua sin fecha no puede actualizarse sin ponerla', (await escribir('/users/perfilDani/private/account', DANI, { realName: 'Dani G.' })) >= 400);
+  check('70) ni ponerla de 17', (await escribir('/users/perfilDani/private/account', DANI, { birthDate: fecha(18, 1) })) >= 400);
+  check('71) sí ponerla de 18+, y desde entonces queda fija', (await escribir('/users/perfilDani/private/account', DANI, { birthDate: '1995-03-03' })) < 400
+    && (await escribir('/users/perfilDani/private/account', DANI, { birthDate: '1990-03-03' })) >= 400);
+  check('72) Beto no escribe la fecha de nadie', (await escribir('/users/perfilDani/private/account', BETO, { realName: 'x' })) >= 400);
+  check('73) y la fecha sigue sin poder ir al perfil público', (await escribir('/users/perfilCarla', CARLA, { birthDate: '1990-01-01' })) >= 400);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+console.log('\n── J · El país de la cuenta se fija en el registro (jurisdicción, 2026-10-07) ──');
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  const FEDE = 'fede00000000000000000000006';
+  await sembrar('/users/perfilFede', { uid: FEDE, displayName: 'Fede', profileType: 'real' });
+  check('74) quien aún no tiene país lo pone (el registro)', (await escribir('/users/perfilFede', FEDE, { country: 'ES' })) < 400);
+  check('75) después no se cambia: nadie «se muda» para cambiar de ruta', (await escribir('/users/perfilFede', FEDE, { country: 'US' })) >= 400);
+  check('76) ni se borra', (await escribir('/users/perfilFede', FEDE, { country: null })) >= 400);
+  check('77) y el resto del perfil se sigue editando sin tocar el país', (await escribir('/users/perfilFede', FEDE, { bio: 'hola' })) < 400);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+console.log('\n── K · Weë Pages: la cuenta dueña no está en el documento público (F1, 2026-11-23) ──');
+// ═══════════════════════════════════════════════════════════════════════════
+{
+  const leerDoc = (ruta, uid) => pedir('GET', ruta, { uid });
+  await sembrar('/pages/pgBorrador', { type: 'character', name: 'Jay Reeds', handle: 'jay.reeds', status: 'draft' });
+  await sembrar('/pages/pgBorrador/private/ownership', { ownerAccountId: ANA, pageId: 'pgBorrador' });
+  await sembrar('/pages/pgPublicada', { type: 'character', name: 'Lina', handle: 'lina', status: 'published' });
+  await sembrar('/pages/pgPublicada/private/ownership', { ownerAccountId: ANA, pageId: 'pgPublicada' });
+  await sembrar('/pages/pgAntigua', { type: 'brand', name: 'Antigua', handle: 'antigua', status: 'draft', ownerAccountId: ANA });
+  await sembrar(`/accounts/${ANA}/pages/pgBorrador`, { pageId: 'pgBorrador' });
+
+  check('78) su cuenta lee el borrador por el privado (get)', (await leerDoc('/pages/pgBorrador', ANA)) < 400);
+  check('79) otra cuenta no', (await leerDoc('/pages/pgBorrador', BETO)) >= 400);
+  check('80) la publicada la lee cualquiera', (await leerDoc('/pages/pgPublicada', BETO)) < 400);
+  check('81) la propiedad la lee solo su cuenta', (await leerDoc('/pages/pgPublicada/private/ownership', ANA)) < 400
+    && (await leerDoc('/pages/pgPublicada/private/ownership', BETO)) >= 400);
+  check('82) una Página antigua (campo público) se sigue leyendo por su dueña', (await leerDoc('/pages/pgAntigua', ANA)) < 400 && (await leerDoc('/pages/pgAntigua', BETO)) >= 400);
+  check('83) el índice de Páginas de la cuenta lo lee solo ella', (await leerDoc(`/accounts/${ANA}/pages/pgBorrador`, ANA)) < 400
+    && (await leerDoc(`/accounts/${ANA}/pages/pgBorrador`, BETO)) >= 400);
+  check('84) nadie escribe la propiedad desde el cliente', (await escribir('/pages/pgBorrador/private/ownership', BETO, { ownerAccountId: BETO })) >= 400
+    && (await escribir('/pages/pgBorrador/private/ownership', ANA, { ownerAccountId: ANA })) >= 400);
+  check('85) ni el índice', (await escribir(`/accounts/${ANA}/pages/pgOtra`, ANA, { pageId: 'pgOtra' })) >= 400);
 }
 
 console.log(failures ? `\n✘ ${failures} fallos` : '\n✔ todo bien');

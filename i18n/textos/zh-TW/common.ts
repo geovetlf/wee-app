@@ -34,6 +34,7 @@ export const common: typeof import('../es/common').common = {
   send: '傳送',
   share: '分享',
   retry: '再試一次',
+  mediaUnavailable: '此檔案無法使用',
   loading: '載入中…',
   error: '錯誤',
   somethingWentWrong: '出了點問題',

@@ -135,9 +135,12 @@ seccion('D', () => {
   check('D1) la app conoce el tipo `world`, el mismo del Core (la lista entera, igual)', cliente.includes('world') && iguales(cliente, core), cliente.join(','));
   check('D2) con su clave, su filtro y su icono propios', VISTA.CLAVE_DE_TIPO.world === 'creaciones.kindWorld'
     && /\{ id: 'world', clave: 'creaciones\.filterWorlds' \}/.test(leer('screens/MisCreacionesScreen.tsx'))
-    && /world: 'planet-outline'/.test(leer('components/creator/RejillaDeCreaciones.tsx')));
+    && /world: 'planet-outline'/.test(leer('components/creator/RejillaDeCreaciones.tsx'))
+    /* La galería de la App (N, 2026-11-05) también: su icono propio. */
+    && /world: 'planet-outline'/.test(leer('components/biblioteca/GaleriaDeCreaciones.tsx')));
   check('D3) en la rejilla, un mundo NUNCA se pinta como imagen: solo las imágenes y los vídeos llevan foto',
-    /const conImagen = !!url && \(vista\.tipo === 'image' \|\| vista\.tipo === 'video'\);/.test(leer('components/creator/RejillaDeCreaciones.tsx')));
+    ['components/creator/RejillaDeCreaciones.tsx', 'components/biblioteca/GaleriaDeCreaciones.tsx']
+      .every((f) => /const conImagen = !!url && \(vista\.tipo === 'image' \|\| vista\.tipo === 'video'\);/.test(leer(f))));
   const pantalla = sinComentarios(leer('screens/MisCreacionesScreen.tsx'));
   const ramaTresD = pantalla.indexOf("if (url && (asset.kind === 'world' || asset.kind === 'model3d')) {");
   check('D4) abrir un mundo: dice que no hay visor 3D, lo que su licencia deja hacer, y ofrece descargarlo (con su tipo); nunca se abre como una página',
@@ -226,7 +229,7 @@ console.log('\n── H · FASE 13: ni una pantalla, ni un servicio, ni un texto
 seccion('H', () => {
   const PROVEEDOR = /\b(fal|hunyuan|tencent|gemini|seedance|seedream|flux|elevenlabs|deepseek|minimax|openai|anthropic|replicate|byteplus|bytedance)\b|fal\.ai|fal-ai|FAL_KEY|providerModelId|hunyuan_world|image-to-world/i;
   const DE_LA_EXPERIENCIA = ['utils/crearMundo3D.ts', 'utils/derechosDelMaterial.ts', 'services/mundoService.ts', 'screens/Mundo3DScreen.tsx',
-    'components/creator/TarjetaTresD.tsx', 'screens/MisCreacionesScreen.tsx', 'components/creator/RejillaDeCreaciones.tsx', 'constants/studioExperiences.ts',
+    'components/creator/TarjetaTresD.tsx', 'screens/MisCreacionesScreen.tsx', 'components/creator/RejillaDeCreaciones.tsx', 'components/biblioteca/GaleriaDeCreaciones.tsx', 'constants/studioExperiences.ts',
     'services/vistaDeAsset.ts', 'services/assetDownload.ts', 'services/escena3d.ts', 'utils/noDisponible.ts'];
   const nombran = DE_LA_EXPERIENCIA.filter((f) => PROVEEDOR.test(leer(f)));
   check(`H1) los ${DE_LA_EXPERIENCIA.length} archivos de la experiencia, comentarios incluidos, no nombran ningún proveedor, modelo, clave ni id de modelo`, nombran.length === 0, nombran.join(', '));

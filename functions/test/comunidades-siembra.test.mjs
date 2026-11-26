@@ -64,9 +64,10 @@ console.log('\n── B · Las reglas, igual de estrictas, y el sitio de las ofi
   const reglas = leer('firestore.rules');
   const inicio = reglas.indexOf('match /communities/{communityId}');
   const bloque = reglas.slice(inicio, reglas.indexOf('match /members/{memberId}', inicio));
-  check('6) crear una comunidad: o es de quien la crea y NO es oficial, o la crea una sesión de administración',
-    /allow create: if isAuthenticated\(\) && \(comunidadDeUsuario\(\) \|\| comunidadOficialDeAdministracion\(\)\);/.test(bloque)
-    && /request\.resource\.data\.get\('isOfficial', false\) == false/.test(bloque)
+  /* Re-anclado (docs/COMUNIDADES-IDENTIDAD.md, decisión 3 del dueño (2026-11-05)): las de usuario las crea el servidor (createCommunity); el cliente solo, si es administración, las oficiales. */
+  check('6) crear una comunidad desde el cliente: solo una sesión de administración (las oficiales); las de usuario, el servidor',
+    /allow create: if isAuthenticated\(\) && comunidadOficialDeAdministracion\(\);/.test(bloque)
+    && !/comunidadDeUsuario/.test(bloque)
     && /function comunidadOficialDeAdministracion\(\) \{\s*\n\s*return esAdministracion\(\) &&/.test(bloque)
     && /function esAdministracion\(\) \{\s*\n\s*return request\.auth != null && request\.auth\.token\.get\('admin', false\) == true;/.test(reglas));
   const lista = (bloque.match(/function slugsOficiales\(\) \{\s*return \[([^\]]*)\];/) || [])[1] || '';
@@ -74,12 +75,13 @@ console.log('\n── B · Las reglas, igual de estrictas, y el sitio de las ofi
   const enDatos = OFICIALES.map((c) => c.slug).sort();
   check('7) la lista reservada de las reglas es EXACTAMENTE la de constants/comunidadesOficiales.ts (sin deriva)',
     enDatos.length === 8 && JSON.stringify(enReglas) === JSON.stringify(enDatos), `reglas: ${enReglas.join(',')} · datos: ${enDatos.join(',')}`);
-  check('8) una comunidad de usuario no ocupa ni el slug ni el id de una oficial',
-    /function ocupaUnNombreOficial\(\) \{\s*\n\s*return communityId in slugsOficiales\(\) \|\|\s*\n\s*request\.resource\.data\.get\('slug', ''\) in slugsOficiales\(\);/.test(bloque)
-    && /request\.resource\.data\.get\('postCount', 0\) == 0 &&\s*\n\s*!ocupaUnNombreOficial\(\);/.test(bloque));
-  check('9) ni se pasa después a un slug oficial editando la suya',
-    /allow update: if isAuthenticated\(\) && !tocaLaAutoriaDeLaComunidad\(\) && !tomaUnSlugOficial\(\) &&/.test(bloque)
-    && /affectedKeys\(\)\.hasAny\(\['slug'\]\) &&\s*\n\s*request\.resource\.data\.get\('slug', ''\) in slugsOficiales\(\) &&\s*\n\s*!esAdministracion\(\);/.test(bloque));
+  const servidor = leer('functions/src/social/comunidades.ts');
+  check('8) una comunidad de usuario no ocupa el slug de una oficial: lo reserva el servidor con la MISMA lista',
+    /if \(\(SLUGS_OFICIALES as readonly string\[\]\)\.includes\(limpia\.slug\)\) throw new ComunidadError\('nombre-reservado'\);/.test(servidor)
+    && JSON.stringify([...(servidor.match(/export const SLUGS_OFICIALES = \[([^\]]*)\]/) || [])[1].matchAll(/'([^']+)'/g)].map((m) => m[1]).sort()) === JSON.stringify(enReglas));
+  check('9) ni se pasa después a un slug oficial: el cliente no edita nada salvo `postCount`, y el servidor no cambia el slug',
+    /allow update: if isAuthenticated\(\) &&\s*\n\s*request\.resource\.data\.diff\(resource\.data\)\.affectedKeys\(\)\.hasOnly\(\['postCount', 'updatedAt'\]\)/.test(bloque)
+    && !/slug: limpia\.slug/.test(servidor.slice(servidor.indexOf('editar: async'), servidor.indexOf('reclamarHeredada: async'))));
 }
 
 console.log('\n── C · El modo del script: una decisión pura, ejecutada aquí ──');

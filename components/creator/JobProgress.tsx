@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useIdioma } from '../../contexts/IdiomaContext';
@@ -8,10 +8,14 @@ import { CreatorJob } from '../../services/creatorService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import TextoEnMayusculas from '../TextoEnMayusculas';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
+import { RADIO_WEEAI, textoWeeAi } from '../../constants/estiloWeeAi';
 
 interface JobProgressProps {
   experienceName: string;
   job: CreatorJob;
+  /** «Seguir navegando»: sale de la pantalla; el trabajo sigue en el servidor y aparece en Historial y Mis creaciones. */
+  onKeepBrowsing?: () => void;
 }
 
 /**
@@ -28,15 +32,16 @@ interface JobProgressProps {
  * en español a mano, y quien usaba Weë en inglés leía «está trabajando» en la
  * pantalla donde aterriza todo lo que se crea.
  */
-const JobProgress: React.FC<JobProgressProps> = ({ experienceName, job }) => {
+const JobProgress: React.FC<JobProgressProps> = ({ experienceName, job, onKeepBrowsing }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const { t, locale } = useIdioma();
   /* El progreso y los pasos los escribe el servidor en español: se pintan en el idioma de quien mira. */
   const leer = (texto: string): string => textoDelServidor(texto, { t, locale, experiencia: job.experienceId });
   const doneCount = job.steps.filter((s) => s.status === 'done').length;
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+    <View style={[styles.card, { backgroundColor: c.superficie }]}>
       <TextoEnMayusculas style={[styles.who, { color: theme.colors.accentDark }]}>{t('creaciones.progressWorking', { nombre: experienceName })}</TextoEnMayusculas>
       <Text style={[styles.title, { color: theme.colors.text }]}>{job.progressText ? leer(job.progressText) : t('creaciones.progressStarting')}</Text>
       <Text style={[styles.counter, { color: theme.colors.textSecondary }]}>
@@ -70,6 +75,11 @@ const JobProgress: React.FC<JobProgressProps> = ({ experienceName, job }) => {
       </View>
 
       <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>{t('creaciones.progressFindLater')}</Text>
+      {onKeepBrowsing ? (
+        <TouchableOpacity onPress={onKeepBrowsing} accessibilityRole="button" activeOpacity={0.7} style={[styles.seguir, { backgroundColor: c.seleccion }]}>
+          <Text style={[styles.seguirTexto, textoWeeAi('cuerpo', '600'), { color: c.sobreSeleccion }]}>{t('weeai.keepBrowsing')}</Text>
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 };
@@ -77,8 +87,7 @@ const JobProgress: React.FC<JobProgressProps> = ({ experienceName, job }) => {
 const styles = StyleSheet.create({
   card: {
     padding: SPACING.lg,
-    borderRadius: BORDER_RADIUS.lg,
-    borderWidth: 1,
+    borderRadius: RADIO_WEEAI.tarjeta,
     gap: SPACING.sm,
   },
   who: {
@@ -110,6 +119,8 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONT_SIZE.sm,
   },
+  seguir: { minHeight: 44, borderRadius: RADIO_WEEAI.pastilla, alignItems: 'center', justifyContent: 'center', paddingHorizontal: SPACING.lg, marginTop: SPACING.sm },
+  seguirTexto: {},
   hint: {
     fontSize: FONT_SIZE.xs,
     marginTop: SPACING.sm,

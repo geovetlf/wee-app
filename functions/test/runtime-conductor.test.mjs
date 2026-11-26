@@ -120,7 +120,8 @@ const ejecuciones = () => {
 /** El mundo entero, con los motores de verdad. Devuelve también todo lo que hace falta para mirar dentro. */
 const mundo = (opciones = {}) => {
   const adapters = opciones.adapters ?? { x: adaptador('x', texto()) };
-  const config = { providers: opciones.providers ?? {}, settings: ajustes.DEFAULT_SETTINGS };
+  /* El vídeo encendido (Línea B · X2): esta suite prueba el camino cuando SÍ se puede generar; el apagado tiene su suite (linea-b-finanzas). */
+  const config = { providers: opciones.providers ?? {}, settings: { ...ajustes.DEFAULT_SETTINGS, videoHabilitado: true } };
   const registro = core.crearRegistro(registroDeWee.datosDelRegistro(adapters, config.providers));
   const trazas = [];
   const gateway = opciones.gateway ?? core.crearGateway({

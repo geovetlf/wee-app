@@ -52,7 +52,7 @@ const check = (name, cond, extra = '') => {
  */
 const deClaudeMd = (leer('CLAUDE.md').match(/los nombres de Weë \(([^)]*)\)/) || [, ''])[1]
   .split(',').map((s) => s.trim()).filter(Boolean);
-const deExperiencias = [...new Set([...leer('constants/weeExperiences.ts').matchAll(/'(Weë [A-Za-z]+)'/g)].map((m) => m[1]))];
+const deExperiencias = [...new Set([...leer('constants/weeExperiences.ts').matchAll(/'(Weë ?[A-Za-z]+)'/g)].map((m) => m[1]))];
 const OFICIALES = [...new Set([...deClaudeMd, ...deExperiencias])].sort((a, b) => b.length - a.length);
 
 console.log('\n── La lista oficial ──');
@@ -114,6 +114,7 @@ const DEFORMES = [
   [/Weë (Musique|Musik|Musica|Música)/u, 'Weë Music traducido'],
   [/Weë (Cuisinier|Koch|Cuoco|Cozinheiro)/u, 'Weë Chef traducido'],
   [/Weë (Affaires|Geschäft|Negócios|Negocios)/u, 'Weë Business traducido'],
+  [/Weë ?(?:Moda|Mode|Мода|Моды|ファッション|패션|时尚|時尚|फ\u093C?ैशन)(?![\p{L}\p{M}])/u, 'Weë Fashion traducido'],
   /*
    * RUSO. Aquí la tentación no es traducir: es TRANSLITERAR al cirílico, o
    * declinar la marca como si fuera una palabra rusa («нет Кредитов»). Las dos

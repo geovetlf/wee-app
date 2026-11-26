@@ -32,6 +32,10 @@ export const CREDIT_COSTS = {
   ai_video_advanced: 300,  // Seedance 2.5 a 720p: USD 2.31
   ai_video_max: 740,       // Seedance 2.5 a 1080p: USD 5.69
   ai_video_edit: 20,       // Montaje propio con ffmpeg (no es IA)
+  // WITE (Transformar identidad en Weëls), por WaveSpeed (wavespeed.ai, 2026-11-26). El suelo es el mínimo que cobra
+  // WaveSpeed (3 s) con el margen por defecto; cada clip se cotiza por sus segundos medidos (wite/precio.ts).
+  ai_identity_face: 4,     // Cambio de cara: USD 0.01 por segundo → 3 s = USD 0.03
+  ai_identity_full: 16,    // Sustitución completa (Wan 2.2 Animate, 480p): USD 0.04 por segundo → 3 s = USD 0.12
   // Audio
   ai_audio: 20,            // ElevenLabs: USD 0.10 por 1 000 caracteres
   ai_transcribe: 2,        // Gemini 3.5 Transcribe: ≈ USD 0.005 por minuto
@@ -68,6 +72,14 @@ export const CREDIT_COSTS = {
   ai_search: 3,
   ai_book: 100,
   wee_avatar: 50,          // Nano Banana Pro, dos llamadas
+  /*
+   * PASE DE AUTONOMÍA DEL PERSONAJE: 24 h de autonomía con IA del Perfil Weë.
+   * Añadido con AUTORIZACIÓN EXPLÍCITA del dueño (2026-11-22) sobre el catálogo
+   * congelado (functions/test/job-queue.test.mjs, comprobación 63). Precio
+   * provisional dado por el dueño; se ajusta tras medir (creditCosts/{servicio}).
+   * Lo que el personaje encargue a Weë AI se cobra con su propio servicio.
+   */
+  wee_autonomy_pass: 30,
 } as const;
 
 export type CreditService = keyof typeof CREDIT_COSTS;
@@ -134,6 +146,8 @@ export const SERVICE_LABEL: Record<CreditService, string> = {
   ai_video_advanced: 'Video avanzado',
   ai_video_max: 'Video de máxima calidad',
   ai_video_edit: 'Montaje de video',
+  ai_identity_face: 'Transformar identidad · cara',
+  ai_identity_full: 'Transformar identidad · completa',
   ai_audio: 'Generación de voz',
   ai_transcribe: 'Transcripción y subtítulos',
   ai_music: 'Generación de música',
@@ -144,36 +158,21 @@ export const SERVICE_LABEL: Record<CreditService, string> = {
   ai_search: 'Búsqueda con IA',
   ai_book: 'Creación de libro',
   wee_avatar: 'Avatar Weë',
+  wee_autonomy_pass: 'Autonomía del personaje (24 h)',
 };
 
-/** Credits de bienvenida al abrir la cuenta (0 para desactivar). Configurable con CREDITS_WELCOME. */
-export const WELCOME_CREDITS = (() => {
-  const raw = process.env.CREDITS_WELCOME;
-  if (raw === undefined || raw === '') return 240;
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
-})();
-
-/**
- * Paquetes de Credits (compras). Los precios en USD son los de la tienda; los
- * pagos reales llegan por Apple / Google / Stripe (functions/src/payments) y
- * SIEMPRE se validan en el servidor antes de otorgar.
+/*
+ * SIN BONO DE BIENVENIDA (decisión del dueño, 2026-11-04): una cuenta nueva empieza con 0 Credits. No hay
+ * variable de entorno que lo vuelva a encender. El motor conserva el mecanismo (las pruebas lo ejercitan
+ * inyectando su propio valor), pero la instancia de producción recibe esto.
  */
-export interface CreditPackage {
-  id: string;
-  name: string;
-  credits: number;
-  priceUsd: number;
-  productId: string;
-}
+export const WELCOME_CREDITS = 0;
 
-export const CREDIT_PACKAGES: CreditPackage[] = [
-  { id: 'basic', name: 'Básico', credits: 40, priceUsd: 4.99, productId: 'zone.wee.credits.basic' },
-  { id: 'plus', name: 'Plus', credits: 90, priceUsd: 9.99, productId: 'zone.wee.credits.plus' },
-  { id: 'blackpro', name: 'Black Pro', credits: 200, priceUsd: 19.9, productId: 'zone.wee.credits.blackpro' },
-];
-
-export const getPackage = (id: string): CreditPackage | undefined => CREDIT_PACKAGES.find((p) => p.id === id || p.productId === id);
+/*
+ * NO HAY PAQUETES DE CREDITS (decisión del dueño, 2026-11-04). Básico 40/$4,99, Plus 90/$9,99 y Black Pro
+ * 200/$19,90 dejaron de existir: se compra por importe, de US$5 a US$100 de 5 en 5, a 100 Credits por dólar
+ * (functions/src/payments/compraPorImporte.ts). No queda ni una copia de respaldo.
+ */
 
 /** Qué servicio del catálogo cobra cada capacidad del WEË AI ENGINE. */
 /**

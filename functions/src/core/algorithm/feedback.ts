@@ -62,6 +62,7 @@ import { Severidad } from './strategy';
  * evidencia hasta que apoya o contradice algo. Y nada de eso es conocimiento
  * hasta que sobrevive a las guardas.
  */
+/* Vocabulario de la taxonomía de arriba, tipado: lo nombran la documentación y los nombres, no el código. */
 export type ClaseDeDato = 'event' | 'signal' | 'evidence' | 'outcome' | 'candidate' | 'fact';
 
 /* ── El evento ────────────────────────────────────────────────────────────── */
@@ -161,8 +162,6 @@ export const PROCEDENCIA_DE_GESTO: Readonly<Record<string, { origen: OrigenDeEve
   implicit_failure: { origen: 'implicit', orden: 1 },
 });
 
-export const ORDEN_MAXIMO = 5;
-
 /** Qué origen tiene un gesto. `undefined` = no se sabe interpretarlo. */
 export const origenDe = (t: TipoDeEvento): OrigenDeEvento | undefined => PROCEDENCIA_DE_GESTO[t]?.origen;
 
@@ -183,9 +182,11 @@ export const fuenteDeGesto = (t: TipoDeEvento): SignalSource | undefined => {
 /**
  * DÓNDE PASÓ. Todo opcional, y ninguno es una persona.
  *
- * `account` es un identificador opaco y existe para poder ACOTAR y deduplicar
- * —no para perfilar—: sin él, mil eventos de la misma cuenta parecen mil
- * observaciones independientes y no lo son. Nada más se guarda de nadie.
+ * `account` es un identificador opaco, RESERVADO para poder acotar —nunca para
+ * perfilar— el día que exista un contrato de consentimiento. Hoy no se usa: el
+ * aprendizaje por cuenta está bloqueado (la clave de agregación no lo lleva y A8
+ * no sirve un ámbito con cuenta), y la deduplicación de eventos va por su id.
+ * Nada más se guarda de nadie.
  */
 export interface AmbitoDeEvento {
   capability?: string;

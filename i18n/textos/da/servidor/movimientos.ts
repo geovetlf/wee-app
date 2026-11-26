@@ -41,6 +41,7 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   brainRespuestas_one: 'Weë Brain · {{contador}} svar',
   brainRespuestas_other: 'Weë Brain · {{contador}} svar',
   brainNoPudo: 'Weë Brain · kunne ikke svare',
+  brainMuestra: 'Weë Brain · svar i prøveversion, ikke opkrævet',
   studioVideo: 'Weë Studio · video',
   studioSinTiempo: 'Weë Studio · tiden løb ud for det forrige forsøg',
   studioNoSePudo: 'Weë Studio · videoen kunne ikke genereres',
@@ -69,4 +70,8 @@ export const movimientos: typeof import('../../es/servidor/movimientos').movimie
   servicioAiTextPro: 'Lang tekst i højeste kvalitet',
   servicioAiSearch: 'AI-søgning',
   servicioAiBook: 'Bogskrivning',
+  /* Boost (functions/src/boost, docs/BOOST.md): la reserva, la que no llegó a abrirse y la que no entregó nada. */
+  boostReserva: 'Boost af et opslag',
+  boostNoIniciado: 'Boost ikke startet',
+  boostSinEntregas: 'Boost uden visninger · alt blev tilbagebetalt',
 };

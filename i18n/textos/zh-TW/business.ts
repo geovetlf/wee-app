@@ -18,7 +18,7 @@
  *
  * Y las comillas son las de Taiwán: 「」, no “”.
  *
- * MARCA Y MÓDULOS: Weë, Weë Business, Wäll y Credits van en alfabeto latino
+ * MARCA Y MÓDULOS: Weë, Weë Business, Ẅall y Credits van en alfabeto latino
  * dentro del hanzi, nunca traducidos ni transliterados —«積分» o «點數» por
  * Credits rompe la moneda del producto, igual que «工作室» por Studio—. Los
  * nombres de los módulos —Business Plan, Business Coach, Pricing Assistant,
@@ -96,7 +96,7 @@ export const business: typeof import('../es/business').business = {
   yesterday: '昨天',
 
   /* ══ LOS OCHO MÓDULOS (2026-09-16) ══════════════════════════════════════ */
-  slogan: '建立、經營、推廣，讓你的生意成長。',
+  slogan: '時尚、風格、美妝和視覺內容創作。',
 
   modMyBusinessHint: '打造並經營你的生意',
   modProductsHint: '你的產品和價格',
@@ -204,12 +204,12 @@ export const business: typeof import('../es/business').business = {
   share: '分享',
   shareHint: '會打開手機的分享面板，你想發到哪個應用程式都行。',
   shareToWee: '分享到 Weë',
-  shareWall: '我的 Wäll',
+  shareWall: '我的 Ẅall',
   /* 社群 y no 社區: una comunidad de personas en Taiwán es un 社群. */
   shareCommunities: '社群',
   shareProfile: 'Business Profile',
   shareNothing: '先創作些什麼，再從這裡分享出去。',
-  shareText: '用 Weë Business 創作',
+  shareText: '用 WeëFashion 創作',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   /* 資料 y no 數據; 檔案 y no 文件, que en Taiwán es el documento. */

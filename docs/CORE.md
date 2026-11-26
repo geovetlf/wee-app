@@ -62,6 +62,8 @@ Tres tipos de entidad y solo tres: `REAL_PROFILE`, `WEE_PROFILE`, `PAGE`. Un neg
 
 `Asset` y `Project` cuelgan de `ownerAccountId`. Antes decían `userId`, y en Weë un «user id» es la cara activa: con eso, cambiar de perfil cambiaba de dueño y publicar desde una Página habría obligado a copiar el archivo.
 
+**Perfil público y cuenta Weë válida (integración 2026-10-07, sin desplegar).** La cara pública de un perfil es `publicProfiles/{id}`, proyectada con lista blanca por `identity/perfilPublico.ts` (disparador `espejoDelPerfilPublico`); `users/{id}` quedará privado en la fase 2 (fase 2, retenida: `ops/despliegue/reglas/users-cierre.fase2.rules`; en fase 1 la lectura de `users` sigue como en producción hasta espejo + relleno verificado + cliente nuevo, y `ops/permitido.mjs` bloquea el cierre antes de tiempo). Las puertas que generan o cobran piden `exigirCuentaWeeValida` (`identity/sesion.ts`), que valida la fecha guardada con la regla pura única `identity/edad.ts`. Ninguna de las dos cosas toca el Router, el Gateway ni el Credit Engine.
+
 ## Eventos de dominio: una forma y dos puertos
 
 `events.ts` declara la **forma** de un evento y los **puertos** para emitirlo y consumirlo. No declara infraestructura: ni cola, ni flujo, ni corredor. Eso es lo que permite que mañana lo transporte otra cosa sin tocar un contrato.
@@ -278,7 +280,7 @@ De un mensaje salen **dos cosas que nunca se mezclan**: una `reply` para la pers
 
 ### Una sola inteligencia, muchas puertas
 
-Weë Brain, Weë Studio, Weë Chef, Weë Travel, Weë Business y Weë Design **no son cerebros distintos**: son el mismo, al que se le habla desde sitios distintos. Lo único que cambia es el **contexto** —`workplace`, `project`, `user`, `conversation`—, y por eso el contexto es un parámetro y no una copia del cerebro. Esa es la regla del §10 de CLAUDE.md, ahora con un contrato detrás.
+Weë Brain, Weë Studio, Weë Chef, Weë Travel, Weë Fashion y Weë Design **no son cerebros distintos**: son el mismo, al que se le habla desde sitios distintos. Lo único que cambia es el **contexto** —`workplace`, `project`, `user`, `conversation`—, y por eso el contexto es un parámetro y no una copia del cerebro. Esa es la regla del §10 de CLAUDE.md, ahora con un contrato detrás.
 
 ### El mismo Brain en Web, Android e iOS
 
@@ -961,7 +963,7 @@ CHECKOUT → PAYMENT ROUTER → PASARELA → AVISO → LIBRO → CREDITS
 
 ### Una persona, una cuenta, un saldo
 
-Es el requisito que manda sobre todos los demás. Se compra desde Weë Business y se gasta desde Weë Studio; se entra desde Weë Design y se ve lo mismo. **No hay saldo por producto y no puede haberlo**: en cuanto exista una billetera por producto, comprar en el sitio equivocado deja de servir y la persona tiene que aprenderse la contabilidad interna de Weë para usarla.
+Es el requisito que manda sobre todos los demás. Se compra desde Weë Fashion y se gasta desde Weë Studio; se entra desde Weë Design y se ve lo mismo. **No hay saldo por producto y no puede haberlo**: en cuanto exista una billetera por producto, comprar en el sitio equivocado deja de servir y la persona tiene que aprenderse la contabilidad interna de Weë para usarla.
 
 `appId` y `workspaceId` no están en la cuenta. Están en la **atribución** de cada movimiento, que es donde sirven: para saber desde dónde se gastó, no para partir el dinero.
 
@@ -1025,7 +1027,7 @@ Es determinista, desempata por valor de carácter y **no es el Router de IA**: u
 
 ### Un checkout, no siete
 
-Comprar Credits desde Weë Business, impulsar una publicación desde el Home y pagar una suscripción desde Weë Studio son el **mismo** checkout con distinto propósito. El checkout prepara el cobro y dice con qué se puede pagar; **no acredita nada** y no confirma nada. Todo lo que mueve dinero pasa por el libro, y el libro se escribe cuando la pasarela confirma.
+Comprar Credits desde Weë Fashion, impulsar una publicación desde el Home y pagar una suscripción desde Weë Studio son el **mismo** checkout con distinto propósito. El checkout prepara el cobro y dice con qué se puede pagar; **no acredita nada** y no confirma nada. Todo lo que mueve dinero pasa por el libro, y el libro se escribe cuando la pasarela confirma.
 
 ### Publicidad no es una compra de Credits
 

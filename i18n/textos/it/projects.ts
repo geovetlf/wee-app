@@ -33,4 +33,14 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'Cosa manca a questo progetto?',
   whatIsMissingNote: 'Un logo, delle foto, un annuncio, un video, della musica o un documento: qualsiasi specialista di Weë può aggiungere qualcosa qui.',
   createSomethingNew: 'Crea qualcosa di nuovo',
+  /* N — Rediseño de «Mis proyectos» (2026-11-05): contador, búsqueda, orden, fecha y vacío de la lista. */
+  count_one: '{{contador}} progetto',
+  count_other: '{{contador}} progetti',
+  updatedOn: 'Aggiornato il {{fecha}}',
+  searchPlaceholder: 'Cerca progetti',
+  sortUpdated: 'Aggiornati di recente',
+  sortName: 'Nome (A–Z)',
+  noMatches: 'Nessun progetto corrisponde alla ricerca.',
+  emptySpaceTitle: 'Il tuo spazio creativo inizia qui',
+  moreActions: 'Altre azioni',
 };

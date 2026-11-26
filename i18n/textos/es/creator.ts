@@ -1,5 +1,5 @@
 /*
- * Lo que describe cada experiencia de WEË AI. Los nombres —Weë Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * Lo que describe cada experiencia de WEË AI. Los nombres —WeëDesign, WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Este archivo es el MOLDE: de él sale el tipo que tiene que cumplir el resto
  * de los idiomas. Añadir una clave aquí y olvidarla en inglés no compila.
@@ -13,7 +13,7 @@ export const creator = {
   beauty: 'Maquillaje, cabello, barba, outfits y cambios de look',
   chef: 'Tu chef personal: qué cocinar, recetas y menús',
   home: 'Decoración, diseño interior, remodelación y jardines',
-  business: 'Ideas de negocio, marketing, CV, documentos y presentaciones',
+  business: 'Moda, estilo, belleza y creación de contenido visual.',
   travel: 'Prepara tu viaje: a dónde ir, qué hacer y cómo moverte',
   brain: '¿No sabes dónde buscar? Pregúntale a Weë',
   designEx1: 'Un logo para mi negocio',
@@ -49,10 +49,10 @@ export const creator = {
   brainEx1: 'No sé por dónde empezar',
   brainEx2: 'Explícame esto fácil',
   brainEx3: 'Traduce este texto',
-  areaStudioPhotos: 'Weë Studio · Fotos',
-  areaStudioVideos: 'Weë Studio · Videos',
-  areaStudioBeauty: 'Weë Studio · Beauty',
-  areaDesignHome: 'Weë Design · Hogar & Diseño',
+  areaStudioPhotos: 'WeëStudio · Fotos',
+  areaStudioVideos: 'WeëStudio · Videos',
+  areaStudioBeauty: 'WeëStudio · Beauty',
+  areaDesignHome: 'WeëDesign · Hogar & Diseño',
   areaHomeName: 'Hogar & Diseño',
   tellTheSpecialist: 'Cuéntale a {{especialista}} qué quieres lograr: te hace dos o tres preguntas sencillas y se encarga del resto. Después publicas directo en tu comunidad.',
   exampleQuoted: '“{{ejemplo}}”',

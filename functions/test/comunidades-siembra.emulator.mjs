@@ -114,8 +114,11 @@ console.log('\n── B · Un cliente sin permiso no puede, y el sitio de las of
   check('6) una sesión normal no puede crear la oficial que intentaba la app', (await crear('intento1', comoLaApp, sesion('ana'))) === 403);
   check('7) ni quien no tiene sesión', (await crear('intento2', comoLaApp, null)) === 403);
   check('8) ni una oficial a su propio nombre', (await crear('intento3', { ...comoLaApp, createdBy: 'ana', moderators: ['ana'] }, sesion('ana'))) === 403);
-  check('9) CONTROL: una comunidad de usuario, a su nombre y no oficial, sí (como `createCommunity`: id automático, memberCount 1)',
-    (await crear('mia', deAna({ name: 'Amantes del café', slug: 'amantes-del-cafe' }), sesion('ana'))) === 200);
+  /* Re-anclado (docs/COMUNIDADES-IDENTIDAD.md, decisión 3 del dueño (2026-11-05)): una persona ya no crea comunidades desde el cliente; lo hace la callable
+   * `createCommunity` (servidor), que también reserva los slugs oficiales. La «mía» la escribe aquí el servidor. */
+  check('9) una comunidad de usuario tampoco se crea desde el cliente (la crea el servidor, createCommunity)',
+    (await crear('mia', deAna({ name: 'Amantes del café', slug: 'amantes-del-cafe' }), sesion('ana'))) === 403
+    && (await sembrarComoServidor('mia', deAna({ name: 'Amantes del café', slug: 'amantes-del-cafe' }))) === 200);
   check('10) y una sesión de administración (claim admin) sí puede sembrar una oficial', (await crear('oficialAdmin', { ...comoLaApp, slug: 'admin-x' }, sesion('jefa', { admin: true }))) === 200);
 
   check('11) una persona NO crea una comunidad con el slug de una oficial (aunque la oficial aún no exista)',
@@ -123,8 +126,9 @@ console.log('\n── B · Un cliente sin permiso no puede, y el sitio de las of
   check('12) ni ocupa el id de una oficial con otro slug', (await crear('tecnologia-ia', deAna({ slug: 'mi-tecnologia' }), sesion('ana'))) === 403);
   check('13) ni con el id y el slug a la vez', (await crear('futuro-sociedad', deAna({ name: 'Futuro & Sociedad', slug: 'futuro-sociedad' }), sesion('ana'))) === 403);
   check('14) ni se pasa después al slug de una oficial editando la suya', (await editar('mia', { slug: 'cine-animacion' }, sesion('ana'))) === 403);
-  check('15) CONTROL: pero sí edita su nombre y su descripción', (await editar('mia', { name: 'Amantes del café ☕', description: 'Para quien hace latte art con IA' }, sesion('ana'))) === 200);
-  check('16) CONTROL: y otra persona sigue uniéndose (contador de uno en uno)', (await editar('mia', { memberCount: 2 }, sesion('beto'))) === 200);
+  check('15) ni edita su nombre o su descripción desde el cliente (updateCommunity, por identidad)', (await editar('mia', { name: 'Amantes del café ☕', description: 'Para quien hace latte art con IA' }, sesion('ana'))) === 403);
+  check('16) ni otra persona mueve el contador (lo cuenta joinCommunity); `postCount` sí, de uno en uno', (await editar('mia', { memberCount: 2 }, sesion('beto'))) === 403
+    && (await editar('mia', { postCount: 1 }, sesion('beto'))) === 200);
   check('17) administración sí puede crear una oficial en su sitio', (await crear('cine-animacion', { ...comoLaApp, name: 'Cine & Animación', slug: 'cine-animacion' }, sesion('jefa', { admin: true }))) === 200);
   check('18) y una persona tampoco crea una NO oficial con ese slug después', (await crear('autoIdAna2', deAna({ slug: 'cine-animacion' }), sesion('ana'))) === 403);
 }

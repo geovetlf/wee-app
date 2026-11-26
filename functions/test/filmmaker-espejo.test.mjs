@@ -102,7 +102,7 @@ seccion('A', () => {
    * hasta el final, son exactamente estos.
    */
   const cierre = new Set();
-  const cola = [...DOMINIO.map((m) => `filmmaker/${m}.ts`), ...GEN.RAICES_DEL_NUCLEO_3D];
+  const cola = [...DOMINIO.map((m) => `filmmaker/${m}.ts`), ...GEN.RAICES_DEL_NUCLEO_3D, 'core/model-capability.ts' /* Ola 3b: raíz declarada aparte, no importada por el dominio */];
   while (cola.length) {
     const r = cola.shift();
     if (cierre.has(r)) continue;

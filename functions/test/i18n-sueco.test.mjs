@@ -73,7 +73,7 @@ const SV = aplanar(sv);
 const ES = Object.fromEntries(aplanar(es));
 const EN = Object.fromEntries(aplanar(en));
 
-const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls?|Wäll|ËContact|ẄContact|Credits|Weë/gu;
+const MARCAS = /MyWeës|WeëAI|Weë(?:Studio|Design|Chef|Music|Fashion|Travel)|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls?|Ẅall|ËContact|ẄContact|Credits|Weë/gu;
 const sinLoAjeno = (v) => String(v)
   .replace(/\{\{[\w.]+\}\}/g, ' ')
   .replace(/\\[nrt]/g, ' ')
@@ -90,7 +90,8 @@ console.log('\n── A · `sv-SE` de punta a punta, sin lógica para el sueco �
     JSON.stringify(cat));
   check('2) y su locale principal, `sv-SE`, está entre los contemplados', idiomas.LOCALES_CONTEMPLADOS.includes('sv-SE'));
   check('3) el registro lo sirve con su propio diccionario, no por un alias',
-    registro.DICCIONARIOS.sv === sv && registro.idiomasConDiccionario().includes('sv'));
+    /* Con su sección del servidor el registro sirve {...sv, ...servidor}: se exige que CADA módulo sea el suyo (el mismo objeto), y que la sección esté. */
+    Object.keys(sv).every((s) => registro.DICCIONARIOS.sv[s] === sv[s]) && !!registro.DICCIONARIOS.sv.preguntas && registro.idiomasConDiccionario().includes('sv'));
 
   const disponibles = registro.idiomasConDiccionario();
   const elegir = (elegido, aparato) => resolver.elegirIdioma(elegido, aparato, disponibles);
@@ -151,6 +152,35 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en sueco que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['menu.pages', '«WeëPages» es el nombre de la función (marca), no se traduce'],
+    ['pages.type_influencer', '«Influencer» es la palabra sueca (tipo de página de WeëPages)'],
+    ['pages.type_institution', '«Institution» es la palabra sueca (tipo de página de WeëPages)'],
+    ['wall.demoBadge', '«Demo» es la palabra sueca (etiqueta del modo demo)'],
+    ['music.startInstrumental', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.groupGenre', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.advTempo', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_pop', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_rock', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_latin', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_jazz', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.genre_reggaeton', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.duration_60', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.duration_120', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.duration_180', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.result_instrumental', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.result_loop', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.toolEq', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.section_intro', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.section_outro', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.instr_piano', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.solo', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.eqTitle', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.fx_reverb', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.fx_limiter', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.trRemix', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.trVariation', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.export_midi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.capMidi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
     ['filmmaker.presetTiktok', 'TikTok es el nombre de la plataforma'],
     ['filmmaker.presetYoutube', 'YouTube es el nombre de la plataforma'],
     ['filmmaker.presetShorts', 'YouTube Shorts es el nombre del producto de la plataforma'],
@@ -170,7 +200,7 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['moderation.reasonSpam', '«Spam» es la palabra sueca'],
     ['settings.sectionInfo', '«Information» es la palabra sueca'],
     ['settings.engineAdmin', '«Weë AI Engine» es el nombre del producto (el WEË AI ENGINE)'],
-    ['help.footer', 'la marca, «World Encode Entity» y la versión: solo cambia «version», que en sueco se escribe igual'],
+    ['help.footer', 'la marca, «WORLD OF EXPRESSION & EVOLUTION» y la versión: solo cambia «version», que en sueco se escribe igual'],
     ['composer.kindVideo', '«Video» es la palabra sueca'],
     ['composer.kindText', '«Text» es la palabra sueca'],
     ['credits.free', '«Gratis» es la palabra sueca'],
@@ -202,6 +232,38 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['catalogo.chefEj4Title', '«Lomo saltado» es el nombre de un plato: no se traduce'],
     ['catalogo.writerEj3Subtitle', '«Drama», el género, se escribe igual en sueco'],
     ['catalogo.writerEj5Subtitle', '«Motivation» es la palabra sueca'],
+    /* WeëTravel (2026-11-06): marca, nombre propio DEMO o palabra igual en sueco. */
+    ['travel.demo', 'WeëTravel (2026-11-06): marca: «DEMO» señala los datos simulados del prototipo'],
+    ['travel.travelSafe', 'WeëTravel (2026-11-06): marca: «Travel Safe» es el nombre de la sección'],
+    ['travel.budgetPlanner', 'WeëTravel (2026-11-06): palabra igual en sueco: «Budget»'],
+    ['travel.wzBudget', 'WeëTravel (2026-11-06): palabra igual en sueco: «Budget»'],
+    ['travel.budget', 'WeëTravel (2026-11-06): palabra igual en sueco: «Budget»'],
+    ['weeai.sc_neon', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.sc_plato', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.sc_zen', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_vintage', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_gala', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_festival', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_retro', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['weeai.cl_minimal', 'catálogo de elementos (2026-11-16): préstamo internacional que se escribe igual'],
+    ['travel.prefShopping', 'WeëTravel (2026-11-06): palabra igual en sueco: «Shopping»'],
+    ['travel.expShopping', 'WeëTravel (2026-11-06): palabra igual en sueco: «Shopping»'],
+    ['travel.pcShopping', 'WeëTravel (2026-11-06): palabra igual en sueco: «Shopping»'],
+    ['travel.free', 'WeëTravel (2026-11-06): palabra igual en sueco: «Gratis»'],
+    ['travel.trText', 'WeëTravel (2026-11-06): palabra igual en sueco: «Text»'],
+    ['travel.cuscoName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.santoriniName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.kyotoName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.parisName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.oaxacaName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.marrakechName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.baliName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.costaRicaName', 'WeëTravel (2026-11-06): nombre propio DEMO'],
+    ['travel.islandiaF2', 'WeëTravel (2026-11-06): nombre propio DEMO: el plato «Skyr»'],
+    ['travel.baliF2', 'WeëTravel (2026-11-06): nombre propio DEMO: el plato «Satay»'],
+    /* Ficha del personaje (2026-11-22). */
+    ['character.statusLabel', '«Status» es la palabra sueca (SAOL); «Tillstånd» es el estado físico de algo'],
+    ['character.statusLine', '«Status: …», la misma palabra sueca con su hueco'],
   ]);
   const copiadas = SV.filter(([k, v]) => !IGUALES.has(k) && /\p{L}{3,}/u.test(sinLoAjeno(v)) && (ES[k] === v || EN[k] === v));
   check('20) ninguna cadena copiada tal cual del español o del inglés, salvo las que se escriben igual con su porqué',
@@ -285,7 +347,8 @@ console.log('\n── E · Sueco escrito como sueco ──');
   /* Mayúscula de frase: nada de «Redigera Profil» con Cada Palabra En Mayúscula. */
   /* Los nombres de producto de Weë Business se escriben con sus mayúsculas (decisión del usuario, 2026-09-16). */
   const MAYUSCULAS_A_PROPOSITO = new Set(['filmmaker.presetShorts' /* «YouTube Shorts»: nombre de producto */, 'business.shareProfile', 'business.businessPlan', 'business.businessCoach',
-    'business.pricing', 'business.brandKit', 'business.customerInsights', 'business.businessIdeas']);
+    'business.pricing', 'business.brandKit', 'business.customerInsights', 'business.businessIdeas',
+    'travel.travelSafe', 'travel.costaRicaName' /* WeëTravel (2026-11-06): «Travel Safe» es marca y «La Fortuna» nombre propio DEMO */]);
   const tituloIngles = SV.filter(([k, v]) => {
     if (MAYUSCULAS_A_PROPOSITO.has(k)) return false;
     const palabras = sinLoAjeno(v).split(/\s+/).filter((w) => /^\p{L}/u.test(w));
@@ -314,7 +377,7 @@ console.log('\n── G · El dinero y las marcas ──');
   check('37) cada «Credits» del español sigue en su clave sueca', perdidos.length === 0, perdidos.slice(0, 4).map(([k]) => k).join(' ') || 'todos');
 
   const LISTA = ['Weë', 'Weë AI', 'Weë Studio', 'Weë Chef', 'Weë Design', 'Weë Travel', 'Weë Business', 'Weë Music', 'Weë Inspira',
-    'Weëls', 'Wäll', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
+    'Weëls', 'Ẅall', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
   const escapar = (m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const perdidas = [];
   for (const [k, v] of SV) {
@@ -329,8 +392,8 @@ console.log('\n── G · El dinero y las marcas ──');
   }
   check('38) cada marca del español sigue, intacta, en su clave sueca', perdidas.length === 0, perdidas.slice(0, 6).join(' | ') || 'todas');
   /* Una marca no se declina: ni «Weës», ni «WeeTalken», ni «Creditsen». */
-  const PEGADA = /(?:Weë|WeeTalk|Wäll|ËContact|ẄContact|Credits|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Inspira))(?=[a-zåäö])/u;
-  const pegadas = SV.filter(([, v]) => PEGADA.test(v.replace(/Weëls?/g, '·')));
+  const PEGADA = /(?:Weë|WeeTalk|Ẅall|ËContact|ẄContact|Credits|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Inspira))(?=[a-zåäö])/u;
+  const pegadas = SV.filter(([, v]) => PEGADA.test(v.replace(/MyWeës|Weëls?/g, '·')));
   check('39) ninguna marca declinada ni con una terminación pegada', pegadas.length === 0,
     pegadas.slice(0, 4).map(([k, v]) => `${k}: «${v.slice(0, 40)}»`).join(' | ') || 'limpio');
   const TRADUCIDA = /Weë (?:Musik|Resa|Resor|Kock|Företag|Hjärna|Skribent|Foto|Skönhet|Hem|Krediter)(?![\p{L}])/u;
@@ -407,6 +470,10 @@ console.log('\n── J · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* WeëPages: «Usuario» es el nombre de usuario (@) de una página, no la persona. */
+    'pages.f_handle',
+    /* Weë Music: el mismo rótulo español, otro contexto — «Género» musical (no el sexo), «Ambiente» y «Voz» de una canción (no el sonido ambiente ni la voz en off), «Efectos» de audio y «Resumen» de una selección. */
+    'music.groupGenre', 'music.groupMood', 'music.groupVoice', 'music.instr_vocals', 'music.fxTitle',
     /* Weë Filmmaker, revisado por un segundo traductor (2026-10-01): la misma frase española, otro sentido. */
     /* «Subir»/«Bajar» reordenan escenas y planos (Flytta upp/ner); en Studio son la grúa de la cámara (Kran upp/ner). */
     'filmmaker.moveUp', 'filmmaker.moveDown',
@@ -426,6 +493,15 @@ console.log('\n── J · Traducciones defectuosas ──');
     'studio.smNatural',
     /* «Servicios»: el gasto de luz, agua e internet (Räkningar), no la categoría de negocios de servicios (Tjänster). */
     'business.expenseServices',
+    /* WeëTravel (2026-11-06): la misma frase española, otro sentido que en otro módulo — «Medio» el presupuesto medio (Mellan),
+       no el largo del pelo de aiAvatar (Halvlång); «Lista» de lugares (Listvy), no el estado «Lista» de weeai (Klart); «Historia»
+       la categoría de lugares (Historia och kulturarv: en sueco «historia» también es «relato»), no la historia/relato de
+       fashion (Berättelse); «Solo» quien viaja solo (Ensam), no el solo musical de music; «Restaurar» el itinerario
+       (Återställ), no una foto de studio (Restaurera); «Cartel» un letrero de la calle (Skylt), no un póster de studio
+       (Affisch); «Subir»/«Bajar» reordenan paradas (Flytta upp/ner), no la grúa de la cámara de studio (Kran upp/ner). */
+    'travel.budgetMid', 'travel.viewList', 'travel.catHistory', 'travel.saSolo', 'travel.restore', 'travel.visionSign', 'travel.moveUp', 'travel.moveDown',
+    /* Ficha del personaje (2026-11-22): «Básico»/«Medio» son niveles de autonomía (Grundläggande, Mellan), no el paquete de Credits (Bas) ni el largo de un texto (Halvlång). */
+    'character.levelBasico',
   ]);
   const porFrase = new Map();
   for (const [k, v] of SV) {

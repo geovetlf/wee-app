@@ -87,4 +87,24 @@ export const home: typeof import('../es/home').home = {
   likesCount_other: '{{cantidad}}件のいいね',
   commentsCount_one: '{{cantidad}}件のコメント',
   commentsCount_other: '{{cantidad}}件のコメント',
+  /* Rediseño del 2026-11-15: atajos, tarjeta de WeëAI y pastillas del muro. Ẅall es marca. Sin revisión nativa. */
+  tabWall: 'Ẅall',
+  sectionsNav: 'セクション',
+  weeAiTagline: 'アイデアを生み出し、育て、変えていきましょう',
+  openBrain: 'Weë Brainを開く',
+  feedForYou: 'あなたへのおすすめ',
+  feedCreativity: 'クリエイティブ',
+  /* Prueba aparte del Home con más impacto (2026-11-24, screens/HomeImpactoScreen.tsx). Sin revisión nativa. */
+  nowOnWee: 'いまのWeë',
+  you: 'あなた',
+  guestTitle: '自由に、自分を表現しよう。',
+  guestHint: '自分として、またはオルターエゴとして投稿し、作品をWeëPagesで見せましょう。',
+  premiere: '初公開',
+  presentedBy: '{{nombre}} がお届け',
+  viewPage: 'WeëPageを見る',
+  wallEmptyTitleWork: 'Ẅallは最初の作品を待っています',
+  wallEmptyHintFaces: 'あなた自身かオルターエゴの作品を投稿しましょう。',
+  /* Prueba aparte «Universos» (2026-11-24, screens/HomeUniversosScreen.tsx). Sin revisión nativa. */
+  universesTitle: '見つけたい世界',
+  mosaicTitle: 'いま生まれている作品',
 };

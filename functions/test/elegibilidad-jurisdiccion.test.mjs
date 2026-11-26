@@ -126,10 +126,10 @@ const lanzado = async (f) => { try { await f(); return null; } catch (e) { retur
   const desconocida = await lanzado(() => r.execute(peticion()));
   const abiertas = Object.keys(ledger.records).length;
   /* FASE 2: el escalón se queda en la decisión (el registro, la auditoría); a la app solo viaja el MOTIVO público. */
-  check('7) sin ningún candidato elegible → falla cerrado: ni demo ni sustituto, NOT_AVAILABLE con su motivo público (aquí no, en otra jurisdicción sí → «en tu región»; sin país → «falta tu país»), sin llamar al proveedor ni abrir el libro',
+  check('7) sin ningún candidato elegible → falla cerrado: ni demo ni sustituto, NOT_AVAILABLE con el motivo genérico (sea cual sea la jurisdicción: la jurisdicción no es una conversación), sin llamar al proveedor ni abrir el libro',
     decision.candidates.length === 0 && decision.skipped.some((s) => s.provider === 'terra' && s.estado === 'BLOCKED_FOR_JURISDICTION' && s.causa === 'elegibilidad' && s.enOtraJurisdiccion === true)
-    && err?.code === 'NOT_AVAILABLE' && JSON.stringify(err.details) === '{"reason":"en_tu_region"}'
-    && desconocida?.code === 'NOT_AVAILABLE' && JSON.stringify(desconocida.details) === '{"reason":"falta_tu_pais"}'
+    && err?.code === 'NOT_AVAILABLE' && JSON.stringify(err.details) === '{"reason":"no_disponible"}'
+    && desconocida?.code === 'NOT_AVAILABLE' && JSON.stringify(desconocida.details) === '{"reason":"no_disponible"}'
     && terra.llamadas === 0 && mock.llamadas === 0 && abiertas === 0,
     JSON.stringify({ c: decision.candidates, s: decision.skipped, e: err?.details, d: desconocida?.details, abiertas }));
 }
@@ -222,8 +222,10 @@ check('12) los modelos de siempre (sin gobierno ni territorio) no notan nada: el
   deSiempre.length > 20 && igualQueAntes, `${deSiempre.length} modelos`);
 
 const conTerritorio = Object.values(ADAPTERS).flatMap((a) => a.models).filter((m) => m.territorio);
-check('13) hoy solo un modelo de todo Weë tiene reglas territoriales —Hunyuan World— y todas sus reglas están bien escritas y con fuente',
-  conTerritorio.map((m) => m.id).join() === HW.id
+/* REANCLAJE NOMBRADO (Fase 1 — jurisdicción, 2026-10-07): los cuatro modelos de Seedance entran con su dato territorial
+ * (`TERRITORIO_DE_SEEDANCE`: US, IN, CN bloqueados). Se fija la lista exacta, igual que antes se fijaba solo Hunyuan World. */
+check('13) hoy tienen reglas territoriales exactamente los cuatro modelos de Seedance (Fase 1) y Hunyuan World, y todas sus reglas están bien escritas y con fuente',
+  conTerritorio.map((m) => m.id).sort().join() === [HW.id, 'dreamina-seedance-2-5-260628', 'dreamina-seedance-2-0-260128', 'dreamina-seedance-2-0-fast-260128', 'dreamina-seedance-2-0-mini-260615'].sort().join()
   && conTerritorio.every((m) => [...m.territorio.bloqueadas, ...m.territorio.aprobadas].every(E.reglaTerritorialValida) && m.territorio.fuente.length > 20),
   conTerritorio.map((m) => m.id).join());
 

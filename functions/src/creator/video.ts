@@ -1,27 +1,41 @@
 import { createHash } from 'crypto';
+import { exigirCuentaWeeValida } from '../identity/sesion';
+import { exigirRuta, precioPorRuta, rutaPrevia } from './rutaPrevia';
 import { getFirestore } from 'firebase-admin/firestore';
-import { onCall } from 'firebase-functions/v2/https';
+import { CallableRequest, onCall } from 'firebase-functions/v2/https';
 import { assertText, EngineError, toEngineHttpsError } from '../engine/errors';
 import { limiter } from '../engine/limits';
 import { loadConfig } from '../engine/config';
-import { chooseSeedanceModel, normalizeVideoRequest, videoEngine, VideoModelPreference, VideoQuality, VideoRequest } from '../engine/video';
+import { asegurarVideoPermitido, hayVideoReal, normalizeVideoRequest, videoApagado, videoEngine, VideoModelPreference, VideoQuality, VideoRequest } from '../engine/video';
 import { creditEngine } from '../credits/creditEngine';
 import { assertRequestId } from '../credits/creditValidation';
-import { priceVideo } from '../credits/aiPricing';
-import { techoDeVideoDeEntrada } from '../engine/providers/seedance';
+import { creditosDeUnCoste, priceVideoRequest } from '../credits/aiPricing';
 import { usageTransactionId } from '../credits/creditTransactions';
 import { firestoreLedger } from '../engine/ledger';
+import { sanitizeForLog } from '../engine/sanitize';
 import { ensureAccount } from './credits';
 import { assertInputImageUrl } from './inputs';
 import { AI_SECRETS } from '../secrets';
-import { CapabilityId, POLITICA_DE_TRABAJO, operacionAbandonada } from '../core';
-import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, conductorDeWee, configuracionDeLaPuerta, decidirRuntime, pedirMedio, politicaDe, segundosParaElProveedor, trabajoDelMedioDeWee } from '../runtime';
+import { CapabilityId, Job, POLITICA_DE_TRABAJO, esTrabajoTerminal, operacionAbandonada } from '../core';
+import { MARGEN_DE_CIERRE_MS, PLAZOS_DE_VIDEO, atencionDeWee, conductorDeWee, configuracionDeLaPuerta, decidirLiquidacion, decidirRuntime, pedirMedio, politicaDe, reconciliarUno, segundosParaElProveedor, trabajoDelMedioDeWee } from '../runtime';
+import { almacenDeTrabajos } from '../runtime/almacen';
 import { crearMaterialDesdeUrl, leerMaterial } from '../content';
 import { loadCostOverrides } from '../credits/creditCosts';
 import { cuentaDelPrincipalEnWee } from '../identity/cuentas';
-import { PLANTILLA_DE_PLANO, PlanoRepresentable, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano } from './plano';
+/* Porte de filmmaker/core (2026-11-18): el lote y la cancelación pasan por ESTA misma puerta; el requisito vale el del servidor. */
+import { mismoRequisito, requisitoDelServidor } from './requisitoDelServidor';
+import { generarLote, presupuestarLote } from './lotes';
+import { atenderTransformacion } from '../wite';
+import { canceladaPorLaPersona, cancelarToma } from './cancelacionDeToma';
+import { categoriaDelFallo } from './fallos';
+import { CAPACIDADES_DE_VIDEO, capacidadesConEstado } from '../engine/capacidadesDeVideo';
+import { opcionesDeModelo, validarPreferenciasDeModelo } from '../engine/preferenciasDeModelo';
+import { SEEDANCE_MODEL_IDS, pararTareaDeSeedance, resolutorDeSeedance } from '../engine/providers/seedance';
+import { MODEL_CAPABILITIES_VERSION } from '../core/model-capability';
+import { MODELOS_VALIDADOS_POR_ENTRADA } from './entradasDePlano';
+import { LIMITES_DE_PLANO, PLANTILLA_DE_PLANO, PlanoRepresentable, calidadRepresentable, componerPromptDePlano, evaluarPlano, leerRequisitoDePlano } from './plano';
 import {
-  MAX_TOMAS, TomaExistente, UnidadEnLaProduccion, leerUnidadEnLaProduccion, nodoDeLaUnidad, puedePedirseLaToma, requestIdDeToma, tomaTerminada, tomasDeLaUnidad,
+  MAX_TOMAS, TomaExistente, UnidadEnLaProduccion, leerIdentidadDeToma, leerUnidadEnLaProduccion, nodoDeLaUnidad, puedePedirseLaToma, requestIdDeToma, tomaTerminada, tomasDeLaUnidad,
 } from './toma';
 
 /**
@@ -36,7 +50,8 @@ import {
  * infraestructura—, este número es lo que permite saber después que una
  * autorización de Credits se quedó colgada en vez de estar en marcha.
  */
-const PLAZO_DE_VIDEO_MS = 1_500_000;
+/** Se exporta: el estado de una toma y el render usan ESTE número, y no una copia. */
+export const PLAZO_DE_VIDEO_MS = 1_500_000;
 const RESERVA_PARA_LIQUIDAR_MS = 45_000;
 
 /**
@@ -167,10 +182,22 @@ interface GenerateVideoInput {
    * `requirement`, el `ShotRequirement` que calculó el espejo de F1-A.
    */
   plano?: unknown;
+  /** Ola 3b · LEER las capacidades de los modelos de vídeo (`core/model-capability.ts`). Ni cupo, ni reserva, ni proveedor. */
+  capacidades?: boolean;
   /** Solo cotizar: qué costaría y si se puede. Ni cupo, ni reserva, ni generación. */
   cotizar?: boolean;
   /** Lo que se le enseñó a la persona. Si el precio cambió desde entonces, no se genera. */
   creditosCotizados?: number;
+  /**
+   * FILMMAKER · VARIAS UNIDADES DE UNA PRODUCCIÓN (lote). Lleva `productionId`, `revision`, `quality` y, si se quiere,
+   * `units`. Con `cotizar`, el presupuesto del lote; sin él, el lote por `creditosCotizados` (el total). Cada unidad
+   * vuelve a entrar por esta misma puerta como una toma (`creator/lotes.ts`): no hay cobro del lote.
+   */
+  produccion?: unknown;
+  /** WITE (Weëls · Transform Your Identity): `{ accion, … }`, lo valida `functions/src/wite`. */
+  transformarIdentidad?: unknown;
+  /** FILMMAKER · CANCELAR la toma que dice `plano` (`productionId`, `sceneId`, `unitId`, `take`). No genera ni cobra (`creator/cancelacionDeToma.ts`). */
+  cancelar?: boolean;
 }
 
 /**
@@ -182,6 +209,8 @@ interface GenerateVideoInput {
  * la generación lo pueda rechazar.
  */
 interface TomaPreparada {
+  /** Quien la pide: con su uid se leen sus reservas y su trabajo. */
+  readonly uid: string;
   readonly accountId: string;
   readonly productionId: string;
   readonly sceneId: string;
@@ -211,18 +240,24 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
   if (!productionId || !sceneId || !unitId || revision === undefined || (!soloCotizar && (pedida === undefined || pedida < 1 || pedida > MAX_TOMAS))) {
     throw new EngineError('INVALID_REQUEST', 'Esa toma no tiene forma válida.', { reason: 'take_invalid' });
   }
-  const requisito = leerRequisitoDePlano(d.requirement);
-  if (!requisito || requisito.unitId !== unitId || requisito.sceneId !== sceneId) {
+  const requisitoDeLaApp = leerRequisitoDePlano(d.requirement);
+  if (!requisitoDeLaApp || requisitoDeLaApp.unitId !== unitId || requisitoDeLaApp.sceneId !== sceneId) {
     throw new EngineError('INVALID_REQUEST', 'Ese plano no tiene forma válida.', { reason: 'shot_invalid' });
   }
   const db = getFirestore();
   const cuenta = await cuentaDelPrincipalEnWee(db, uid);
   if (!cuenta) throw new EngineError('INVALID_REQUEST', 'No encontramos esa producción.', { reason: 'production_not_found' });
   const accountId = cuenta.accountId;
-  const base = { accountId, productionId, sceneId, unitId, revision };
 
   const leida = await leerUnidadEnLaProduccion(db, accountId, { productionId, sceneId, unitId, revision });
   const tomas = await tomasDeLaUnidad(db, uid, accountId, { productionId, unitId });
+  /*
+   * FASE 5 · EL REQUISITO QUE VALE ES EL DEL SERVIDOR: el de la producción guardada en esa revisión, calculado con F1-A
+   * (`requisitoDelServidor`). De él sale todo —texto, duración, formato—; el de la app solo se compara, más abajo.
+   */
+  const delServidor = leida.ok ? await requisitoDelServidor(db, accountId, { productionId, sceneId, unitId, revision }) : null;
+  const requisito = delServidor?.ok ? delServidor.requisito : requisitoDeLaApp;
+  const base = { uid, accountId, productionId, sceneId, unitId, revision };
   const ultima = tomas[tomas.length - 1];
   /* Cotizar ofrece la siguiente, si la que hay ya terminó; generar pide una concreta. */
   const toma = soloCotizar
@@ -235,7 +270,34 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
   if (enOrden) return { ...vacia, toma, requestId: null, motivo: enOrden };
   const requestId = requestIdDeToma(accountId, productionId, unitId, toma);
 
-  const evaluacion = evaluarPlano(requisito, d.quality);
+  /* Si el servidor no pudo calcularlo, o la app dice otra cosa, no se genera: ni reserva ni cupo. La app vuelve a leer y a pedir. */
+  if (delServidor && !delServidor.ok) {
+    return { ...vacia, toma, requestId, motivo: delServidor.motivo, ...(delServidor.causa ? { detalle: { cause: delServidor.causa } } : {}) };
+  }
+  if (delServidor?.ok && !mismoRequisito(delServidor.requisito, requisitoDeLaApp)) {
+    return { ...vacia, toma, requestId, motivo: 'production_changed', detalle: { cause: 'requirement_mismatch' } };
+  }
+
+  /*
+   * Convergencia (2026-11-18): sobre 15 s solo atiende Seedance 2.5 (`chooseSeedanceModel` lo elige por la duración) y
+   * su tope de 30 s lo valida el contrato de capacidades, no una constante de esta ruta. Hasta 15 s, lo de siempre.
+   */
+  /*
+   * Lo que la persona elige del modelo (panel de especificaciones): modelo preferido, variantes y semilla. Opcionales; sin
+   * nada, lo de siempre. Se valida contra las capacidades del modelo ANTES de evaluar el plano.
+   */
+  const prefs = validarPreferenciasDeModelo({ preferredModel: d.preferredModel, variants: d.variants, seed: d.seed });
+  if (!prefs.ok) return { ...vacia, toma, requestId, motivo: prefs.codigo, detalle: { field: prefs.campo, ...prefs.parametros } };
+  const claveDelModelo = prefs.modelo
+    ? (Object.entries(SEEDANCE_MODEL_IDS).find(([, id]) => id === prefs.modelo?.modeloId)?.[0] as keyof typeof SEEDANCE_MODEL_IDS | undefined)
+    : undefined;
+  if (prefs.modelo && !claveDelModelo) return { ...vacia, toma, requestId, motivo: 'model_not_integrated', detalle: { field: 'preferredModel', model: prefs.modelo.modeloId } };
+  const capacidadesElegidas = prefs.modelo
+    ? capacidadesConEstado(prefs.modelo.modeloId, new Set([prefs.modelo.modeloId]))
+    : requisito.duracionSec > LIMITES_DE_PLANO.duracionMaximaSinModeloSec
+      ? capacidadesConEstado(SEEDANCE_MODEL_IDS.SEEDANCE_2_5, new Set([SEEDANCE_MODEL_IDS.SEEDANCE_2_5]))
+      : undefined;
+  const evaluacion = evaluarPlano(requisito, d.quality, capacidadesElegidas);
   if (!evaluacion.ok) return { ...vacia, toma, requestId, motivo: evaluacion.motivo, ...(evaluacion.detalle ? { detalle: evaluacion.detalle } : {}) };
   return {
     ...vacia,
@@ -249,20 +311,71 @@ const prepararToma = async (uid: string, crudo: unknown, soloCotizar: boolean): 
       ...(evaluacion.resolucion ? { resolution: evaluacion.resolucion } : {}),
       quality: evaluacion.calidad,
       generateAudio: evaluacion.conSonido,
-      model: 'auto',
+      model: claveDelModelo ?? 'auto',
+      ...(typeof d.seed === 'number' ? { seed: d.seed } : {}),
     },
   };
 };
+
+/**
+ * OLA 3b · LO QUE LA APP LEE DE LOS MODELOS: sus capacidades declaradas y, por modo, si hoy se pueden usar de verdad
+ * (hoy ninguno: las listas de modelos validados por modo están vacías y las puertas cerradas). SIN el proveedor ni las
+ * fuentes. Es una lectura de datos del código: no toca Firestore, ni Credits, ni el proveedor, ni el Core.
+ */
+const capacidadesParaLaApp = () => ({
+  status: 'CAPABILITIES' as const,
+  version: MODEL_CAPABILITIES_VERSION,
+  models: CAPACIDADES_DE_VIDEO.map(({ proveedor: _proveedor, fuentes: _fuentes, ...c }) => ({
+    ...c,
+    /* Lo que el modelo soporta, listo para pintar: duraciones, formatos, resoluciones, audio, semilla y variantes. */
+    options: opcionesDeModelo(c),
+    available: {
+      referencias: MODELOS_VALIDADOS_POR_ENTRADA.referencias.includes(c.modeloId),
+      fotogramas: MODELOS_VALIDADOS_POR_ENTRADA.fotogramas.includes(c.modeloId),
+      extender: MODELOS_VALIDADOS_POR_ENTRADA.extender.includes(c.modeloId),
+      editar: MODELOS_VALIDADOS_POR_ENTRADA.editar.includes(c.modeloId),
+    },
+  })),
+});
 
 /** Por qué no, dicho como lo lee la app: el motivo y lo que haga falta para explicarlo. */
 const noSeGenera = (t: TomaPreparada, motivo = t.motivo ?? 'shot_invalid', detalle = t.detalle): EngineError =>
   new EngineError('INVALID_REQUEST', 'Esa toma no se puede generar así.', { reason: motivo, ...(detalle ?? {}) });
 
+/**
+ * CÓMO ACABÓ EL TRABAJO DE UNA TOMA, que puede ir por delante de su reserva: el trabajo ya terminó y la liquidación
+ * todavía no ha pasado. Sin esto la app seguiría diciendo «en proceso» de algo que ya no se está haciendo.
+ *
+ * Solo lectura, y solo tres palabras y una categoría: nada del trabajo por dentro. «Salió hacia el proveedor y no se
+ * sabe cómo acabó» no es «falló»: su dinero no vuelve solo, se comprueba (`reconciling`). Porte de filmmaker/core.
+ */
+export interface DesenlaceDeLaToma {
+  outcome?: 'in_progress' | 'succeeded' | 'failed' | 'reconciling';
+  failure?: string;
+  cancelled?: true;
+}
+
+/** El desenlace, de un trabajo ya leído. Pura: el mismo trabajo y el mismo `at` dan lo mismo. */
+export const desenlaceDeUnTrabajo = (job: Job, at: number): DesenlaceDeLaToma => {
+  if (job.state === 'completed') return { outcome: 'succeeded' };
+  if (decidirLiquidacion(job, at).tipo === 'reconciliar') return { outcome: 'reconciling' };
+  if (!esTrabajoTerminal(job.state)) return { outcome: 'in_progress' };
+  /* La paró la persona. No es un fallo de nadie, y así se dice. */
+  if (canceladaPorLaPersona(job)) return { outcome: 'failed', cancelled: true };
+  const intento = job.attempts[job.attempts.length - 1];
+  return { outcome: 'failed', failure: job.state === 'timed_out' && !intento?.error ? 'TIMEOUT' : categoriaDelFallo(intento?.error) };
+};
+
+const desenlaceDeLaToma = async (uid: string, requestId: string): Promise<DesenlaceDeLaToma> => {
+  const job = await trabajoDelMedioDeWee(getFirestore(), uid, requestId).catch(() => undefined);
+  return job ? desenlaceDeUnTrabajo(job, Date.now()) : {};
+};
+
 /** Lo que la cotización cuenta de las tomas que ya existen y del plano del Core. */
 const estadoDeLaToma = async (t: TomaPreparada) => {
   const ultima = t.tomas[t.tomas.length - 1];
   return {
-    current: ultima ? { take: ultima.toma, requestId: ultima.requestId, status: ultima.estado } : null,
+    current: ultima ? { take: ultima.toma, requestId: ultima.requestId, status: ultima.estado, ...(await desenlaceDeLaToma(t.uid, ultima.requestId)) } : null,
     next: t.toma !== null && t.requestId !== null ? { take: t.toma, requestId: t.requestId } : null,
     node: await nodoDeLaUnidad(getFirestore(), t.accountId, { productionId: t.productionId, unitId: t.unitId }),
   };
@@ -278,9 +391,10 @@ const operacionYaReservada = async (uid: string, requestId: string): Promise<boo
   return snap.exists && snap.data()?.userId === uid;
 };
 
-const ownUrls = (values: unknown, uid: string): string[] | undefined => {
+const ownUrls = (values: unknown, uid: string, activosAutorizados: readonly string[] = []): string[] | undefined => {
   if (!Array.isArray(values) || !values.length) return undefined;
-  return values.slice(0, 30).map((value) => assertInputImageUrl(value, uid));
+  /* Un activo autorizado pasa tal cual (lo resuelve ModelArk); cualquier otra cosa tiene que ser de la cuenta en el Storage de Weë. */
+  return values.slice(0, 30).map((value) => (typeof value === 'string' && activosAutorizados.includes(value) ? value : assertInputImageUrl(value, uid)));
 };
 
 /**
@@ -334,12 +448,108 @@ export const sinReservaHuerfana = async <T>(uid: string, requestId: string, pedi
   }
 };
 
-export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, async (request) => {
+/** Los proveedores que `priceVideoRequest` sabe cotizar con su tarifa oficial (más el demo, que cobra como ellos). */
+const TARIFA_PROPIA_DE_VIDEO: readonly string[] = ['seedance', 'mock'];
+
+/**
+ * LA PUERTA DEL VÍDEO, POR DENTRO. Es una función con nombre para que el lote le pida cada unidad a ELLA MISMA —la misma
+ * sesión, los mismos datos que mandaría la app— sin volver a pasar por la red ni por otra Function. Sin ella, el lote
+ * tendría que copiar lo que aquí se decide (porte de filmmaker/core, 2026-11-18).
+ */
+/**
+ * Opciones que SOLO puede poner el propio servidor (nunca viajan en `data`, así que la app no puede pedirlas):
+ *   · consumoReal → liquidar lo que el proveedor dice que costó (`usage.completion_tokens` → `costUSD`) y no el techo
+ *     cotizado. Lo pide WITE (decisión del dueño, 2026-11-26). Sin ella, todo sigue exactamente como antes.
+ */
+/**
+ * LA MARCA de las opciones internas: un `Symbol` del módulo, que nada fuera de este archivo puede fabricar. `onCall` llama a
+ * `atenderVideo` con SU segundo argumento (el objeto de respuesta de la callable): sin esta marca, ese objeto —o cualquier
+ * otra cosa— nunca cuenta como opciones. Así la exportación sigue siendo `onCall({...}, atenderVideo)`.
+ */
+const MARCA_INTERNA: unique symbol = Symbol('opcionesInternasDeVideo');
+interface OpcionesInternasDeVideo {
+  readonly [MARCA_INTERNA]: true;
+  consumoReal?: boolean;
+  /**
+   * Activos de persona real AUTORIZADOS en BytePlus (`asset://<id>`) que esta llamada puede mandar como referencia.
+   * Solo los pone WITE, leyéndolos de la configuración del servidor para la cuenta y el vídeo concretos; la app no
+   * puede (nunca viajan en `data`). Sin esto, toda referencia tiene que ser un archivo de la cuenta en el Storage de Weë.
+   */
+  activosDePersonaReal?: readonly string[];
+}
+
+/** Lo que se cobra al cerrar: lo reservado, o el consumo real si se pidió y es menor. Nunca más de lo reservado. */
+export const cobroAlCerrar = (reservado: number, consumoReal: boolean, costeUsd: unknown, service: Parameters<typeof creditosDeUnCoste>[0], settings: Parameters<typeof creditosDeUnCoste>[2]): number => {
+  if (!consumoReal || typeof costeUsd !== 'number' || !Number.isFinite(costeUsd) || costeUsd < 0) return reservado;
+  return Math.min(reservado, creditosDeUnCoste(service, costeUsd, settings));
+};
+
+/** Las opciones solo si llevan la marca; si no (p. ej. el objeto de respuesta que pasa `onCall`), ninguna. */
+const opcionesInternas = (x: unknown): Partial<OpcionesInternasDeVideo> =>
+  x && typeof x === 'object' && (x as Record<symbol, unknown>)[MARCA_INTERNA] === true ? (x as OpcionesInternasDeVideo) : {};
+
+const atenderVideo = async (request: CallableRequest<unknown>, crudas?: unknown): Promise<unknown> => {
+  const opciones = opcionesInternas(crudas);
   const deadlineAt = Date.now() + PLAZO_DE_VIDEO_MS - RESERVA_PARA_LIQUIDAR_MS;
   try {
     if (!request.auth) throw new EngineError('UNAUTHORIZED');
+    /* Cuenta Weë válida (identity/sesion.ts): autenticada y enrolada (registro 18+ con país). Única condición; sin edad aquí. */
+    await exigirCuentaWeeValida(request.auth);
     const uid = request.auth.uid;
     const data = (request.data || {}) as GenerateVideoInput;
+    /* Ola 3b: leer las capacidades de los modelos. No genera, no reserva, no cobra: contesta datos del código. */
+    if (data.capacidades === true) return capacidadesParaLaApp();
+    /*
+     * ── VARIOS PLANOS: EL LOTE PASA POR ESTA MISMA PUERTA ───────────────────
+     *
+     * Cada unidad vuelve a entrar aquí como una toma, con el requisito que calcula el servidor: su cotización, su cupo y
+     * su reserva son los de siempre. El lote no cobra, no pone precio y no decide nada de lo que ya decide esta puerta
+     * (`creator/lotes.ts`). Sigue siendo `video.generate` por la puerta de siempre: no abre ninguna capacidad nueva.
+     */
+    if (data.produccion !== undefined) {
+      const porUnidad = (datos: Record<string, unknown>): Promise<unknown> => atenderVideo({ ...request, data: datos });
+      const lote = { db: getFirestore(), at: Date.now(), vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS, porUnidad };
+      return data.cotizar === true
+        ? await presupuestarLote(uid, data.produccion, lote)
+        : await generarLote(uid, data.produccion, data.creditosCotizados, lote);
+    }
+    /*
+     * ── WITE · TRANSFORM YOUR IDENTITY (Weëls, 2026-11-26) ──────────────────
+     *
+     * Por ESTA puerta, como el lote: la edición de vídeo vuelve a entrar aquí con la misma sesión, y el interruptor, la
+     * ruta, la tarifa oficial, el cupo, la reserva y el reembolso son los de siempre. WITE no abre ninguna Function, no
+     * monta ninguna clave más y no pasa por el Core (regla 10): solo añade su puerta (`aiSettings/identityTransform`,
+     * cerrada por defecto), el personaje, el consentimiento, el trabajo y el linaje (`functions/src/wite`).
+     */
+    if (data.transformarIdentidad !== undefined) {
+      const porVideo = (datos: Record<string, unknown>, extra: { activosDePersonaReal?: readonly string[] } = {}): Promise<unknown> =>
+        atenderVideo({ ...request, data: datos }, { [MARCA_INTERNA]: true, consumoReal: true, ...extra });
+      return await atenderTransformacion(uid, data.transformarIdentidad, { porVideo, plazoMs: PLAZO_DE_VIDEO_MS });
+    }
+    /*
+     * ── CANCELAR UNA TOMA ───────────────────────────────────────────────────
+     *
+     * Por esta misma puerta porque es la de la toma y la que tiene la clave del proveedor, la única forma de parar algo
+     * que ModelArk ya aceptó —y eso solo con su puerta abierta (`aiSettings/cancelacion`, cerrada por defecto)—. Nada de
+     * aquí genera, reserva ni cobra: se para lo que todavía se puede y el dinero se mueve por el puerto de siempre.
+     */
+    if (data.cancelar === true) {
+      const identidad = leerIdentidadDeToma(data.plano);
+      if (!identidad) throw new EngineError('INVALID_REQUEST', 'Faltan datos de la toma o no tienen forma válida.');
+      const cuenta = await cuentaDelPrincipalEnWee(getFirestore(), uid);
+      if (!cuenta) throw new EngineError('UNAUTHORIZED');
+      const r = await cancelarToma(getFirestore(), { accountId: cuenta.accountId }, identidad, {
+        at: Date.now(),
+        vidaDeLaLlamadaMs: PLAZO_DE_VIDEO_MS,
+        parar: (operacion) => pararTareaDeSeedance(operacion),
+        reconciliar: (job) => reconciliarUno({
+          ...atencionDeWee({ db: getFirestore() }), trabajos: almacenDeTrabajos(getFirestore()), resolutores: { seedance: resolutorDeSeedance }, plazos: PLAZOS_DE_VIDEO,
+        }, job),
+      });
+      return r.ok
+        ? { status: 'CANCELLED', state: r.estado, ...(r.reembolso ? { refund: r.reembolso } : {}) }
+        : { status: 'NOT_CANCELLED', reason: r.motivo };
+    }
     /*
      * ── F1-D · UNA TOMA DE UN PLANO ─────────────────────────────────────────
      *
@@ -359,7 +569,11 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
     const requestId = deToma?.requestId ? deToma.requestId : assertRequestId(data.requestId);
     const inputImage = deToma ? undefined : data.inputImage || data.inputImageUrl;
     const references = !deToma && data.references
-      ? { images: ownUrls(data.references.images, uid), videos: ownUrls(data.references.videos, uid), audios: ownUrls(data.references.audios, uid) }
+      ? {
+        images: ownUrls(data.references.images, uid, opciones.activosDePersonaReal),
+        videos: ownUrls(data.references.videos, uid, opciones.activosDePersonaReal),
+        audios: ownUrls(data.references.audios, uid),
+      }
       : undefined;
     const videoRequest: VideoRequest = deToma?.peticion ? deToma.peticion : {
       prompt,
@@ -376,6 +590,16 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
     };
 
     const { settings } = await loadConfig();
+
+    /*
+     * EL INTERRUPTOR DEL VÍDEO (X2), antes de todo lo demás: antes del cupo, de
+     * la reserva y del proveedor, y por los dos caminos (el de siempre y el Core).
+     * Una cotización de Filmmaker contesta «no» con su motivo; lo demás, «no disponible».
+     */
+    if (videoApagado(settings) && hayVideoReal()) {
+      if (cotizar && deToma) return { status: 'QUOTED', allowed: false, reason: 'video_disabled', takes: await estadoDeLaToma(deToma) };
+      asegurarVideoPermitido(settings);
+    }
 
     /*
      * ── LA PUERTA ────────────────────────────────────────────────────────────
@@ -408,6 +632,24 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
     }
 
     /*
+     * ── LA RUTA ANTES DEL DINERO (simplificación de jurisdicción, 2026-10-07) ──
+     *
+     * Se le pregunta al Router de siempre —con la MISMA petición normalizada que
+     * llegará al proveedor y la jurisdicción que él lee de la cuenta— si hay
+     * alguna ruta elegible. Sin ninguna, no se toca el cupo, no se reserva y no
+     * se cobra: antes salía −35 +35 y un vídeo del cupo gastado por algo que se
+     * sabía de antemano. El mensaje es el genérico: sin proveedor ni región.
+     */
+    const ruta = await rutaPrevia.decidir({ userId: uid, capability: normalizado.capability, input: normalizado.input, prefs: normalizado.prefs });
+    if (!ruta.candidates.length) {
+      if (deToma) {
+        if (!cotizar) throw noSeGenera(deToma, 'route_unavailable');
+        return { status: 'QUOTED', allowed: false, reason: 'route_unavailable', takes: await estadoDeLaToma(deToma) };
+      }
+      exigirRuta(ruta);
+    }
+
+    /*
      * Precio calculado con la tarifa oficial de ByteDance para el modelo que
      * elegirá el Weë Video Engine; el Credit Engine sigue siendo quien cobra.
      * Las sobreescrituras de `creditCosts` se cargan ANTES: si no, una instancia
@@ -415,19 +657,17 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
      * Firestore, y la misma petición cambiaba de importe —y de identidad—.
      */
     await loadCostOverrides();
-    /* R22 · con vídeos de referencia, su entrada se cotiza con el techo del modelo, no con lo que declare quien llama. */
-    const modeloDelPrecio = chooseSeedanceModel(videoRequest, settings);
-    const price = priceVideo(
-      {
-        modelId: modeloDelPrecio,
-        durationSec: videoRequest.durationSec,
-        aspectRatio: videoRequest.aspectRatio,
-        resolution: videoRequest.resolution,
-        quality: videoRequest.quality,
-        inputVideoSec: videoRequest.references?.videos?.length ? techoDeVideoDeEntrada(modeloDelPrecio) : undefined,
-      },
-      settings,
-    );
+    /*
+     * PETICIÓN → NORMALIZAR → PRECIO → RESERVA → PROVEEDOR (corrección P0 del
+     * 2026-10-07). El precio sale de `normalizado`, el MISMO objeto que llega al
+     * proveedor por los dos caminos —el del Core y el de siempre—, y pasa por la
+     * misma petición efectiva que construye el cuerpo (`peticionEfectivaDeSeedance`):
+     * resolución, proporción —`adaptive` en imagen a vídeo—, duración y, con vídeos
+     * de referencia, el techo de entrada del modelo (R22). Antes se cotizaba con la
+     * petición cruda y se enviaba otra cosa.
+     */
+    /* Con la ruta FINAL: la tarifa de Seedance si atiende Seedance (o el demo); si no, la de la ruta elegida. */
+    const price = precioPorRuta(priceVideoRequest(normalizado, settings), ruta, TARIFA_PROPIA_DE_VIDEO);
 
     if (deToma?.evaluacion) {
       /*
@@ -435,11 +675,8 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
        * rebajar nada. Si no llega, se dice hasta dónde llega ESA calidad con su
        * modelo —un precio que no se cobra, solo se lee— para que la persona elija.
        */
-      const modeloDeLaCalidad = chooseSeedanceModel({ ...videoRequest, resolution: undefined }, settings);
-      const deLaCalidad = modeloDeLaCalidad === price.model ? price : priceVideo(
-        { modelId: modeloDeLaCalidad, durationSec: videoRequest.durationSec, aspectRatio: videoRequest.aspectRatio, resolution: videoRequest.resolution, quality: videoRequest.quality },
-        settings,
-      );
+      const modeloDeLaCalidad = normalizeVideoRequest({ ...videoRequest, resolution: undefined }, settings).modelId;
+      const deLaCalidad = modeloDeLaCalidad === price.model ? price : priceVideoRequest({ ...normalizado, modelId: modeloDeLaCalidad }, settings);
       const degradada = calidadRepresentable(
         deToma.evaluacion,
         { modelo: modeloDeLaCalidad, resolucion: String(deLaCalidad.detail.resolution) },
@@ -677,8 +914,17 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
       };
     }
 
+    /* Con `normalizado`: lo que se cotizó es lo que el motor envía, sin volver a decidirlo (corrección P0 Seedance). */
     try {
-      const result = await videoEngine.generate(videoRequest, { userId: uid, experienceId: 'studio', goal: prompt, requestId, service, creditTransactionId: usageTransactionId(requestId), deadlineAt });
+      const result = await videoEngine.generate(videoRequest, { userId: uid, experienceId: 'studio', goal: prompt, requestId, service, normalizado, creditTransactionId: usageTransactionId(requestId), deadlineAt });
+      if (result.demo) {
+        /* Un vídeo de muestra no se cobra (B4-03): se entrega y la reserva se devuelve entera (con un concepto que ya está en el catálogo de movimientos). */
+        await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Reembolso por generación fallida', source: 'weë-studio' });
+        await firestoreLedger
+          .settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: 0 })
+          .catch((error) => console.error('Weë Studio: no se pudo liquidar el libro', requestId, error));
+        return { generationId: result.generationId, assetId: null, url: result.output.url, durationSec: result.output.durationSec ?? null, credits: 0, demo: true, status: 'COMPLETED', duplicate: false };
+      }
       await getFirestore().collection('aiGenerations').doc(result.generationId).set({ videoUrl: result.output.url }, { merge: true });
       /*
        * EL VÍDEO PASA A SER MATERIAL DE LA CUENTA. Antes, un vídeo de Weë Studio
@@ -706,15 +952,17 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
           });
           assetId = material?.assetId ?? null;
         } catch (error) {
-          console.error('Content: no se pudo crear el material del vídeo', requestId, error);
+          console.error('Content: no se pudo crear el material del vídeo', requestId, sanitizeForLog(error, 300));
         }
       }
-      await creditEngine.completeCredits({ userId: uid, requestId, meta: { generationId: result.generationId, videoUrl: result.output.url } });
+      /* Con consumoReal (solo WITE), se cobra lo que costó de verdad si es menos que lo reservado: el Credit Engine devuelve la diferencia. */
+      const cobrado = cobroAlCerrar(spend.amount, opciones.consumoReal === true, result.costUSD, service, settings);
+      await creditEngine.completeCredits({ userId: uid, requestId, ...(cobrado !== spend.amount ? { finalAmount: cobrado } : {}), meta: { generationId: result.generationId, videoUrl: result.output.url } });
       // El desenlace ya se conoce: se liquida el libro con lo capturado.
       await firestoreLedger
-        .settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: spend.amount })
+        .settle({ creditTransactionId: usageTransactionId(requestId), finalAmount: cobrado })
         .catch((error) => console.error('Weë Studio: no se pudo liquidar el libro', requestId, error));
-      return { generationId: result.generationId, assetId, url: result.output.url, durationSec: result.output.durationSec ?? null, credits: spend.duplicate ? 0 : spend.amount, demo: result.demo, status: 'COMPLETED', duplicate: false };
+      return { generationId: result.generationId, assetId, url: result.output.url, durationSec: result.output.durationSec ?? null, credits: spend.duplicate ? 0 : cobrado, ...(cobrado !== spend.amount ? { reserved: spend.amount } : {}), demo: result.demo, status: 'COMPLETED', duplicate: false };
     } catch (error) {
       // FAILED → reembolso exacto e idempotente
       await creditEngine.refundCredits({ userId: uid, requestId, reason: 'Weë Studio · el video no se pudo generar', source: 'weë-studio' }).catch((refundError) => {
@@ -729,4 +977,6 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
   } catch (error) {
     throw toEngineHttpsError(error);
   }
-});
+};
+
+export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLAZO_DE_VIDEO_MS / 1000, memory: '1GiB', secrets: AI_SECRETS }, atenderVideo);

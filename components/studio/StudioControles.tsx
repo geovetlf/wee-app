@@ -7,6 +7,8 @@ import { FAMILIAS_DE_CAMARA, ComandoDeCamara } from '../../constants/camaraCinem
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import TextoEnMayusculas from '../TextoEnMayusculas';
+import { RellenoDeMarca } from '../GradienteDeMarca';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -34,7 +36,7 @@ interface Props {
  *
  * Porque juntos son más de cincuenta opciones. Puestas de golpe no son potencia:
  * son un panel técnico, y un panel técnico obliga a aprender la herramienta
- * antes de poder usarla. Weë Studio hace lo contrario —la herramienta aprende a
+ * antes de poder usarla. WeëStudio hace lo contrario —la herramienta aprende a
  * ayudar—, así que cada control espera a que haya una razón para verlo.
  *
  * ── Los alias se ven, y para eso están ──────────────────────────────────────
@@ -53,6 +55,7 @@ interface Props {
  */
 const StudioControles: React.FC<Props> = ({ familias, elegido, onElegir, conAlias = true }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
 
   const abiertas = FAMILIAS_DE_CAMARA.filter((f) => familias.includes(f.id));
@@ -66,8 +69,7 @@ const StudioControles: React.FC<Props> = ({ familias, elegido, onElegir, conAlia
         style={[
           styles.pildora,
           {
-            backgroundColor: puesta ? theme.colors.accent : theme.colors.surface,
-            borderColor: puesta ? theme.colors.accentDark : theme.colors.border,
+            backgroundColor: puesta ? theme.colors.accent : c.superficieAlta,
           },
           isWeb && ({ cursor: 'pointer' } as any),
         ]}
@@ -77,6 +79,7 @@ const StudioControles: React.FC<Props> = ({ familias, elegido, onElegir, conAlia
         accessibilityLabel={t(comando.clave)}
         accessibilityState={{ selected: puesta }}
       >
+        <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!puesta} />
         <Ionicons
           name={comando.icono as any}
           size={scale(15)}
@@ -133,7 +136,6 @@ const styles = StyleSheet.create({
     /* 44: lo que mide un dedo. Sin `scale()`, que un dedo no encoge. */
     minHeight: 44,
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: StyleSheet.hairlineWidth,
   },
   nombre: { fontSize: FONT_SIZE.sm, fontWeight: FONT_WEIGHT.medium },
   alias: { fontSize: scale(10), marginTop: scale(1) },

@@ -484,7 +484,7 @@ check('81) ningún update de un post puede tocar poll', /allow update: if isAuth
  */
 const lineaUpdate = (bloquePosts.match(/allow update:[^;]*;/) || [''])[0];
 check('82) y también se lo prohíbe al autor', lineaUpdate.indexOf('!touchesPoll()') < lineaUpdate.indexOf('ownsPost()'));
-check('83) los contadores de acuerdos siguen permitidos', /hasOnly\(\['views', 'agreementCount', 'disagreementCount', 'likes', 'comments', 'shares', 'reposts', 'updatedAt'\]\)/.test(lineaUpdate));
+check('83) los contadores de acuerdos siguen permitidos', /hasOnly\(\['views', 'agreementCount', 'disagreementCount', 'fireCount', 'laughCount', 'likes', 'comments', 'shares', 'reposts', 'updatedAt'\]\)/.test(lineaUpdate));
 check('84) poll NO está en esa lista de contadores', !/hasOnly\([^)]*'poll'/.test(lineaUpdate));
 
 check('85) existe la subcolección de votos', /match \/pollVotes\/\{voterUid\}/.test(bloquePosts));
@@ -506,21 +506,24 @@ check('88) ser biz_ ya no da permiso genérico sobre posts ajenos', !/^\s*(resou
  * escribir como cualquier `biz_*`—. Esa identidad se eliminó: un negocio es una
  * Página de la cuenta, no una cara de la persona. Así que ahora no se comprueba
  * que la regla sea correcta: se comprueba que la regla NO ESTÉ.
- *
- * Weë Business, el producto, sigue en pie. Lo que desapareció es la identidad.
  */
 check('89) no queda ni una cláusula que trate un `biz_*` como identidad', !/matches\('biz_\.\*'\)/.test(reglas));
 check('90) ni la función que comprobaba el dueño del negocio', !/ownsBizProfile|businessIdOf/.test(reglas));
 check('91) update y delete usan la misma autoría', /allow delete: if isAuthenticated\(\) && ownsPost\(\);/.test(bloquePosts) && /ownsPost\(\)/.test(lineaUpdate));
-check('92) y ownsPost cubre las DOS caras de una cuenta, no tres', (() => {
+/* F3 de alter egos (2026-11-23): las caras de la cuenta —Real, heredada y alter egos— salen de `esMia`, sin biz. */
+check('92) y ownsPost cubre las caras de una cuenta (esMia), sin biz', (() => {
   const f = (reglas.match(/function ownsPost\(\)[\s\S]{0,300}?\n    \}/) || [''])[0];
-  return /request\.auth\.uid/.test(f) && /hidi_/.test(f) && !/biz/i.test(f);
+  const esMia = (reglas.match(/function esMia\(id\)[\s\S]{0,300}?\n    \}/) || [''])[0];
+  return /esMia\(resource\.data\.userId\)/.test(f) && /request\.auth\.uid/.test(esMia)
+    && /identidadWeeHeredadaDe/.test(esMia) && !/biz/i.test(f + esMia);
 })());
 
 const lineaCreate = (bloquePosts.match(/allow create:[^;]*;/) || [''])[0];
 check('92b) publicar como un negocio ya no es posible: esa identidad no existe', !/biz/i.test(lineaCreate));
-check('92d) una cuenta personal publica igual que siempre', /request\.resource\.data\.userId == request\.auth\.uid/.test(lineaCreate));
-check('92e) y el perfil Weë también', /request\.resource\.data\.userId == \("hidi_" \+ request\.auth\.uid\)/.test(lineaCreate));
+/* F3 (2026-11-23): la cuenta, su Perfil Weë heredado y sus alter egos publican por `esMia` (ver 92). */
+check('92d) una cuenta personal publica igual que siempre', /esMia\(request\.resource\.data\.userId\)/.test(lineaCreate));
+check('92e) y el perfil Weë también', /esMia\(request\.resource\.data\.userId\)/.test(lineaCreate)
+  && /function esMia\(id\) \{\s*\n\s*return id == request\.auth\.uid \|\| id == identidadWeeHeredadaDe\(request\.auth\.uid\)/.test(reglas));
 check('92f) `users` ya no admite crear un perfil de tipo biz', !/profileType == 'biz'/.test(reglas));
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -773,16 +776,17 @@ check('171e) y conserva "question", que es otra cosa', /export type ComposerKind
  * compilador dijera nada.
  */
 check('171f) nadie repite la lista de kinds a mano', ![home, homeWeb].some((f) => /'post' \| 'image' \| 'video' \| 'question'/.test(f)));
-check('171g) los dos la importan de su única fuente', [home, homeWeb].every((f) => /import ComposerEntry, \{ ComposerKind \} from/.test(f)));
-check('171h) y tipan su handler con ella', [home, homeWeb].every((f) => /\(kind: ComposerKind\) =>/.test(f)));
+/* Rediseño del 2026-11-15: el Home ya no monta la puerta de publicar. Se publica desde el + (hoja Crear); las encuestas siguen en el compositor. */
+check('171g) ninguna pantalla del Home importa ya la puerta de publicar; su tipo sigue saliendo de su única fuente', [home, homeWeb].every((f) => !/ComposerEntry|ComposerKind/.test(f)) && /export type ComposerKind/.test(entrada));
+check('171h) y la hoja Crear tipa su handler con su propio tipo de kinds', /const crear = \(kind: CreateKind\) =>/.test(read('navigation/NavegacionGlobal.tsx')));
 check('171i) así el kind de la píldora llega entero al compositor', /kind: 'poll'/.test(entrada) && /const abreEncuesta = presetKind === 'poll';/.test(crear));
 
-check('172) el Wäll usa esa misma entrada', /<ComposerEntry/.test(home) && /onCompose=\{handleCompose\}/.test(home));
-check('173) y lo único que hace es llevar el kind al compositor', /navigate\('Create', \{ kind|irAlCompositor\(\{ kind \}\)/.test(home));
-check('174) el Home nativo, igual', /<ComposerEntry/.test(home) && /navigate\('Create', \{ kind \}\)/.test(home));
+check('172) desde el Wäll se publica por la hoja Crear del +, la de siempre', /<CreateSheet/.test(read('navigation/NavegacionGlobal.tsx')) && /onSelect=\{crear\}/.test(read('navigation/NavegacionGlobal.tsx')));
+check('173) y lo único que hace es llevar el kind al compositor', /irARaiz\('Create', \{ kind \}\)/.test(read('navigation/NavegacionGlobal.tsx')));
+check('174) el Home nativo no trae otra puerta de publicar', !/<ComposerEntry/.test(home) && !/navigate\('Create', \{ kind \}\)/.test(home));
 // En la web el compositor se pide al navegador de arriba —hay otra ruta `Create`
 // en la barra de pestañas que no tiene pantalla—, pero el kind viaja igual.
-check('175) y el Home web, igual', /<ComposerEntry/.test(homeWeb) && /irAlCompositor\(\{ kind \}\)/.test(homeWeb));
+check('175) y el Home web, tampoco', !/<ComposerEntry/.test(homeWeb) && !/irAlCompositor\(\{ kind \}\)/.test(homeWeb));
 // Nombrar la encuesta en un comentario está bien; implementarla, no.
 check('176) ninguno tiene lógica propia de encuestas', ![home, homeWeb].some((f) => /PostPoll|construirPoll|validarEncuesta|encuestaVacia|setPoll|poll\./.test(f)));
 

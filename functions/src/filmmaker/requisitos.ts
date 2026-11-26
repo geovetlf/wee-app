@@ -11,7 +11,7 @@ import {
   AudioCueKind, CharacterState, ColorDirection, ContinuityRule, DialogueKind, DialogueLine, FilmmakerProduction,
   IntentConstraintKind, NarrativePurpose, Pacing, ProductionCharacter, ProductionLocation, ProductionObject,
   ProductionQuality, ProductionReference, RESOLUCIONES, ResolutionTarget,
-  ShotSubject, TimeOfDay, Unidad, VoiceReference, Weather, aMs, aSec, compararTexto,
+  ShotRevision, ShotSubject, TimeOfDay, Unidad, VoiceReference, Weather, aMs, aSec, compararTexto,
   continuidadEfectiva, creativoEfectivo, derivarId, duracionDeLineaMs, duracionDeUnidadMs, estadoEfectivo,
   idiomaDeLinea, idsDeLaProduccion, repartoDelPlano, unidades, vozDeLinea,
 } from './modelo';
@@ -115,6 +115,13 @@ export interface ShotRequirementInput {
   readonly references: readonly ReferenceInput[];
   readonly firstFrameReferenceId?: string;
   readonly lastFrameReferenceId?: string;
+  /**
+   * OLA 3b · Los audios de referencia PROPIOS del plano, en su orden. Aparte de `references` (que sigue siendo
+   * imagen y vídeo) para que un plano sin audios salga EXACTAMENTE igual que antes. Solo si hay alguno.
+   */
+  readonly audioReferences?: readonly ReferenceInput[];
+  /** OLA 3b · La revisión pedida de la toma del plano (editar o extender). Solo si el plano la lleva. */
+  readonly revision?: ShotRevision;
   /** El texto de la persona en modo avanzado. Solo aquí: nunca en un `ShotNode`. */
   readonly advancedPrompt?: string;
 }
@@ -438,8 +445,11 @@ export const requisitosDeProduccion = (prod: FilmmakerProduction): RequirementsR
      * imágenes o vídeos de referencia, generar a partir de ellas; si no, desde
      * la descripción. Es el QUÉ; el CON QUÉ lo decide el Router.
      */
+    /* Ola 3b: los audios propios del plano, aparte de `todas` (que sigue siendo imagen y vídeo). */
+    const audiosDelPlano = propias.filter((id) => referencias.get(id)?.kind === 'audio');
+    /* Ola 3b: un plano con revisión pedida es una referencia a vídeo (su toma de partida entra como vídeo). */
     const capability: CoreCapabilityId = primer !== undefined ? 'video.image_to_video'
-      : todas.length ? 'video.reference' : 'video.generate';
+      : (todas.length || shot?.revision !== undefined) ? 'video.reference' : 'video.generate';
     const creativo = creativoEfectivo(prod, scene, shot);
     const continuidad = continuidadEfectiva(prod, scene, shot);
     const anterior = continuidad?.preserve.includes('temporal.previousShot') && i > 0 && lista[i - 1].scene.id === scene.id
@@ -486,6 +496,8 @@ export const requisitosDeProduccion = (prod: FilmmakerProduction): RequirementsR
       references: todas.map((id) => ({ referenceId: id, definition: referencias.get(id) as ProductionReference })),
       ...(primer !== undefined ? { firstFrameReferenceId: primer } : {}),
       ...(ultimo !== undefined ? { lastFrameReferenceId: ultimo } : {}),
+      ...(audiosDelPlano.length ? { audioReferences: audiosDelPlano.map((id) => ({ referenceId: id, definition: referencias.get(id) as ProductionReference })) } : {}),
+      ...(shot?.revision !== undefined ? { revision: shot.revision } : {}),
       ...(shot?.advanced !== undefined ? { advancedPrompt: shot.advanced.prompt } : {}),
     };
     const tramo = tramoDe.get(u.unitId) as TimelineSegment;

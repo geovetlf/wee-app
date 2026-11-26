@@ -276,7 +276,8 @@ console.log('\n── H · Las reglas nuevas están escritas ──');
   check('57) ningún cliente escribe números ni entidades del Identity Core en su perfil',
     /function identityCoreFields\(\) \{\s*return \['accountId', 'accountNumber', 'walletNumber', 'entityId', 'entityType', 'entitySequence', 'ownerAccountId'\];/.test(reglas)
     && /!createsIdentityCoreFields\(\)/.test(reglas) && /!touchesIdentityCoreFields\(\)/.test(reglas));
-  check('58) una comunidad de usuario la crea la sesión que dice crearla', /request\.resource\.data\.createdBy == request\.auth\.uid &&\s*request\.resource\.data\.moderators == \[request\.auth\.uid\]/.test(reglas));
+  /* Re-anclado 2026-11-05 (docs/COMUNIDADES-IDENTIDAD.md, decisiones 1–3 del dueño): unirse, salir y crear van por las callables con la cara ACTIVA: ningún cliente crea una comunidad de usuario (solo administración, las oficiales). */
+  check('58) una comunidad de usuario no la crea el cliente: la crea createCommunity con la cara de la sesión', /allow create: if isAuthenticated\(\) && comunidadOficialDeAdministracion\(\);/.test(reglas) && !/comunidadDeUsuario/.test(reglas));
   check('59) la autoría de publicaciones y comentarios no se edita',
     /\.hasAny\(\['userId', 'isRepost', 'originalPostId', 'createdAt'\]\)/.test(reglas) && /\.hasAny\(\['userId', 'postId', 'parentCommentId', 'createdAt'\]\)/.test(reglas));
   check('60) un voto vive en `{cuenta}_{publicación}` y solo cambia su tipo', /voteId == request\.auth\.uid \+ '_' \+ request\.resource\.data\.postId/.test(reglas) && /hasOnly\(\['type', 'createdAt'\]\)/.test(reglas));

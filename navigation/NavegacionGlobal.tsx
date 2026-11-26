@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { navegarEnLaRaiz, refNavegacion } from './refNavegacion';
+import { abrirPortadaDeWeeAi, navegarEnLaRaiz, refNavegacion } from './refNavegacion';
 import BarraInferior, { ALTO_BARRA, DestinoId } from '../components/BarraInferior';
 import CreateSheet, { CreateKind } from '../components/CreateSheet';
+import HojaDeAlterEgos from '../components/HojaDeAlterEgos';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme, TemaOscuro } from '../contexts/ThemeContext';
+import { useUserProfile } from '../contexts/UserProfileContext';
 import { useScroll } from '../contexts/ScrollContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useSinLeer } from '../hooks/useConversaciones';
@@ -33,15 +36,51 @@ const SIN_BARRA = new Set([
   'Reels',
   'Settings',
   'WeeProfileCreation',
+  'CharacterSheet',
   'AiAvatar',
+  'EliminarCuenta',
+  'RetirarAlterEgo',
+  'EspacioProfesional',
 ]);
 
 /* Y una pantalla anidada: una conversación abierta ocupa todo (ya era así antes). */
 const ANIDADAS_SIN_BARRA = new Set(['Conversation']);
 
-/** Qué destino corresponde a cada ruta suelta de la pila. */
+/**
+ * Qué destino corresponde a cada ruta suelta de la pila.
+ *
+ * Todo lo que es Weë AI enciende WeëAI: el centro creativo, cada experiencia,
+ * el flujo guiado, los proyectos, las creaciones y el historial de trabajos.
+ * Lo demás —una publicación, una comunidad, la búsqueda— se alcanza desde el
+ * Home y enciende Inicio, como siempre.
+ */
 const DESTINO_DE_RUTA: Record<string, DestinoId> = {
-  Search: 'Search',
+  WeeCreator: 'WeeAI',
+  CrearVideo: 'WeeAI',
+  CrearPublicacion: 'WeeAI',
+  Plantillas: 'WeeAI',
+  Herramientas: 'WeeAI',
+  Filmmaker: 'WeeAI',
+  FilmmakerTandas: 'WeeAI',
+  Specialist: 'WeeAI',
+  CreatorFlow: 'WeeAI',
+  Studio: 'WeeAI',
+  Design: 'WeeAI',
+  Travel: 'WeeAI',
+  Production: 'WeeAI',
+  Mundo3D: 'WeeAI',
+  WriterEditor: 'WeeAI',
+  Projects: 'WeeAI',
+  Project: 'WeeAI',
+  MisCreaciones: 'WeeAI',
+  Historial: 'WeeAI',
+};
+
+/** Las pestañas que la barra dibuja. `Search` y `Create` siguen siendo pestañas, pero ya no tienen destino propio. */
+const DESTINO_DE_PESTANA: Record<string, DestinoId> = {
+  Home: 'Home',
+  Inbox: 'Inbox',
+  Profile: 'Profile',
 };
 
 /** El nombre de la ruta más profunda, sea cual sea la anidación. */
@@ -52,13 +91,13 @@ const rutaHonda = (estado: any): string | null => {
   return ruta.state ? rutaHonda(ruta.state) || ruta.name : ruta.name;
 };
 
-/** El nombre de la pestaña puesta, si es que estamos dentro de las pestañas. */
+/** El destino de la pestaña puesta, si es que estamos dentro de las pestañas. Sin estado todavía, Inicio. */
 const pestanaPuesta = (estado: any): DestinoId | null => {
   const principal = estado?.routes?.[estado.index];
   if (!principal || principal.name !== 'Main') return null;
   const pestanas = principal.state;
   const nombre = pestanas?.routes?.[pestanas.index]?.name;
-  return (nombre as DestinoId) || 'Home';
+  return nombre ? DESTINO_DE_PESTANA[nombre] ?? 'Home' : 'Home';
 };
 
 /**
@@ -120,7 +159,7 @@ const DURACION_MOSTRAR = 110;
  * Lo segundo importa para el sitio: las pantallas de las pestañas ya dejaban
  * hueco abajo desde siempre —la barra vivía dentro de ellas—, mientras que las
  * demás nunca tuvieron ninguna y hay que reservárselo. Sin esta distinción, o el
- * Home queda con un hueco muerto o Weë Travel acaba con el último vídeo tapado.
+ * Home queda con un hueco muerto o WeëTravel acaba con el último vídeo tapado.
  */
 export const useBarraInferior = () => {
   const estado = useEstadoNavegacion();
@@ -136,9 +175,13 @@ export const useBarraInferior = () => {
 
 const NavegacionGlobal: React.FC = () => {
   const { user } = useAuth();
+  const { setThemeMode } = useTheme();
+  const { switchIdentity, hasWeeProfile, activeProfileType } = useUserProfile();
   const { triggerScrollToTop, isScrollingDown } = useScroll();
   const insets = useSafeAreaInsets();
   const [hoja, setHoja] = useState(false);
+  /* La hoja «Cambiar de cara»: la abre la pulsación larga en la pestaña de la cara (con varios alter egos). */
+  const [hojaDeCaras, setHojaDeCaras] = useState(false);
   const { estado, visible } = useBarraInferior();
 
   const rutaRaiz = estado?.routes?.[estado.index]?.name;
@@ -182,7 +225,7 @@ const NavegacionGlobal: React.FC = () => {
   }, [rutaRaiz]);
 
   /*
-   * Los no leídos de WeeTalk salen de la MISMA suscripción que la bandeja
+   * Los no leídos de Mensajes (WeeTalk) salen de la MISMA suscripción que la bandeja
    * (Fase 11.x-6). Antes había dos oyentes sobre la misma consulta, y además
    * miraban identidades distintas: este contaba las de la cuenta y la bandeja
    * enseñaba las de la cara activa, así que con el Perfil Weë puesto el número
@@ -205,15 +248,13 @@ const NavegacionGlobal: React.FC = () => {
    * comunidad, una experiencia de Weë— se alcanza desde ahí.
    */
   /*
-   * Notificaciones no es una pestaña: es una pantalla DENTRO de la pila del
-   * Home, así que la pestaña puesta ahí sigue siendo Inicio. Por eso se mira
-   * primero la ruta más honda: si estás en Notificaciones, es Notificaciones lo
-   * que va encendido, no Inicio.
+   * Notificaciones y Buscar ya no son destinos de la barra (2026-11-15): se
+   * abren desde la campana y la lupa de la cabecera del Home. Notificaciones
+   * vive dentro de la pila del Home, así que allí sigue encendido Inicio.
    */
-  const enNotificaciones = rutaHonda(estado) === 'Notifications';
-  const puesto: DestinoId | null = enNotificaciones
-    ? 'Notifications'
-    : pestanaPuesta(estado) || DESTINO_DE_RUTA[rutaRaiz] || 'Home';
+  const puesto: DestinoId | null = pestanaPuesta(estado) || DESTINO_DE_RUTA[rutaRaiz] || 'Home';
+
+  const MarcoDeLaBarra: React.ComponentType<{ children: React.ReactNode }> = puesto === 'WeeAI' ? TemaOscuro : React.Fragment;
 
   /* Siempre a la pila principal: ver `navegarEnLaRaiz` (la pestaña «Create» se quedaba el compositor). */
   const irARaiz = (pantalla: string, params?: object) => {
@@ -222,13 +263,35 @@ const NavegacionGlobal: React.FC = () => {
 
   const elegir = (destino: DestinoId) => {
     /* Crear no es una pantalla: abre la hoja de siempre. */
-    if (destino === 'Create') {
-      if (!user) return irARaiz('Register');
-      return setHoja(true);
-    }
+    if (destino === 'Create') return setHoja(true);
 
-    /* Buscar, WeeTalk y Notificaciones piden sesión, como hasta ahora. */
+    /*
+     * WeëAI abre el centro creativo de siempre (`WeeCreator`), que es público
+     * igual que lo era desde el atajo de la hoja Crear: mirar es libre y crear
+     * pide cuenta dentro, donde ya se pedía.
+     */
+    if (destino === 'WeeAI') { abrirPortadaDeWeeAi(); return; }
+
+    /* Weëls (2026-11-24): el visor de siempre, abierto desde el Home con los Weëls ya cargados, como «Weëls» del ☰. Mirar es libre. */
+    if (destino === 'Weels') return irARaiz('Main', { screen: 'Home', params: { screen: 'Landing', params: { openWeels: true } } });
+
+    /* Mensajes y el interruptor de cara son de una persona: piden cuenta. */
     if (destino !== 'Home' && !user) return irARaiz('Register');
+
+    /*
+     * LA ÚLTIMA PESTAÑA ES EL INTERRUPTOR DE CARA (decisión del dueño, 2026-11-16): con el Perfil Real activo dice «Weë» y cambia al
+     * Perfil Weë; con el Perfil Weë activo dice «Real» y vuelve. Es EXACTAMENTE la lógica del selector de identidad del ☰
+     * (`elegirIdentidad` de DrawerMenu y Sidebar): `switchIdentity()` cambia de cara y `setThemeMode()` viste la app, y sin Perfil
+     * Weë el lado Weë lleva a crearlo. Después se pasa al Home de la cara nueva, con la pila de Inicio en su portada. WeëAI, el wallet y
+     * Mis proyectos son de la cuenta y no dependen de la cara.
+     */
+    if (destino === 'Profile') {
+      const aWee = activeProfileType !== 'hidi';
+      if (aWee && !hasWeeProfile) return irARaiz('WeeProfileCreation');
+      switchIdentity();
+      setThemeMode(aWee ? 'dark' : 'light');
+      return irARaiz('Main', { screen: 'Home', params: { screen: 'Landing' } });
+    }
 
     /* Tocar Inicio estando ya en Inicio sube al principio, como siempre. */
     if (destino === 'Home' && puesto === 'Home' && rutaRaiz === 'Main') {
@@ -236,20 +299,14 @@ const NavegacionGlobal: React.FC = () => {
       return;
     }
 
-    /*
-     * Notificaciones vive dentro de la pila del Home, no es una pestaña: se
-     * abre la pantalla QUE YA EXISTÍA, por el mismo camino que usan el menú ☰ y
-     * la barra lateral. Ni ruta nueva, ni pantalla nueva.
-     */
-    if (destino === 'Notifications') {
-      return irARaiz('Main', { screen: 'Home', params: { screen: 'Notifications' } });
-    }
-
+    /* Inicio, Mensajes (`Inbox`) y Mi Weë (`Profile`) son pestañas: las de siempre. */
     irARaiz('Main', { screen: destino });
   };
 
+  /* Mirar qué se puede crear es público; crear pide cuenta, y se pide aquí, al elegir. */
   const crear = (kind: CreateKind) => {
     setHoja(false);
+    if (!user) return irARaiz('Register');
     setTimeout(() => irARaiz('Create', { kind }), isWeb ? 0 : 150);
   };
 
@@ -262,15 +319,19 @@ const NavegacionGlobal: React.FC = () => {
         ]}
         pointerEvents="box-none"
       >
-        <BarraInferior puesto={puesto} onSelect={elegir} sinLeer={sinLeer} />
+        {/* En WeëAI (de la cuenta, siempre oscura) la barra también va oscura; en el resto manda el perfil. */}
+        <MarcoDeLaBarra>
+          <BarraInferior puesto={puesto} onSelect={elegir} sinLeer={sinLeer} onMantener={() => setHojaDeCaras(true)} />
+        </MarcoDeLaBarra>
       </Animated.View>
+      {user && hasWeeProfile && <HojaDeAlterEgos visible={hojaDeCaras} onClose={() => setHojaDeCaras(false)} />}
       <CreateSheet
         visible={hoja}
         onClose={() => setHoja(false)}
         onSelect={crear}
         onOpenCreator={() => {
           setHoja(false);
-          setTimeout(() => irARaiz('WeeCreator'), isWeb ? 0 : 150);
+          setTimeout(() => abrirPortadaDeWeeAi(), isWeb ? 0 : 150);
         }}
       />
     </>

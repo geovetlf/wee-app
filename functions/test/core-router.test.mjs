@@ -24,6 +24,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { cpuDe } from './_cpu.mjs';
 
 const require = createRequire(import.meta.url);
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -394,10 +395,9 @@ console.log('\n── L · Escala y límites ──');
     adapters: Array.from({ length: n }, (_, i) => ad(`p${String(i).padStart(5, '0')}`)),
   });
   for (const n of [10, 100, 1000]) {
-    const t0 = performance.now();
-    const d = router(undefined, grande(n)).resolver(pet());
-    const ms = performance.now() - t0;
-    check(`98.${n}) ${n} candidatos se resuelven en un tiempo razonable`, d.status === 'routed' && ms < 3000, `${Math.round(ms)} ms`);
+    /* CPU del proceso, no reloj de pared (functions/test/_cpu.mjs): con la máquina ocupada el reloj cuenta la espera, no el trabajo. */
+    const { valor: d, ms } = cpuDe(() => router(undefined, grande(n)).resolver(pet()));
+    check(`98.${n}) ${n} candidatos se resuelven en un tiempo razonable`, d.status === 'routed' && ms < 3000, `${Math.round(ms)} ms de CPU`);
   }
   const conTope = router({ maxCandidates: 5 }, grande(50)).resolver(pet());
   check('99) el número de candidatos está acotado por política, y se avisa al cortar',

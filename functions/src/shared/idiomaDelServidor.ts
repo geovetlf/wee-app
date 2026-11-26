@@ -34,7 +34,12 @@ export const etiquetaDeIdioma = (crudo: unknown): string | null => {
 export const tablaDelIdioma = (tablas: Readonly<Record<string, TablaDeTextos>>, crudo: unknown): TablaDeTextos => {
   const etiqueta = etiquetaDeIdioma(crudo);
   if (!etiqueta) return tablas.es;
-  const idioma = etiqueta.split('-')[0];
+  /*
+   * Los mismos alias que la app (`ALIAS_DE_IDIOMA`, i18n/idiomas.ts): `tl` (tagalo) es el filipino para CLDR y `no`
+   * (noruego genérico) es el bokmål (decisión D3, 2026-11-03). `nn` (nynorsk) NO es alias (D4): cae en inglés.
+   */
+  const base = etiqueta.split('-')[0];
+  const idioma = ({ tl: 'fil', no: 'nb' } as Record<string, string>)[base] ?? base;
   return tablas[etiqueta] || tablas[idioma] || tablas.en || tablas.es;
 };
 

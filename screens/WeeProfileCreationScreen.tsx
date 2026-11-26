@@ -9,27 +9,49 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../components/IconoDireccional';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../contexts/ThemeContext';
+import AvatarDisplay from '../components/avatars/AvatarDisplay';
 import { useT } from '../contexts/IdiomaContext';
 import { notify } from '../utils/notify';
 import { useAuth } from '../contexts/AuthContext';
 import { useUserProfile } from '../contexts/UserProfileContext';
 import { usersService } from '../services/firestoreService';
 import { uploadProfileImageFromUri } from '../services/storageService';
-import { identidadWeeDe } from '../utils/econtactModel';
+import {
+  alterEgosService, AVATAR_DE_ALTER_EGO, claveDeErrorDeAlterEgo, ErrorDeAlterEgo, MAXIMO_DE_ALTER_EGOS, nuevaClaveDeAlterEgo,
+} from '../services/alterEgosService';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 import AvatarPicker, { isDiceBearUrl } from '../components/avatars/AvatarPicker';
 import EspacioDeEscritura from '../components/EspacioDeEscritura';
+import { RellenoDeMarca } from '../components/GradienteDeMarca';
 
+/*
+ * CREAR UN ALTER EGO (plan de alter egos, F6, 2026-11-23).
+ *
+ * Una cuenta puede tener hasta cinco alter egos (D1) y crearlos es GRATIS (D3).
+ * La app NO escribe `users`: lo crea el servidor con la callable `crearAlterEgo`
+ * (`alterEgosService.crear`), idempotente por una clave de este intento —dos
+ * toques crean uno—, y devuelve su identidad. Después, si la persona eligió una
+ * foto suya, se sube a la carpeta DE ESE alter ego (nunca a la de la cuenta: la
+ * dirección no puede delatar quién está detrás) y se guarda en su perfil.
+ *
+ * Al terminar, «Listo»: empezar como el alter ego nuevo (cambia de cara y pone el
+ * tema oscuro) o volver al Perfil Real.
+ */
 const WeeProfileCreationScreen: React.FC = () => {
   const t = useT();
-  const { theme } = useTheme();
+  const { theme, setThemeMode } = useTheme();
   const { user } = useAuth();
-  const { realProfile, setWeeProfile } = useUserProfile();
+  const { realProfile, setWeeProfile, switchIdentity, alterEgos = [] } = useUserProfile();
   const navigation = useNavigation();
+  /* Una clave por intento: si la red corta y se vuelve a tocar, el servidor devuelve el mismo alter ego. */
+  const claveDelIntento = useRef(nuevaClaveDeAlterEgo());
+  const [creado, setCreado] = useState<{ uid: string; nombre: string } | null>(null);
+  const lleno = alterEgos.length >= MAXIMO_DE_ALTER_EGOS && !creado;
 
   const [displayName, setDisplayName] = useState('');
   const [bio, setBio] = useState('');
@@ -39,7 +61,7 @@ const WeeProfileCreationScreen: React.FC = () => {
   const [isCreating, setIsCreating] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const canCreate = displayName.trim().length >= 3 && !isCreating;
+  const canCreate = displayName.trim().length >= 3 && !isCreating && !lleno;
 
   const handleAvatarSelect = (avatarData: {
     type: 'predefined' | 'custom';
@@ -61,55 +83,48 @@ const WeeProfileCreationScreen: React.FC = () => {
 
     setIsCreating(true);
     try {
-      console.log('🎭 Creando Perfil Weë para:', user.uid);
+      const nombre = displayName.trim();
+      /* 1 · El servidor crea el alter ego (perfil, entidad y hueco), con un avatar predefinido de la app. */
+      const { uid } = await alterEgosService.crear({
+        clave: claveDelIntento.current,
+        displayName: nombre,
+        ...(bio.trim() ? { bio: bio.trim() } : {}),
+        avatar: selectedAvatarType === 'predefined' && selectedAvatarId ? selectedAvatarId : AVATAR_DE_ALTER_EGO,
+      });
 
-      /* La carpeta del avatar en el Storage lleva el identificador guardado de la cara. */
-      const identidadWee = identidadWeeDe(user.uid);
-      let photoURL: string | undefined;
-      let photoURLThumbnail: string | undefined;
-
-      // Si es avatar personalizado, subir imagen o usar DiceBear URL directo
+      /* 2 · Su foto propia, si la hay: a SU carpeta (`profile/<alter ego>`), y luego a su perfil. */
       if (selectedAvatarType === 'custom' && customAvatarUri) {
-        if (isDiceBearUrl(customAvatarUri)) {
-          photoURL = customAvatarUri;
-        } else {
-          const result = await uploadProfileImageFromUri(customAvatarUri, identidadWee);
-          photoURL = result.fullSize;
-          photoURLThumbnail = result.thumbnail;
+        try {
+          const foto = isDiceBearUrl(customAvatarUri)
+            ? { fullSize: customAvatarUri, thumbnail: customAvatarUri }
+            : await uploadProfileImageFromUri(customAvatarUri, uid);
+          await usersService.update(uid, { avatarType: 'custom', photoURL: foto.fullSize, photoURLThumbnail: foto.thumbnail });
+        } catch (fotoError) {
+          console.error('❌ La foto del alter ego no se pudo subir:', fotoError);
+          notify(t('common.error'), t('alterEgo.photoUploadFailed'));
         }
       }
 
-      /*
-       * Una sola operación: el Perfil Weë y su enlace desde el Perfil Real,
-       * en la misma transacción, y una sola cara por cuenta aunque se toque
-       * dos veces o desde dos aparatos. Si la cuenta ya tenía cara, se
-       * devuelve esa y no se escribe nada.
-       */
-      const { perfil: weeProfile, creado } = await usersService.ensureWeeProfile(user.uid, realProfile.id, {
-        displayName: displayName.trim(),
-        bio: bio.trim(),
-        avatarType: selectedAvatarType,
-        avatarId: selectedAvatarType === 'predefined' ? selectedAvatarId : undefined,
-        photoURL,
-        photoURLThumbnail,
-      });
-
-      console.log(creado ? '✅ Perfil Weë creado' : '📥 La cuenta ya tenía Perfil Weë');
-      setWeeProfile(weeProfile);
-
-      /*
-       * Volver no depende del botón de un aviso: en la web `Alert.alert` no pinta nada ni llama a ningún botón, y la
-       * persona se quedaba en esta pantalla con su Perfil Weë ya creado. Se avisa y se vuelve.
-       */
-      notify(t('onboarding.weeCreatedTitle'), t('onboarding.weeCreated'));
-      navigation.goBack();
+      /* 3 · Su perfil, tal como quedó en el servidor, entra en la lista de caras. */
+      const [perfil] = await usersService.getManyByUids([uid]).catch(() => []);
+      if (perfil) setWeeProfile(perfil);
+      setCreado({ uid, nombre: perfil?.displayName || nombre });
     } catch (error: any) {
-      console.error('❌ Error creando el Perfil Weë:', error);
+      console.error('❌ Error creando el alter ego:', error?.message ?? error);
       /* Título traducido y frase de Weë: el detalle técnico se queda en el registro. */
-      notify(t('common.error'), t('onboarding.weeCreateFailed'));
+      const motivo = error instanceof ErrorDeAlterEgo ? error.motivo : 'reintentar';
+      notify(t('common.error'), t(claveDeErrorDeAlterEgo(motivo)));
     } finally {
       setIsCreating(false);
     }
+  };
+
+  /* «Empezar como Lina»: cambia a esa cara y viste la app de oscuro, como cualquier alter ego. */
+  const empezarComo = () => {
+    if (!creado) return;
+    switchIdentity(creado.uid);
+    setThemeMode('dark');
+    navigation.goBack();
   };
 
   return (
@@ -117,12 +132,26 @@ const WeeProfileCreationScreen: React.FC = () => {
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: theme.colors.text }]}>{t('onboarding.weeTitle')}</Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.text }]} numberOfLines={1}>{t('alterEgo.createTitle')}</Text>
         <View style={{ width: scale(24) }} />
       </View>
 
+      {creado ? (
+        <ScrollView contentContainerStyle={styles.listo}>
+          <AvatarDisplay size={scale(88)} cuadrado avatarType={selectedAvatarType} avatarId={selectedAvatarType === 'predefined' ? selectedAvatarId : AVATAR_DE_ALTER_EGO} photoURL={selectedAvatarType === 'custom' && customAvatarUri ? customAvatarUri : undefined} backgroundColor={theme.colors.accent} />
+          <Text style={[styles.listoTitulo, { color: theme.colors.text }]} accessibilityRole="header">{t('alterEgo.createdTitle', { nombre: creado.nombre })}</Text>
+          <Text style={[styles.listoTexto, { color: theme.colors.textSecondary }]}>{t('alterEgo.createdBody')}</Text>
+          <TouchableOpacity style={[styles.createButton, styles.listoBoton, { backgroundColor: theme.colors.accent }]} onPress={empezarComo} activeOpacity={0.8} accessibilityRole="button">
+            <RellenoDeMarca radio={BORDER_RADIUS.md} />
+            <Text style={styles.createButtonText} numberOfLines={2}>{t('alterEgo.startAs', { nombre: creado.nombre })}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.secundario, { borderColor: theme.colors.border }]} onPress={() => navigation.goBack()} activeOpacity={0.8} accessibilityRole="button">
+            <Text style={[styles.secundarioTexto, { color: theme.colors.text }]} numberOfLines={2}>{t('alterEgo.backToReal')}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      ) : (
       <EspacioDeEscritura
         style={{ flex: 1 }}
       >
@@ -138,9 +167,12 @@ const WeeProfileCreationScreen: React.FC = () => {
         <View style={[styles.disclaimer, { backgroundColor: theme.colors.accent + '15' }]}>
           <Ionicons name="shield-checkmark" size={scale(24)} color={theme.colors.accent} />
           <Text style={[styles.disclaimerText, { color: theme.colors.text }]}>
-            {t('onboarding.weeIntro')}
+            {t('alterEgo.createIntro')} {t('alterEgo.privacyNote')}
           </Text>
         </View>
+        {lleno ? (
+          <Text style={[styles.limite, { color: theme.colors.error }]} accessibilityLiveRegion="polite">{t('alterEgo.limitReached', { maximo: MAXIMO_DE_ALTER_EGOS })}</Text>
+        ) : null}
 
         {/* Avatar Selection */}
         <Text style={[styles.sectionLabel, { color: theme.colors.text }]}>{t('onboarding.weePhoto')}</Text>
@@ -210,12 +242,13 @@ const WeeProfileCreationScreen: React.FC = () => {
           disabled={!canCreate}
           activeOpacity={0.8}
         >
+          <RellenoDeMarca radio={BORDER_RADIUS.md} />
           {isCreating ? (
-            <ActivityIndicator color="white" />
+            <ActivityIndicator color="#1F2937" />
           ) : (
             <>
-              <Ionicons name="eye-off" size={scale(20)} color="white" />
-              <Text style={styles.createButtonText}>{t('onboarding.weeTitle')}</Text>
+              <Ionicons name="eye-off" size={scale(20)} color="#1F2937" />
+              <Text style={styles.createButtonText}>{t('alterEgo.create')}</Text>
             </>
           )}
         </TouchableOpacity>
@@ -224,6 +257,7 @@ const WeeProfileCreationScreen: React.FC = () => {
         <View style={{ height: scale(120) }} />
       </ScrollView>
       </EspacioDeEscritura>
+      )}
     </SafeAreaView>
   );
 };
@@ -308,9 +342,54 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
   },
   createButtonText: {
-    color: 'white',
+    color: '#1F2937',
     fontSize: FONT_SIZE.base,
     fontWeight: FONT_WEIGHT.semibold,
+    textAlign: 'center',
+    flexShrink: 1,
+  },
+  limite: {
+    fontSize: FONT_SIZE.sm,
+    marginTop: -SPACING.md,
+    marginBottom: SPACING.lg,
+  },
+  /* «Listo»: el avatar cuadrado, el nombre y los dos caminos. */
+  listo: {
+    padding: SPACING.xl,
+    alignItems: 'center',
+    gap: SPACING.md,
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+  },
+  listoTitulo: {
+    fontSize: FONT_SIZE.xl,
+    fontWeight: FONT_WEIGHT.bold,
+    textAlign: 'center',
+  },
+  listoTexto: {
+    fontSize: FONT_SIZE.sm,
+    textAlign: 'center',
+    lineHeight: scale(20),
+  },
+  listoBoton: {
+    alignSelf: 'stretch',
+    paddingHorizontal: SPACING.lg,
+    overflow: 'hidden',
+  },
+  secundario: {
+    alignSelf: 'stretch',
+    minHeight: 48,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: SPACING.lg,
+  },
+  secundarioTexto: {
+    fontSize: FONT_SIZE.base,
+    fontWeight: FONT_WEIGHT.medium,
+    textAlign: 'center',
   },
 });
 

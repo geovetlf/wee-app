@@ -1,0 +1,41 @@
+/*
+ * GENERADO — NO EDITAR A MANO. Serbio en alfabeto LATINO, producido por scripts/i18n-sr-latn.mjs a partir del cirílico
+ * (i18n/textos/sr/). Cualquier corrección se hace en el cirílico y se vuelve a generar.
+ */
+/* PROVISIONAL: inglés SIN traducir y SIN revisión nativa (ver CLAVES-I18N). */
+/*
+ * WEË FILMMAKER — Weë Brain as director (2026-11-18). Only what the person sees next to the box: the short reply, the proposed
+ * changes to approve and the notices. Nothing technical (no models, providers or prompts).
+ */
+export const filmmakerDirector = {
+  thinking: 'Weë is thinking…',
+  demoBadge: 'Example',
+  demoReply: 'What is the main character of your story like? Tell me what you already imagine.',
+  proposalTitle: 'Weë suggests',
+  changesCount_one: '{{contador}} change',
+  changesCount_other: '{{contador}} changes',
+  reasonFallback: 'An adjustment to your production',
+  approve: 'Approve',
+  discard: 'Discard',
+  applying: 'Applying…',
+  applied: 'Done. It is now in your production.',
+  yoursWarning_one: 'This changes {{contador}} item you added yourself.',
+  yoursWarning_other: 'This changes {{contador}} items you added yourself.',
+  stale: 'Your production changed in the meantime. Ask me for the change again.',
+  applyFailed: 'I could not apply the change. Try again.',
+  notApplicable: 'I could not turn that into a change. Tell me another way; this reply was not charged.',
+  cut: 'The reply was cut off. Ask me again, in shorter parts.',
+  error: 'I could not reply right now. Try again in a moment.',
+  noCredits: 'You are out of Credits to keep talking with Weë.',
+  messageLabel: 'Message from Weë',
+  createNow: 'Create the production',
+  askChange: 'Change with Weë',
+  askChangePlaceholder: 'Tell Weë what to change',
+  redo: 'Redo',
+  expand: 'Show message',
+  collapse: 'Collapse',
+  dismiss: 'Close',
+  /* Claves nuevas del director. PROVISIONAL en inglés, SIN traducir. */
+  demoChangeReply: 'You asked: “{{texto}}”. With Weë connected, I would propose the change and you approve it before it is applied.',
+  askChangeExample: 'E.g. make it night',
+};

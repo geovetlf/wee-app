@@ -1,15 +1,15 @@
 /*
  * JAPONÉS — lo que describe cada experiencia de WEË AI y los ejemplos que se tocan para empezar. Los nombres
- * —Weë Design, Weë Studio…— son marca y viven en constants/weeExperiences.ts sin traducir.
+ * —WeëDesign, WeëStudio…— son marca y viven en constants/weeExperiences.ts sin traducir.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
  * Los ejemplos son lo que pediría alguien en Japón, no calcos: «Japón en octubre» es 10月の京都 (a quien vive en
  * Japón «Japón» no le sirve de ejemplo), «un email para un cliente» es 取引先へのメール y «música de fondo», BGM.
  * Hablan con la voz de la persona, en forma llana (「今日の献立が決まらない」「この文章を翻訳して」), como «No sé».
- * Hogar & Diseño es 住まい＆デザイン (ホーム ya es Inicio); el área Beauty de Weë Studio, ビューティー.
+ * Hogar & Diseño es 住まい＆デザイン (ホーム ya es Inicio); el área Beauty de WeëStudio, ビューティー.
  * «Cambios de look» es イメージチェンジ, como en studio y catalogo; «ingredientes» y «menú», 食材 y 献立, como en
- * Weë Chef; y «un Weël» es Weëls, la forma invariable de la marca (glosario § 10.7).
+ * WeëChef; y «un Weël» es Weëls, la forma invariable de la marca (glosario § 10.7).
  */
 export const creator: typeof import('../es/creator').creator = {
   design: 'ロゴ、ポスター、イラスト、SNS用の素材',
@@ -20,7 +20,7 @@ export const creator: typeof import('../es/creator').creator = {
   beauty: 'メイク、ヘア、ひげ、コーデ、イメージチェンジ',
   chef: '専属シェフ：何を作るか、レシピ、献立',
   home: '模様替え、インテリアデザイン、リフォーム、庭づくり',
-  business: 'ビジネスアイデア、マーケティング、履歴書、ドキュメント、プレゼン資料',
+  business: 'ファッション、スタイル、ビューティー、ビジュアルコンテンツの作成。',
   travel: '旅の計画：行き先、過ごし方、移動手段',
   brain: '迷ったら、Weëに聞いてみましょう',
   designEx1: 'お店のロゴ',
@@ -56,10 +56,10 @@ export const creator: typeof import('../es/creator').creator = {
   brainEx1: '何から始めればいいかわからない',
   brainEx2: 'これをわかりやすく説明して',
   brainEx3: 'この文章を翻訳して',
-  areaStudioPhotos: 'Weë Studio · 写真',
-  areaStudioVideos: 'Weë Studio · 動画',
-  areaStudioBeauty: 'Weë Studio · ビューティー',
-  areaDesignHome: 'Weë Design · 住まい＆デザイン',
+  areaStudioPhotos: 'WeëStudio · 写真',
+  areaStudioVideos: 'WeëStudio · 動画',
+  areaStudioBeauty: 'WeëStudio · ビューティー',
+  areaDesignHome: 'WeëDesign · 住まい＆デザイン',
   areaHomeName: '住まい＆デザイン',
   tellTheSpecialist: '実現したいことを{{especialista}}に伝えましょう。2、3の簡単な質問に答えるだけで、あとはおまかせです。完成したら、そのままコミュニティに投稿できます。',
   exampleQuoted: '「{{ejemplo}}」',

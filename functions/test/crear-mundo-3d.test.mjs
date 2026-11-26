@@ -9,7 +9,7 @@
  *   D · El ciclo de vida: la máquina hace exactamente lo que dice su tabla, con en cola, parar y cancelado de verdad.
  *   E · De lo que contesta la puerta asíncrona (`generateWorld`) a los eventos.
  *   F · Del mundo a la escena: el núcleo 3D único, por id, idéntico al del servidor.
- *   G · Lo que se enseña: claves que existen, en los dieciséis diccionarios, sin frases propias.
+ *   G · Lo que se enseña: claves que existen, en todos los diccionarios de los idiomas listos, sin frases propias.
  *   H · Fronteras: puro, sin proveedores, sin Credits, sin reloj, y en la cadena.
  *
  * Sin red, sin Firebase (doblado) y sin el compilado: se cargan las fuentes. $0.
@@ -151,14 +151,14 @@ const err = (code, details, message = 'Ahora mismo no hay una IA disponible para
 const NO_ELEGIBLE = err('failed-precondition', { code: 'NOT_AVAILABLE', capability: 'world.generate', reason: 'sin_modelo_elegible', elegibilidad: ['BLOCKED_FOR_JURISDICTION', 'JURISDICTION_UNKNOWN'], provider: 'fal' });
 const noDisponible = (reason) => err('failed-precondition', { code: 'NOT_AVAILABLE', reason }, 'Esta función no está disponible.');
 const ERRORES = [
-  ['no disponible en la región', noDisponible('en_tu_region'), 'no_disponible', 'weeai.errNotAvailableRegion', false],
-  ['falta el país de la cuenta', noDisponible('falta_tu_pais'), 'no_disponible', 'weeai.errNotAvailableCountry', false],
+  ['un motivo regional de un servidor viejo se dice como el genérico', noDisponible('en_tu_region'), 'no_disponible', 'weeai.errNotAvailable', false],
+  ['«falta tu país» de un servidor viejo, también genérico (nunca se pide el país)', noDisponible('falta_tu_pais'), 'no_disponible', 'weeai.errNotAvailable', false],
   ['no con estas opciones', noDisponible('con_estas_opciones'), 'no_disponible', 'weeai.errNotAvailableOptions', false],
   ['no disponible, sin más', noDisponible('no_disponible'), 'no_disponible', 'weeai.errNotAvailable', false],
   ['ahora no (pasajero): esto sí se reintenta', noDisponible('ahora_no'), 'reintentable', 'weeai.errNotAvailableNow', true],
   ['un servidor de antes (escalones y proveedor en los detalles)', NO_ELEGIBLE, 'no_disponible', 'weeai.errNotAvailable', false],
   ['sin motivo', err('failed-precondition', { code: 'NOT_AVAILABLE' }), 'no_disponible', 'weeai.errNotAvailable', false],
-  ['el SDK nativo deja los detalles en customData', { code: 'functions/failed-precondition', message: 'x', customData: { details: { code: 'NOT_AVAILABLE', reason: 'en_tu_region' } } }, 'no_disponible', 'weeai.errNotAvailableRegion', false],
+  ['el SDK nativo deja los detalles en customData', { code: 'functions/failed-precondition', message: 'x', customData: { details: { code: 'NOT_AVAILABLE', reason: 'con_estas_opciones' } } }, 'no_disponible', 'weeai.errNotAvailableOptions', false],
   ['sin Credits', err('resource-exhausted', { code: 'INSUFFICIENT_CREDITS', required: 39, available: 12 }, 'INSUFFICIENT_CREDITS'), 'sin_credits', 'weeai.errNotEnoughCredits', false],
   ['el precio cambió', err('invalid-argument', { code: 'INVALID_REQUEST', reason: 'price_changed', credits: 45 }), 'precio_cambiado', 'studio.worldPriceChanged', false],
   ['el precio cambió, sin un precio que se pueda enseñar', err('invalid-argument', { code: 'INVALID_REQUEST', reason: 'price_changed', credits: 'mucho' }), 'reintentable', 'weeai.errGeneric', true],
@@ -430,13 +430,16 @@ seccion('G', () => {
   for (const [, e] of ERRORES) claves.add(M.errorDelMundo3D(e).clave);
   for (const entrada of [{ ...ENTRADA, imagen: null }, { ...ENTRADA, projectId: '/' }, { ...ENTRADA, espacio: 'playa' }]) for (const pr of M.validarEntradaDelMundo3D(entrada, CUENTA)) claves.add(pr.clave);
   const DICCIONARIOS = cargar('i18n/diccionarios.ts').DICCIONARIOS;
+  /* Cuántos tiene que haber, del CATÁLOGO (antes «=== 16»): uno por idioma listo y uno por variante, como la 38b de
+   * i18n.test.mjs. Exige lo mismo que el 16 sin tocarse cuando entra un idioma; los diccionarios EN CURSO no cuentan. */
+  const ESPERADOS = cargar('i18n/idiomas.ts').idiomasDisponibles().reduce((n, i) => n + (i.variantes?.length || 1), 0);
   const unicos = []; for (const [codigo, d] of Object.entries(DICCIONARIOS)) if (!unicos.some(([, otro]) => otro === d)) unicos.push([codigo, d]);
   const valor = (d, clave) => clave.split('.').reduce((o, k) => (o && typeof o === 'object' ? o[k] : undefined), d);
   const delServidor = [...claves].filter((k) => k.startsWith('motor.'));
   const deLaApp = [...claves].filter((k) => !k.startsWith('motor.'));
   const faltanApp = unicos.flatMap(([codigo, d]) => deLaApp.filter((k) => typeof valor(d, k) !== 'string' || !valor(d, k).trim()).map((k) => `${codigo}:${k}`));
   check(`G10) las ${deLaApp.length} claves de la app existen y tienen texto en los ${unicos.length} diccionarios`,
-    unicos.length === 16 && faltanApp.length === 0, faltanApp.slice(0, 6).join(' '));
+    ESPERADOS >= 16 && unicos.length === ESPERADOS && faltanApp.length === 0, faltanApp.slice(0, 6).join(' '));
   const faltanServidor = ['es', 'en', 'da'].flatMap((c) => delServidor.filter((k) => typeof valor(DICCIONARIOS[c], k) !== 'string').map((k) => `${c}:${k}`));
   check(`G11) las ${delServidor.length} del servidor (\`motor.*\`) están en los idiomas que traducen su catálogo (es, en, da)`,
     delServidor.length >= 2 && faltanServidor.length === 0, faltanServidor.join(' '));

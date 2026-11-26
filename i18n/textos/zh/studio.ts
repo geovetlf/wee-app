@@ -3,7 +3,7 @@
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
- * MARCA: "Weë Studio", "Writer" y el resto de los nombres de Weë van en
+ * MARCA: "WeëStudio", "Writer" y el resto de los nombres de Weë van en
  * alfabeto latino dentro del hanzi, nunca traducidos ni transliterados
  * («工作室» no es Studio y «积分» no es Credits). Los formatos técnicos —PDF,
  * MP4, 16:9— tampoco cambian de idioma.
@@ -253,7 +253,7 @@ export const studio: typeof import('../es/studio').studio = {
   soon: '即将上线',
   soonHint: '这个工具的位置已经留好了，还差接入。',
 
-  /* ── Weë Studio: entradas, experiencias y controles (B3.11) ──────────── */
+  /* ── WeëStudio: entradas, experiencias y controles (B3.11) ──────────── */
   textTitle: '文本',
   textHint: '写任何内容',
   exploreTitle: '探索',
@@ -394,4 +394,13 @@ export const studio: typeof import('../es/studio').studio = {
   worldCancelledNote: '我已停止创作。预留的 Credits 会退回你的余额。',
   worldUploadFailed: '没能上传你的照片，请再试一次。',
   worldDailyLimit: '今天的 3D 世界已经用完了。没有生成成功的会退还给你，次数每天都会刷新。',
+  filmmakerCardTitle: '执导你的电影',
+  filmmakerCardSub: '场景、镜头和运镜，尽在你的掌控。',
+  filmmakerCardCta: '打开 Filmmaker',
+  /* ── La portada del Studio de la demo YC (hero, creación rápida, Filmmaker Engine) ── */
+  heroLead: '创作，',
+  heroAccent: '不设限。',
+  quickTitle: '快速创作',
+  filmmakerEngineSub: '用 AI 创作、导演和剪辑你的电影。',
+  projectsTitle: '项目',
 };

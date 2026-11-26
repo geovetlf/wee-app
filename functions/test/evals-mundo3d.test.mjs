@@ -42,8 +42,8 @@ check('A el dataset de mundos valida, es del dominio router y todos sus casos so
   validarDataset(DATASET).join('; '));
 check('A el grader del motivo público existe y declara su dimensión', GRADERS.includes('router/motivo-publico') && DIMENSION_DE_GRADER['router/motivo-publico'] === 'RELIABILITY');
 const esperados = DATASET.casos.map((c) => c.expected.motivoPublico).filter(Boolean);
-check('A cada motivo esperado es uno de los que el motor manda a la app, y salen los cinco menos «con estas opciones»',
-  esperados.every((m) => MOTIVOS_DE_NO_DISPONIBLE.includes(m)) && ['ahora_no', 'en_tu_region', 'falta_tu_pais', 'no_disponible'].every((m) => esperados.includes(m)), esperados.join(','));
+check('A cada motivo esperado es uno de los que el motor manda a la app, y lo territorial se espera como el genérico «no_disponible» (la jurisdicción no es una conversación)',
+  esperados.every((m) => MOTIVOS_DE_NO_DISPONIBLE.includes(m)) && ['ahora_no', 'no_disponible'].every((m) => esperados.includes(m)), esperados.join(','));
 const texto = JSON.stringify(DATASET);
 check('A mundo sintético: ni un proveedor ni un modelo real, ni datos de personas',
   !/\b(fal|hunyuan|tencent|gemini|seedance|seedream|flux|elevenlabs|deepseek|minimax|openai|anthropic)\b|fal-ai|hidi_|@/i.test(texto));

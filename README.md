@@ -22,7 +22,7 @@ El repositorio empezó con otro nombre (HideTok) antes de ser Weë (`db070a9`, 2
 | **Botón "+" → Crear** | `CreateSheet` — Publicación, Weël, Imagen, Video, Texto, Pregunta + acceso a WEË AI; `CreateScreen` recibe `kind` | ✅ Implementado |
 | **"Cómo lo hice"** (herramientas, prompt, proceso) | `CreateScreen` → `Post.aiTools / aiPrompt / aiProcess` → `HowIMadeIt` dentro de `PostCard` (prompt copiable) | ✅ Implementado |
 | **Credits siempre visibles** | `CreditsPill` en `Header` (`hooks/useWallet.ts`) → `CreditStoreScreen` / `WalletScreen` / `creditsService`; el saldo y el historial los mueve solo el **Credit Engine** (`functions/src/credits`, [`docs/CREDITS.md`](docs/CREDITS.md)) | ✅ Implementado |
-| **WEË AI** (11 experiencias: Weë Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business, Travel, Brain; 7 visibles como sección —Photo, Beauty, Home y Writer se abren desde Weë Studio o Weë Design, `HIDDEN_AS_SECTION`—) | `WeeCreatorScreen` + `constants/weeExperiences.ts` — buscador por intención "¿Qué quieres crear?", ejemplos por experiencia; cada especialista con su pantalla (`constants/specialists.ts`). Regla: "El usuario elige el resultado. Weë elige la IA." (`docs/CREATOR.md`) | ✅ 10 secciones conectadas a IA real por el WEË AI ENGINE (Gemini, Seedance, ElevenLabs; modo demo sin claves), Weë Brain como asistente con búsqueda y contexto (`brainChat`), fotos por Storage, Credits por el Credit Engine (precios placeholder), **Mis proyectos** y **Mis documentos** en Firestore. ⚠️ Weë Music intacta en modo demo; Weë Business sin publicar en redes (sin APIs sociales) |
+| **WEË AI** (11 experiencias: Weë Design, Studio, Photo, Writer, Music, Beauty, Chef, Home, Business, Travel, Brain —«Business» es el id histórico `business` de la que hoy se llama Weë Fashion—; 7 visibles como sección —Photo, Beauty, Home y Writer se abren desde Weë Studio o Weë Design, `HIDDEN_AS_SECTION`—) | `WeeCreatorScreen` + `constants/weeExperiences.ts` — buscador por intención "¿Qué quieres crear?", ejemplos por experiencia; cada especialista con su pantalla (`constants/specialists.ts`). Regla: "El usuario elige el resultado. Weë elige la IA." (`docs/CREATOR.md`) | ✅ 10 secciones conectadas a IA real por el WEË AI ENGINE (Gemini, Seedance, ElevenLabs; modo demo sin claves), Weë Brain como asistente con búsqueda y contexto (`brainChat`), fotos por Storage, Credits por el Credit Engine (precios placeholder), **Mis proyectos** y **Mis documentos** en Firestore. ⚠️ Weë Music intacta en modo demo; Weë Business sin publicar en redes (sin APIs sociales) |
 | **Descubrimiento de IA** ("quiero hacer X" → especialista recomendado) | buscador de `WeeCreatorScreen` (`matchExperiences`, por palabras clave; Weë Brain lo hará con un LLM) | ⚠️ Base |
 | **Weëls** (videos cortos) | `ReelsScreen` — feed de video; fuera de Weë se comparte el **enlace** de la publicación (`utils/compartirFuera.ts`, desde 3df8267), no el archivo; el compositor limita un Weël a **15 s** y lo marca con `Post.isWeel`. la descarga con marca de agua (`services/videoDownload.ts`) nunca se conectó y se retiró el 2026-10-01 | ✅ Base existente (sin marca de agua: la de `docs/UX.md` §10 no existe hoy) |
 | **Guardados** (🔖) | `bookmarksService` (`users/{uid}/bookmarks`), `hooks/useBookmarks.ts`, botón en `PostCard`, `SavedPostsScreen` desde el menú ☰ | ✅ Implementado |
@@ -30,7 +30,7 @@ El repositorio empezó con otro nombre (HideTok) antes de ser Weë (`db070a9`, 2
 | **Comunidades** (Weë Filmmakers, Weë Influencers, Weë Designers…) | `CommunityScreen`, `CommunitiesManagementScreen`, `communityService`, `constants/communityCategories.ts` | ✅ Base existente; son comunidades, nunca secciones |
 | **Perfil doble (Real + Weë)** | `WeeProfileCreationScreen` + `AiAvatarScreen` — perfil alterno con **avatar generado por IA** (Cloud Functions + Gemini) | ✅ Base existente (el uid guardado sigue llevando el prefijo heredado `hidi_`) |
 | Feed heredado, búsqueda, notificaciones push, páginas legales | `HomeScreen`, `SearchScreen`, `NotificationsScreen`, `public/` | ✅ Existente |
-| Weë Business (negocios, catálogo y reseñas) | `WeeBiz*Screen`, `weeBizService`, `businesses/{businessId}` | ✅ Producto vivo. La *identidad* Perfil Biz (`users/biz_*`) se eliminó el 2026-09-19: un negocio será una Página, no una cara |
+| WeeBiz (directorio de negocios del proyecto anterior) | Retirado definitivamente por decisión del dueño (2026-11-06); no se reconstruye. Un negocio, si alguna vez existe, será una Página (WeëPages) | Sus reglas, índices y copia de seguridad se conservan solo para proteger los datos históricos de producción, hasta una auditoría aparte; desplegar la web o cerrar reglas exige el OK explícito del dueño |
 | Flujo Influencer (idea → guion → video → voz → subtítulos → thumbnail) | — (será un flujo dentro de WEË AI; "Weë Influencers" es una comunidad) | ❌ No existe aún |
 | Trending, IA dentro de WeeTalk, marketplace, contenido promocionado | — | ❌ No existe aún |
 
@@ -165,12 +165,12 @@ wee-app/
 ├── firestore.rules / firestore.indexes.json / storage.rules
 ├── components/              # UI reutilizable (PostCard, Header, Sidebar, BarraInferior, avatars/…)
 ├── config/                  # firebase.ts (inicialización), linking.ts (deep links)
-├── constants/               # design.ts (tokens), chatThemes.ts, weebizCategories.ts
+├── constants/               # design.ts (tokens), chatThemes.ts
 ├── contexts/                # Auth, UserProfile, Theme, PushNotification, TabBar, Scroll
 ├── hooks/                   # useCommunities, useReposts, useVote, useBookmarks, useResponsive…
 ├── navigation/              # Auth / Main / Home / Inbox / Profile stacks + TabNavigator
 ├── screens/                 # Landing/Home, WeeCreator, Reels (Weëls), Inbox/Conversation (WeeTalk), Community,
-│                            # WeeProfileCreation + AiAvatar (Perfil Weë), CreditStore/Wallet, WeeBiz*, Search…
+│                            # WeeProfileCreation + AiAvatar (Perfil Weë), CreditStore/Wallet, Search…
 ├── services/                # firestoreService, messagesService, communityService, creditsService,
 │                            # avatarGenerationService, storageService, cloudinaryService, assetDownload…
 ├── functions/src/           # Cloud Functions (Node 24): creator, engine, credits, runtime, core… (docs/MAPA-DE-FRONTERAS.md)
@@ -220,6 +220,8 @@ npm run web:demo            # la app web conectada a los cuatro (http://localhos
 En modo demo (sin claves, como en los emuladores): en cualquier especialista, **Empezar** abre la conversación guiada (2–3 preguntas con opciones, siempre con "🤷 No sé"), muestra el plan y su coste ("Gratis en modo demo"), ejecuta los pasos con el proveedor de prueba `mock` (sin gastar dinero) y devuelve un resultado de muestra con **Crear otra versión / Editar / Publicar en mi comunidad**. Los trabajos se guardan en `creatorJobs` ("Mis creaciones"). Los Credits de cada operación salen de un solo sitio, `functions/src/credits/aiPricing.ts`: tarifa oficial del proveedor → USD → Credits con el margen de `aiSettings/global`, o el catálogo de prueba de `creditCosts.ts` mientras `pricingMode` sea `simulated` ([`docs/CREDITS.md`](docs/CREDITS.md)).
 
 ## Problemas conocidos
+
+**Integración `integracion/p0-edad-fase1` (2026-10-07, sin desplegar):** los perfiles ajenos se leen de `publicProfiles` y `users` pasará a privado en la **fase 2** (fase 2, retenida: `ops/despliegue/reglas/users-cierre.fase2.rules`; en fase 1 la lectura de `users` sigue como en producción hasta espejo + relleno verificado + cliente nuevo, y `ops/permitido.mjs` bloquea el cierre antes de tiempo) (DD-15); para generar o cobrar hace falta una **cuenta Weë válida** (sesión no anónima + fecha 18+ validada con `functions/src/identity/edad.ts` + país). Pendientes del dueño: [`docs/DECISIONES-PENDIENTES.md`](docs/DECISIONES-PENDIENTES.md) § «Edad, país y `users`».
 
 Esta lista ya no se lleva a mano aquí (se quedaba atrás). Lo abierto vive en dos sitios:
 

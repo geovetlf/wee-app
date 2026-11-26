@@ -23,7 +23,7 @@ export interface IdsNuevos {
 /**
  * UN PLANO DEL STORYBOARD. Lo que dice sale de F1-A —la tarjeta del storyboard,
  * la intención creativa efectiva, lo que falta— y de la propia producción; los
- * nombres de cámara, de la biblioteca de Weë Studio. Cada gesto es una operación
+ * nombres de cámara, de la biblioteca de WeëStudio. Cada gesto es una operación
  * de F1-A: subir, bajar, duplicar, dividir, unir, alargar, acortar y quitar.
  *
  * La miniatura: F1-C no genera ninguna, así que el hueco dice que no hay vista
@@ -49,7 +49,7 @@ const ProductionShotCard: React.FC<{
   const siguiente = escena.shots[indice + 1];
   const nombre = t('filmmaker.shotNumber', { numero: indice + 1 });
 
-  /* Los nombres de cámara que la biblioteca de Weë Studio sabe decir; lo que no nombra, no se enseña crudo. */
+  /* Los nombres de cámara que la biblioteca de WeëStudio sabe decir; lo que no nombra, no se enseña crudo. */
   const camara = [
     tarjeta?.shotType ? claveDelValor('shot.type', tarjeta.shotType) : null,
     tarjeta?.cameraType ? claveDelValor('camera.type', tarjeta.cameraType) : null,

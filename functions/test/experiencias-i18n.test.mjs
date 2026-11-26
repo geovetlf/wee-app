@@ -302,7 +302,7 @@ console.log('\n── F · Lo que NO se traduce ──');
   check('20) donde el español nombra a Weë, el inglés también', perdidas.length === 0, perdidas.join(' '));
   check('21) y los nombres de las once experiencias siguen sin traducir',
     EXP.ALL_EXPERIENCES.length === 11
-    && EXP.ALL_EXPERIENCES.every((e) => /^Weë /.test(e.name))
+    && EXP.ALL_EXPERIENCES.every((e) => /^Weë/.test(e.name))
     && !EXP.ALL_EXPERIENCES.some((e) => e.name.startsWith('creator.')));
 
   /* Lo que escribe una persona —o su negocio— no pasa por el traductor. */
@@ -368,7 +368,7 @@ console.log('\n── G · Nada funcional se movió ──');
   check('29) el estado de un trabajo son seis claves y se resuelven al pintar',
     /asking: 'weeai\.jobAsking'/.test(CODIGO['services/creatorService.ts'])
     && Object.keys(ES.weeai).filter((k) => k.startsWith('job')).length === 6
-    && ['screens/SpecialistScreen.tsx', 'screens/WeeCreatorScreen.tsx', 'screens/ProjectScreen.tsx']
+    && ['screens/SpecialistScreen.tsx', 'screens/ProjectScreen.tsx']
       .every((p) => /t\(claveDelEstado\[job\.status\]\)/.test(soloCodigo(leer(p)))));
 
   check('30) control: ni el motor de IA, ni los proveedores, ni los Credits',

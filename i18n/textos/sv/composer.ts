@@ -27,7 +27,7 @@
  * `multimedia` es «Galleri»: el botón abre la galería de fotos y vídeos, y
  * «Media» sería la misma cadena que en inglés. `currentDestination` es
  * «aktuellt val» («aktuell» es «actual» en sueco, no «real»). El muro general
- * es «Allmänna Wäll», adjetivo en forma débil delante del nombre, como
+ * es «Allmänna Ẅall», adjetivo en forma débil delante del nombre, como
  * «Gamla stan».
  *
  * Los títulos de error son sintagmas («Fel vid publicering») y los cuerpos,
@@ -53,6 +53,12 @@ export const composer: typeof import('../es/composer').composer = {
   photoOrVideo: 'Foto eller video',
   camera: 'Kamera',
   location: 'Plats',
+  place: 'Plats',
+  gallery: 'Galleri',
+  projects: 'Projekt',
+  createWithAi: 'Skapa med AI',
+  newPost: 'Nytt inlägg',
+  multimedia: 'Galleri',
   poll: 'Omröstning',
   sheetTitle: 'Skapa',
   sheetSubtitle: 'Vad vill du dela i dag?',
@@ -69,7 +75,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Visa publiceringsalternativen',
   hideOptions: 'Dölj publiceringsalternativen',
   currentDestination: '{{destino}}, aktuellt val',
-  generalWall: 'Allmänna Wäll',
+  generalWall: 'Allmänna Ẅall',
   placeholderPollExtra: 'Lägg till något mer om du vill (valfritt)…',
   placeholderQuestion: 'Vad vill du fråga communityn?',
   placeholderWeel: 'Berätta vad du skapat i din Weël och med vilken AI…',
@@ -79,15 +85,10 @@ export const composer: typeof import('../es/composer').composer = {
   placeholderDefault: 'Skriv något…',
   postTextLabel: 'Inläggets text',
   weelHint: 'Weël: en video på högst {{segundos}} sekunder. När den delas utanför Weë får den en liten vattenstämpel.',
-  newPost: 'Nytt inlägg',
   you: 'Du',
   shareWithCommunity: 'Dela med communityn på Weë',
-  publicVisibility: 'Offentligt',
-  visibilityIs: 'Synlighet: {{estado}}',
-  publicExplain: 'Just nu är alla inlägg på Weë offentliga.',
   profileReal: 'Riktig profil',
   profileWee: 'Weë-profil',
-  multimedia: 'Galleri',
   actionWithBadge: '{{accion}}, {{insignia}}',
   removeVideo: 'Ta bort videon',
   removePhotoNumber: 'Ta bort foto {{numero}}',

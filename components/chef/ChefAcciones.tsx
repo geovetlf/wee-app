@@ -3,9 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { RejillaDeCreator } from '../creator/PiezasDeCreator';
 import { TARJETAS_DE_CHEF, TarjetaDeChef } from '../../constants/chefTools';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -36,7 +39,23 @@ interface Props {
  */
 const ChefAcciones: React.FC<Props> = ({ onElegir, porFila }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
+  const pro = useEnEspacioProfesional();
+
+  if (pro) {
+    return (
+      <RejillaDeCreator
+        puertas={TARJETAS_DE_CHEF.map((tarjeta) => ({
+          id: tarjeta.id,
+          icono: tarjeta.icono,
+          titulo: t(tarjeta.claveTitulo),
+          pista: t(tarjeta.claveSubtitulo),
+          onPress: () => onElegir(tarjeta),
+        }))}
+      />
+    );
+  }
 
   return (
     <View style={styles.rejilla}>
@@ -49,7 +68,7 @@ const ChefAcciones: React.FC<Props> = ({ onElegir, porFila }) => {
           <TouchableOpacity
             style={[
               styles.tarjeta,
-              { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+              { backgroundColor: c.superficie, borderColor: c.superficieAlta },
               isWeb && ({ cursor: 'pointer' } as any),
             ]}
             onPress={() => onElegir(tarjeta)}
@@ -84,7 +103,6 @@ const styles = StyleSheet.create({
   },
   tarjeta: {
     borderRadius: scale(20),
-    borderWidth: StyleSheet.hairlineWidth,
     padding: SPACING.lg,
     gap: SPACING.sm,
     minHeight: scale(118),

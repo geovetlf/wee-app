@@ -13,7 +13,7 @@ import { scale } from '../utils/scale';
  * mientras la persona interactúa.
  */
 const SLIDES = [
-  { source: require('../assets/images/hero/slide-1.jpg'), alt: 'Crea tu alter ego digital Weë. World Encode Entity.' },
+  { source: require('../assets/images/hero/slide-1.jpg'), alt: 'Crea tu alter ego digital Weë. WORLD OF EXPRESSION & EVOLUTION.' },
   { source: require('../assets/images/hero/slide-2.jpg'), alt: 'La IA está al alcance de todos. Crea sin ser experto.' },
   { source: require('../assets/images/hero/slide-3.jpg'), alt: 'Convierte tus ideas en realidad. Imágenes, videos, textos y mucho más.' },
   { source: require('../assets/images/hero/slide-4.jpg'), alt: 'Imagina. Crea. Comparte. Evoluciona. Bienvenido a una nueva forma de crear.' },

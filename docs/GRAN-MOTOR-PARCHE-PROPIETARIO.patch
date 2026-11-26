@@ -1,0 +1,193 @@
+diff --git a/functions/src/creator/index.ts b/functions/src/creator/index.ts
+index e2b8ed0e..51ca0826 100644
+--- a/functions/src/creator/index.ts
++++ b/functions/src/creator/index.ts
+@@ -535,7 +535,7 @@ export const materialesDeResultado = async (
+       });
+       if (material) ids.push(material.assetId);
+     } catch (error) {
+-      console.error(`Content: no se pudo crear el material del paso ${step.id} del trabajo ${jobId}:`, error);
++      console.error(`Content: no se pudo crear el material del paso ${step.id} del trabajo ${jobId}:`, sanitizeForLog(error, 300));
+     }
+   }
+   /*
+@@ -835,9 +835,9 @@ export const creatorRun = onCall(
+         const failing = steps.find((s) => s.status === 'running');
+         if (failing) {
+           failing.status = 'failed';
+-          failing.error = (error instanceof Error ? error.message : String(error)).slice(0, 300);
++          failing.error = sanitizeForLog(error, 300);
+         }
+-        console.error(`Trabajo ${jobId} falló:`, error);
++        console.error(`Trabajo ${jobId} falló:`, sanitizeForLog(error, 300));
+         const classified = classifyError(error);
+         /* FAILED → REFUND, solo si esta llamada sigue siendo la dueña del trabajo (si no, ya lo cerró otro). */
+         const cerrado = await cerrarTrabajo(ref, runId, {
+diff --git a/functions/src/creator/video.ts b/functions/src/creator/video.ts
+index 8e34303a..66825229 100644
+--- a/functions/src/creator/video.ts
++++ b/functions/src/creator/video.ts
+@@ -11,6 +11,7 @@ import { priceVideo } from '../credits/aiPricing';
+ import { techoDeVideoDeEntrada } from '../engine/providers/seedance';
+ import { usageTransactionId } from '../credits/creditTransactions';
+ import { firestoreLedger } from '../engine/ledger';
++import { sanitizeForLog } from '../engine/sanitize';
+ import { ensureAccount } from './credits';
+ import { assertInputImageUrl } from './inputs';
+ import { AI_SECRETS } from '../secrets';
+@@ -724,7 +725,7 @@ export const generateVideo = onCall({ region: 'us-central1', timeoutSeconds: PLA
+           });
+           assetId = material?.assetId ?? null;
+         } catch (error) {
+-          console.error('Content: no se pudo crear el material del vídeo', requestId, error);
++          console.error('Content: no se pudo crear el material del vídeo', requestId, sanitizeForLog(error, 300));
+         }
+       }
+       await creditEngine.completeCredits({ userId: uid, requestId, meta: { generationId: result.generationId, videoUrl: result.output.url } });
+diff --git a/functions/src/generateAvatar.ts b/functions/src/generateAvatar.ts
+index 86d297c8..8a0562f9 100644
+--- a/functions/src/generateAvatar.ts
++++ b/functions/src/generateAvatar.ts
+@@ -14,6 +14,7 @@ import { operacionAbandonada } from './core';
+ import { assertInputImageUrl } from './creator/inputs';
+ import { toHttpsError } from './credits/creditValidation';
+ import { loadConfig } from './engine/config';
++import { sanitizeForLog } from './engine/sanitize';
+ import {
+   generateAvatarWithImagen,
+   replacePersonWithAvatar,
+@@ -239,7 +240,7 @@ export const generateAvatarWithGemini = onCall(
+ 
+         return { imageUrl: publicUrl };
+       } catch (error: any) {
+-        console.error('Avatar generation failed:', error);
++        console.error('Avatar generation failed:', sanitizeForLog(error, 300));
+         /* El detalle del proveedor se queda en el log de arriba: al cliente solo le llega un código. */
+         throw new HttpsError('internal', 'generation_failed', { reason: 'generation_failed' });
+       }
+@@ -329,7 +330,7 @@ export const avatarReplacement = onCall(
+ 
+       return { imageUrl: publicUrl };
+     } catch (error: any) {
+-      console.error('Avatar replacement failed:', error);
++      console.error('Avatar replacement failed:', sanitizeForLog(error, 300));
+       /* El detalle del proveedor se queda en el log: al cliente solo le llega un código. */
+       throw new HttpsError('internal', 'replacement_failed', { reason: 'replacement_failed' });
+     }
+diff --git a/functions/test/f1d-generacion.test.mjs b/functions/test/f1d-generacion.test.mjs
+index 7dcbab0c..383d50cb 100644
+--- a/functions/test/f1d-generacion.test.mjs
++++ b/functions/test/f1d-generacion.test.mjs
+@@ -839,12 +839,21 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
+    *   contenido exacto de esa diferencia lo fija job-queue 63p (bloques REVISION_F06 de _bloques-autorizados.mjs) y su
+    *   comportamiento credits-saldo-privado (cadena) y saldo-privado.emulator. creditValidation e index, sin tocar.
+    */
+-  const CREDITS_DEL_HARNESS = '246\t56\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
++  /* + Gran Motor C+D (2026-10-16): creditEngine.ts 246/56 → 252/59 (C-2 c8b5a621: importe final NaN rechazado y el libro no registra un cobro sobre una reserva ya devuelta, +2 · D L-5 e3b77353: `duplicate` en completeCredits, +4 −3). Bloques exactos en _bloques-autorizados.mjs (REVISION_GRAN_MOTOR). */
++  const CREDITS_DEL_HARNESS = '252\t59\tfunctions/src/credits/creditEngine.ts\n10\t2\tfunctions/src/credits/creditValidation.ts\n19\t3\tfunctions/src/credits/index.ts';
+   /* + misión fal (2026-10-05): core/router.ts +2 −2 (la modalidad 3d) y creditCosts.ts +8 (el servicio ai_world). Líneas exactas en job-queue 63fal. */
+   const CREDITS_DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
+   check('AI) Credits intactos: el Credit Engine, el Financial Core y el resto; credits/index, solo el cierre de spendCredits del Harness (b878068); el Router y creditCosts, solo la misión fal; del tamaño exacto',
+     git(`diff --numstat ${CREDITS} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r$/, '') === `${CREDITS_DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`);
+   const legacy = (s) => { const a = s.indexOf('    try {\n      const result = await videoEngine.generate('); return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a)); };
++  /*
++   * + Gran Motor P (2026-10-16, parche consolidado del propietario, docs/GRAN-MOTOR-PARCHE-PROPIETARIO.patch; origen S2,
++   *   docs/GRAN-MOTOR-S2-PAGOS-SANITIZE.md, riesgo ALTO): la ÚNICA línea nueva de la rama legacy de generateVideo es el
++   *   registro del fallo al catalogar el vídeo, ahora con sanitizeForLog. Tiene que estar EXACTAMENTE una vez, y se
++   *   devuelve a la de antes para seguir comparando el resto del bloque byte a byte: cualquier otra diferencia cae.
++   */
++  const LEGACY_P_NUEVA = "          console.error('Content: no se pudo crear el material del vídeo', requestId, sanitizeForLog(error, 300));\n";
++  const LEGACY_P_ANTES = "          console.error('Content: no se pudo crear el material del vídeo', requestId, error);\n";
+   check('creatorRun, solo con los arreglos del Harness (H0 #9, #11, #15a) y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
+     git(`diff --numstat ${PUENTE} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
+       /* creator/index.ts: + 10 de la integración i18n da-DK (el locale) y + 2 de la observación del idioma de salida, ver video-asincrono H2.
+@@ -855,8 +864,14 @@ console.log('\n── AG–AI · F1-A, productions y Credits, intactos ──');
+       /* + segunda auditoría de cierre 2026-10-01: index +7 −1 (antes 117/15): creatorRun pregunta `vozSinNarracion` antes de elegir el siguiente paso —una voz que no tendría nada que leer para el trabajo ANTES de pagar el vídeo— y su import. */
+       /* + misión mundo3d (2026-10-05, +17 −2, antes 140/21): materialesDeResultado guarda los derechos del modelo y anota las variantes de UN resultado; nada del reclamo ni del cobro. */
+       /* + Línea B (2026-10-14, integridad financiera): creator/index +47 −18 (cierre del trabajo como transición, abandono desde el fin del PROCESO, interruptor del vídeo antes de reservar, lo demo no se cobra); la rama legacy de generateVideo solo gana la devolución de un vídeo de muestra (B4-03). */
+-      '45\t4\tfunctions/src/creator/credits.ts|204\t41\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
+-    && legacy(leer('functions/src/creator/video.ts')).length > 500 && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))) === legacy(git(`show ${PUENTE}:functions/src/creator/video.ts`)));
++      /* + Gran Motor C (2026-10-16, c8b5a621): creator/credits.ts 45/4 → 55/6 (+10 −2: el libro no registra un cobro sobre una reserva ya devuelta). */
++      /* + Gran Motor P (2026-10-16, parche del propietario; origen S2): creator/index.ts 204/41 → 207/44 (+3 −3: el registro del
++       * material de un paso y el del trabajo fallido con sanitizeForLog, y el error que se GUARDA en el paso fallido de
++       * creatorJobs, saneado igual en vez de `error.message.slice(0, 300)`); generateAvatar.ts 132/15 → 135/17 (+3 −2: su
++       * import y los dos registros de fallo del avatar con sanitizeForLog). Nada del reclamo ni del cobro. */
++      '55\t6\tfunctions/src/creator/credits.ts|207\t44\tfunctions/src/creator/index.ts|135\t17\tfunctions/src/generateAvatar.ts'
++    && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')).split(LEGACY_P_NUEVA).length === 2
++    && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))).replace(LEGACY_P_NUEVA, LEGACY_P_ANTES) === legacy(git(`show ${PUENTE}:functions/src/creator/video.ts`)));
+ }
+ 
+ check('esta suite está en la cadena de `npm test`', /f1d-generacion\.test\.mjs/.test(leer('functions/package.json')));
+diff --git a/functions/test/puente-pre-f1d.test.mjs b/functions/test/puente-pre-f1d.test.mjs
+index a4bd4b32..d01eb9fa 100644
+--- a/functions/test/puente-pre-f1d.test.mjs
++++ b/functions/test/puente-pre-f1d.test.mjs
+@@ -772,6 +772,13 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
+     const a = s.indexOf('    try {\n      const result = await videoEngine.generate(');
+     return a < 0 ? '' : s.slice(a, s.indexOf('  } catch (error) {\n    throw toEngineHttpsError(error);', a));
+   };
++  /*
++   * + Gran Motor P (2026-10-16, parche consolidado del propietario, docs/GRAN-MOTOR-PARCHE-PROPIETARIO.patch; origen S2,
++   *   riesgo ALTO): la ÚNICA línea nueva de la rama legacy de generateVideo es el registro del fallo al catalogar el vídeo,
++   *   con sanitizeForLog. Exactamente una vez; se devuelve a la de antes y el resto del bloque se compara byte a byte.
++   */
++  const LEGACY_P_NUEVA = "          console.error('Content: no se pudo crear el material del vídeo', requestId, sanitizeForLog(error, 300));\n";
++  const LEGACY_P_ANTES = "          console.error('Content: no se pudo crear el material del vídeo', requestId, error);\n";
+   /* creatorRun y el avatar solo con los arreglos de la FASE 1 del Harness (H0 #9, #11, #15a), por tamaño. */
+   check('F4) creatorRun, solo con los arreglos del Harness y del tamaño exacto; y la rama legacy de generateVideo, byte a byte',
+     git(`diff --numstat ${RUTA} -- functions/src/creator/index.ts functions/src/creator/credits.ts functions/src/generateAvatar.ts`).trim().split('\n').map((l) => l.replace(/\r$/, '')).join('|')
+@@ -783,8 +790,12 @@ console.log('\n── F · Lo que este puente toca, y lo que no ──');
+       /* + segunda auditoría de cierre 2026-10-01: index +7 −1 (antes 117/15): creatorRun pregunta `vozSinNarracion` antes de elegir el siguiente paso —una voz que no tendría nada que leer para el trabajo ANTES de pagar el vídeo— y su import. */
+       /* + misión mundo3d (2026-10-05, +17 −2, antes 140/21): materialesDeResultado guarda los derechos y las variantes; nada del reclamo ni del cobro. */
+       /* + Línea B (2026-10-14, integridad financiera): creator/index +47 −18 (cierre del trabajo como transición, abandono desde el fin del PROCESO, interruptor del vídeo antes de reservar, lo demo no se cobra); la rama legacy de generateVideo solo gana la devolución de un vídeo de muestra (B4-03). */
+-      '55\t6\tfunctions/src/creator/credits.ts|204\t41\tfunctions/src/creator/index.ts|132\t15\tfunctions/src/generateAvatar.ts'
+-    && legacy(leer('functions/src/creator/video.ts')).length > 500 && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
++      /* + Gran Motor P (2026-10-16, parche del propietario; origen S2): creator/index.ts 204/41 → 207/44 (+3 −3: dos registros
++       * con sanitizeForLog y el error guardado en el paso fallido de creatorJobs, saneado); generateAvatar.ts 132/15 → 135/17
++       * (+3 −2: import y dos registros de fallo del avatar con sanitizeForLog). */
++      '55\t6\tfunctions/src/creator/credits.ts|207\t44\tfunctions/src/creator/index.ts|135\t17\tfunctions/src/generateAvatar.ts'
++    && legacy(leer('functions/src/creator/video.ts')).length > 500 && legacy(leer('functions/src/creator/video.ts')).split(LEGACY_P_NUEVA).length === 2
++    && ((t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\n      \}\n/, ''))(legacy(leer('functions/src/creator/video.ts'))).replace(LEGACY_P_NUEVA, LEGACY_P_ANTES) === legacy(git(`show ${RUTA}:functions/src/creator/video.ts`)));
+ }
+ 
+ check('esta suite está en la cadena de `npm test`', /puente-pre-f1d\.test\.mjs/.test(leer('functions/package.json')));
+diff --git a/functions/test/video-asincrono.test.mjs b/functions/test/video-asincrono.test.mjs
+index def967b2..d1b8c230 100644
+--- a/functions/test/video-asincrono.test.mjs
++++ b/functions/test/video-asincrono.test.mjs
+@@ -613,7 +613,16 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
+   const antes = git(`show ${ANTES}:functions/src/creator/video.ts`);
+   /* Línea B · B4-03 (2026-10-14): lo ÚNICO nuevo en la rama legacy es devolver la reserva de un vídeo de muestra (`if (result.demo) {…}`). */
+   const sinDemo = (t) => t.replace(/      if \(result\.demo\) \{[\s\S]*?\r?\n      \}\r?\n/, '');
+-  check('H1) la rama legacy de generateVideo es byte a byte la de antes (salvo la devolución del demo, B4-03)', bloque(VIDEO_SRC).length > 500 && bloque(VIDEO_SRC) !== bloque(antes) && sinDemo(bloque(VIDEO_SRC)) === bloque(antes));
++  /*
++   * + Gran Motor P (2026-10-16, parche consolidado del propietario, docs/GRAN-MOTOR-PARCHE-PROPIETARIO.patch; origen S2,
++   *   docs/GRAN-MOTOR-S2-PAGOS-SANITIZE.md, riesgo ALTO): la otra línea nueva —y la única además del demo— es el registro
++   *   del fallo al catalogar el vídeo, con sanitizeForLog. Tiene que estar EXACTAMENTE una vez; se devuelve a la de antes y
++   *   el resto del bloque sigue comparándose byte a byte: cualquier otra diferencia cae.
++   */
++  const LEGACY_P_NUEVA = "          console.error('Content: no se pudo crear el material del vídeo', requestId, sanitizeForLog(error, 300));\n";
++  const LEGACY_P_ANTES = "          console.error('Content: no se pudo crear el material del vídeo', requestId, error);\n";
++  check('H1) la rama legacy de generateVideo es byte a byte la de antes (salvo la devolución del demo, B4-03)', bloque(VIDEO_SRC).length > 500 && bloque(VIDEO_SRC) !== bloque(antes)
++    && bloque(VIDEO_SRC).split(LEGACY_P_NUEVA).length === 2 && sinDemo(bloque(VIDEO_SRC)).replace(LEGACY_P_NUEVA, LEGACY_P_ANTES) === bloque(antes));
+   /*
+    * F1-D mueve DOS piezas del motor, con autorización y solo esas: el cupo cuenta
+    * una operación repetida UNA vez (`limits.ts`, decisión 14) y el adaptador de
+@@ -630,7 +639,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
+    */
+   const MOTOR_F1D_Y_HARNESS = {
+     'functions/src/creator/credits.ts': '55\t6', // 0926584 (#9) · 6d33fd2 (#15a) · 0799ed6 · Gran Motor C-1 (+10 −2: el libro tras una reserva devuelta, c8b5a621)
+-    'functions/src/creator/index.ts': '204\t41', // Línea B 2026-10-14 (+47 −18, antes 157/23): el cierre del trabajo es una transición (`cerrarTrabajo`/`cerrarAbandonado`, X3), el abandono cuenta desde el fin del PROCESO, el interruptor del vídeo antes del cupo y la reserva (X2), y lo demo no se cobra (`cobroDelTrabajo`, B4-03) · misión mundo3d (+17 −2, antes 140/21): materialesDeResultado guarda los derechos del modelo que atendió y anota las variantes de UN resultado (y se exporta para probarlo) · C-1 2026-10-05 (+16 −5, antes 124/16): creatorQuote en transacción, solo con el trabajo `planned`, sin reclamo reciente ni reserva · segunda auditoría de cierre 2026-10-01 (+7 −1, antes 117/15): vozSinNarracion antes del vídeo · 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida) · revisión post-auditoría 2026-10-01: jobId/stepId en el aviso del idioma de salida · cierre post-auditoría 2026-10-01 (+6 −5, antes 111/10): creatorChat y creatorQuote montan MODEL_SECRETS, y la adaptación de idioma de creatorRun lleva su sistema y `format: 'text'` (entradaDeAdaptacion)
++    'functions/src/creator/index.ts': '207\t44', // Gran Motor P 2026-10-16 (parche del propietario, origen S2; +3 −3, antes 204/41): el registro del material de un paso y el del trabajo fallido con sanitizeForLog, y el error GUARDADO en el paso fallido de creatorJobs saneado igual (no `error.message.slice(0, 300)`) · Línea B 2026-10-14 (+47 −18, antes 157/23): el cierre del trabajo es una transición (`cerrarTrabajo`/`cerrarAbandonado`, X3), el abandono cuenta desde el fin del PROCESO, el interruptor del vídeo antes del cupo y la reserva (X2), y lo demo no se cobra (`cobroDelTrabajo`, B4-03) · misión mundo3d (+17 −2, antes 140/21): materialesDeResultado guarda los derechos del modelo que atendió y anota las variantes de UN resultado (y se exporta para probarlo) · C-1 2026-10-05 (+16 −5, antes 124/16): creatorQuote en transacción, solo con el trabajo `planned`, sin reclamo reciente ni reserva · segunda auditoría de cierre 2026-10-01 (+7 −1, antes 117/15): vozSinNarracion antes del vídeo · 0926584 (#9) · 0799ed6 · i18n da-DK (+10 el locale, +2 la observación del idioma de salida) · revisión post-auditoría 2026-10-01: jobId/stepId en el aviso del idioma de salida · cierre post-auditoría 2026-10-01 (+6 −5, antes 111/10): creatorChat y creatorQuote montan MODEL_SECRETS, y la adaptación de idioma de creatorRun lleva su sistema y `format: 'text'` (entradaDeAdaptacion)
+     'functions/src/engine/admin.ts': '14\t4', // Línea B 2026-10-14 (+3, antes 11/4): `videoHabilitado` se cambia por setSettings y solo admite true/false · 0ad8500 (#19) · 5e87b80 (FASE 8) · cierre post-auditoría 2026-10-01 (+2 −2, antes 9/2): engineAdmin monta MODEL_SECRETS
+     'functions/src/engine/config.ts': '36\t1', // 8193184 (#20) · misión fal: '3d' entra en la lista de modalidades que ya añadió #20 (no cambia la cifra)
+     'functions/src/engine/derechos.ts': '26\t0', // misión mundo3d (nuevo): los derechos de lo que generó una implementación, de los datos de SU modelo; una regla para los tres caminos
+@@ -660,7 +669,7 @@ console.log('\n── H · Legacy, F1-A y productions: intactos ──');
+     'functions/src/engine/verification.ts': '8\t0', // misión fal (nuevo en el mapa): la ficha de fal, documentada y sin verificar con la API real
+     'functions/src/engine/video.ts': '24\t0', // Línea B 2026-10-14 (nuevo en el mapa): el interruptor del vídeo (`videoApagado`, `hayVideoReal`, `asegurarVideoPermitido`) y su comprobación en `videoEngine.generate`, antes de cualquier proveedor (X2)
+     'functions/src/engine/webhooks.ts': '38\t14', // 8a9f098 (#21)
+-    'functions/src/generateAvatar.ts': '132\t15', // a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6 · revisión post-auditoría 2026-10-01: reservas abandonadas del avatar (money/reserva-colgada-avatar) · cierre post-auditoría 2026-10-01 (+3 −3, antes 129/12): el avatar monta AVATAR_SECRETS (solo Gemini)
++    'functions/src/generateAvatar.ts': '135\t17', // Gran Motor P 2026-10-16 (parche del propietario, origen S2; +3 −2, antes 132/15): import de sanitizeForLog y los dos registros de fallo del avatar saneados · a5f6f99 (#11) · 0ad8500 (#19) · 0799ed6 · revisión post-auditoría 2026-10-01: reservas abandonadas del avatar (money/reserva-colgada-avatar) · cierre post-auditoría 2026-10-01 (+3 −3, antes 129/12): el avatar monta AVATAR_SECRETS (solo Gemini)
+   };
+   /*
+    * Y la integración i18n da-DK (rama i18n/da-dk, 2026-10-01), también por nombre y tamaño: el locale de la app viaja

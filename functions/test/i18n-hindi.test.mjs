@@ -86,7 +86,7 @@ const EN = Object.fromEntries(aplanar(en));
 const cp = (...n) => String.fromCodePoint(...n);
 const clase = (...rangos) => new RegExp('[' + rangos.map((r) => (Array.isArray(r) ? cp(r[0]) + '-' + cp(r[1]) : cp(r))).join('') + ']', 'u');
 
-const MARCAS = /Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls?|Wäll|ËContact|ẄContact|Credits|Weë/gu;
+const MARCAS = /MyWeës|WeëAI|Weë(?:Studio|Design|Chef|Music|Fashion|Travel)|Weë (?:AI|Studio|Design|Photo|Writer|Music|Beauty|Chef|Home|Business|Travel|Brain|Credits|Inspira)|WeeTalk|Weëls?|Ẅall|ËContact|ẄContact|Credits|Weë/gu;
 const sinLoAjeno = (v) => String(v)
   .replace(/\{\{[\w.]+\}\}/g, ' ')
   .replace(/\\[nrt]/g, ' ')
@@ -106,7 +106,8 @@ console.log('\n── A · `hi-IN` de punta a punta, sin lógica para el hindi �
   check('1b) «हिन्दी» es el nombre que da CLDR para el selector', new Intl.DisplayNames(['hi'], { type: 'language' }).of('hi') === cat?.nombreNativo);
   check('2) y su locale principal, `hi-IN`, está entre los contemplados', idiomas.LOCALES_CONTEMPLADOS.includes('hi-IN'));
   check('3) el registro lo sirve con su propio diccionario, no por un alias',
-    registro.DICCIONARIOS.hi === hi && registro.idiomasConDiccionario().includes('hi'));
+    /* Con su sección del servidor el registro sirve {...hi, ...servidor}: se exige que CADA módulo sea el suyo (el mismo objeto), y que la sección esté. */
+    Object.keys(hi).every((s) => registro.DICCIONARIOS.hi[s] === hi[s]) && !!registro.DICCIONARIOS.hi.preguntas && registro.idiomasConDiccionario().includes('hi'));
 
   const disponibles = registro.idiomasConDiccionario();
   const elegir = (elegido, aparato) => resolver.elegirIdioma(elegido, aparato, disponibles);
@@ -163,6 +164,9 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
 
   /* Lo que se escribe igual en hindi que en español o en inglés, con su porqué. */
   const IGUALES = new Map([
+    ['menu.pages', '«WeëPages» es el nombre de la función (marca), no se traduce'],
+    ['music.export_midi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
+    ['music.capMidi', 'término musical o técnico internacional que se escribe igual (Weë Music)'],
     ['filmmaker.presetShorts', '«YouTube Shorts» es el nombre del producto de la plataforma, en latino como las marcas; los Shorts ya son vídeos'],
     ['business.formatTikTok', 'el nombre de la red'],
     ['business.shareProfile', '«Business Profile» es nombre de producto (decisión del usuario, 2026-09-16)'],
@@ -173,8 +177,10 @@ console.log('\n── B · Entero: sin respaldo, sin huecos, sin nada sin traduc
     ['business.customerInsights', 'nombre de función de Weë Business (decisión del usuario, 2026-09-16)'],
     ['business.businessIdeas', 'nombre de función de Weë Business (decisión del usuario, 2026-09-16)'],
     ['catalogo.chefEj4Title', '«Lomo saltado» es el nombre de un plato: no se traduce'],
-    ['help.footer', 'la marca, «World Encode Entity» y la versión'],
+    ['help.footer', 'la marca, «WORLD OF EXPRESSION & EVOLUTION» y la versión'],
     ['settings.engineAdmin', '«Weë AI Engine» es el nombre del producto (el WEË AI ENGINE)'],
+    ['travel.demo', 'WeëTravel (2026-11-06): marca: «DEMO» señala los datos simulados del prototipo'],
+    ['travel.travelSafe', 'WeëTravel (2026-11-06): marca: «Travel Safe» es el nombre de la sección'],
   ]);
   const copiadas = HI.filter(([k, v]) => !IGUALES.has(k) && /\p{L}{3,}/u.test(sinLoAjeno(v)) && (ES[k] === v || EN[k] === v));
   check('21) ninguna cadena copiada tal cual del español o del inglés, salvo las que se escriben igual con su porqué',
@@ -332,10 +338,16 @@ console.log('\n── F · La búsqueda iguala lo que el teclado cambia ──')
   check('45c) sin espaciado entre letras para el devanagari y el árabe; el latín, el cirílico y el japonés, igual',
     caja.sinEspaciadoSiSeUne(devanagari)?.letterSpacing === 0 && caja.sinEspaciadoSiSeUne(cp(0x645, 0x644, 0x641))?.letterSpacing === 0
     && ['PERFIL', 'ПРОФИЛЬ', 'プロフィール', '', null].every((t) => caja.sinEspaciadoSiSeUne(t) === undefined));
-  const conEspaciado = ['components/TextoEnMayusculas.tsx', 'components/DrawerMenu.tsx', 'components/Sidebar.tsx',
+  /*
+   * Rediseño del 2026-11-15: el menú y la barra lateral ya no tienen rótulos de grupo (PERFIL, EXPLORA), que eran los
+   * únicos con espaciado entre letras. Se comprueba lo que queda: que no vuelvan a espaciar ningún texto.
+   */
+  const conEspaciado = ['components/TextoEnMayusculas.tsx',
     'components/HowIMadeIt.tsx', 'screens/CreateScreen.tsx'].filter((p) => !/sinEspaciadoSiSeUne\(/.test(leer(p)));
-  check('45d) los rótulos con espaciado (mayúsculas, grupos del menú y de la barra, «Cómo lo hice», «Publicar en») lo quitan en devanagari',
-    conEspaciado.length === 0, conEspaciado.join(' ') || 'los cinco');
+  check('45d) los rótulos con espaciado (mayúsculas, «Cómo lo hice», «Publicar en») lo quitan en devanagari; el menú y la barra ya no espacian ningún texto',
+    conEspaciado.length === 0 && !/letterSpacing/.test(leer('components/DrawerMenu.tsx')) && !/letterSpacing/.test(leer('components/Sidebar.tsx'))
+    && !/letterSpacing|textTransform/.test(leer('components/inicio/SelectorDeIdentidad.tsx') + leer('components/inicio/TarjetaWeeAi.tsx').replace(/\n  nombre(?:DeMenu)?: \{[^}]*\},/g, '') + leer('components/inicio/PestanasDeInicio.tsx')),
+    conEspaciado.join(' ') || 'los tres');
 }
 
 console.log('\n── G · El dinero y las marcas ──');
@@ -347,7 +359,7 @@ console.log('\n── G · El dinero y las marcas ──');
   check('47) cada «Credits» del español sigue en su clave hindi', perdidos.length === 0, perdidos.slice(0, 4).map(([k]) => k).join(' ') || 'todos');
 
   const LISTA = ['Weë', 'Weë AI', 'Weë Studio', 'Weë Chef', 'Weë Design', 'Weë Travel', 'Weë Business', 'Weë Music', 'Weë Inspira',
-    'Weëls', 'Wäll', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
+    'Weëls', 'Ẅall', 'Weë Credits', 'ËContact', 'ẄContact', 'Credits', 'WeeTalk', 'Weë Brain', 'Weë Photo', 'Weë Writer', 'Weë Beauty', 'Weë Home'];
   const escapar = (m) => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const perdidas = [];
   for (const [k, v] of HI) {
@@ -359,7 +371,7 @@ console.log('\n── G · El dinero y las marcas ──');
     }
   }
   check('48) cada marca del español sigue, intacta y en latino, en su clave hindi', perdidas.length === 0, perdidas.slice(0, 6).join(' | ') || 'todas');
-  const PEGADA = /(?:Weë|WeeTalk|Wäll|ËContact|ẄContact|Credits)[ऀ-ॿ]|[ऀ-ॿ](?:Weë|WeeTalk|Wäll|ËContact|ẄContact|Credits)/u;
+  const PEGADA = /(?:Weë|WeeTalk|Ẅall|ËContact|ẄContact|Credits)[ऀ-ॿ]|[ऀ-ॿ](?:Weë|WeeTalk|Ẅall|ËContact|ẄContact|Credits)/u;
   const pegadas = HI.filter(([, v]) => PEGADA.test(v));
   check('49) ninguna marca pegada a una letra devanagari: la posposición va separada («Weë पर»)', pegadas.length === 0, muestra(pegadas, 4) || 'limpio');
   const TRANSLITERADA = /(?<![\p{L}\p{M}])(?:वी|वीई|वीटॉक|वी टॉक|वील|वील्स|ईकॉन्टैक्ट|ईकॉन्टेक्ट)(?![\p{L}\p{M}])/u;
@@ -438,6 +450,10 @@ console.log('\n── J · Traducciones defectuosas ──');
 
   /* La misma frase española se dice igual en toda la app, salvo cuando el contexto pide otra cosa. */
   const DISTINTAS_A_PROPOSITO = new Set([
+    /* WeëPages: «Usuario» es el nombre de usuario (@) de una página, no la persona. */
+    'pages.f_handle',
+    /* Weë Music: el mismo rótulo español, otro contexto — «Género» musical (no el sexo), «Ambiente» y «Voz» de una canción (no el sonido ambiente ni la voz en off), «Efectos» de audio y «Resumen» de una selección. */
+    'music.groupGenre', 'music.transformTitle', 'music.groupMood', 'music.fxTitle',
     /* «Personas» como estilo de avatar son personas; en el Chef, «Personas» es cuántos comen. */
     'avatar.stylePeople',
     /* Weë Filmmaker, revisado por un segundo traductor (2026-10-01): la misma frase española, otro sentido. */
@@ -457,6 +473,20 @@ console.log('\n── J · Traducciones defectuosas ──');
     'studio.smNatural', 'studio.ltSoft', 'studio.smSmooth',
     /* «Seguir»: la cámara que sigue a alguien («पीछे-पीछे चलना»), no seguir a un perfil («फ़ॉलो करें»). */
     'studio.mvFollow',
+    /* «sin límites.»: la segunda mitad del héroe de la demo YC; el verbo va al final y cada sección termina con el suyo (बनाएँ., डिज़ाइन करें.). */
+    'design.heroAccent',
+    /* WeëTravel (2026-11-06): la misma frase española, otro sentido que en otro módulo — «Guardados» son lugares y viajes
+       guardados (सेव की गई), no las publicaciones guardadas del menú (सेव की गई पोस्ट); «Lista» de lugares (सूची), no el
+       estado «Lista» de weeai (तैयार); «Historia» la categoría de lugares (इतिहास), no el relato de fashion (कहानी); «Cartel»
+       un letrero de la calle (साइनबोर्ड), no un póster de studio (पोस्टर); «Subir»/«Bajar» reordenan paradas (ऊपर/नीचे ले
+       जाएँ), como en filmmaker, no la grúa de la cámara de studio. */
+    'travel.tabSaved', 'travel.viewList', 'travel.catHistory', 'travel.visionSign', 'travel.moveUp', 'travel.moveDown',
+    /* «Ubicación» de Ajustes (decisión del dueño 2026-11-06: un solo pin, sistema visual de Ajustes; sin el «📍» del título
+       coincide en español con composer.location): es el permiso de ubicación del aparato (जगह की जानकारी), no el lugar que
+       se añade a una publicación o a una página (जगह). */
+    'settings.location',
+    /* Ficha del personaje (2026-11-22): «Básico»/«Medio» son niveles de autonomía (बुनियादी, मध्यम), no el paquete de Credits (बेसिक) ni el largo de un texto (मीडियम). */
+    'character.levelBasico',
   ]);
   const porFrase = new Map();
   for (const [k, v] of HI) {

@@ -275,11 +275,15 @@ console.log('\n── 3 · WeeTalk: quién habla lo dice la sesión ──');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-console.log('\n── 4 · Comunidades: quién la creó lo dice la sesión ──');
+console.log('\n── 4 · Comunidades: ningún cliente las crea, administra ni cuenta (las escribe el servidor) ──');
 // ═══════════════════════════════════════════════════════════════════════════
 {
   const comunidad = (extra = {}) => ({ name: 'Weë Devs', slug: 'devs', description: '', icon: 'code', rules: [], memberCount: 1, postCount: 0, isOfficial: false, moderators: [A], createdBy: A, status: 'active', createdAt: ahora, updatedAt: ahora, ...extra });
-  await espera(num('Ana crea una comunidad a su nombre'), 'PERMITE', crear('/communities/k1', A, comunidad()));
+  /* Re-anclado (docs/COMUNIDADES-IDENTIDAD.md, decisión 3 del dueño (2026-11-05)): crear, unirse, papeles y contadores pasan por las callables de
+   * functions/src/social/comunidades.ts, que validan la IDENTIDAD; el camino directo de antes queda cerrado entero.
+   * La cobertura por identidad está en comunidades-identidad.emulator.mjs. */
+  await espera(num('Ana ya no crea una comunidad a su nombre desde el cliente (lo hace createCommunity)'), 'DENIEGA', crear('/communities/k1', A, comunidad()));
+  await sembrar('/communities/k1', comunidad());
   await espera(num('no a nombre de Beto'), 'DENIEGA', crear('/communities/k2', A, comunidad({ createdBy: B })));
   await espera(num('ni a nombre de su cara: una comunidad es de la cuenta, como un negocio'), 'DENIEGA', crear('/communities/k3', A, comunidad({ createdBy: WA, moderators: [WA] })));
   await espera(num('ni se da moderadores ajenos'), 'DENIEGA', crear('/communities/k4', A, comunidad({ moderators: [A, B] })));
@@ -288,16 +292,18 @@ console.log('\n── 4 · Comunidades: quién la creó lo dice la sesión ─�
   await espera(num('ni nace con 999 miembros'), 'DENIEGA', crear('/communities/k7', A, comunidad({ memberCount: 999 })));
   await espera(num('una sesión con el claim `admin` sí siembra una oficial'), 'PERMITE', crear('/communities/oficial1', M, { name: 'Oficial', slug: 'oficial', isOfficial: true, moderators: [], memberCount: 0, postCount: 0, status: 'active' }, { admin: true }));
 
-  await espera(num('la creadora la renombra'), 'PERMITE', escribir('/communities/k1', A, { name: 'Weë Developers' }));
+  await espera(num('ni la creadora heredada la renombra desde el cliente'), 'DENIEGA', escribir('/communities/k1', A, { name: 'Weë Developers' }));
   await espera(num('pero no se la pasa a otro'), 'DENIEGA', escribir('/communities/k1', A, { createdBy: B }));
   await espera(num('ni la vuelve oficial'), 'DENIEGA', escribir('/communities/k1', A, { isOfficial: true }));
-  await espera(num('la creadora nombra moderadores'), 'PERMITE', escribir('/communities/k1', A, { moderators: [A, M] }));
-  await espera(num('un moderador edita la comunidad'), 'PERMITE', escribir('/communities/k1', M, { description: 'Para devs' }));
+  await espera(num('ni nombra moderadores por uid (los papeles son por identidad, en el servidor)'), 'DENIEGA', escribir('/communities/k1', A, { moderators: [A, M] }));
+  await sembrar('/communities/k1', comunidad({ moderators: [A, M] }));
+  await espera(num('ni un moderador heredado la edita desde el cliente'), 'DENIEGA', escribir('/communities/k1', M, { description: 'Para devs' }));
   await espera(num('pero no cambia quién modera'), 'DENIEGA', escribir('/communities/k1', M, { moderators: [M] }));
-  await espera(num('cualquiera suma un miembro, de uno en uno'), 'PERMITE', escribir('/communities/k1', B, { memberCount: 2 }));
+  await espera(num('ni nadie suma un miembro, ni de uno en uno (lo cuenta el servidor al unir)'), 'DENIEGA', escribir('/communities/k1', B, { memberCount: 2 }));
+  await espera(num('CONTROL: `postCount` (de las publicaciones, sin cambios) sí, de uno en uno'), 'PERMITE', escribir('/communities/k1', B, { postCount: 1 }));
   await espera(num('pero no la renombra'), 'DENIEGA', escribir('/communities/k1', B, { name: 'Mía' }));
-  await espera(num('Ana se une con su cuenta'), 'PERMITE', crear(`/communities/k1/members/${A}`, A, { userId: A, joinedAt: ahora, postCount: 0, reputation: 0 }));
-  await espera(num('y con su cara Weë'), 'PERMITE', crear(`/communities/k1/members/${WA}`, A, { userId: WA, joinedAt: ahora, postCount: 0, reputation: 0 }));
+  await espera(num('Ana no escribe su membresía desde el cliente (joinCommunity)'), 'DENIEGA', crear(`/communities/k1/members/${A}`, A, { userId: A, joinedAt: ahora, postCount: 0, reputation: 0 }));
+  await espera(num('ni la de su cara Weë'), 'DENIEGA', crear(`/communities/k1/members/${WA}`, A, { userId: WA, joinedAt: ahora, postCount: 0, reputation: 0 }));
   await espera(num('pero no une a Beto'), 'DENIEGA', crear(`/communities/k1/members/${B}`, A, { userId: B, joinedAt: ahora, postCount: 0, reputation: 0 }));
   await sembrar('/communities/k9', { name: 'Otra', slug: 'otra', createdBy: M, moderators: [M], memberCount: 0, postCount: 0, isOfficial: false });
   await espera(num('ni se une diciendo ser otra persona'), 'DENIEGA', crear(`/communities/k9/members/${A}`, A, { userId: B, joinedAt: ahora }));

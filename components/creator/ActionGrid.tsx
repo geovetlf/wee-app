@@ -1,7 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { RejillaDeCreator } from './PiezasDeCreator';
 import { useResponsive } from '../../hooks/useResponsive';
 import { ActionLayout, SpecialistAction } from '../../constants/specialists';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
@@ -31,16 +34,32 @@ const GAP = SPACING.md;
 const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => {
   const { theme } = useTheme();
   const { isDesktop, isTablet } = useResponsive();
+  const pro = useEnEspacioProfesional();
 
   /*
    * Dos niveles (fase 2E-53). Las acciones marcadas como secundarias salen de la
-   * cuadrícula y bajan a su propia zona, bajo una línea: es como Weë Studio dice
+   * cuadrícula y bajan a su propia zona, bajo una línea: es como WeëStudio dice
    * que Fotos y Videos son los caminos y Beauty una capacidad especializada, sin
    * esconderla detrás de un "Más" ni obligar a entrar por otro flujo.
    *
    * Las secciones que no marcan ninguna —las otras siete— no notan el cambio: la
    * lista secundaria queda vacía y todo sigue igual que antes.
    */
+  /* En Weë versión creator, las mismas acciones con la tarjeta común: sin láminas de muestra ni emojis. */
+  if (pro) {
+    return (
+      <RejillaDeCreator
+        puertas={actions.map((action) => ({
+          id: action.id,
+          icono: action.icon,
+          titulo: action.title,
+          pista: action.subtitle,
+          onPress: () => onPress(action),
+        }))}
+      />
+    );
+  }
+
   const principales = actions.filter((action) => !action.secondary);
   const secundarias = actions.filter((action) => action.secondary);
 
@@ -54,7 +73,7 @@ const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => 
       : layout === 'compact'
       ? /*
          * Cuatro y tres: siete funciones caben en dos filas cortas sin apretarse.
-         * Pero nunca más columnas que acciones (fase 2E-52): Weë Studio tiene tres
+         * Pero nunca más columnas que acciones (fase 2E-52): WeëStudio tiene tres
          * áreas, y con la cuadrícula fija quedaba una celda vacía a la derecha de
          * Beauty. Una sección recién ordenada parecía una sección a medio hacer.
          *
@@ -121,7 +140,7 @@ const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => 
         <Text style={[styles.wideTitle, { color: theme.colors.text }]}>{action.title}</Text>
         <Text style={[styles.tileSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={2}>{action.subtitle}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+      <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
     </View>
   );
 
@@ -141,7 +160,7 @@ const ActionGrid: React.FC<ActionGridProps> = ({ actions, layout, onPress }) => 
         <Text style={[styles.secondaryTitle, { color: theme.colors.text }]}>{action.title}</Text>
         <Text style={[styles.compactSubtitle, { color: theme.colors.textSecondary }]} numberOfLines={2}>{action.subtitle}</Text>
       </View>
-      <Ionicons name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
+      <IconoDireccional name="chevron-forward" size={scale(18)} color={theme.colors.textSecondary} />
     </View>
   );
 

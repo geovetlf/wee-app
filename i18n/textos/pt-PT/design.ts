@@ -3,7 +3,7 @@
  * física.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
- * Lo que Weë Design comparte con Weë Studio —"Mis creaciones", "Ver todas",
+ * Lo que WeëDesign comparte con WeëStudio —"Mis creaciones", "Ver todas",
  * "Creando...", "Creación lista"— vive en `studio` y se lee de allí.
  *
  * NO ES EL BRASILEÑO CON PALABRAS CAMBIADAS. Se tutea con «tu»: «podes»,
@@ -104,12 +104,24 @@ export const design: typeof import('../es/design').design = {
   valStudioLight: 'De estúdio',
 
   /* ── Mis creaciones: de qué es cada una ───────────────────────────────── */
+  kindProduct: 'Produto',
   kindInterior: 'Interiores',
   kindArchitecture: 'Arquitetura',
   kindBoat: 'Barco',
   kindFurniture: 'Mobiliário',
+  sampleShoe: 'Sapatilha de couro',
+  sampleGuitar: 'Guitarra elétrica',
   sampleLivingRoom: 'Sala de estar luminosa',
   samplePineHouse: 'Casa entre pinheiros',
   sampleYacht: 'Iate de 15 metros',
   sampleArmchair: 'Cadeirão de madeira',
+  /* ── La portada de la demo YC (héroe, creación rápida, Design Studio, explorar) ── */
+  heroLead: 'Desenha',
+  heroAccent: 'sem limites.',
+  brandingTitle: 'Branding',
+  objects3dTitle: 'Objetos 3D',
+  designStudioTitle: 'Estúdio de design',
+  designStudioSub: 'Cria, edita e visualiza designs profissionais com IA.',
+  openStudio: 'Abrir estúdio',
+  fashionHint: 'Desenha roupa, coleções e muito mais.',
 };

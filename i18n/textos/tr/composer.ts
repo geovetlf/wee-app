@@ -12,7 +12,7 @@
  * patrón de «Reels videosu» de Instagram; guía § 9). Escribir «Weël» pegaría
  * una letra a la marca «Weë».
  *
- * El «Wäll general» es «Genel Wäll». La cabecera «PUBLICAR EN» no va en
+ * El «Ẅall general» es «Genel Ẅall». La cabecera «PUBLICAR EN» no va en
  * mayúsculas (guía § 3: no es costumbre turca y rompe la i): es «Paylaşım
  * yerleri», en plural porque ahí se marcan varios destinos a la vez, y el
  * destino encendido del atajo del muro es «şu anki paylaşım yeri».
@@ -44,6 +44,12 @@ export const composer: typeof import('../es/composer').composer = {
   photoOrVideo: 'Fotoğraf veya video',
   camera: 'Kamera',
   location: 'Konum',
+  place: 'Yer',
+  gallery: 'Galeri',
+  projects: 'Projeler',
+  createWithAi: 'Yapay zekâyla oluştur',
+  newPost: 'Yeni gönderi',
+  multimedia: 'Medya',
   poll: 'Anket',
   sheetTitle: 'Oluştur',
   sheetSubtitle: 'Bugün ne paylaşmak istersin?',
@@ -60,7 +66,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Paylaşım seçeneklerini göster',
   hideOptions: 'Paylaşım seçeneklerini gizle',
   currentDestination: '{{destino}}, şu anki paylaşım yeri',
-  generalWall: 'Genel Wäll',
+  generalWall: 'Genel Ẅall',
   placeholderPollExtra: 'İstersen bir şey daha ekle (isteğe bağlı)…',
   placeholderQuestion: 'Topluluğa ne sormak istiyorsun?',
   placeholderWeel: 'Weëls videonda neyi, hangi yapay zekâyla oluşturduğunu anlat…',
@@ -70,15 +76,10 @@ export const composer: typeof import('../es/composer').composer = {
   placeholderDefault: 'Bir şeyler yaz…',
   postTextLabel: 'Gönderi metni',
   weelHint: 'Weëls: en fazla {{segundos}} saniyelik video. Weë dışında küçük bir filigranla paylaşılır.',
-  newPost: 'Yeni gönderi',
   you: 'Sen',
   shareWithCommunity: 'Weë topluluğuyla paylaş',
-  publicVisibility: 'Herkese açık',
-  visibilityIs: 'Görünürlük: {{estado}}',
-  publicExplain: 'Şimdilik Weë\'deki tüm gönderiler herkese açık.',
   profileReal: 'Gerçek profil',
   profileWee: 'Weë profili',
-  multimedia: 'Medya',
   actionWithBadge: '{{accion}}, {{insignia}}',
   removeVideo: 'Videoyu kaldır',
   removePhotoNumber: '{{numero}}. fotoğrafı kaldır',

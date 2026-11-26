@@ -19,10 +19,10 @@
  *
  * MARCAS Y SUFIJOS (guía § 4 y § 9). Solo las terminaciones del cuadro: «Weë'ye», «Weë'yi», «Weë Brain'in». «Los otros
  * Weë» son «diğer Weë uzmanları»: la marca no se pluraliza, y el especialista es «uzman», como en el glosario. En el
- * selector de Weë Studio, «Beauty» es el nombre del área y no la marca: «Güzellik», como en studio.ts y en la cabecera
- * que abre («Weë Studio · Güzellik», creator.ts). «Writer» sí es marca y va entera, Weë Writer, que es también el
+ * selector de WeëStudio, «Beauty» es el nombre del área y no la marca: «Güzellik», como en studio.ts y en la cabecera
+ * que abre («WeëStudio · Güzellik», creator.ts). «Writer» sí es marca y va entera, Weë Writer, que es también el
  * título de la pantalla que abre: suelta se leería como inglés sin traducir. «Tu chef» es «şefin», palabra común; la
- * marca, Weë Chef, no se toca.
+ * marca, WeëChef, no se toca.
  *
  * PALABRAS. «Redes» es «sosyal medya»; «negocio», «işletme»; «look», «görünüm», y «cambio de look», «yeni görünüm»;
  * «outfit», «kombin»; «videoclip», «klip»; «jingle» y «beat» se quedan, como en creator.ts y como los dicen la
@@ -40,8 +40,8 @@
  * creator.ts; el mes va con minúscula cuando no es una fecha concreta (TDK) y con mayúscula en «12-22 Ekim», que sí lo
  * es. «Hogar & Diseño» es «Ev ve tasarım» (& → ve, § 5), como en creator.ts.
  *
- * LO QUE NO SE PUEDE ROMPER. Los chips de Weë Travel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
- * solo quita el emoji si lo sigue un espacio. En Weë Studio y Weë Chef ningún objetivo, chip ni ejemplo nombra una
+ * LO QUE NO SE PUEDE ROMPER. Los chips de WeëTravel conservan el espacio ASCII tras el emoji: `objetivoDe` (IdeaBox)
+ * solo quita el emoji si lo sigue un espacio. En WeëStudio y WeëChef ningún objetivo, chip ni ejemplo nombra una
  * foto donde el español no la nombra: `CreatorFlowScreen` todavía mira el texto (/foto|imagen/, /ingredientes|…|foto/)
  * para decidir si la pide, y «fotoğraf» contiene «foto». Las tarjetas de Weë Beauty, los ejemplos y la fila de Weë
  * Travel enseñan una sola línea: ahí va la forma más corta que se dice de verdad.
@@ -93,7 +93,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   brainEj3Title: 'Tüm süreci üstlenir',
   brainEj3Subtitle: 'Fikirden tasarıma, videoya ve müziğe',
 
-  // ── Weë Design ─────────────────────────────────────────────────────────
+  // ── WeëDesign ─────────────────────────────────────────────────────────
   designHeadline: 'Hayal ettiğini tasarla.',
   designIntro: 'Fikirlerini yapay zekâyla muhteşem tasarımlara dönüştür. Bir logodan arabaya, bir üründen koca bir dünyaya kadar.',
   designChip1: 'Hızlı ve kolay',
@@ -192,7 +192,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   photoEj5Title: 'Yüz rötuşu',
   photoEj6Title: 'Yapay zekâyla dönüştür',
 
-  // ── Weë Music ──────────────────────────────────────────────────────────
+  // ── WeëMusic ──────────────────────────────────────────────────────────
   musicHeadline: 'Müziğini yapay zekâyla oluştur, dinle ve yaşa',
   musicIntro: 'Fikirlerini şarkılara, videolara ve eşsiz deneyimlere dönüştür. Yaratıcılığına sınır yok.',
   musicChip1: 'Hızlı ve kolay',
@@ -254,7 +254,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   musicClosingSubtitle: 'Müziğini muhteşem bir videoya dönüştür: farklı stiller, otomatik senkronizasyon, sosyal medya formatları, sahneler ve karakterler.',
   musicClosingButton: 'Hemen video oluştur',
 
-  // ── Weë Studio ─────────────────────────────────────────────────────────
+  // ── WeëStudio ─────────────────────────────────────────────────────────
   studioHeadline: 'Yapay zekâyla fotoğraf ve video oluştur',
   studioIntro: 'Ne oluşturmak istediğini anlat, adım adım yardım edeyim.',
   studioChip1: 'Kullanımı kolay',
@@ -347,7 +347,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   businessEj4Subtitle: 'Gelen mesajlar',
   businessEj4Meta: '↑ %70',
 
-  // ── Weë Chef ───────────────────────────────────────────────────────────
+  // ── WeëChef ───────────────────────────────────────────────────────────
   chefHeadline: 'Şefin, her zaman yanında',
   chefIntro: 'Yeni tarifler keşfet, menüler oluştur, elindekileri değerlendir; daha iyi, daha kolay ve daha lezzetli ye.',
   chefChip1: 'Kolay tarifler',
@@ -377,7 +377,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   chefAcIdkTitle: 'Ne pişirsem?',
   chefAcIdkSubtitle: 'Sana lezzetli bir şey önereyim',
   chefAcIdkGoal: 'Bugün ne pişirsem bilemedim',
-  chefIdeaTitle: 'Merhaba! Ben Weë Chef 👨‍🍳',
+  chefIdeaTitle: 'Merhaba! Ben WeëChef 👨‍🍳',
   chefIdeaSubtitle: 'Anlat bakalım, bugün ne pişirmek istersin?',
   chefIdeaPlaceholder: 'Fikrini buraya yaz…',
   chefIdeaChip1: 'Hızlı bir akşam yemeği istiyorum',
@@ -589,7 +589,7 @@ export const catalogo: typeof import('../es/catalogo').catalogo = {
   writerEj6Title: 'Profesyonel özgeçmiş',
   writerEj6Subtitle: 'Modern ve sade',
 
-  // ── Weë Travel ─────────────────────────────────────────────────────────
+  // ── WeëTravel ─────────────────────────────────────────────────────────
   travelHeadline: 'Seyahatini çok gezmiş biriyle hazırla.',
   travelIntro: 'Nereye gittiğini ya da henüz bilmediğini anlat, seyahatini hazırlayayım: ne görmeli, nerede yemeli, nasıl dolaşmalı.',
   travelChip1: 'Rezervasyonsuz',

@@ -1,11 +1,14 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import { useEstiloWeeAi } from '../hooks/useEstiloWeeAi';
 import { View, Text, StyleSheet, TouchableOpacity, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
+import { TituloDeCreator, useColumnaDeCreator } from '../components/creator/PiezasDeCreator';
 import { useAuth } from '../contexts/AuthContext';
 import { useResponsive } from '../hooks/useResponsive';
 import { useEspecialista } from '../hooks/useEspecialista';
@@ -19,6 +22,7 @@ import { ALTO_BARRA } from '../components/BarraInferior';
 import ChefAcciones from '../components/chef/ChefAcciones';
 import ChefPanel from '../components/chef/ChefPanel';
 import ChefProyectos from '../components/chef/ChefProyectos';
+import { CuerpoDeChef, HeroDeChef } from '../components/sectores/PortadaChef';
 import {
   AJUSTES_DE_COCINA, CLAVE_DEL_PANEL, EntradaDeChef, PanelDeChef, TarjetaDeChef,
 } from '../constants/chefTools';
@@ -37,7 +41,7 @@ const SITIO_DE_LA_BARRA = scale(96);
  * ── Qué es esta pantalla ─────────────────────────────────────────────────────
  *
  * Un sitio de trabajo, no una app de recetas: se entra, se dice qué te apetece
- * y se cocina. Por eso el orden es el mismo de Weë Studio y no otro —cabecera,
+ * y se cocina. Por eso el orden es el mismo de WeëStudio y no otro —cabecera,
  * caja, funciones, lo ya hecho—: es la misma familia, y quien viene de Studio
  * tiene que reconocer esto sin pensar.
  *
@@ -62,11 +66,14 @@ const SITIO_DE_LA_BARRA = scale(96);
  */
 const ChefScreen: React.FC = () => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const { t, formato } = useIdioma();
   const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { isMobile, isTablet, isDesktop } = useResponsive();
   const spec = useEspecialista('chef');
+  const pro = useEnEspacioProfesional();
+  const columna = useColumnaDeCreator();
 
   const [prompt, setPrompt] = useState('');
   const [panel, setPanel] = useState<PanelDeChef | null>(null);
@@ -124,7 +131,7 @@ const ChefScreen: React.FC = () => {
    * EL CAMINO DE SIEMPRE, SIN NADA NUEVO DETRÁS.
    *
    * Es el mismo `CreatorFlow` con el mismo `experienceId` y los mismos `preset`
-   * que ya usaba Weë Chef: allí Weë Brain pregunta lo que falte, enseña el plan
+   * que ya usaba WeëChef: allí Weë Brain pregunta lo que falte, enseña el plan
    * y su coste en Credits, y solo entonces se crea.
    */
   const abrirFlujo = useCallback(
@@ -208,7 +215,7 @@ const ChefScreen: React.FC = () => {
   /*
    * ATRÁS CIERRA EL PANEL, NO LA SECCIÓN.
    *
-   * Un panel abierto es un nivel más dentro de Weë Chef, no otra pantalla: si el
+   * Un panel abierto es un nivel más dentro de WeëChef, no otra pantalla: si el
    * gesto de atrás se lo llevara la navegación, saldrías al Home y perderías lo
    * escrito. Mientras hay panel, el gesto vuelve a la caja.
    */
@@ -227,7 +234,7 @@ const ChefScreen: React.FC = () => {
   if (panel) {
     return (
       <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
-        <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
+        <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
           <ChefPanel
             panel={panel}
             porFila={porFila}
@@ -253,8 +260,16 @@ const ChefScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
-            <CabeceraDeSeccion nombre="Chef" lema={spec?.headline ?? ''} descripcion={t('chef.description')} />
+          <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
+            {/* La portada de la demo YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3); en creator, la cabecera de siempre. */}
+            {pro ? (
+              <CabeceraDeSeccion nombre="Chef" lema={spec?.headline ?? ''} descripcion={t('chef.description')} />
+            ) : (
+              <View style={styles.portada}>
+                <CabeceraDeSeccion soloIdentidad nombre="Chef" lema={spec?.headline ?? ''} />
+                <HeroDeChef onElegir={alElegirTarjeta} />
+              </View>
+            )}
 
             {/*
               LA CAJA, SIN NADA ALREDEDOR (decisión del usuario, 2026-09-15).
@@ -264,8 +279,12 @@ const ChefScreen: React.FC = () => {
               a escribir. La caja se queda limpia; lo que la explica sigue en su
               etiqueta, para quien la escucha en vez de verla.
             */}
-            <View style={styles.compositor}>
+            <View style={[styles.compositor, pro && styles.compositorPro]}>
+              {!pro ? (
               <CajaDePrompt
+                /* La caja de la referencia: contorno dorado con halo, destello y la frase dentro. */
+                vitrina
+                textoDeVitrina={t('chef.cookPrompt')}
                 valor={prompt}
                 onCambiar={setPrompt}
                 onEnviar={alEnviar}
@@ -286,6 +305,25 @@ const ChefScreen: React.FC = () => {
                   { icono: 'options-outline', etiqueta: t('chef.settingsLabel'), alPulsar: () => setAjustesAbiertos(true) },
                 ]}
               />
+              ) : (
+                /*
+                  En creator, los botones que hacen algo y con su palabra: añadir y
+                  galería abren lo mismo, y dictar todavía no existe.
+                */
+                <CajaDePrompt
+                  valor={prompt}
+                  onCambiar={setPrompt}
+                  onEnviar={alEnviar}
+                  etiquetaEnviar={t('chef.sendLabel')}
+                  textoEnviar={t('chef.sendLabel')}
+                  placeholder={t('chef.placeholder')}
+                  acciones={[
+                    { icono: 'image-outline', etiqueta: t('chef.galleryLabel'), texto: t('weetalk.photo'), alPulsar: () => { void pedirFoto('galeria'); } },
+                    { icono: 'camera-outline', etiqueta: t('chef.cameraLabel'), texto: t('composer.camera'), alPulsar: () => { void pedirFoto('camara'); } },
+                    { icono: 'options-outline', etiqueta: t('chef.settingsLabel'), texto: t('brain.settingsLabel'), alPulsar: () => setAjustesAbiertos(true) },
+                  ]}
+                />
+              )}
 
               {/*
                 Lo que viaja con la idea, debajo de la caja y no escondido: la
@@ -296,7 +334,7 @@ const ChefScreen: React.FC = () => {
                 <View style={styles.fichas}>
                   {!!foto && (
                     <TouchableOpacity
-                      style={[styles.ficha, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+                      style={[styles.ficha, { backgroundColor: c.superficieAlta, borderColor: c.superficieAlta }]}
                       onPress={() => setFoto(null)}
                       activeOpacity={0.7}
                       accessibilityRole="button"
@@ -325,22 +363,30 @@ const ChefScreen: React.FC = () => {
                       accessibilityLabel={t(clave)}
                     >
                       <Text
-                        style={[styles.fichaTexto, styles.fichaPuesta, { color: theme.colors.accentDark }]}
+                        style={[styles.fichaTexto, styles.fichaPuesta, { color: c.tinta }]}
                         numberOfLines={1}
                       >
                         {t(clave)}
                       </Text>
-                      <Ionicons name="close" size={scale(14)} color={theme.colors.accentDark} />
+                      <Ionicons name="close" size={scale(14)} color={c.tinta} />
                     </TouchableOpacity>
                   ))}
                 </View>
               )}
             </View>
 
+            {pro ? (
             <View style={styles.funciones}>
-              <Text style={[styles.seccion, { color: theme.colors.text }]}>{t('chef.gridTitle')}</Text>
+              {pro ? (
+                <TituloDeCreator titulo={t('chef.gridTitle')} />
+              ) : (
+                <Text style={[styles.seccion, { color: theme.colors.text }]}>{t('chef.gridTitle')}</Text>
+              )}
               <ChefAcciones porFila={porFila} onElegir={alElegirTarjeta} />
             </View>
+            ) : (
+              <CuerpoDeChef onElegir={alElegirTarjeta} />
+            )}
 
             <ChefProyectos
               proyectos={proyectos}
@@ -352,7 +398,7 @@ const ChefScreen: React.FC = () => {
       </EspacioDeEscritura>
 
       {/*
-        Los ajustes de la receta: la misma hoja de Weë Studio con el catálogo de
+        Los ajustes de la receta: la misma hoja de WeëStudio con el catálogo de
         Chef. Se decide todo aquí, sin llamar a nadie y sin gastar un Credit.
       */}
       <AjustesContextuales
@@ -376,7 +422,7 @@ const styles = StyleSheet.create({
   centrado: { width: '100%', alignSelf: 'center', gap: SPACING.xxl, flex: 1 },
   /*
    * LA CAJA, MÁS CERCA DE LA PRESENTACIÓN (decisión del usuario, 2026-09-16,
-   * solo en Weë Chef; el mismo ajuste que ya llevan Weë Studio y Weë Design).
+   * solo en WeëChef; el mismo ajuste que ya llevan WeëStudio y WeëDesign).
    *
    * Entre el último renglón de la cabecera y la caja había 44 puntos: 20 del
    * aire de abajo de la cabecera y 24 del `gap` de esta página. Se recortan aquí
@@ -386,6 +432,9 @@ const styles = StyleSheet.create({
    * Mueve dónde empieza la caja, no cuánto mide: crece igual que antes.
    */
   compositor: { paddingHorizontal: SPACING.lg, gap: SPACING.sm, marginTop: -scale(26) },
+  /* La caja sube sobre el fundido del héroe, como en la referencia. */
+  portada: { marginBottom: -scale(10) },
+  compositorPro: { paddingHorizontal: 0, marginTop: 0 },
   fichas: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, paddingHorizontal: SPACING.xs },
   ficha: {
     flexDirection: 'row',
@@ -394,7 +443,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.xs + scale(2),
     borderRadius: BORDER_RADIUS.full,
-    borderWidth: StyleSheet.hairlineWidth,
     maxWidth: scale(200),
   },
   fichaTexto: { fontSize: FONT_SIZE.xs, flexShrink: 1 },
@@ -404,7 +452,7 @@ const styles = StyleSheet.create({
 });
 
 /*
- * Weë Chef es de la CUENTA, como el resto del taller: se ve claro lleves puesto
+ * WeëChef es de la CUENTA, como el resto del taller: se ve claro lleves puesto
  * el Perfil Real o el Perfil Weë.
  */
-export default enTemaClaro(ChefScreen);
+export default enTemaOscuro(ChefScreen);

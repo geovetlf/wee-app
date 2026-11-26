@@ -97,7 +97,7 @@ console.log('\n── C · Una sola familia ──');
    * parezcan el mismo juego. */
   check('8) el grosor del trazo está en un solo sitio',
     /export const GROSOR_DEL_TRAZO = [\d.]+;/.test(fuente)
-    && (fuente.match(/stroke-width=/g) || []).length === 1);
+    && (fuente.match(/stroke-width=/g) || []).length === 3 /* la familia + Fuego y Risa, que declaran 1,5 efectivo en su grupo (2026-11-16) */);
 
   /* Ninguno trae color propio ni relleno decorativo: solo contorno. */
   const conColorPropio = nombres.filter((n) => /(#[0-9A-Fa-f]{3,8}|rgb\(|url\(|gradient)/.test(iconos.TRAZOS[n]));
@@ -142,7 +142,9 @@ console.log('\n── D · Enchufados en el Burger ──');
    * o no lo lleva ninguna, y eso es justo lo que se fija aquí.
    */
   check('16) el color de los iconos se decide en un solo sitio, y lo decide isWee',
-    /const colorDeLosIconos = isWee \? VERDE_DEL_PERFIL_WEE : theme\.colors\.text;/.test(cajon));
+    /const colorDeLosIconos = isWee \? (VERDE_DEL_PERFIL_WEE|ICONOS_DEL_PERFIL_WEE) : ICONOS_DEL_PERFIL_REAL;/.test(cajon)
+    /* Perfil Real: gris oscuro de la identidad (gama de la referencia del dueño, 2026-11-15; sustituye al morado del 2026-11-05). */
+    && /const ICONOS_DEL_PERFIL_REAL = '#1F2937';/.test(cajon));
   check('16b) la fila corriente lo usa, sin perder el rojo de las peligrosas',
     /color=\{opts\.danger \? theme\.colors\.error : colorDeLosIconos\}/.test(cajon));
   /*
@@ -179,10 +181,9 @@ console.log('\n── D · Enchufados en el Burger ──');
    * CONTROL: el Burger sigue siendo el mismo. Ni el orden de las secciones, ni
    * los nombres, ni las rutas: esto solo cambió los dibujos.
    */
-  check('17) control: el menú conserva sus secciones y su orden',
-    /renderSectionLabel\(t\('menu\.sectionProfile'\)\)/.test(cajon)
-    && /renderSectionLabel\(t\('menu\.sectionExplore'\)\)/.test(cajon)
-    && cajon.indexOf("menu.sectionProfile") < cajon.indexOf("menu.sectionExplore"));
+  check('17) control: el menú pinta el orden del catálogo (rediseño del 2026-11-15: trece entradas, con Idioma, sin rótulos de grupo)',
+    /WEE_MENU\.map\(/.test(cajon) && /WEE_MENU\.map\(/.test(leer('components/Sidebar.tsx'))
+    && /items: \['home', 'weels', 'explore', 'communities', 'projects', 'pages'\] \},\s*\{ items: \['mywees'\], destacado: true \},\s*\{ items: \['saved', 'history', 'credits', 'settings', 'language'], divisor: true \},\s*\{ items: \['help'\], divisor: true \}/.test(menu));
   /*
    * Las opciones siguen llamándose igual, pero el texto vive ya en el
    * diccionario. Se comprueba ahí, que es donde está, y además que la tabla
@@ -214,16 +215,17 @@ console.log('\n── D · Enchufados en el Burger ──');
     ![cajon, barra].some((f) => /MENU_ITEM\[id\]\.emoji|MENU_ITEM\.\w+\.emoji|\bexp\.emoji\b/.test(f)));
   check('19d) y la barra pinta con IconoWee, el mismo componente que el cajón',
     /from '\.\/icons\/IconoWee'/.test(barra) && /<IconoWee/.test(barra)
-    && /MENU_ITEM\.creator\.icono/.test(barra) && /\bexp\.icono\b/.test(barra));
+    /* Las experiencias ya no son filas del menú; la fila propia del escritorio es Mensajes, con su dibujo del catálogo. */
+    && /MENU_ITEM\.weetalk\.icono/.test(barra) && !/\bexp\.icono\b/.test(barra));
   /*
    * La única fila que sigue con emoji es Buscar, y no es un olvido: solo existe
    * en escritorio —en el móvil la da la barra inferior— y trazosDeWee no tiene
    * lupa. Se fija aquí para que, el día que se dibuje, esto salte y se cambie
    * también.
    */
-  check('19e) y la única excepción sigue siendo Buscar, que no tiene dibujo',
-    /emoji="🔍" label={t\('nav\.search'\)}/.test(barra)
-    && !/'lupa'|'buscar'/.test(leer('components/icons/trazosDeWee.ts')));
+  check('19e) y ya no queda ninguna excepción: Buscar es «Explorar», con su dibujo (la brújula), y la barra no pinta ningún emoji',
+    !/emoji=/.test(barra) && /explore: \{ id: 'explore', icono: 'brujula'/.test(menu)
+    && /\n {2}brujula:/.test(leer('components/icons/trazosDeWee.ts')));
 }
 
 console.log('\n' + (failures ? `✘ ${failures} fallo(s)` : '✔ todo bien'));

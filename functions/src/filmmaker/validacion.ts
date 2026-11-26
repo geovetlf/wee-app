@@ -8,7 +8,7 @@ import {
   PAPELES_DE_REFERENCIA, PISTAS, POSICIONES_DE_SUBTITULO, PRESETS, PREVISUALIZACIONES, PRIORIDADES,
   PROPOSITOS_DE_EXPORTACION, PROPOSITOS_NARRATIVOS, RASGOS, RELACIONES_ENTRE_PERSONAJES, RESOLUCIONES, RITMOS,
   TIPOS_DE_LINEA, TIPOS_DE_OBJETO, TIPOS_DE_PRODUCCION, TIPOS_DE_RESTRICCION, TIPOS_DE_SONIDO, AMBIENTES,
-  FILMMAKER_MODEL_VERSION, aMs, aSec, canonico, compararTexto, esId,
+  FILMMAKER_MODEL_VERSION, aMs, aSec, canonico, compararTexto, esId, DIRECCIONES_DE_EXTENSION, MODOS_DE_REVISION, ORIGENES_DE_FICHA, ESTADOS_DE_TANDA_GUARDADOS,
 } from './modelo';
 
 /**
@@ -368,7 +368,7 @@ const direccionDeAudio = (c: Ctx, v: unknown, ruta: string): void => {
   booleano(c, v.withSound, unir(ruta, 'withSound'));
 };
 
-const LINEA = ['id', 'kind', 'characterId', 'text', 'language', 'emotion', 'estimatedSec'];
+const LINEA = ['id', 'kind', 'characterId', 'text', 'language', 'emotion', 'estimatedSec', 'voice'];
 const lineas = (c: Ctx, v: unknown, ruta: string): readonly { readonly l: Obj; readonly ruta: string }[] => {
   if (!arreglo(c, v, ruta, LIMITES.lineasPorBloque)) return [];
   const buenas: { l: Obj; ruta: string }[] = [];
@@ -388,6 +388,7 @@ const lineas = (c: Ctx, v: unknown, ruta: string): readonly { readonly l: Obj; r
     idioma(c, l.language, unir(r, 'language'));
     texto(c, l.emotion, unir(r, 'emotion'), LIMITES.frase);
     duracion(c, l.estimatedSec, unir(r, 'estimatedSec'), LIMITES.planoMaxSec);
+    if (l.voice !== undefined) voz(c, l.voice, unir(r, 'voice'));
   });
   return buenas;
 };
@@ -440,8 +441,28 @@ const pertenece = (id: unknown, visibles: ReadonlySet<string> | undefined): bool
 
 const PLANO = [
   'id', 'order', 'durationSec', 'description', 'visual', 'subject', 'characterIds', 'objectIds', 'characterStates',
-  'actions', 'dialogue', 'audio', 'referenceIds', 'continuity', 'dependsOn', 'generation', 'advanced',
+  'actions', 'dialogue', 'audio', 'referenceIds', 'continuity', 'dependsOn', 'generation', 'advanced', 'revision',
 ];
+
+/**
+ * OLA 3b · LA REVISIÓN DE UNA TOMA. Solo la forma: qué modo, qué se pide y, al extender, cuánto y hacia dónde.
+ * Si el modelo lo admite, si hay toma de partida y si es de la cuenta lo decide F1-D al generar, no el dominio.
+ * `fromTake` es el número de la toma (1…50: el mismo tope de tomas de un plano). `seconds` solo al extender.
+ */
+const MAX_TOMA_DE_PARTIDA = 50;
+const revisionDePlano = (c: Ctx, v: unknown, ruta: string): void => {
+  if (!objeto(c, v, ruta)) return;
+  claves(c, v, ['mode', 'instruction', 'fromTake', 'direction', 'seconds'], ruta, 'instruction');
+  uno(c, v.mode, MODOS_DE_REVISION, unir(ruta, 'mode'), 'value_invalid', true);
+  texto(c, v.instruction, unir(ruta, 'instruction'), LIMITES.textoLibre, true);
+  numero(c, v.fromTake, unir(ruta, 'fromTake'), 1, MAX_TOMA_DE_PARTIDA, true);
+  if (v.mode !== 'extend') {
+    for (const k of ['direction', 'seconds']) if (v[k] !== undefined) mal(c, 'constraints_incompatible', 'error', unir(ruta, k), { reason: 'only_when_extending' });
+    return;
+  }
+  uno(c, v.direction, DIRECCIONES_DE_EXTENSION, unir(ruta, 'direction'));
+  numero(c, v.seconds, unir(ruta, 'seconds'), LIMITES.duracionMinimaSec, LIMITES.planoMaxSec);
+};
 
 const plano = (c: Ctx, p: unknown, j: number, rutaDeEscena: string, reparto: ReadonlySet<string> | undefined): void => {
   const r = unir(unir(rutaDeEscena, 'shots'), tramo(p, j));
@@ -465,13 +486,15 @@ const plano = (c: Ctx, p: unknown, j: number, rutaDeEscena: string, reparto: Rea
   regla(c, p.continuity, unir(r, 'continuity'));
   refs(c, p.dependsOn, unir(r, 'dependsOn'), ['shot'], LIMITES.dependencias, 'dependency_invalid');
   if (objeto(c, p.generation, unir(r, 'generation'))) {
-    claves(c, p.generation, ['quality'], unir(r, 'generation'));
+    claves(c, p.generation, ['quality', 'preferredModel', 'variants', 'consistencySeed'], unir(r, 'generation'));
     uno(c, p.generation.quality, CALIDADES, unir(r, 'generation.quality'));
+    preferenciasDeGeneracion(c, p.generation, unir(r, 'generation'));
   }
   if (objeto(c, p.advanced, unir(r, 'advanced'))) {
     claves(c, p.advanced, ['prompt'], unir(r, 'advanced'), 'prompt');
     texto(c, p.advanced.prompt, unir(r, 'advanced.prompt'), LIMITES.textoLibre, true);
   }
+  revisionDePlano(c, p.revision, unir(r, 'revision'));
 
   /*
    * ── Quién está, de verdad, en el plano ───────────────────────────────────
@@ -506,13 +529,24 @@ const plano = (c: Ctx, p: unknown, j: number, rutaDeEscena: string, reparto: Rea
 
 const ESCENA = [
   'id', 'order', 'title', 'description', 'narrativePurpose', 'durationSec', 'timeOfDay', 'weather', 'locationId',
-  'characterIds', 'objectIds', 'characterStates', 'actions', 'dialogue', 'visual', 'audio', 'continuity', 'dependsOn', 'shots',
+  'characterIds', 'objectIds', 'characterStates', 'actions', 'dialogue', 'visual', 'audio', 'continuity', 'dependsOn', 'batch', 'shots',
 ];
+
+/** Convergencia: el estado de la tanda. `stored` solo con la tanda aprobada. */
+const tanda = (c: Ctx, v: unknown, ruta: string): void => {
+  if (v === undefined) return;
+  if (!objeto(c, v, ruta)) return;
+  claves(c, v, ['status', 'stored'], ruta, 'status');
+  uno(c, v.status, ESTADOS_DE_TANDA_GUARDADOS, unir(ruta, 'status'), 'value_invalid', true);
+  if (v.stored !== undefined && typeof v.stored !== 'boolean') mal(c, 'value_invalid', 'error', unir(ruta, 'stored'), { reason: 'not_boolean' });
+  if (v.stored === true && v.status !== 'approved') mal(c, 'constraints_incompatible', 'error', unir(ruta, 'stored'), { reason: 'only_when_approved' });
+};
 
 const escena = (c: Ctx, s: unknown, i: number): void => {
   const r = unir('scenes', tramo(s, i));
   if (!objeto(c, s, r, true)) return;
   claves(c, s, ESCENA, r);
+  tanda(c, s.batch, unir(r, 'batch'));
   if (s.order !== i) mal(c, 'order_mismatch', 'error', unir(r, 'order'), { expected: i });
   texto(c, s.title, unir(r, 'title'), LIMITES.nombre);
   texto(c, s.description, unir(r, 'description'), LIMITES.texto);
@@ -575,11 +609,14 @@ const apariencia = (c: Ctx, v: unknown, ruta: string): void => {
   }
 };
 
-const VOZ = ['description', 'referenceId', 'language'];
+const VOZ = ['description', 'referenceId', 'language', 'catalogId'];
 const voz = (c: Ctx, v: unknown, ruta: string): void => {
   if (!objeto(c, v, ruta)) return;
   claves(c, v, VOZ, ruta);
   texto(c, v.description, unir(ruta, 'description'), LIMITES.texto);
+  if (v.catalogId !== undefined && (typeof v.catalogId !== 'string' || !/^[A-Za-z0-9._:-]{1,64}$/.test(v.catalogId))) {
+    mal(c, 'value_invalid', 'error', unir(ruta, 'catalogId'), { reason: 'catalog_id_invalid' });
+  }
   if (v.referenceId !== undefined && ref(c, v.referenceId, unir(ruta, 'referenceId'), ['reference'])) {
     if (c.referencias.get(v.referenceId)?.kind !== 'audio') {
       mal(c, 'constraints_incompatible', 'error', unir(ruta, 'referenceId'), { reason: 'voice_reference_not_audio' });
@@ -590,7 +627,7 @@ const voz = (c: Ctx, v: unknown, ruta: string): void => {
 
 const PERSONAJE = [
   'id', 'name', 'identityDescription', 'apparentAge', 'physicalCharacteristics', 'appearance', 'referenceIds',
-  'voice', 'relationships', 'continuity', 'element',
+  'voice', 'relationships', 'continuity', 'element', 'origin',
 ];
 const RELACION = ['characterId', 'kind', 'description'];
 
@@ -598,6 +635,7 @@ const personaje = (c: Ctx, x: unknown, i: number): void => {
   const r = unir('characters', tramo(x, i));
   if (!objeto(c, x, r, true)) return;
   claves(c, x, PERSONAJE, r);
+  uno(c, x.origin, ORIGENES_DE_FICHA, unir(r, 'origin'));
   texto(c, x.name, unir(r, 'name'), LIMITES.nombre, true);
   texto(c, x.identityDescription, unir(r, 'identityDescription'), LIMITES.texto);
   if (objeto(c, x.apparentAge, unir(r, 'apparentAge'))) {
@@ -644,11 +682,12 @@ const personaje = (c: Ctx, x: unknown, i: number): void => {
   vinculo(c, x.element, unir(r, 'element'));
 };
 
-const LUGAR = ['id', 'name', 'description', 'setting', 'appearance', 'referenceIds', 'element'];
+const LUGAR = ['id', 'name', 'description', 'setting', 'appearance', 'referenceIds', 'element', 'origin'];
 const lugar = (c: Ctx, x: unknown, i: number): void => {
   const r = unir('locations', tramo(x, i));
   if (!objeto(c, x, r, true)) return;
   claves(c, x, LUGAR, r);
+  uno(c, x.origin, ORIGENES_DE_FICHA, unir(r, 'origin'));
   texto(c, x.name, unir(r, 'name'), LIMITES.nombre, true);
   texto(c, x.description, unir(r, 'description'), LIMITES.texto);
   uno(c, x.setting, AMBIENTES, unir(r, 'setting'));
@@ -657,11 +696,12 @@ const lugar = (c: Ctx, x: unknown, i: number): void => {
   vinculo(c, x.element, unir(r, 'element'));
 };
 
-const OBJETO = ['id', 'name', 'kind', 'description', 'appearance', 'referenceIds', 'element'];
+const OBJETO = ['id', 'name', 'kind', 'description', 'appearance', 'referenceIds', 'element', 'origin'];
 const cosa = (c: Ctx, x: unknown, i: number): void => {
   const r = unir('objects', tramo(x, i));
   if (!objeto(c, x, r, true)) return;
   claves(c, x, OBJETO, r);
+  uno(c, x.origin, ORIGENES_DE_FICHA, unir(r, 'origin'));
   texto(c, x.name, unir(r, 'name'), LIMITES.nombre, true);
   uno(c, x.kind, TIPOS_DE_OBJETO, unir(r, 'kind'));
   texto(c, x.description, unir(r, 'description'), LIMITES.texto);
@@ -675,11 +715,12 @@ const MATERIAL_DEL_PAPEL: Readonly<Record<string, string>> = {
   first_frame: 'image', last_frame: 'image', audio: 'audio', motion: 'video',
 };
 
-const REFERENCIA = ['id', 'kind', 'role', 'assetId', 'element', 'description'];
+const REFERENCIA = ['id', 'kind', 'role', 'assetId', 'element', 'description', 'origin'];
 const referencia = (c: Ctx, x: unknown, i: number, porMaterial: Map<string, string>): void => {
   const r = unir('references', tramo(x, i));
   if (!objeto(c, x, r, true)) return;
   claves(c, x, REFERENCIA, r);
+  uno(c, x.origin, ORIGENES_DE_FICHA, unir(r, 'origin'));
   uno(c, x.kind, TIPOS_DE_MATERIAL, unir(r, 'kind'), 'value_invalid', true);
   uno(c, x.role, PAPELES_DE_REFERENCIA, unir(r, 'role'));
   if (x.assetId !== undefined && !esId(x.assetId)) mal(c, 'id_invalid', 'error', unir(r, 'assetId'));
@@ -750,7 +791,7 @@ const intencion = (c: Ctx, v: unknown): void => {
   uno(c, v.aspectRatio, PROPORCIONES, 'intent.aspectRatio', 'format_invalid');
   uno(c, v.preset, PRESETS, 'intent.preset');
   for (const k of ['tone', 'style', 'theme', 'narrative']) texto(c, v[k], `intent.${k}`, LIMITES.texto);
-  texto(c, v.freeText, 'intent.freeText', LIMITES.textoLibre);
+  texto(c, v.freeText, 'intent.freeText', LIMITES.ideaLibre);
   refs(c, v.referenceIds, 'intent.referenceIds', ['reference'], LIMITES.referenciasPorCosa);
   if (arreglo(c, v.priorities, 'intent.priorities', PRIORIDADES.length)) {
     const vistas = new Set<unknown>();
@@ -816,9 +857,21 @@ const plan = (c: Ctx, v: unknown): void => {
   if (arreglo(c, v.cues, 'audio.cues', LIMITES.sonidos, true)) v.cues.forEach((x, i) => sonido(c, x, i));
 };
 
+/** Convergencia: la FORMA de lo que la persona elige del modelo. Si el modelo lo admite lo decide el servidor al guardar y al generar. */
+const preferenciasDeGeneracion = (c: Ctx, v: Record<string, unknown>, ruta: string): void => {
+  if (v.preferredModel !== undefined && (typeof v.preferredModel !== 'string' || !/^[A-Za-z0-9._:-]{2,128}$/.test(v.preferredModel))) {
+    mal(c, 'value_invalid', 'error', unir(ruta, 'preferredModel'), { reason: 'model_id_invalid' });
+  }
+  numero(c, v.variants, unir(ruta, 'variants'), 1, 4);
+  if (v.variants !== undefined && !Number.isInteger(v.variants)) mal(c, 'value_invalid', 'error', unir(ruta, 'variants'), { reason: 'not_integer' });
+  numero(c, v.consistencySeed, unir(ruta, 'consistencySeed'), 0, 4294967295);
+  if (v.consistencySeed !== undefined && !Number.isInteger(v.consistencySeed)) mal(c, 'value_invalid', 'error', unir(ruta, 'consistencySeed'), { reason: 'not_integer' });
+};
+
 const generacion = (c: Ctx, v: unknown): void => {
   if (!objeto(c, v, 'generation', true)) return;
-  claves(c, v, ['quality', 'preview'], 'generation');
+  claves(c, v, ['quality', 'preview', 'preferredModel', 'variants', 'consistencySeed'], 'generation');
+  preferenciasDeGeneracion(c, v, 'generation');
   uno(c, v.quality, CALIDADES, 'generation.quality');
   uno(c, v.preview, PREVISUALIZACIONES, 'generation.preview');
 };

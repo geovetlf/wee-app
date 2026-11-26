@@ -12,8 +12,8 @@
  * es «vandmærke» (§ 9.4). «Face swap» es «ansigtsbytte».
  *
  * «PUBLICAR EN» va en mayúsculas porque así lo escribe el español (diseño, guía
- * § 3): «SLÅ OP I», encima de los destinos (Wäll y las comunidades). El muro
- * general es «Fælles Wäll»: adjetivo delante de la marca, sin declinarla.
+ * § 3): «SLÅ OP I», encima de los destinos (Ẅall y las comunidades). El muro
+ * general es «Fælles Ẅall»: adjetivo delante de la marca, sin declinarla.
  *
  * Weël es «en Weël», de género común como «en video» (guía § 4): «din Weël»,
  * «En Weël må højst vare…», «For lang Weël». La marca nunca se declina.
@@ -47,6 +47,12 @@ export const composer: typeof import('../es/composer').composer = {
   photoOrVideo: 'Foto eller video',
   camera: 'Kamera',
   location: 'Placering',
+  place: 'Sted',
+  gallery: 'Galleri',
+  projects: 'Projekter',
+  createWithAi: 'Skab med AI',
+  newPost: 'Nyt opslag',
+  multimedia: 'Galleri',
   poll: 'Afstemning',
   sheetTitle: 'Opret',
   sheetSubtitle: 'Hvad vil du dele i dag?',
@@ -63,7 +69,7 @@ export const composer: typeof import('../es/composer').composer = {
   showOptions: 'Vis mulighederne for opslaget',
   hideOptions: 'Skjul mulighederne for opslaget',
   currentDestination: '{{destino}}, valgt',
-  generalWall: 'Fælles Wäll',
+  generalWall: 'Fælles Ẅall',
   placeholderPollExtra: 'Tilføj mere, hvis du vil (valgfrit)…',
   placeholderQuestion: 'Hvad vil du spørge fællesskabet om?',
   placeholderWeel: 'Fortæl, hvad du har lavet til din Weël, og med hvilken AI…',
@@ -73,15 +79,10 @@ export const composer: typeof import('../es/composer').composer = {
   placeholderDefault: 'Skriv noget…',
   postTextLabel: 'Opslagets tekst',
   weelHint: 'Weël: en video på op til {{segundos}} sekunder. Når den deles uden for Weë, får den et lille vandmærke.',
-  newPost: 'Nyt opslag',
   you: 'Du',
   shareWithCommunity: 'Del med fællesskabet på Weë',
-  publicVisibility: 'Offentlig',
-  visibilityIs: 'Synlighed: {{estado}}',
-  publicExplain: 'Indtil videre er alle opslag på Weë offentlige.',
   profileReal: 'Ægte profil',
   profileWee: 'Weë-profil',
-  multimedia: 'Galleri',
   actionWithBadge: '{{accion}}, {{insignia}}',
   removeVideo: 'Fjern videoen',
   removePhotoNumber: 'Fjern foto {{numero}}',

@@ -238,11 +238,11 @@ console.log('\n── El muro no es una pila de tarjetas ──');
 
   /* 2) Primer marco: la tarjeta. En el muro no hay fondo, ni sombra, ni esquinas. */
   check('12) en el muro no hay tarjeta: ni fondo, ni esquinas, ni sombra',
-    /marginBottom: 0,\s*borderRadius: 0,/.test(enMuroEstilo) && /shadowOpacity: 0,/.test(enMuroEstilo) && /elevation: 0,/.test(enMuroEstilo) && !/backgroundColor/.test(enMuroEstilo));
-  check('12) y se separan por el aire y un pelo de línea', /paddingVertical: SPACING\.lg,/.test(enMuroEstilo) && /borderBottomWidth: StyleSheet\.hairlineWidth,/.test(enMuroEstilo));
+    /marginBottom: SPACING\.xs,\s*borderRadius: 0,/.test(enMuroEstilo) && /shadowOpacity: 0,/.test(enMuroEstilo) && /elevation: 0,/.test(enMuroEstilo) && !/backgroundColor/.test(enMuroEstilo));
+  check('12) y se separan por el aire, sin raya (2026-11-16)', /paddingVertical: SPACING\.lg,/.test(enMuroEstilo) && !/borderBottomWidth/.test(enMuroEstilo));
   /* Control: fuera del muro la tarjeta conserva su fondo y su sombra. */
-  check('12) control: fuera del muro sigue habiendo tarjeta',
-    /backgroundColor: theme\.colors\.card,\s*shadowColor: theme\.dark \? theme\.colors\.glow/.test(tarjeta) && /borderRadius: BORDER_RADIUS\.lg,\s*padding: SPACING\.lg,/.test(estilos));
+  check('12) control: fuera del muro sigue habiendo tarjeta (fondo y esquinas, sin sombra marcada)',
+    /backgroundColor: theme\.colors\.card,\s*\}/.test(tarjeta) && /borderRadius: BORDER_RADIUS\.lg,\s*padding: SPACING\.lg,/.test(estilos));
 
   /* 3) Segundo marco: el relleno que encajonaba la foto. */
   /*
@@ -393,8 +393,8 @@ console.log('\n── El vídeo del muro conserva su forma ──');
     && /accessibilityLabel=\{t\('wall\.viewFullVideoInWeels'\)\}/.test(tarjeta)
     && /viewFullVideoInWeels: 'Ver el vídeo completo en Weëls'/.test(leer('i18n/textos/es/wall.ts')));
   /* Y si algo se queda fuera, se dice: si no, parece un vídeo mal cortado. */
-  check('17) cuando el adelanto recorta, lo avisa y nombra a Weëls',
-    /\{ventanaDelVideo\.recorta && \(/.test(tarjeta) && /Ver en Weëls/.test(tarjeta));
+  check('17) el chip «Ver en Weëls» ya no se pinta sobre el vídeo (decisión del dueño, 2026-11-16): tocar el vídeo sigue abriendo Weëls',
+    !/\{ventanaDelVideo\.recorta && \(/.test(tarjeta) && !/wall\.viewInWeels/.test(tarjeta) && /onVideoPress \? \(\) => onVideoPress\(displayPost/.test(tarjeta));
   check('17) control: si el vídeo cabe entero, no hay aviso',
     /recorta: alto < altoNatural - 1e-9/.test(reglaDelMedio));
   /* 3) Y nada se recorta: `CONTAIN`, también en el cartel de espera. */

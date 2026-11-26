@@ -5,8 +5,8 @@ import { creditEngine } from '../credits/creditEngine';
 import { CreditService, getCreditCost, loadCostOverrides, serviceForCapability } from '../credits/creditCosts';
 import { CreditError, toHttpsError } from '../credits/creditValidation';
 import { engine } from '../engine';
-import { chooseSeedanceModel, videoRequestFromStep } from '../engine/video';
-import { priceImage, priceOperation, priceVideo } from '../credits/aiPricing';
+import { videoParamsForQuote, videoRequestFromStep } from '../engine/video';
+import { priceImage, priceOperation, priceVideoRequest } from '../credits/aiPricing';
 import { providerReady } from '../engine/image';
 import { firestoreLedger } from '../engine/ledger';
 import { usageTransactionId } from '../credits/creditTransactions';
@@ -88,17 +88,13 @@ export async function estimatePlan(plan: Plan, userId = 'anonymous', quality?: Q
       // El precio del video depende del modelo de Seedance y de la resolución:
       // se calcula con la tarifa oficial de ByteDance (credits/aiPricing.ts).
       const settings = await engine.settings();
-      const request = videoRequestFromStep(step.capability, input);
-      const price = priceVideo(
-        {
-          modelId: chooseSeedanceModel(request, settings),
-          durationSec: request.durationSec,
-          aspectRatio: request.aspectRatio,
-          resolution: request.resolution,
-          quality: request.quality,
-        },
-        settings,
-      );
+      /*
+       * Con la misma normalización que usará creatorRun, y con la capacidad del
+       * PASO: aquí todavía no hay foto ni guion, pero un paso de imagen a vídeo
+       * viajará como `adaptive` y se cotiza así (corrección P0 del 2026-10-07).
+       */
+      const parametros = videoParamsForQuote(videoRequestFromStep(step.capability, input), settings);
+      const price = priceVideoRequest({ ...parametros, capability: step.capability }, settings);
       service = price.service;
       credits = price.credits;
       steps.push({
@@ -265,8 +261,16 @@ export async function settleCredits(userId: string, jobId: string, held: number,
      */
     let capturado = 0;
     if (used > 0) {
-      capturado = Math.min(held, used);
-      await creditEngine.completeCredits({ userId, requestId: jobId, finalAmount: capturado });
+      const pedido = Math.min(held, used);
+      const cierre = await creditEngine.completeCredits({ userId, requestId: jobId, finalAmount: pedido });
+      /*
+       * Lo que el libro dice que se cobró es lo que el Credit Engine dice que quedó cobrado (Gran Motor · C-1).
+       * `completeCredits` es idempotente y NO cobra si la reserva ya estaba devuelta (p. ej. el barrido la cerró
+       * justo antes de que este trabajo terminara): en ese caso devuelve su estado (`REFUNDED`) sin mover nada, y
+       * dejar aquí `pedido` escribiría en el libro un cobro que nunca ocurrió. Es la misma regla que ya aplican
+       * `runtime/index.ts` y `creator/barrido.ts`.
+       */
+      capturado = cierre.status === 'COMPLETED' ? pedido : 0;
     } else {
       await creditEngine.refundCredits({ userId, requestId: jobId, reason: `${description} · no se pudo terminar`, source: 'weë-creator' });
     }

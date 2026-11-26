@@ -29,9 +29,18 @@ import { useIdioma } from '../contexts/IdiomaContext';
  *     traducido: separar letras rompe la escritura árabe, que va ligada, y las
  *     mayúsculas no existen en la mitad de los idiomas de Weë.
  *
+ * Una sexta para lo que va en `position: 'absolute'`: `alInicio(v)` / `alFinal(v)`.
+ * En React Native Web, `start`/`end` absolutos se resuelven con I18nManager —que
+ * en la web es siempre LTR— y no con el sentido del contenedor, así que una pieza
+ * con `end: 0` se quedaría a la derecha aunque la fila se invierta. Estas dos
+ * devuelven el lado físico (`left`/`right`) que toca según la dirección.
+ *
  * Y una quinta para cuando haga falta: un icono que SEÑALA (una flecha de
- * volver, un cheurón de «siguiente») se refleja con `espejo`. Uno que no señala
- * (una bandera, un corazón, un visto) no se toca.
+ * volver, un cheurón de «siguiente») se refleja. Para los Ionicons se usa
+ * `components/IconoDireccional.tsx`, que aplica `espejo` solo a los nombres
+ * direccionales; para una flecha escrita en un texto, `flecha.adelante` /
+ * `flecha.siguiente`. Uno que no señala (una bandera, un corazón, un visto) no
+ * se toca.
  */
 export type Direccion = 'ltr' | 'rtl';
 
@@ -44,7 +53,21 @@ export interface EstilosDeDireccion {
   texto: { writingDirection: Direccion };
   /** Para los iconos que señalan un sentido. Vacío en LTR. */
   espejo: { transform: { scaleX: number }[] };
+  /** Pega una pieza absoluta al principio de la línea (derecha en RTL). */
+  alInicio: (valor: Distancia) => LadoFisico;
+  /** Pega una pieza absoluta al final de la línea (izquierda en RTL). */
+  alFinal: (valor: Distancia) => LadoFisico;
+  /**
+   * Las flechas que van ESCRITAS dentro de un texto («Ver todos →», «Weë AI ›»).
+   * Un glifo no se refleja con `transform` sin arrastrar las letras de al lado, y
+   * ← → ‹ › no son caracteres que el navegador espeje solo, así que se elige el
+   * glifo que señala hacia delante en el sentido de lectura.
+   */
+  flecha: { adelante: '→' | '←'; siguiente: '›' | '‹' };
 }
+
+export type Distancia = number | `${number}%`;
+export type LadoFisico = { left?: Distancia; right?: Distancia };
 
 /** Pura, para poder probarla sin React: de una dirección a los estilos que la aplican. */
 export const estilosDeDireccion = (direccion: Direccion): EstilosDeDireccion => {
@@ -55,6 +78,9 @@ export const estilosDeDireccion = (direccion: Direccion): EstilosDeDireccion => 
     contenedor: Object.freeze({ direction: direccion }),
     texto: Object.freeze({ writingDirection: direccion }),
     espejo: Object.freeze({ transform: esRTL ? [{ scaleX: -1 }] : [] }),
+    alInicio: (valor: Distancia): LadoFisico => (esRTL ? { right: valor } : { left: valor }),
+    alFinal: (valor: Distancia): LadoFisico => (esRTL ? { left: valor } : { right: valor }),
+    flecha: Object.freeze(esRTL ? { adelante: '←' as const, siguiente: '‹' as const } : { adelante: '→' as const, siguiente: '›' as const }),
   });
 };
 

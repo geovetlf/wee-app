@@ -617,8 +617,8 @@ console.log('\n── I · Enchufado en Weë ──');
     /nombreNativo/.test(pantalla) && !/nombreEnEspanol|traducirNombre/.test(pantalla));
 
   const barra = leer('components/BarraInferior.tsx');
-  check('51) la barra inferior ya traduce sus cinco destinos',
-    /\{t\(destino\.clave\)\}/.test(barra) && /clave: 'nav\.home'/.test(barra));
+  /* 2026-11-16: el último destino es el cambio de cara («Weë» / «Real», por clave): el rótulo sale de rotulo(destino), que resuelve claves; los otros cuatro siguen por destino.clave. */
+  check('51) la barra inferior ya traduce sus cinco destinos', /rotulo\(destino\)/.test(barra) && /t\(destino\.clave\)/.test(barra) && /clave: 'nav\.home'/.test(barra));
 
   /* CONTROL: no se ha duplicado ninguna pantalla por idioma. */
   const duplicadas = fs.readdirSync(path.resolve(raiz, 'screens'))
@@ -661,15 +661,19 @@ console.log('\n── J · Fase 2 · los módulos migrados ──');
   check('54) Burger · sin textos escritos a mano', burger.usaT && burger.sinTexto);
   /* Y sus doce opciones y once experiencias, por clave. */
   const menu = leer("constants/weeMenu.ts");
-  check('55) Burger · las doce opciones tienen clave',
-    (menu.match(/clave: 'menu\./g) || []).length === 12);
+  /*
+   * Dieciséis desde el rediseño del 2026-11-15: a las trece se suman Inicio / Wäll, Explorar, MyWeës e Historial, y
+   * WeëAI pasa a tomar su nombre de `nav.weeAi` (era `menu.creator`). Dieciocho entradas en total, todas con clave.
+   */
+  check('55) Burger · las dieciséis opciones del módulo `menu` tienen clave, y las dieciocho del catálogo, alguna',
+    (menu.match(/clave: 'menu\./g) || []).length === 16 && (menu.match(/^  \w+: \{ id: '\w+', icono: '\w+', clave: '[a-z]+\.[A-Za-z]+'/gm) || []).length === 18);
   const exps = leer("constants/weeExperiences.ts");
   check('56) y las once experiencias describen por clave',
     (exps.match(/claveDescripcion: 'creator\./g) || []).length === 11);
   /* CONTROL: los NOMBRES de las experiencias siguen sin traducir. */
   check('57) control: Weë Design sigue llamándose Weë Design',
-    /name: 'Weë Design'/.test(exps) && /name: 'Weë Studio'/.test(exps)
-    && (exps.match(/^    name: 'Weë /gm) || []).length === 11
+    /name: 'WeëDesign'/.test(exps) && /name: 'WeëStudio'/.test(exps)
+    && (exps.match(/^    name: 'Weë/gm) || []).length === 11
     && !/^    name: 'creator\./m.test(exps));
   /* Y el nombre del ÁREA sí es descriptivo: "Hogar & Diseño" se lee y se traduce. */
   check('57) pero el nombre del área sí se traduce',

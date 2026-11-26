@@ -24,7 +24,7 @@
  *
  * ── Preparado para el resto de Weë AI ────────────────────────────────────────
  *
- * Hoy lo usa Weë Studio. Design, Music, Travel, Chef y Business siguen con lo
+ * Hoy lo usa WeëStudio. Design, Music, Travel, Chef y Business siguen con lo
  * suyo hasta que se migren una a una: para eso `ajustesDe` acepta un catálogo
  * propio, y así una experiencia puede traer sus grupos sin dejar de usar la
  * misma mecánica de contexto.
@@ -146,7 +146,7 @@ export const ajustesDe = (
 /**
  * UN CATÁLOGO QUE NO CAMBIA CON EL CONTEXTO, PUESTO EN ESTA FORMA.
  *
- * Weë Design pregunta siempre lo mismo —estilo, materiales, iluminación,
+ * WeëDesign pregunta siempre lo mismo —estilo, materiales, iluminación,
  * formato, calidad— porque allí siempre se está diseñando algo que se ve. No
  * tiene un "todavía no sé qué quieres" del que dependa la pregunta, así que sus
  * grupos no llevan `contextos` y viven en `constants/designTools.ts` con la

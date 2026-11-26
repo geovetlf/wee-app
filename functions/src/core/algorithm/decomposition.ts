@@ -250,9 +250,6 @@ export const validarDAG = (
   return Object.freeze(p);
 };
 
-export const dagValido = (t: TareaADescomponer, puertos?: PuertosDeCapacidad): boolean =>
-  validarDAG(t, puertos).length === 0;
-
 /* ── Medidas ──────────────────────────────────────────────────────────────── */
 
 /**

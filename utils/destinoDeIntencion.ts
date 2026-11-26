@@ -1,7 +1,7 @@
 /**
  * DE LO QUE ALGUIEN ESCRIBE A DÓNDE HAY QUE LLEVARLE.
  *
- * Weë Studio es un hub: no crea, encamina (B3.10 §1.3). Alguien escribe "un
+ * WeëStudio es un hub: no crea, encamina (B3.10 §1.3). Alguien escribe "un
  * vídeo de 15 segundos para mi cafetería" y lo que tiene que pasar es que
  * aparezca DENTRO de la experiencia de vídeo con esa frase ya puesta, no que el
  * Studio intente hacerlo.
@@ -62,7 +62,7 @@ export interface OpcionesDeDestino {
    */
   sugeridaPorBrain?: string | null;
   /**
-   * La experiencia que declara la puerta por la que se entró. Weë Studio la
+   * La experiencia que declara la puerta por la que se entró. WeëStudio la
    * pasa cuando alguien abrió Imágenes, Beauty o Texto: en ese momento ya no
    * hay nada que adivinar, porque lo acaba de decir.
    *
@@ -74,8 +74,8 @@ export interface OpcionesDeDestino {
   /** El idioma de la app: las palabras se reconocen también en él (`matchExperiences`). */
   idioma?: string;
   /**
-   * Quedarse dentro de un lugar de trabajo. Weë Studio lo usa para no mandar a
-   * alguien a Weë Chef desde su portada: allí no se enseñan los otros sitios y
+   * Quedarse dentro de un lugar de trabajo. WeëStudio lo usa para no mandar a
+   * alguien a WeëChef desde su portada: allí no se enseñan los otros sitios y
    * llevar a uno que no se enseña es aparecer en una sección que no se pidió.
    *
    * Sin esto, se busca entre todas.
@@ -117,7 +117,7 @@ export const destinoDeIntencion = (
    * ── Por qué a esta NO se le aplica `dentroDe` ───────────────────────────
    *
    * Porque `dentroDe` está para que ADIVINAR no se vaya de paseo: quien escribe
-   * «una receta» en Weë Studio no puede acabar en Weë Chef por una palabra. Eso
+   * «una receta» en WeëStudio no puede acabar en WeëChef por una palabra. Eso
    * protege contra una lectura que puede fallar.
    *
    * Lo que una puerta declara no es una lectura: es una decisión de producto,
@@ -126,7 +126,7 @@ export const destinoDeIntencion = (
    * peor que ir a otro sitio, porque nadie se entera.
    *
    * Hoy pasa con la Voz: el único plan de Weë que produce voz sola vive en la
-   * plantilla de Weë Music, que es otro lugar de trabajo. Filtrarlo dejaba la
+   * plantilla de WeëMusic, que es otro lugar de trabajo. Filtrarlo dejaba la
    * Voz muerta y mandaba a quien escribía «Lectura: mi libro» a Weë Writer por
    * la palabra «libro» —peor aún: un texto en vez de un audio—. Lo encontró el
    * navegador, no una lectura del código.

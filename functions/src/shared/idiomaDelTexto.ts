@@ -7,7 +7,8 @@
  * que el que evita. Por eso este detector solo contesta cuando hay pruebas de sobra, y si no, dice «no lo sé».
  *
  * CÓMO DECIDE
- *  · Escrituras propias: cirílico → ruso; hangul → coreano; kana → japonés; han sin kana → chino; devanagari → hindi.
+ *  · Escrituras propias: cirílico → ruso; hangul → coreano; kana → japonés; han sin kana → chino; devanagari → hindi;
+ *    griego → griego.
  *    Basta con que esas letras sean la mayoría de las letras del texto.
  *  · Alfabeto latino: por las PALABRAS FUNCIONALES de cada idioma (artículos, preposiciones, pronombres, auxiliares),
  *    que son las que no se toman prestadas. Un sustantivo —«prompt», «paella», «Instagram», «design»— no cuenta nunca.
@@ -22,7 +23,7 @@
  * variantes del mismo idioma (pt-BR / pt-PT, zh-CN / zh-TW): eso no es un error de idioma.
  */
 
-export type IdiomaDetectable = 'es' | 'en' | 'da' | 'sv' | 'de' | 'fr' | 'it' | 'pt' | 'tr' | 'ru' | 'ko' | 'ja' | 'zh' | 'hi';
+export type IdiomaDetectable = 'es' | 'en' | 'da' | 'sv' | 'de' | 'fr' | 'it' | 'pt' | 'tr' | 'ru' | 'ko' | 'ja' | 'zh' | 'hi' | 'el' | 'nl';
 
 export const MIN_PALABRAS = 25;
 export const MIN_FUNCIONALES = 6;
@@ -30,7 +31,7 @@ export const MARGEN = 2.5;
 
 /* Las palabras funcionales más frecuentes de cada idioma latino que Weë habla. Solo minúsculas y solo palabras que no
    son sustantivos: nada que se tome prestado entre idiomas. */
-const FUNCIONALES: Record<Exclude<IdiomaDetectable, 'ru' | 'ko' | 'ja' | 'zh' | 'hi'>, readonly string[]> = {
+const FUNCIONALES: Record<Exclude<IdiomaDetectable, 'ru' | 'ko' | 'ja' | 'zh' | 'hi' | 'el'>, readonly string[]> = {
   es: ['el', 'la', 'los', 'las', 'de', 'del', 'que', 'y', 'en', 'un', 'una', 'unos', 'unas', 'por', 'con', 'para', 'es', 'son', 'está', 'están', 'se', 'no', 'su', 'sus', 'al', 'lo', 'como', 'más', 'pero', 'ya', 'muy', 'sin', 'sobre', 'también', 'hasta', 'hay', 'donde', 'desde', 'todo', 'cuando', 'porque', 'esta', 'este', 'estos', 'estas', 'puedes', 'tu', 'tus', 'te', 'mi', 'yo', 'ser', 'tiene', 'hace', 'muy', 'cada', 'entre'],
   en: ['the', 'of', 'and', 'to', 'in', 'is', 'are', 'you', 'your', 'that', 'it', 'for', 'on', 'with', 'as', 'be', 'this', 'these', 'have', 'has', 'from', 'or', 'by', 'can', 'will', 'not', 'but', 'what', 'all', 'when', 'there', 'an', 'which', 'their', 'if', 'do', 'so', 'about', 'more', 'into', 'then', 'them', 'its', 'our', 'would', 'been', 'also', 'each', 'until', 'while', 'should', 'a', 'my', 'we', 'they', 'how', 'than', 'only', 'just', 'any'],
   da: ['og', 'i', 'at', 'det', 'en', 'den', 'til', 'er', 'som', 'på', 'de', 'med', 'af', 'for', 'ikke', 'der', 'var', 'mig', 'sig', 'men', 'et', 'har', 'om', 'vi', 'min', 'nu', 'over', 'fra', 'du', 'ud', 'sin', 'dem', 'os', 'op', 'man', 'hvor', 'eller', 'hvad', 'skal', 'selv', 'her', 'alle', 'vil', 'blev', 'kunne', 'ind', 'når', 'være', 'noget', 'efter', 'ned', 'denne', 'end', 'dette', 'også', 'under', 'have', 'dig', 'meget', 'hvis', 'din', 'dit', 'dine', 'nogle', 'hos', 'blive', 'mange', 'bliver', 'jeg', 'kan', 'så', 'eller', 'mere', 'hver'],
@@ -40,6 +41,8 @@ const FUNCIONALES: Record<Exclude<IdiomaDetectable, 'ru' | 'ko' | 'ja' | 'zh' | 
   it: ['il', 'lo', 'la', 'gli', 'le', 'di', 'del', 'della', 'dei', 'delle', 'e', 'che', 'un', 'una', 'in', 'per', 'con', 'non', 'è', 'sono', 'si', 'da', 'al', 'alla', 'nel', 'nella', 'come', 'più', 'ma', 'anche', 'tuo', 'tua', 'tuoi', 'puoi', 'questo', 'questa', 'quando', 'perché', 'ogni', 'senza', 'sul', 'sulla', 'ci', 'ti'],
   pt: ['o', 'a', 'os', 'as', 'de', 'do', 'da', 'dos', 'das', 'e', 'que', 'um', 'uma', 'em', 'no', 'na', 'nos', 'nas', 'por', 'com', 'para', 'não', 'se', 'é', 'são', 'mais', 'como', 'mas', 'ao', 'seu', 'sua', 'você', 'pode', 'também', 'quando', 'isso', 'este', 'esta', 'cada', 'sem', 'muito', 'pelo', 'pela'],
   tr: ['ve', 'bir', 'bu', 'için', 'ile', 'de', 'da', 'değil', 'çok', 'daha', 'gibi', 'olan', 'olarak', 'ama', 'veya', 'her', 'sen', 'senin', 'ne', 'mi', 'mı', 'kadar', 'sonra', 'önce', 'şu', 'o', 'en', 'ya', 'hem', 'ki', 'bunu', 'şey'],
+  /* Neerlandés: lo separan del alemán y del danés «het», «een», «van», «niet», «zijn», «wordt», «ook», «naar», «uit». */
+  nl: ['de', 'het', 'een', 'en', 'van', 'is', 'dat', 'op', 'te', 'in', 'voor', 'met', 'niet', 'zijn', 'je', 'jouw', 'jij', 'die', 'dit', 'deze', 'er', 'maar', 'ook', 'nog', 'naar', 'uit', 'bij', 'wordt', 'worden', 'heeft', 'hebben', 'kun', 'kunt', 'wat', 'hoe', 'waar', 'omdat', 'dan', 'geen', 'meer', 'door', 'over', 'zonder', 'wij', 'we', 'ons', 'onze', 'ik', 'of', 'als', 'alle', 'andere', 'al', 'zo', 'hier', 'daar', 'mijn', 'jullie'],
 };
 
 /* Cuántos idiomas comparten cada palabra: «de» está en cinco y pesa un quinto; «ikke» solo en uno y pesa entero. */
@@ -51,6 +54,7 @@ const ESCRITURAS: [IdiomaDetectable, RegExp][] = [
   ['ru', /\p{Script=Cyrillic}/u],
   ['ko', /\p{Script=Hangul}/u],
   ['hi', /\p{Script=Devanagari}/u],
+  ['el', /\p{Script=Greek}/u],
 ];
 const KANA = /[\p{Script=Hiragana}\p{Script=Katakana}]/u;
 const HAN = /\p{Script=Han}/u;
@@ -135,7 +139,7 @@ export const veredictoDeIdioma = (
   umbrales: Umbrales = {}
 ): { veredicto: Veredicto; detectado?: IdiomaDetectable } => {
   const base = /^([A-Za-z]{2,3})/.exec(esperado || '')?.[1]?.toLowerCase();
-  const reconocibles: readonly string[] = ['es', 'en', 'da', 'sv', 'de', 'fr', 'it', 'pt', 'tr', 'ru', 'ko', 'ja', 'zh', 'hi'];
+  const reconocibles: readonly string[] = ['es', 'en', 'da', 'sv', 'de', 'fr', 'it', 'pt', 'tr', 'ru', 'ko', 'ja', 'zh', 'hi', 'el', 'nl'];
   if (!base || !reconocibles.includes(base)) return { veredicto: 'incierto' };
   const d = detectarIdioma(texto, umbrales);
   if (!d) return { veredicto: 'incierto' };

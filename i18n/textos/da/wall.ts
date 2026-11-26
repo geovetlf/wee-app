@@ -1,5 +1,5 @@
 /*
- * DANÉS — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * DANÉS — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -21,7 +21,7 @@
  * porque es un rótulo de diseño: «SÅDAN LAVEDE JEG DET» (glosario § 9.4).
  * «Proceso:» es «Fremgangsmåde:», que es como se dice en danés «cómo se hizo».
  * `publishedOnWee` firma el texto que sale al compartir («- Slået op på Weë»);
- * «World Encode Entity» es el nombre largo de la marca y no se traduce.
+ * «WORLD OF EXPRESSION & EVOLUTION» es el nombre largo de la marca y no se traduce.
  */
 export const wall: typeof import('../es/wall').wall = {
   repostedBy: '{{nombre}} delte igen',
@@ -84,7 +84,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'kommentarer',
   commentImageFailed: 'Billedet kunne ikke uploades. Prøv igen.',
   commentSendFailed: 'Kommentaren kunne ikke sendes. Prøv igen.',
-  shareText: '{{contenido}}\n\nSkabt på Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nSkabt på Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Se dette opslag på Weë',
   commentsWithCount: 'Kommentarer ({{total}})',
   agreeWithComment: 'Enig i kommentaren',
@@ -93,4 +93,22 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: 'Skjul prompt',
   copyPrompt: 'Kopiér prompt',
   promptCopied: 'Kopieret!',
+  demoBadge: 'Demo',
+  demoBadgeLabel: 'Demoindhold',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Der er endnu ingen opslag på Ẅall',
+  immersiveError: 'Vi kunne ikke indlæse Ẅall',
+  immersiveEnd: 'Du har set det hele',
+  agreePost: 'Enig',
+  disagreePost: 'Uenig',
+  mute: 'Slå lyden fra',
+  unmute: 'Slå lyd til',
+  moreOptions: 'Flere muligheder',
+  seeMore: 'Vis mere',
+  seeLess: 'Vis mindre',
+  openPost: 'Åbn opslaget',
+  imageOf: 'Billede {{numero}} af {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Ild',
+  reactionLaugh: 'Latter',
 };

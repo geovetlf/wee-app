@@ -10,7 +10,7 @@
  * pasan por el traductor; por eso «Business Profile» se queda igual cuando es un destino para compartir: es el
  * nombre que la persona ve en la tarjeta del módulo. Los NOMBRES de las funciones de dentro —Business Plan,
  * Business Coach, Pricing Assistant, Brand Kit, Customer Insights, Business Ideas— también son de producto y se
- * escriben igual en todos los idiomas, como Weë Studio (decisión del usuario, 2026-09-16); lo que hace cada una sí se
+ * escriben igual en todos los idiomas, como WeëStudio (decisión del usuario, 2026-09-16); lo que hace cada una sí se
  * traduce, en su pista. «SWOT» se queda como sigla: «SWOT-analys».
  *
  * Los «…Goal» son lo que la persona le pide a Weë Brain: aparecen como su propio mensaje en la conversación y acaban
@@ -20,9 +20,9 @@
  * varumärke»— para no dejar una mayúscula en mitad de la frase.
  *
  * El día va delante de la fecha, como lo escribe `Intl` en sueco: «ons 30 sep.». El porcentaje, con espacio fijo:
- * «60 %». Las comillas, ”…”, y el inciso, con raya media. Las reseñas son «recensioner», como en Weë Biz, Google
+ * «60 %». Las comillas, ”…”, y el inciso, con raya media. Las reseñas son «recensioner», como en Google
  * Maps y la App Store, y no «kommentarer», que en Weë son los comentarios. El gasto «Servicios» es el de luz, agua e
- * internet (su icono es un rayo): «Räkningar», distinto a propósito de los «Tjänster» del directorio de Weë Biz, que
+ * internet (su icono es un rayo): «Räkningar», distinto a propósito de los «Tjänster» profesionales, que
  * son otra cosa; y «Personal», «Löner», que es como se apunta ese gasto. Los formatos de destino se dicen como los
  * dice quien publica en sueco —«Instagram-inlägg», «Instagram-story»—, con el guion de marca + sustantivo de la
  * guía; y «Video de Instagram», nunca «Reels».
@@ -74,7 +74,7 @@ export const business: typeof import('../es/business').business = {
   yesterday: 'I går',
 
   /* ══ LOS OCHO MÓDULOS (2026-09-16) ══════════════════════════════════════ */
-  slogan: 'Skapa, driv, marknadsför och utveckla ditt företag.',
+  slogan: 'Mode, stil, skönhet och skapande av visuellt innehåll.',
 
   /* Qué hace cada módulo, en una línea. */
   modMyBusinessHint: 'Bygg upp och driv ditt företag',
@@ -181,11 +181,11 @@ export const business: typeof import('../es/business').business = {
   share: 'Dela',
   shareHint: 'Telefonens delningsmeny öppnas: välj den app du vill.',
   shareToWee: 'Dela på Weë',
-  shareWall: 'Min Wäll',
+  shareWall: 'Min Ẅall',
   shareCommunities: 'Communities',
   shareProfile: 'Business Profile',
   shareNothing: 'Skapa något först, sedan kan du dela det härifrån.',
-  shareText: 'Skapat med Weë Business',
+  shareText: 'Skapat med WeëFashion',
 
   /* ── Analyze ──────────────────────────────────────────────────────────── */
   analyzeUpload: 'Ladda upp data',

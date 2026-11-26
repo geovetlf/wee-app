@@ -1,5 +1,5 @@
 /*
- * TURCO — El Wäll: la publicación y todo lo que se puede hacer con ella.
+ * TURCO — El Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -79,7 +79,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'yorum',
   commentImageFailed: 'Görsel yüklenemedi. Yeniden dene.',
   commentSendFailed: 'Yorum gönderilemedi. Yeniden dene.',
-  shareText: '{{contenido}}\n\nWeë\'de oluşturuldu · World Encode Entity',
+  shareText: '{{contenido}}\n\nWeë\'de oluşturuldu · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Weë\'deki bu gönderiye göz at',
   commentsWithCount: 'Yorumlar ({{total}})',
   agreeWithComment: 'Bu yoruma katılıyorum',
@@ -88,4 +88,22 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: 'Promptu gizle',
   copyPrompt: 'Promptu kopyala',
   promptCopied: 'Kopyalandı',
+  demoBadge: 'Demo',
+  demoBadgeLabel: 'Demo içeriği',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Ẅall’da henüz gönderi yok',
+  immersiveError: 'Ẅall yüklenemedi',
+  immersiveEnd: 'Hepsini gördün',
+  agreePost: 'Katılıyorum',
+  disagreePost: 'Katılmıyorum',
+  mute: 'Sessize al',
+  unmute: 'Sesi aç',
+  moreOptions: 'Diğer seçenekler',
+  seeMore: 'Daha fazla göster',
+  seeLess: 'Daha az göster',
+  openPost: 'Gönderiyi aç',
+  imageOf: 'Görsel {{numero}}/{{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Ateş',
+  reactionLaugh: 'Kahkaha',
 };

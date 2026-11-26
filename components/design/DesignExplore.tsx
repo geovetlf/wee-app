@@ -1,11 +1,16 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useDireccion } from '../../hooks/useDireccion';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import { RejillaDeCreator, TituloDeCreator, estilosDeCreator } from '../creator/PiezasDeCreator';
 import { PUERTAS_DE_DESIGN, CategoriaDeDesign } from '../../constants/designTools';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { useEstiloWeeAi } from '../../hooks/useEstiloWeeAi';
 
 const isWeb = Platform.OS === 'web';
 
@@ -28,8 +33,28 @@ interface Props {
  */
 const DesignExplore: React.FC<Props> = ({ onAbrir, onVerTodas, porFila }) => {
   const { theme } = useTheme();
+  const c = useEstiloWeeAi();
   const t = useT();
+  const dir = useDireccion();
   const portada = PUERTAS_DE_DESIGN.filter((p) => p.enPortada);
+  const pro = useEnEspacioProfesional();
+
+  if (pro) {
+    return (
+      <View style={estilosDeCreator.bloque}>
+        <TituloDeCreator titulo={t('design.exploreTitle')} accion={t('studio.seeAll')} onAccion={onVerTodas} />
+        <RejillaDeCreator
+          puertas={portada.map((puerta) => ({
+            id: puerta.id,
+            icono: puerta.icono,
+            titulo: t(puerta.clave),
+            pista: t(puerta.claveHint),
+            onPress: () => onAbrir(puerta.id),
+          }))}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.bloque}>
@@ -42,7 +67,7 @@ const DesignExplore: React.FC<Props> = ({ onAbrir, onVerTodas, porFila }) => {
           accessibilityRole="button"
           style={isWeb ? ({ cursor: 'pointer' } as any) : undefined}
         >
-          <Text style={[styles.verTodas, { color: theme.colors.textSecondary }]}>{t('studio.seeAll')} →</Text>
+          <Text style={[styles.verTodas, { color: theme.colors.textSecondary }]}>{t('studio.seeAll')} {dir.flecha.adelante}</Text>
         </TouchableOpacity>
       </View>
 
@@ -52,7 +77,7 @@ const DesignExplore: React.FC<Props> = ({ onAbrir, onVerTodas, porFila }) => {
             <TouchableOpacity
               style={[
                 styles.tarjeta,
-                { backgroundColor: theme.colors.card, borderColor: theme.colors.border },
+                { backgroundColor: c.superficie, borderColor: c.superficieAlta },
                 isWeb && ({ cursor: 'pointer' } as any),
               ]}
               onPress={() => onAbrir(puerta.id)}
@@ -72,7 +97,7 @@ const DesignExplore: React.FC<Props> = ({ onAbrir, onVerTodas, porFila }) => {
                   >
                     {t(puerta.clave)}
                   </Text>
-                  <Ionicons name="chevron-forward" size={scale(14)} color={theme.colors.textSecondary} />
+                  <IconoDireccional name="chevron-forward" size={scale(14)} color={theme.colors.textSecondary} />
                 </View>
                 <Text style={[styles.pista, { color: theme.colors.textSecondary }]} numberOfLines={2}>{t(puerta.claveHint)}</Text>
               </View>
@@ -102,7 +127,6 @@ const styles = StyleSheet.create({
   /* Más baja que la del Studio: una puerta de entrada, no una herramienta. */
   tarjeta: {
     borderRadius: scale(18),
-    borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.md,
     gap: SPACING.sm,

@@ -801,7 +801,16 @@ export const interpretarMarca = (
 ): { text: string; suggestedExperience?: string; rechazada: boolean } => {
   const match = crudo.match(/\[\[\s*WEE\s*:\s*([a-z]+)\s*\]\]/i);
   const id = match?.[1]?.toLowerCase();
-  const text = crudo.replace(/\n?\s*\[\[\s*WEE\s*:\s*[a-z]+\s*\]\]\s*/gi, '').trim();
+  /*
+   * La marca se quita con los espacios que la rodean (lo normal es que cierre la
+   * respuesta, en su propia línea), pero si queda TEXTO A LOS DOS LADOS se
+   * sustituye por un espacio: antes «mira [[WEE:design]] hola» se leía
+   * «mirahola» (Gran Motor, paquete B).
+   */
+  const text = crudo
+    .replace(/\n?\s*\[\[\s*WEE\s*:\s*[a-z]+\s*\]\]\s*/gi, (m, desde: number, todo: string) =>
+      todo.slice(0, desde).trim() && todo.slice(desde + m.length).trim() ? ' ' : '')
+    .trim();
   if (!id) return { text, rechazada: false };
   const valido = experiencias.includes(id);
   return { text, suggestedExperience: valido ? id : undefined, rechazada: !valido };
@@ -1510,6 +1519,20 @@ export const crearBrain = (ports: BrainPorts): Brain => {
     const crudo = pensamiento.response.content ?? '';
     const marca = kind === 'reply' ? interpretarMarca(crudo, experiencias) : { text: crudo, suggestedExperience: undefined, rechazada: false };
     if (marca.rechazada) warnings.push('suggestion_rejected');
+    /*
+     * ── UNA RESPUESTA SIN TEXTO NO ES UNA RESPUESTA (Gran Motor, paquete B) ────
+     *
+     * Los adaptadores ya rechazan el contenido vacío del proveedor, pero eso se
+     * mira ANTES de quitar la marca `[[WEE:…]]`: un modelo que contesta solo con
+     * la marca, o con espacios, pasa por bueno ahí y llegaba hasta aquí como
+     * `answered` / `ready_to_plan` con `reply.text === ''`. Quien llama lo
+     * guardaba como mensaje de Weë y lo cobraba. Se rechaza en la frontera de
+     * Brain, igual que `invalid_provider_response`: lo ve quien lee el servidor
+     * (`reason: empty_reply`), y la persona recibe el fallo de siempre, con su
+     * reembolso. Solo en `reply`: «entender» devuelve estructura, y un JSON
+     * ilegible ya degrada a señales sin romper nada.
+     */
+    if (kind === 'reply' && marca.text.trim() === '') return fallar('PROVIDER_ERROR', 'empty_reply');
 
     /* Lo que el modelo devolvió como estructura, ya validado contra el catálogo. */
     const leido = kind === 'understand'

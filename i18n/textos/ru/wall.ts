@@ -1,5 +1,5 @@
 /*
- * RUSO — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * RUSO — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -83,7 +83,7 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   statComments: 'комментариев',
   commentImageFailed: 'Не удалось загрузить изображение. Попробуйте ещё раз.',
   commentSendFailed: 'Не удалось отправить комментарий. Попробуйте ещё раз.',
-  shareText: '{{contenido}}\n\nСоздано в Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nСоздано в Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Посмотрите эту публикацию в Weë',
   commentsWithCount: 'Комментарии ({{total}})',
   agreeWithComment: 'Согласиться с этим комментарием',
@@ -92,4 +92,22 @@ export const wall: ConPlurales<typeof import('../es/wall').wall> = {
   hidePrompt: 'Скрыть промпт',
   copyPrompt: 'Скопировать промпт',
   promptCopied: 'Скопировано',
+  demoBadge: 'Демо',
+  demoBadgeLabel: 'Демонстрационный контент',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'На Ẅall пока нет публикаций',
+  immersiveError: 'Не удалось загрузить Ẅall',
+  immersiveEnd: 'Вы всё посмотрели',
+  agreePost: 'Согласен',
+  disagreePost: 'Не согласен',
+  mute: 'Без звука',
+  unmute: 'Включить звук',
+  moreOptions: 'Ещё',
+  seeMore: 'Показать больше',
+  seeLess: 'Свернуть',
+  openPost: 'Открыть публикацию',
+  imageOf: 'Изображение {{numero}} из {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Огонь',
+  reactionLaugh: 'Смех',
 };

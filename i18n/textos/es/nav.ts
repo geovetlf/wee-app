@@ -10,6 +10,7 @@ export const nav = {
   create: 'Crear',
   talk: 'WeeTalk',
   notifications: 'Notificaciones',
+  notificationsUnread: 'Notificaciones, tienes avisos sin leer',
   current: 'sección actual',
   goTo: 'Ir a {{nombre}}',
   weeNavigation: 'Navegación de Weë',
@@ -19,5 +20,16 @@ export const nav = {
   goToWeeAi: 'Ir a Weë AI',
   weeAiQuestion: '¿Qué quieres crear hoy?',
   weeAiPitch: 'Cuéntale a Weë lo que quieres. Weë se encarga de la IA.',
-  documentTitle: 'Weë - La comunidad del futuro',
+  /*
+   * El eslogan de Weë, en la lengua de la interfaz (decisión del dueño, 2026-11-04: se localiza).
+   * «Weë» no va dentro: es marca. Tres imperativos separados por « · ». Lo usan la firma del Home
+   * (`components/Header.tsx`) y el título de la pestaña, que lo recibe por interpolación.
+   * No confundir con `brain.slogan`, que es la frase de Weë Brain y va aparte.
+   */
+  brandSlogan: 'Imagina · Crea · Conecta',
+  documentTitle: 'Weë - {{eslogan}}',
+  /* Rediseño del 2026-11-15: los destinos nuevos de la barra. WeëAI es marca. Sin revisión nativa. */
+  weeAi: 'WeëAI',
+  messages: 'Mensajes',
+  myWee: 'Mi Weë',
 };

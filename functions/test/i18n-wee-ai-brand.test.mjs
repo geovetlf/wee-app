@@ -82,8 +82,9 @@ console.log('\n── A · Ninguna superficie visible dice ya "WEË AI" ──')
   check('1) ninguna de las 24 superficies escribe "WEË AI"', sucias.length === 0, sucias.join(' '));
 
   /* Ni ninguna de las grafías que se descartaron. */
-  const raras = SUPERFICIES.filter((p) => /WeëAI|WEËAI|WEË Ai|Weë Ai\b|\bWEE AI\b/.test(soloCodigo(leer(p))));
-  check('1) ni "WeëAI", "WEE AI" ni ninguna otra variante', raras.length === 0, raras.join(' '));
+  /* Rediseño del 2026-11-15: «WeëAI», pegado, es el nombre visible que decidió el dueño; deja de ser una grafía descartada. Las demás siguen prohibidas. */
+  const raras = SUPERFICIES.filter((p) => /WEËAI|WEË Ai|Weë Ai\b|\bWEE AI\b/.test(soloCodigo(leer(p))));
+  check('1) ni "WEËAI", "WEE AI" ni ninguna otra variante descartada', raras.length === 0, raras.join(' '));
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -92,14 +93,15 @@ console.log('\n── B · Y las que lo nombran lo escriben "Weë AI" ──');
 {
   const pares = [
     ['2) la miga de pan del marco', 'components/creator/CreatorShell.tsx', /breadcrumb = 'Weë AI'/],
-    ['2) el rótulo y la miga de Weë AI', 'screens/WeeCreatorScreen.tsx', /overline="🤖 Weë AI"[\s\S]{0,80}breadcrumb="Weë AI"/],
+    ['2) el rótulo y la miga de Weë AI', 'screens/WeeCreatorScreen.tsx', /title=\{t\('nav\.weeAi'\)\} breadcrumb=\{t\('nav\.weeAi'\)\}/],
     ['2) el rótulo y la miga de un especialista', 'screens/SpecialistScreen.tsx', /overline=\{lanzador \? undefined : '🤖 Weë AI'\}/],
     ['2) el rótulo de Weë Brain', 'screens/BrainChatScreen.tsx', /overline="🤖 Weë AI"/],
     ['2) el de Weë Business', 'screens/BusinessScreen.tsx', /overline="🤖 Weë AI"/],
     ['2) el del flujo guiado', 'screens/CreatorFlowScreen.tsx', /overline="🤖 Weë AI"/],
     ['2) el de Mis proyectos', 'screens/ProjectsScreen.tsx', /overline="🤖 Weë AI"/],
     ['2) el del editor', 'screens/WriterEditorScreen.tsx', /overline="🤖 Weë AI"/],
-    ['3) el atajo de la hoja Crear', 'components/CreateSheet.tsx', />Weë AI ›</],
+    /* RTL (2026-11-04): el cheurón sale de dir.flecha.siguiente (› en LTR, ‹ en RTL); la marca sigue escrita tal cual. */
+    ['3) el atajo de la hoja Crear', 'components/CreateSheet.tsx', />Weë AI \{dir\.flecha\.siguiente\}</],
     ['3) la barra lateral de las pantallas de IA', 'components/creator/CreatorSidebar.tsx', /'grid-outline', 'Weë AI', goCreator/],
     /* La Ayuda pasó al diccionario en la fase 6: la marca se mira donde vive. */
     ['4) la Ayuda', 'i18n/textos/es/help.ts', /¿Cómo funciona Weë AI\?/],
@@ -112,7 +114,7 @@ console.log('\n── B · Y las que lo nombran lo escriben "Weë AI" ──');
 
   /* La etiqueta para quien no ve: la del menú de escritorio y la de la tarjeta. */
   check('3) los accessibility labels dicen "Weë AI"',
-    /accessibilityLabel=\{t\('nav\.openWeeAi'\)\}/.test(leer('components/RightSidebar.tsx'))
+    /accessibilityLabel=\{t\('nav\.openWeeAi'\)\}/.test(leer('components/inicio/TarjetaWeeAi.tsx'))
     && ES('nav.openWeeAi') === 'Abrir Weë AI' && EN('nav.openWeeAi') === 'Open Weë AI',
     ES('nav.openWeeAi') + ' / ' + EN('nav.openWeeAi'));
 }
@@ -157,7 +159,7 @@ console.log('\n── D · Los identificadores, donde estaban ──');
   const menu = leer('constants/weeMenu.ts');
 
   check('7) el id del menú sigue siendo `creator`',
-    /creator: \{ id: 'creator',[^}]*clave: 'menu\.creator'[^}]*label: 'Weë AI' \}/.test(menu));
+    /creator: \{ id: 'creator',[^}]*clave: 'nav\.weeAi'[^}]*label: 'WeëAI' \}/.test(menu));
   check('7) y no se coló ningún id con la marca dentro',
     !/id: 'weeAi'|id: 'wee-ai'|id: 'WeëAI'/i.test(menu + leer('constants/weeExperiences.ts')));
 
@@ -169,14 +171,14 @@ console.log('\n── D · Los identificadores, donde estaban ──');
     && leer('screens/WeeCreatorScreen.tsx').length > 0);
 
   check('9) la navegación hacia el área es la de siempre',
-    /navigation\.navigate\('WeeCreator'\)/.test(leer('components/RightSidebar.tsx'))
+    /abrirPortadaDeWeeAi\(\)/.test(leer('navigation/NavegacionGlobal.tsx')) /* 2026-11-16: popTo a la portada */
     && /navigation\.navigate\('WeeCreator'\)/.test(leer('components/Sidebar.tsx')));
 
   /* Lo que la fase NO tocó: las experiencias, sus ids y sus nombres. */
   const experiencias = leer('constants/weeExperiences.ts');
   check('10) las once experiencias siguen siendo once y con sus nombres',
     (experiencias.match(/^ {4}id: '/gm) || []).length === 11
-    && /name: 'Weë Design'/.test(experiencias) && /name: 'Weë Brain'/.test(experiencias));
+    && /name: 'WeëDesign'/.test(experiencias) && /name: 'Weë Brain'/.test(experiencias));
   check('10) y ninguna se llama como el área', !/name: 'Weë AI'|name: 'WEË AI'/.test(experiencias));
 }
 

@@ -1,0 +1,29 @@
+{
+  "displayName": "Weë · tope de gasto diario de IA alcanzado",
+  "documentation": {
+    "content": "La IA se ha detenido sin cobrar porque llegó al `maxUsdPerDay` global o al de un proveedor (`aiSettings/global`, `aiProviders/{id}.limits`). Hasta medianoche UTC no vuelve sola. Decide si el gasto es legítimo (subir el tope con engineAdmin) o un abuso (mira `aiGenerations` de hoy). docs/COSTES.md.",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "Weë · tope de gasto diario de IA alcanzado",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/wee_ia_tope_diario\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "0s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "600s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ]
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "86400s"
+  }
+}

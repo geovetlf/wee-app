@@ -112,7 +112,7 @@ const NO_SON_PROMPT = {
   'components/creator/ProjectPicker.tsx': 'nombre de un proyecto nuevo: una línea, no un prompt',
   'screens/ProjectsScreen.tsx': 'nombre de un proyecto nuevo: una línea, no un prompt',
   'screens/ProjectScreen.tsx': 'renombrar un proyecto: una línea, no un prompt',
-  'screens/WeeCreatorScreen.tsx': 'buscador de la portada de Weë AI: filtra experiencias mientras se escribe',
+  'screens/CrearVideoScreen.tsx': 'tarjeta de idea de «Crear video» (boceto v3): su botón Generar va fuera de la caja y la página se desplaza, así que no hay botones que se pierdan',
   'screens/WriterEditorScreen.tsx': 'editor de documentos de Weë Writer: el documento ya es la pantalla entera',
   // `components/studio/PromptEditor.tsx` estaba aquí como «editor a pantalla completa retirado: no se monta en ninguna
   // pantalla». Retirado del todo como código muerto en el cierre post-auditoría (2026-10-01): sin archivo no hay campo

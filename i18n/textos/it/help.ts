@@ -6,7 +6,7 @@
  * Tratamiento informal (tu). Lo legal va con el término exacto
  * ("Termini di servizio", "Informativa sulla privacy"); los nombres de Weë, los
  * especialistas y el símbolo ☰ se copian tal cual. "Cómo lo hice" se dice
- * como en el Wäll: "Come l’ho fatto". Apóstrofo tipográfico ’ siempre.
+ * como en el Ẅall: "Come l’ho fatto". Apóstrofo tipográfico ’ siempre.
  */
 export const help: typeof import('../es/help').help = {
   title: 'Aiuto',
@@ -18,9 +18,9 @@ export const help: typeof import('../es/help').help = {
   legalTitle: 'Termini e privacy',
   legalBody: 'I tuoi dati sono tuoi. Weë usa la tua e-mail e il tuo profilo solo per far funzionare l’app: accedere, mostrare i tuoi post, i tuoi Credits e le tue creazioni. Non vendiamo le tue informazioni.',
   legalPending: 'I Termini di servizio completi e l’Informativa sulla privacy saranno pubblicati su wee.zone prima del lancio. Weë è in costruzione: alcune funzioni usano dati di prova, e lo diciamo chiaramente dove succede.',
-  footer: 'Weë · World Encode Entity · versione 1.0.0',
+  footer: 'Weë · WORLD OF EXPRESSION & EVOLUTION · versione 1.0.0',
   q1: 'Che cos’è Weë?',
-  a1: 'Weë (World Encode Entity) è il social network delle persone che creano con l’Intelligenza Artificiale: qui scopri, impari, crei, condividi e ti connetti. L’IA è il motore; la community è il cuore.',
+  a1: 'Weë (WORLD OF EXPRESSION & EVOLUTION) è il social network delle persone che creano con l’Intelligenza Artificiale: qui scopri, impari, crei, condividi e ti connetti. L’IA è il motore; la community è il cuore.',
   q2: 'Che differenza c’è tra Profilo Reale e Profilo Weë?',
   a2: 'Il tuo Profilo Reale è la tua identità di sempre e l’app si vede bianca. Il tuo Profilo Weë è la tua identità per creare con l’IA: un avatar e un nome tutti tuoi per pubblicare le tue creazioni, e con lui l’app si veste di scuro perché tu sappia sempre con chi stai partecipando. Passi dall’uno all’altro dal menu ☰ o dal pulsante dell’intestazione.',
   q3: 'Come funziona Weë AI?',
@@ -38,6 +38,8 @@ export const help: typeof import('../es/help').help = {
   a8: 'È la chat di Weë: conversazioni private con altre persone della community, con testo, foto e note vocali.',
   q9: 'Che cos’è "Come l’ho fatto"?',
   a9: 'Quando pubblichi puoi raccontare quali strumenti hai usato, il prompt e il processo. Così altre persone imparano da te, e tu da loro, con un solo tocco su "Copia il prompt".',
+  q10: 'Quanti anni bisogna avere per usare Weë?',
+  a10: 'Weë è disponibile solo per le persone dai {{edad}} anni in su. La data di nascita ti viene chiesta all’iscrizione e, una volta salvata, non si può più cambiare.',
   heroTitle: 'Come possiamo aiutarti?',
   legalVisibility: 'Quello che pubblichi è visibile alla community; quello che crei in Weë AI resta privato finché non decidi di pubblicarlo. Puoi eliminare i tuoi post e i tuoi progetti quando vuoi.',
   askPrefill: 'Una domanda per Weë: ',

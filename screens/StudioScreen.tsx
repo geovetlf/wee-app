@@ -4,8 +4,10 @@ import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro, TemaOscuro } from '../contexts/ThemeContext';
 import { useIdioma } from '../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
+import { EnlaceDeCreaciones, useColumnaDeCreator } from '../components/creator/PiezasDeCreator';
 import { useResponsive } from '../hooks/useResponsive';
 import { PaginaDeCajas } from '../components/creator/CajaQueCrece';
 import StudioHeader from '../components/studio/StudioHeader';
@@ -16,12 +18,12 @@ import { ALTO_BARRA } from '../components/BarraInferior';
 import StudioEntradas from '../components/studio/StudioEntradas';
 import StudioPanel, { EleccionDeStudio } from '../components/studio/StudioPanel';
 import AvisoDeCreacion, { EstadoDeCreacion } from '../components/creator/AvisoDeCreacion';
-import FilaDeCreaciones from '../components/creator/FilaDeCreaciones';
+import CabeceraDeSeccion from '../components/creator/CabeceraDeSeccion';
+import { CreacionRapida, HeroDelStudio, MasHerramientas, TarjetaFilmmaker } from '../components/studio/PortadaStudio';
 import { ControlesElegidos } from '../components/studio/StudioControles';
 import { AreaDeStudio } from '../constants/studioTools';
-import { EntradaDeStudio, abreElMundo3D, abreLaProduccion, entradaPorId } from '../constants/studioExperiences';
+import { ENTRADAS_DE_EXPLORAR, EntradaDeStudio, abreElMundo3D, abreLaProduccion, entradaPorId } from '../constants/studioExperiences';
 import { Adjunto, ContextoDeExperiencia } from '../constants/weeWorkspaces';
-import { CREACIONES_DEL_STUDIO } from '../constants/studioMocks';
 import { contextoDeCreacion, duracionEnElTexto } from '../utils/contextoDeCreacion';
 import { destinoDeIntencion } from '../utils/destinoDeIntencion';
 import FichaDeContexto from '../components/creator/FichaDeContexto';
@@ -42,6 +44,9 @@ const nombreDelControl = (ruta: string, valor: string, t: (c: string) => string)
 
 /** Cuánto tarda la creación de mentira. Lo justo para ver el estado, no para esperar. */
 const LO_QUE_TARDA_LA_DEMO = 1600;
+
+/** El fondo de un panel abierto del Studio, el negro de la demo YC. */
+const NEGRO_DEL_PANEL = '#0A0A0A';
 
 /** El hueco que deja la barra global de abajo. */
 const SITIO_DE_LA_BARRA = scale(96);
@@ -87,6 +92,9 @@ const StudioScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { isMobile, isTablet, isDesktop } = useResponsive();
   const alturaTeclado = useAlturaDelTeclado();
+  /* Dentro de Weë versión creator, la misma pantalla con la columna y las piezas de creator. */
+  const pro = useEnEspacioProfesional();
+  const columna = useColumnaDeCreator();
 
   const [prompt, setPrompt] = useState('');
   /*
@@ -162,7 +170,7 @@ const StudioScreen: React.FC = () => {
   /**
    * CREAR EN EL STUDIO ES IRSE A CREAR, NO CREAR AQUÍ.
    *
-   * Weë Studio es un hub: descubre, encamina y entrega el contexto. Quien crea
+   * WeëStudio es un hub: descubre, encamina y entrega el contexto. Quien crea
    * de verdad es la experiencia común —`CreatorFlow`—, que es donde están las
    * preguntas, el plan, los Credits y el resultado. Construir aquí un segundo
    * camino de generación sería tener dos, y el día que discreparan alguien
@@ -332,7 +340,7 @@ const StudioScreen: React.FC = () => {
   /**
    * UNA REFERENCIA DE VERDAD, POR EL CAMINO DE SIEMPRE.
    *
-   * El mismo selector que usan Weë Brain y Weë Chef. Lo que se guarda es un
+   * El mismo selector que usan Weë Brain y WeëChef. Lo que se guarda es un
    * `Adjunto` con su CLASE —una referencia inspira, no se reproduce—, y quien
    * sube el archivo sigue siendo `creatorUploads` cuando llegue el momento:
    * aquí no hay almacén, ni se crea uno.
@@ -370,15 +378,19 @@ const StudioScreen: React.FC = () => {
 
   /* ── Un panel abierto se come la pantalla entera ───────────────────────── */
   if (panel) {
+    const contenidoDelPanel = (
+      <StudioPanel
+        entrada={panel}
+        porFila={isMobile ? 2 : 3}
+        onVolver={() => setPanel(null)}
+        onElegir={alElegir}
+      />
+    );
     return (
-      <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
-        <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
-          <StudioPanel
-            entrada={panel}
-            porFila={isMobile ? 2 : 3}
-            onVolver={() => setPanel(null)}
-            onElegir={alElegir}
-          />
+      /* Como en la demo YC: dentro de una puerta, el Studio de la app va en negro. En creator, el tema de siempre. */
+      <SafeAreaView style={[styles.pantalla, { backgroundColor: pro ? theme.colors.background : NEGRO_DEL_PANEL }]} edges={['top']}>
+        <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
+          {pro ? contenidoDelPanel : <TemaOscuro>{contenidoDelPanel}</TemaOscuro>}
         </View>
       </SafeAreaView>
     );
@@ -400,12 +412,23 @@ const StudioScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
-            <StudioHeader />
+          <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
+            {/*
+              LA PORTADA DE LA DEMO YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3): la fila de identidad y el héroe con la
+              mascota. En Weë versión creator sigue la cabecera de trabajo de siempre.
+            */}
+            {pro ? (
+              <StudioHeader />
+            ) : (
+              <View style={styles.portada}>
+                <CabeceraDeSeccion soloIdentidad nombre="Studio" lema={t('studio.slogan')} />
+                <HeroDelStudio onFilmmaker={() => navigation.navigate('Production', {})} onAbrir={(entrada) => setPanel(entrada)} />
+              </View>
+            )}
 
             {/*
               LA CAJA, MÁS CERCA DE LA PRESENTACIÓN (decisión del usuario,
-              2026-09-16, solo en Weë Studio).
+              2026-09-16, solo en WeëStudio).
 
               Entre el último renglón de la cabecera y la caja había 44 puntos:
               20 del aire de abajo de la cabecera y 24 del `gap` de esta página.
@@ -417,8 +440,10 @@ const StudioScreen: React.FC = () => {
               La caja es la misma y crece igual: esto mueve dónde empieza, no
               cuánto mide.
             */}
-            <View style={styles.cajaArriba}>
+            <View style={pro ? null : styles.cajaArriba}>
               <StudioPromptComposer
+                /* La caja de la referencia: contorno dorado con halo, destello y envío dorado. */
+                vitrina={!pro}
                 valor={prompt}
                 onCambiar={setPrompt}
                 onAjustes={() => setAjustesAbiertos(true)}
@@ -438,7 +463,7 @@ const StudioScreen: React.FC = () => {
               lo vuelvan a preguntar. Tocar una ficha la suelta.
             */}
             {(!!experiencia || Object.keys(controles).length > 0 || adjuntos.length > 0) && (
-              <View style={styles.contexto}>
+              <View style={[styles.contexto, pro && styles.contextoPro]}>
                 {!!experiencia && (
                   <FichaDeContexto
                     icono="sparkles-outline"
@@ -468,13 +493,31 @@ const StudioScreen: React.FC = () => {
               </View>
             )}
 
-            <StudioEntradas porFila={porFila} onAbrir={(entrada) => setPanel(entrada)} />
-
-            <FilaDeCreaciones
-              creaciones={CREACIONES_DEL_STUDIO}
-              onVerTodas={() => navigation.navigate('Projects')}
-              onOpciones={() => {}}
-            />
+            {/*
+              En creator, las puertas y el enlace de siempre. En la app, la portada de la demo YC: creación rápida,
+              Filmmaker Engine y más herramientas, donde siguen a mano las demás puertas del Studio.
+            */}
+            {pro ? (
+              <>
+                <StudioEntradas porFila={porFila} onAbrir={(entrada) => setPanel(entrada)} />
+                <EnlaceDeCreaciones />
+              </>
+            ) : (
+              <>
+                <CreacionRapida onAbrir={(entrada) => setPanel(entrada)} />
+                <TarjetaFilmmaker onAbrir={() => navigation.navigate('Production', {})} />
+                <MasHerramientas
+                  onDesign={() => navigation.navigate('Specialist', { id: 'design' })}
+                  onProyectos={() => navigation.navigate('Projects')}
+                  otras={ENTRADAS_DE_EXPLORAR.filter((e) => e.id !== 'more').map((e) => ({
+                    id: e.id,
+                    icono: e.icono,
+                    texto: e.marca ?? t(e.clave as string),
+                    onPress: () => setPanel(e.id),
+                  }))}
+                />
+              </>
+            )}
           </View>
         </PaginaDeCajas>
       </EspacioDeEscritura>
@@ -516,7 +559,10 @@ const styles = StyleSheet.create({
   /* En escritorio el contenido no se estira: se centra y se queda legible. */
   centrado: { width: '100%', alignSelf: 'center', gap: SPACING.xxl, flex: 1 },
   /* Sube la caja 26 de los 44 que la separaban de la cabecera. Deja unos 18. */
-  cajaArriba: { marginTop: -scale(26) },
+  cajaArriba: { paddingHorizontal: SPACING.lg, marginTop: -scale(26) },
+  /* La caja sube sobre el fundido del héroe, como en la referencia. */
+  portada: { marginBottom: -scale(30) },
+  contextoPro: { paddingHorizontal: 0, marginTop: -12 },
   /* Lo que Weë ya sabe, justo debajo de donde se escribe. */
   contexto: {
     flexDirection: 'row',
@@ -528,7 +574,7 @@ const styles = StyleSheet.create({
 });
 
 /*
- * Weë Studio es de la CUENTA, como el resto del taller: se ve claro lleves
+ * WeëStudio es de la CUENTA, como el resto del taller: se ve claro lleves
  * puesto el Perfil Real o el Perfil Weë.
  */
-export default enTemaClaro(StudioScreen);
+export default enTemaOscuro(StudioScreen);

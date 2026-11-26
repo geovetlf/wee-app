@@ -241,6 +241,15 @@ export const crearMaterialDesdeUrl = async (datos: NuevoMaterialDesdeUrl): Promi
     return null;
   }
 
+  /*
+   * Y EN EL CUBO DE WEË. La clave se lee del cubo de Weë (`storageBucket()`) y se borra de él; si la dirección
+   * nombrara otro cubo, la ficha diría una cosa y los bytes serían otros. Una dirección de otro cubo no es de Weë.
+   */
+  if (ref.provider === PROVEEDOR_WEE && ref.bucket !== storageBucket().name) {
+    console.warn('Content: la referencia nombra un cubo que no es el de Weë; no se crea la ficha', ref.objectKey);
+    return null;
+  }
+
   let mimeType = datos.mimeType;
   let bytes: number | undefined;
   if (ref.provider === PROVEEDOR_WEE) {
@@ -250,7 +259,7 @@ export const crearMaterialDesdeUrl = async (datos: NuevoMaterialDesdeUrl): Promi
       bytes = typeof meta.size === 'string' ? Number(meta.size) : typeof meta.size === 'number' ? meta.size : undefined;
     } catch (error) {
       /* Sin metadata no hay material: un objeto que no se puede leer no está listo. */
-      console.warn('Content: no se pudo leer la metadata del objeto', ref.objectKey, error);
+      console.warn('Content: no se pudo leer la metadata del objeto', ref.objectKey, sanitizeForLog(error, 300));
       return null;
     }
   }
@@ -583,6 +592,8 @@ export const retirarMaterial = async (accountId: string, assetId: string): Promi
     ...doc,
     ...decision.asset,
     delivery: undefined,
+    /* Un texto retirado no se queda en el documento: el borrado lógico también retira el contenido. */
+    contenido: undefined,
     ...(pendientes > 0 ? { pendingPhysicalDeletion: true } : {}),
   });
   await assets().doc(assetId).set(retirado);
@@ -593,7 +604,7 @@ export const retirarMaterial = async (accountId: string, assetId: string): Promi
       await storageBucket().file(r.objectKey).delete({ ignoreNotFound: true });
       objetosBorrados++;
     } catch (error) {
-      console.error('Content: no se pudo borrar el objeto', r.objectKey, error);
+      console.error('Content: no se pudo borrar el objeto', r.objectKey, sanitizeForLog(error, 300));
       await assets().doc(assetId).set({ pendingPhysicalDeletion: true }, { merge: true });
     }
   }
@@ -656,6 +667,32 @@ export const anotarVariantesDelResultado = async (
     if (ok) anotadas++;
   }
   return anotadas;
+};
+
+/**
+ * DE DÓNDE SALIÓ UN MATERIAL DERIVADO (WITE, 2026-11-26). La puerta del vídeo crea la ficha del resultado sin saber
+ * que era una transformación; quien la orquestó añade aquí el original del que partió, su trabajo y una marca de
+ * contenido sintético. Solo sobre material de la MISMA cuenta, y solo si el original también es suyo: el linaje nunca
+ * puede apuntar a material ajeno. Nunca borra procedencia que ya estuviera.
+ */
+export const anotarOrigenDelDerivado = async (
+  accountId: string,
+  assetId: string,
+  origen: { sourceAssetIds: readonly string[]; jobId: string; metadata?: Readonly<Record<string, string | number | boolean>> },
+): Promise<boolean> => {
+  const doc = await leerMaterial(assetId);
+  if (!doc || !materialEsDeLaCuenta(doc, accountId) || doc.status === 'deleted') return false;
+  for (const id of origen.sourceAssetIds) {
+    const fuente = await leerMaterial(id);
+    if (!fuente || !materialEsDeLaCuenta(fuente, accountId)) return false;
+  }
+  const previos = doc.provenance?.sourceAssetIds ?? [];
+  await assets().doc(assetId).set({
+    provenance: { ...doc.provenance, sourceAssetIds: [...new Set([...previos, ...origen.sourceAssetIds])], jobId: doc.provenance?.jobId ?? origen.jobId },
+    metadata: { ...(doc.metadata ?? {}), ...(origen.metadata ?? {}) },
+    updatedAt: ahora(),
+  }, { merge: true });
+  return true;
 };
 
 /** Para las pruebas y el inventario: la marca de tiempo de Firestore, en milisegundos. */

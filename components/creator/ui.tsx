@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, ViewStyle, StyleProp } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
 import { useResponsive } from '../../hooks/useResponsive';
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 /** Piezas pequeñas compartidas por las pantallas de Weë Creator. */
 
@@ -25,7 +27,7 @@ export const SectionTitle: React.FC<{ title: string; hint?: string; action?: str
       {!!action && (
         <TouchableOpacity onPress={onAction} activeOpacity={0.7} style={styles.sectionAction}>
           <Text style={[styles.sectionActionText, { color: theme.colors.text }]}>{action}</Text>
-          <Ionicons name="arrow-forward" size={scale(14)} color={theme.colors.text} />
+          <IconoDireccional name="arrow-forward" size={scale(14)} color={theme.colors.text} />
         </TouchableOpacity>
       )}
     </View>
@@ -44,7 +46,8 @@ export const Chip: React.FC<{ label: string; onPress?: () => void; icon?: string
         { backgroundColor: active ? theme.colors.accent : theme.colors.card, borderColor: active ? theme.colors.accent : theme.colors.border },
       ]}
     >
-      {!!icon && <Ionicons name={icon as any} size={scale(13)} color={theme.colors.accentDark} />}
+      <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!active} />
+      {!!icon && <IconoDireccional name={icon as any} size={scale(13)} color={theme.colors.accentDark} />}
       <Text style={[styles.chipText, { color: theme.colors.text }]}>{label}</Text>
     </TouchableOpacity>
   );
@@ -70,7 +73,7 @@ export const Handwritten: React.FC<{ text: string; align?: 'left' | 'right' | 'c
  * alta si está abierto o cerrado, y lo que hay dentro entra con una transición
  * corta en vez de aparecer de golpe.
  *
- * Lo estrena Weë Chef (fase 2E-41): con las herramientas cerradas, la comunidad
+ * Lo estrena WeëChef (fase 2E-41): con las herramientas cerradas, la comunidad
  * sube casi media pantalla.
  */
 export const Collapsible: React.FC<{
@@ -146,10 +149,10 @@ export interface BannerAction {
  * Franja de cierre con una llamada a la acción.
  *
  * Tres formas, de la más simple a la más explícita:
- *  · `button` — un solo camino (Weë Home, Weë Music).
+ *  · `button` — un solo camino (Weë Home, WeëMusic).
  *  · `secondaryButton` — dos caminos con la etiqueta como única explicación.
  *  · `actions` — dos o más caminos, cada uno con su icono y su frase de qué hace.
- *    Es lo que usa Weë Chef: una foto sirve para cocinar con lo que hay o para
+ *    Es lo que usa WeëChef: una foto sirve para cocinar con lo que hay o para
  *    retocar el plato, y el nombre del botón por sí solo no lo dejaba claro.
  *
  * `compact` reduce la altura para que el bloque no compita con el muro social.
@@ -186,7 +189,7 @@ export const ClosingBanner: React.FC<{
                 accessibilityLabel={action.subtitle ? `${action.title}: ${action.subtitle}` : action.title}
               >
                 <View style={[styles.bannerRouteIcon, { backgroundColor: theme.colors.accent + '33' }]}>
-                  <Ionicons name={action.icon as any} size={scale(17)} color={theme.colors.accentDark} />
+                  <IconoDireccional name={action.icon as any} size={scale(17)} color={theme.colors.accentDark} />
                 </View>
                 <View style={styles.bannerRouteBody}>
                   <Text style={[styles.bannerButtonText, { color: theme.colors.text }]}>{action.title}</Text>
@@ -194,21 +197,23 @@ export const ClosingBanner: React.FC<{
                     <Text style={[styles.bannerRouteHint, { color: theme.colors.textSecondary }]} numberOfLines={1}>{action.subtitle}</Text>
                   )}
                 </View>
-                <Ionicons name="arrow-forward" size={scale(15)} color={theme.colors.textSecondary} />
+                <IconoDireccional name="arrow-forward" size={scale(15)} color={theme.colors.textSecondary} />
               </TouchableOpacity>
             ))
           : (
             <>
               {!!button && !!onPress && (
                 <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={[styles.bannerButton, { backgroundColor: dark ? theme.colors.accent : theme.colors.card, borderColor: dark ? theme.colors.accent : theme.colors.border }]}>
+                  <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!dark} />
                   <Text style={[styles.bannerButtonText, { color: '#1F2937' }]}>{button}</Text>
-                  <Ionicons name="arrow-forward" size={scale(16)} color="#1F2937" />
+                  <IconoDireccional name="arrow-forward" size={scale(16)} color="#1F2937" />
                 </TouchableOpacity>
               )}
               {!!secondaryButton && !!onSecondaryPress && (
                 <TouchableOpacity onPress={onSecondaryPress} activeOpacity={0.85} style={[styles.bannerButton, { backgroundColor: dark ? theme.colors.accent : theme.colors.card, borderColor: dark ? theme.colors.accent : theme.colors.border }]}>
+                  <RellenoDeMarca radio={BORDER_RADIUS.full} apagada={!dark} />
                   <Text style={[styles.bannerButtonText, { color: '#1F2937' }]}>{secondaryButton}</Text>
-                  <Ionicons name="arrow-forward" size={scale(16)} color="#1F2937" />
+                  <IconoDireccional name="arrow-forward" size={scale(16)} color="#1F2937" />
                 </TouchableOpacity>
               )}
             </>

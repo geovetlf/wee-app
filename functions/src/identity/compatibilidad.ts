@@ -37,7 +37,9 @@
  * archivo. La cuenta, su número, sus entidades, sus secuencias y sus membresías
  * no se enteran: ninguno de esos valores contiene nada heredado.
  */
-import { AccountId, esIdDePrincipal } from '../core/account-identity';
+import {
+  AccountId, CuentaWee, EntidadDeCuenta, EntityId, cuentaWeeValida, entidadDeCuentaValida, esIdDeEntidad, esIdDePrincipal,
+} from '../core/account-identity';
 import { EntityType } from '../core/identity';
 import { PerfilDeIdentidad, PREFIJO_PERFIL_WEE, cuentaDeIdentidad, esIdentidadValida } from '../social/econtact';
 
@@ -121,3 +123,162 @@ export const identidadesHeredadasDeLaCuenta = (accountId: string | null | undefi
 /** ¿Es esta identidad histórica una de las caras de esta cuenta? */
 export const identidadHeredadaEsDeLaCuenta = (identidad: unknown, accountId: string | null | undefined): boolean =>
   typeof identidad === 'string' && identidadesHeredadasDeLaCuenta(accountId).includes(identidad);
+
+/* ══ Alter egos: la segunda forma de un Perfil Weë (plan F2, 2026-11-23). SIN CABLEAR ══
+ *
+ * Un alter ego nuevo es un documento `users/{ent_…}` cuyo `uid` ES el
+ * identificador de su entidad. No lleva vínculo con la cuenta —`users` se lee
+ * en público—: de quién es lo dice `entities/{ent_…}.ownerAccountId`, que solo
+ * escribe el servidor. Aquí viven las tres piezas que traducen eso:
+ *
+ *   cuentaDeIdentidadLeida   identidad → su cuenta, LEYENDO (las dos formas)
+ *   identidadesDeLaCuenta    cuenta → todas sus caras (heredadas + `identidadesWee`)
+ *   perfilNuevoDeAlterEgo    el documento de `users` con el valor guardado de hoy
+ *
+ * Ninguna decide por el prefijo. Que hoy nada las llame es deliberado: el
+ * cableado es de la fase 4.
+ */
+
+const PERFILES = 'users';
+const ENTIDADES = 'entities';
+const CUENTAS = 'accounts';
+
+/** Lo único que estas lecturas necesitan de Firestore: leer un documento por su ruta. */
+export interface LectorDeDocumentos {
+  collection(ruta: string): { doc(id: string): { get(): Promise<{ exists: boolean; data(): unknown }> } };
+}
+
+/** El valor que `users.profileType` guarda para un Perfil Weë. Sale de la MISMA tabla, no se repite. */
+const VALOR_GUARDADO_DEL_PERFIL_WEE: string =
+  Object.keys(TIPO_SEGUN_EL_VALOR_GUARDADO).find((k) => TIPO_SEGUN_EL_VALOR_GUARDADO[k] === 'WEE_PROFILE') as string;
+
+interface PerfilDeAlterEgo extends PerfilDeIdentidad {
+  entityId?: unknown;
+}
+
+const leerDoc = async <T>(db: LectorDeDocumentos, coleccion: string, id: string): Promise<T | undefined> => {
+  const snap = await db.collection(coleccion).doc(id).get();
+  return snap.exists ? (snap.data() as T) : undefined;
+};
+
+/**
+ * DE QUÉ CUENTA ES ESTA IDENTIDAD, LEYENDO. El resolutor único para las dos
+ * formas de cara.
+ *
+ *   · Heredada (Perfil Real, o Perfil Weë con `linkedAccountId`): exactamente
+ *     como hoy, con `cuentaDeIdentidad` sobre su documento de `users`.
+ *   · Alter ego: su perfil dice `entityId`, y la entidad tiene que ser
+ *     `WEE_PROFILE`, `ACTIVE`, válida y con `profileRef.uid == id`. Un perfil
+ *     que lleve vínculo con la cuenta no entra por aquí: un alter ego no lo
+ *     tiene nunca, y aceptarlo dejaría que un documento afirmara su dueño.
+ *
+ * Nunca deduce nada del prefijo: un `ent_` sin entidad, ajeno o retirado no es
+ * de nadie, y un id con la forma heredada sin su vínculo tampoco.
+ */
+export const cuentaDeIdentidadLeida = async (db: LectorDeDocumentos, id: unknown): Promise<AccountId | null> => {
+  if (!esIdentidadValida(id) || typeof id !== 'string') return null;
+  return cuentaDelPerfilLeido(db, id, await leerDoc<PerfilDeAlterEgo>(db, PERFILES, id));
+};
+
+/**
+ * LO MISMO, CON EL PERFIL YA LEÍDO (F4). Hay quien busca el perfil por el CAMPO
+ * `uid` —los Perfiles Reales antiguos tienen id automático— y no por la ruta:
+ * ËContact, Comunidades, el push, Boost. Ellos leen el perfil a su manera y aquí
+ * se decide igual que en `cuentaDeIdentidadLeida`: lo heredado por su vínculo, el
+ * alter ego por su entidad. Una sola regla para las dos lecturas.
+ */
+export const cuentaDelPerfilLeido = async (
+  db: LectorDeDocumentos,
+  id: unknown,
+  perfil: PerfilDeIdentidad | null | undefined,
+): Promise<AccountId | null> => {
+  if (!esIdentidadValida(id) || typeof id !== 'string') return null;
+  if (!perfil || typeof perfil !== 'object' || perfil.uid !== id) return null;
+
+  const heredada = cuentaDeIdentidad(id, perfil);
+  if (heredada) return esIdDePrincipal(heredada) ? heredada : null;
+
+  if (perfil.profileType !== VALOR_GUARDADO_DEL_PERFIL_WEE || perfil.linkedAccountId !== undefined) return null;
+  const entityId = (perfil as PerfilDeAlterEgo).entityId;
+  if (!esIdDeEntidad(entityId)) return null;
+  const entidad = await leerDoc<EntidadDeCuenta>(db, ENTIDADES, entityId);
+  if (!entidad || !entidadDeCuentaValida(entidad)) return null;
+  if (entidad.entityId !== entityId || entidad.entityType !== 'WEE_PROFILE' || entidad.status !== 'ACTIVE') return null;
+  if (entidad.profileRef?.coleccion !== PERFILES || entidad.profileRef.uid !== id) return null;
+  return esIdDePrincipal(entidad.ownerAccountId) ? entidad.ownerAccountId : null;
+};
+
+/**
+ * TODAS LAS CARAS DE UNA CUENTA: las heredadas (`identidadesHeredadasDeLaCuenta`,
+ * que se queda tal cual) más los Perfiles Weë vivos que la cuenta guarda en
+ * `identidadesWee`. Va de la cuenta, ya autenticada, a sus nombres: no afirma
+ * de quién es una identidad que llega de fuera (para eso, `cuentaDeIdentidadLeida`).
+ * Una cuenta sin documento, o con uno que no cumple el contrato, se queda en lo heredado.
+ */
+export const identidadesDeLaCuenta = async (db: LectorDeDocumentos, accountId: string | null | undefined): Promise<readonly string[]> => {
+  const heredadas = identidadesHeredadasDeLaCuenta(accountId);
+  if (!heredadas.length) return heredadas;
+  const cuenta = await leerDoc<CuentaWee>(db, CUENTAS, accountId as string);
+  const extra = cuenta && cuentaWeeValida(cuenta) && cuenta.accountId === accountId
+    ? (cuenta.identidadesWee ?? []).filter((x) => esIdentidadValida(x))
+    : [];
+  return Object.freeze([...new Set([...heredadas, ...extra])]);
+};
+
+/** Lo que la persona elige al crear un alter ego. Contenido: no se traduce ni se interpreta. */
+export interface DatosDeAlterEgoNuevo {
+  displayName: string;
+  bio?: string;
+  /**
+   * F4: un avatar PREDEFINIDO (`avatarId` del catálogo de la app). Una foto propia no viaja aquí: se sube después a la
+   * carpeta del alter ego (`images/profile/<ent_…>`), porque cualquier carpeta anterior a su nacimiento sería la de la
+   * cuenta y su dirección la delataría.
+   */
+  avatarId?: string;
+}
+
+const FORMA_DE_AVATAR_PREDEFINIDO = /^[A-Za-z0-9_-]{1,64}$/;
+
+/**
+ * EL DOCUMENTO `users/{ent_…}` DE UN ALTER EGO NUEVO, para `crearAlterEgo`.
+ *
+ * `profileType` lleva el valor guardado de hoy para un Perfil Weë (no se
+ * inventa un tipo nuevo), `uid` y `entityId` son el identificador de la
+ * entidad, y NO lleva `linkedAccountId` ni nada de la cuenta. El Core lo
+ * vuelve a comprobar antes de guardarlo.
+ */
+export const perfilNuevoDeAlterEgo = (
+  entityId: EntityId,
+  datos: DatosDeAlterEgoNuevo,
+  at: number,
+): Readonly<Record<string, unknown>> => {
+  const nombre = typeof datos?.displayName === 'string' ? datos.displayName.trim().slice(0, 60) : '';
+  const bio = typeof datos?.bio === 'string' ? datos.bio.trim().slice(0, 300) : '';
+  const avatar = typeof datos?.avatarId === 'string' && FORMA_DE_AVATAR_PREDEFINIDO.test(datos.avatarId)
+    ? { avatarType: 'predefined', avatarId: datos.avatarId }
+    : {};
+  return Object.freeze({
+    ...avatar,
+    uid: entityId,
+    entityId,
+    profileType: VALOR_GUARDADO_DEL_PERFIL_WEE,
+    displayName: nombre,
+    bio,
+    joinedCommunities: [],
+    createdAt: at,
+    updatedAt: at,
+  });
+};
+
+/**
+ * EL `uid` DE LA CARA HEREDADA DE UNA CUENTA, LEÍDO: el documento existe y su
+ * vínculo dice que es de esa cuenta. Para que `crearAlterEgo` la cuente en el
+ * límite aunque todavía no tenga entidad. Componer el nombre aquí es mirar
+ * hacia atrás desde una cuenta ya autenticada, y el documento lo confirma.
+ */
+export const perfilHeredadoLeido = async (db: LectorDeDocumentos, accountId: AccountId): Promise<string | undefined> => {
+  const candidata = identidadesHeredadasDeLaCuenta(accountId)[1];
+  if (!candidata) return undefined;
+  const perfil = await leerDoc<PerfilDeIdentidad>(db, PERFILES, candidata);
+  return perfil && cuentaDeIdentidad(candidata, perfil) === accountId ? candidata : undefined;
+};

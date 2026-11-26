@@ -37,7 +37,7 @@ export const weetalk: typeof import('../es/weetalk').weetalk = {
   photoPermission: '사진에 접근하려면 권한이 필요해요',
   audioPermission: '오디오를 녹음하려면 권한이 필요해요',
   imageFailed: '이미지를 보내지 못했어요',
-  noConversationsHint: '아무 게시물에서나 "비공개"를 눌러 익명 대화를 시작해 보세요',
+  noConversationsHint: '아무 게시물에서나 ⋮ 메뉴를 열고 "WeeTalk으로 보내기"를 선택해 비공개 대화를 시작해 보세요',
   ephemeralMode: '사라지는 모드',
   noMessagesYet: '아직 메시지가 없어요',
   youSaid: '나: {{mensaje}}',

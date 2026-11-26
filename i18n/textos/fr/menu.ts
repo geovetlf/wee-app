@@ -15,6 +15,7 @@ export const menu: typeof import('../es/menu').menu = {
   createWeeProfile: 'Créer mon profil Weë',
   credits: 'Credits',
   econtact: 'ËContact',
+  pages: 'WeëPages',
   wcontact: 'ËContact',
   communities: 'Communautés',
   weels: 'Weëls',
@@ -39,4 +40,14 @@ export const menu: typeof import('../es/menu').menu = {
   hideSpecialists: 'Masquer les spécialistes',
   showSpecialists: 'Voir les spécialistes',
   signOutConfirm: 'Veux-tu quitter Weë ?',
+  /* Rediseño del 2026-11-15: el menú nuevo. MyWeës es marca. Sin revisión nativa. */
+  homeWall: 'Accueil / Ẅall',
+  explore: 'Explorer',
+  projectsTitle: 'Projets',
+  myWees: 'MyWeës',
+  myWeesHint: 'Choisis et organise tes raccourcis préférés',
+  customize: 'Personnaliser',
+  history: 'Historique',
+  helpSupport: 'Aide et assistance',
+  weeAiTagline: 'Crée, imagine et donne vie à tes idées avec l’IA',
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { abrirPortadaDeWeeAi } from './refNavegacion';
 import { TouchableOpacity, View, StyleSheet, Platform, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -71,12 +72,13 @@ const CreateTabButton = ({ href: _href, onPress: _onPress, ...props }: any) => {
 
   const handleSelect = (kind: CreateKind) => {
     setSheetVisible(false);
+    if (!user) return rootNavigate('Register');
     setTimeout(() => rootNavigate('Create', { kind }), isWeb ? 0 : 150);
   };
 
   const handleOpenCreator = () => {
     setSheetVisible(false);
-    setTimeout(() => rootNavigate('WeeCreator'), isWeb ? 0 : 150);
+    setTimeout(() => { if (!abrirPortadaDeWeeAi()) rootNavigate('WeeCreator'); }, isWeb ? 0 : 150);
   };
 
   return (
@@ -84,10 +86,6 @@ const CreateTabButton = ({ href: _href, onPress: _onPress, ...props }: any) => {
       <TouchableOpacity
         {...props}
         onPress={() => {
-          if (!user) {
-            rootNavigate('Register');
-            return;
-          }
           setSheetVisible(true);
         }}
       />
@@ -208,7 +206,7 @@ const TabNavigator: React.FC = () => {
 
           return <Ionicons name={iconName} size={28} color={color} />;
         },
-        tabBarActiveTintColor: theme.colors.accent,
+        tabBarActiveTintColor: theme.colors.activeColor,
         tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarStyle: isDesktop ? {
           display: 'none',
@@ -251,15 +249,7 @@ const TabNavigator: React.FC = () => {
         name="Search"
         component={SearchScreen}
         options={{ tabBarLabel: 'Buscar' }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            if (!user) {
-              e.preventDefault();
-              const parentNav = navigation.getParent();
-              if (parentNav) (parentNav as any).navigate('Register');
-            }
-          },
-        })}
+        /* Buscar es público, como en escritorio: el invitado solo necesita cuenta para actuar sobre lo que encuentre. */
       />
       <Tab.Screen
         name="Create"

@@ -1,0 +1,35 @@
+/*
+ * NEERLANDÉS — Lo que se repite por toda la app: knoppen, estados y fouten comunes. Tipado contra el español.
+ * Botones en infinitivo (glosario). «Aceptar» = «OK», como el inglés.
+ */
+export const common: typeof import('../es/common').common = {
+  cancel: 'Annuleren',
+  save: 'Opslaan',
+  delete: 'Verwijderen',
+  close: 'Sluiten',
+  back: 'Terug',
+  next: 'Volgende',
+  done: 'Klaar',
+  accept: 'OK',
+  send: 'Versturen',
+  share: 'Delen',
+  retry: 'Opnieuw proberen',
+  mediaUnavailable: 'Dit bestand is niet beschikbaar',
+  loading: 'Laden…',
+  error: 'Fout',
+  somethingWentWrong: 'Er ging iets mis',
+  noResults: 'Geen resultaten',
+  notAvailable: 'Niet beschikbaar',
+  comingSoon: 'Binnenkort',
+  new: 'Nieuw',
+  seeAll: 'Alles bekijken →',
+  guest: 'Gast',
+  anonymousUser: 'Anonieme gebruiker',
+  user: 'Gebruiker',
+  yes: 'Ja',
+  no: 'Nee',
+  loadMore: 'Meer berichten laden',
+  postsCount_one: '{{cantidad}} bericht',
+  postsCount_other: '{{cantidad}} berichten',
+  someone: 'Iemand',
+};

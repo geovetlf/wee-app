@@ -9,7 +9,7 @@
  * detrás para que el verbo concuerde («“{{nombre}}” प्रोजेक्ट मिटाना है?»), y en la corta el verbo
  * va en masculino, el del proyecto. `{{accion}}` es el botón «प्रोजेक्ट में सेव करें» de weeai y va
  * entre “…”. El proyecto de ejemplo, «मेरा रेस्टोरेंट», es el mismo que cita la Ayuda, y va tras
- * «जैसे:», como los ejemplos cortos de los campos de nombre (`communities`, `weebiz`); «उदाहरण:»
+ * «जैसे:», como los ejemplos cortos de los campos de nombre (`communities`); «उदाहरण:»
  * queda para las frases de ejemplo enteras (`catalogo`). Borrar un
  * proyecto no borra ninguna creación: «आपकी रचनाएँ नहीं मिटेंगी». `emojiLabel` solo lo oye el lector
  * de pantalla: «{{emoji}} इमोजी», igual que `weeai.emojiLabel`. Las listas escritas a mano van sin
@@ -41,4 +41,14 @@ export const projects: typeof import('../es/projects').projects = {
   whatIsMissing: 'इस प्रोजेक्ट में और क्या चाहिए?',
   whatIsMissingNote: 'लोगो, फ़ोटो, विज्ञापन, वीडियो, संगीत या कोई दस्तावेज़: Weë का कोई भी एक्सपर्ट यहाँ कुछ जोड़ सकता है.',
   createSomethingNew: 'कुछ नया बनाएँ',
+  /* N — Rediseño de «Mis proyectos» (2026-11-05): contador, búsqueda, orden, fecha y vacío de la lista. */
+  count_one: '{{contador}} प्रोजेक्ट',
+  count_other: '{{contador}} प्रोजेक्ट',
+  updatedOn: '{{fecha}} को अपडेट किया गया',
+  searchPlaceholder: 'प्रोजेक्ट खोजें',
+  sortUpdated: 'हाल में अपडेट किए गए',
+  sortName: 'नाम (A–Z)',
+  noMatches: 'आपकी खोज से कोई प्रोजेक्ट मेल नहीं खाता.',
+  emptySpaceTitle: 'आपकी रचनात्मक जगह यहीं से शुरू होती है',
+  moreActions: 'और विकल्प',
 };

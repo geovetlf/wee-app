@@ -408,6 +408,253 @@ for (const [que, palabras] of [
 check('110 · los efectos prohibidos son datos y nombran a su dueño',
   A.EFECTOS_PROHIBIDOS.length >= 10 && A.EFECTOS_PROHIBIDOS.every((e) => e.efecto && e.dueno));
 
+console.log('\n─── K2. LA FRONTERA POR RESPONSABILIDAD — sinónimos, compuestas y lo legítimo ───');
+
+/*
+ * La lista del Planner veía NOMBRES: `providerId` se paraba y `providerName`, `vendor`,
+ * `apiKey` o `credits` pasaban. Aquí se prueba la lectura por RESPONSABILIDAD que va
+ * encima de ella: cada intento dice qué efecto prohibido era y de quién es, y el
+ * vocabulario que de verdad llega a la frontera no se marca ni una vez.
+ *
+ * El efecto se nombra por su texto en EFECTOS_PROHIBIDOS: si alguien lo reescribe sin
+ * mover su concepto, esto lo dice.
+ */
+const EFECTO = Object.fromEntries(A.EFECTOS_PROHIBIDOS.map((e) => [e.efecto, e]));
+const ROUTER = 'elegir proveedor o modelo';
+const GATEWAY = 'llamar a una API de proveedor';
+const DINERO = 'cobrar, reservar o reembolsar Credits';
+const MATERIALES = 'crear o modificar materiales';
+const TRABAJOS = 'crear o ejecutar trabajos';
+const SECRETO = 'leer un secreto';
+const cruzaComo = (clave) => A.violacionesEn({ [clave]: 'x' }, 'k2')[0];
+
+check('K2.1 · cada concepto de autoridad es de un efecto prohibido, y ese efecto tiene dueño',
+  A.CONCEPTOS_DE_AUTORIDAD.length >= 6 && A.CONCEPTOS_DE_AUTORIDAD.every((c) => !!EFECTO[c.efecto]?.dueno),
+  A.CONCEPTOS_DE_AUTORIDAD.map((c) => c.efecto).join(' · '));
+check('K2.2 · una responsabilidad, un sitio: no hay dos conceptos para el mismo efecto',
+  new Set(A.CONCEPTOS_DE_AUTORIDAD.map((c) => c.efecto)).size === A.CONCEPTOS_DE_AUTORIDAD.length);
+
+const SINONIMOS = [
+  ['proveedor', ROUTER], ['provider', ROUTER], ['modelo', ROUTER], ['model', ROUTER], ['vendor', ROUTER], ['engine', ROUTER],
+  ['endpoint', GATEWAY], ['API', GATEWAY],
+  ['secret', SECRETO], ['credentials', SECRETO],
+  ['billing', DINERO], ['credits', DINERO], ['financial', DINERO],
+];
+const COMPUESTAS = [
+  ['providerName', ROUTER], ['vendor_id', ROUTER], ['modelName', ROUTER], ['engineId', ROUTER],
+  ['apiKey', SECRETO], ['secretRef', SECRETO], ['credentialsPath', SECRETO],
+  ['apiEndpoint', GATEWAY], ['baseUrl', GATEWAY], ['webhookUrl', GATEWAY], ['endpointId', GATEWAY],
+  ['billingAccount', DINERO], ['creditTransactionId', DINERO], ['chargeCredits', DINERO], ['walletId', DINERO],
+  ['price', DINERO], ['financialAccount', DINERO],
+];
+/* Las grafías que una lista de nombres no ve. Con escapes, para no depender de cómo se guarde el archivo. */
+const GRAFIAS = [
+  ['proveedores', ROUTER], ['nombreDelProveedor', ROUTER], ['provider-name', ROUTER], ['provider name', ROUTER],
+  ['provider.name', ROUTER], ['PROVIDER_NAME', ROUTER], ['providername', ROUTER],
+  ['Prove\u00ebdor', ROUTER], ['Prove\u0065\u0308dor', ROUTER], ['\uff50\uff52\uff4f\uff56\uff49\uff44\uff45\uff52', ROUTER],
+  ['pro\u200bvider', ROUTER], ['pro\u00advider', ROUTER],
+  ['x-api-key', SECRETO], ['apikey', SECRETO], ['claveDeApi', SECRETO], ['contrase\u00f1a', SECRETO],
+  ['accessToken', SECRETO], ['client_secret', SECRETO],
+  ['cr\u00e9ditos', DINERO], ['facturaci\u00f3n', DINERO], ['walletid', DINERO], ['estimatedCredits', DINERO],
+  ['maxChargeCredits', DINERO], ['creditBudgetId', DINERO],
+  ['baseurl', GATEWAY], ['callbackUrl', GATEWAY],
+  ['storagePath', MATERIALES], ['createAsset', MATERIALES], ['subirMaterial', MATERIALES],
+  ['runJob', TRABAJOS], ['crearTrabajo', TRABAJOS],
+];
+for (const [grupo, casos] of [['sinónimo', SINONIMOS], ['compuesta', COMPUESTAS], ['grafía', GRAFIAS]]) {
+  const fallan = casos.filter(([clave, efecto]) => {
+    const v = cruzaComo(clave);
+    return !v || v.clave !== clave || v.efecto !== efecto || v.dueno !== EFECTO[efecto].dueno;
+  });
+  check(`K2.3 · cada ${grupo} cruza y dice QUÉ efecto intentaba y DE QUIÉN es (${casos.length})`,
+    fallan.length === 0, fallan.map(([c]) => `${c} → ${JSON.stringify(cruzaComo(c) ?? null)}`).join(' · ') || 'todas');
+}
+
+/* El Planner no cambia (B3.15.2): su lista es suya, va primero y esta capa solo añade. */
+check('K2.4 · el predicado del Planner sigue siendo el de siempre: no sabe de `vendor` ni de `apiKey`',
+  !claveDeImplementacion('vendor') && !claveDeImplementacion('apiKey') && !claveDeImplementacion('credits') && claveDeImplementacion('providerId'));
+check('K2.5 · y lo que él prohíbe cruza aquí PRIMERO, como elegir implementación, en sus dos grafías',
+  ['providerId', 'modelId', 'adapterId', 'provider', 'model', 'adapter', 'implementation', 'implementationRef',
+    'allowedProviders', 'excludeProviders', 'provider_id', 'Model-Id'].every((k) => cruzaComo(k)?.efecto === ROUTER && cruzaComo(k)?.dueno === EFECTO[ROUTER].dueno));
+
+/* Lo LEGÍTIMO: el vocabulario que de verdad llega a la frontera, y ni una marca. */
+const LEGITIMAS = [
+  /* topes que esta capa solo lee */
+  'budget', 'maxCredits', 'maxUsd', 'creditLimit', 'creditsBudget', 'presupuestoDeCreditos', 'prefer', 'onExceed',
+  /* ejes y medidas */
+  'cost', 'latency', 'quality', 'reliability', 'successProbability', 'userValue', 'costUsd', 'medianCostUsd',
+  'medianLatencyMs', 'costProfile', 'latencyMs', 'sampleSize', 'succeeded', 'since',
+  /* el paso del Core */
+  'id', 'capability', 'purpose', 'dependsOn', 'input', 'produces', 'hints', 'uses', 'kind', 'brief', 'count',
+  'durationSec', 'creative', 'framing', 'aspectRatio', 'continuity', 'anchors', 'elementId',
+  /* señales y evidencia */
+  'key', 'value', 'source', 'subject', 'confidence', 'at', 'signalKey', 'signalKeys', 'evidence', 'claim', 'supports',
+  /* estrategias, recuperación y paralelismo: proponer sobre ellos es de esta capa */
+  'label', 'proposedBy', 'expected', 'recovery', 'retry', 'attempts', 'checkpoints', 'onBelow', 'parallelGroups',
+  'maxConcurrency', 'criticalPath', 'isBaseline', 'isFallback', 'fallbackFrom',
+  /* petición, traza y ámbito que describe dónde pasó */
+  'contract', 'trace', 'traceId', 'requestId', 'userId', 'jobId', 'experienceId', 'shadowRunId', 'account', 'stepId',
+  'resultId', 'strategyId', 'recoveryKind', 'tarea', 'componer', 'aprendido', 'learned', 'planner', 'sombra', 'assetId',
+  /* restricciones */
+  'maxLatencyMs', 'maxSteps', 'maxParallel', 'maxRisk', 'minConfidence', 'deadlineAt', 'forbiddenCapabilities',
+  'requiredCapabilities', 'minScore',
+  /* la sección de la sombra */
+  'clavesDeImplementacion', 'AUTHORITY_VIOLATION', 'CORE_ADDS_INFORMATION', 'pasosIgualesAlPlanDelCore',
+  /* palabras que CONTIENEN una raíz y no la nombran */
+  'feedback', 'payload', 'capital', 'tokens', 'maxTokens', 'model3d', 'baseline',
+  /* verbos que solos no cruzan (misión de cierre): `retry`, `generate`, `render`, `call`, `process` son acciones; sin objeto, nada */
+  'retryPolicy', 'generatedAt', 'renderMode', 'callCount', 'processingMs',
+  /* lo que la segunda pasada vio cruzar sin serlo: vocabulario de Weë, verbos que contienen una raíz, permisos, frases nominales */
+  'remodel', 'remodelacion', 'apagar', 'puedeApagar', 'propagar', 'modeling', 'modelado3d', 'modelo3d', 'model3D', 'Model3D', 'model_3d',
+  '3dModel', 'outputModel3dUrl', 'promptEngineering', 'requiereAutorizacion', 'authorizationRequired', 'autorizacionDelDueno',
+  'bucketlist', 'transactional', 'secretary', 'jobRetryPolicy', 'materialRender',
+  ...Object.keys(A.TOPES_POR_DEFECTO),
+];
+const marcadas = LEGITIMAS.filter((k) => cruzaComo(k));
+check(`K2.6 · CERO falsos positivos en el vocabulario legítimo (${LEGITIMAS.length} claves)`,
+  marcadas.length === 0, marcadas.join(', ') || 'ninguna');
+check('K2.7 · una clave que es un DATO —la de un agregado de A7— describe y no se lee como campo; la lista del Planner, sí',
+  A.violacionesEn({ 'result.latencyMs|capability=x.y|providerId=p-a|modelId=m-p-a': { sampleSize: 40 } }, 'historia').length === 0
+  && A.violacionesEn({ 'JOB:puente': 1 }, 'ids').length === 0
+  && A.violacionesEn({ providerId: 'p' }, 'control').length === 1);
+/*
+ * `despegar` parte una palabra pegada si la puede leer ENTERA con el léxico, hasta 64 letras: se prueba con una raíz
+ * CORTA (el par `api` + `key`), que solo se ve despegando. De 65 en adelante no lo intenta —tiempo acotado—, y una
+ * raíz corta pegada ya no se ve: un límite declarado (ALGORITHM-ENGINE.md § 21). Una raíz LARGA, sí, a cualquier
+ * longitud. Y una clave enorme se lee hasta su tope sin colgarse (revisión de código: la K2.8 de antes no despegaba).
+ */
+const pegada64 = `apikey${'name'.repeat(14)}de`;
+const pegada65 = `apikey${'name'.repeat(14)}del`;
+const largaK28 = `${'q'.repeat(200)}provider`;
+const t0K28 = process.hrtime.bigint();
+for (let i = 0; i < 300; i++) { A.cruceDeClave(pegada64); A.cruceDeClave(pegada65); A.cruceDeClave('ab'.repeat(5000)); }
+const msK28 = Number(process.hrtime.bigint() - t0K28) / 1e6;
+check('K2.8 · una palabra pegada de 64 letras se despega y se lee (`apikey…` → secreto); de 65 no se intenta —tiempo acotado— salvo por una raíz larga; y una clave patológica no tumba la frontera',
+  pegada64.length === 64 && pegada65.length === 65
+  && cruzaComo(pegada64)?.efecto === SECRETO && cruzaComo(pegada65) === undefined && cruzaComo(largaK28)?.efecto === ROUTER
+  && A.cruceDeClave('a'.repeat(100000)) === undefined && A.palabrasDeClave('ab'.repeat(2000)).length >= 1 && msK28 < 5000,
+  `64: ${cruzaComo(pegada64)?.efecto} · 65: ${cruzaComo(pegada65)?.efecto} · larga: ${cruzaComo(largaK28)?.efecto} · ${msK28.toFixed(0)} ms`);
+
+/* En una decisión de verdad: un TOPE de dinero se lee y se decide; un requisito que COBRA, no. */
+const TRAZA_K2 = { traceId: 't', requestId: 'r', userId: 'u' };
+const a1K2 = A.crearMotorDeDecision();
+/* Con el coste en los valores: un `maxUsd` sin dato es «no verificable» —otra regla, la de siempre—, no autoridad. */
+const OPCIONES_K2 = [{ id: 'o1', value: { nombre: 'o1' }, values: { quality: 0.9, cost: 0.01 } },
+  { id: 'o2', value: { nombre: 'o2' }, values: { quality: 0.5, cost: 0.01 } }];
+const SENALES_K2 = OPCIONES_K2.map((o) => ({ key: 'option.quality', subject: o.id, value: o.values.quality, source: 'measured', sampleSize: 20 }));
+const conTopes = a1K2.decidir({
+  contract: ALGORITHM_CONTRACT_VERSION, trace: TRAZA_K2,
+  objective: { weights: { quality: 1 }, constraints: { budget: { maxCredits: 30, maxUsd: 0.5 } } },
+  constraints: { budget: { maxCredits: 20, maxUsd: 0.2, prefer: 'cost', onExceed: 'degrade' } },
+  options: OPCIONES_K2, signals: SENALES_K2,
+});
+check('K2.9 · `budget.maxCredits` y `maxUsd` son TOPES: no cruzan, y la decisión se toma',
+  A.violacionesEn({ budget: { maxCredits: 1, maxUsd: 1 } }, 'constraints').length === 0
+  && conTopes.status === 'decided' && !(conTopes.warnings ?? []).includes('authority_violation'),
+  `${conTopes.status} ${conTopes.failure ?? ''}`);
+const conCobro = a1K2.decidir({
+  contract: ALGORITHM_CONTRACT_VERSION, trace: TRAZA_K2, objective: { weights: { quality: 1 } },
+  constraints: { chargeCredits: 5 }, options: [{ id: 'o1', value: { nombre: 'o1' }, values: { quality: 0.9 } }],
+});
+check('K2.10 · un requisito que COBRA no se decide, igual que uno que elige proveedor',
+  conCobro.status === 'invalid' && (conCobro.warnings ?? []).includes('authority_violation'), `${conCobro.status} ${conCobro.failure ?? ''}`);
+const conSecreto = a1K2.decidir({
+  contract: ALGORITHM_CONTRACT_VERSION, trace: TRAZA_K2, objective: { weights: { quality: 1 } },
+  options: [{ id: 'limpia', value: { nombre: 'a' }, values: { quality: 0.5 } },
+    { id: 'con-clave', value: { nombre: 'b', apiKey: 'x' }, values: { quality: 0.9 } }],
+});
+check('K2.11 · una opción que trae una clave de API no compite, aunque puntúe más',
+  (conSecreto.candidates ?? []).find((c) => c.id === 'con-clave')?.reason === 'authority:apiKey'
+  && (conSecreto.candidates ?? []).find((c) => c.reason === 'selected')?.id === 'limpia',
+  JSON.stringify((conSecreto.candidates ?? []).map((c) => [c.id, c.reason])));
+
+/* Las seis puertas de una estrategia, cada una con un efecto distinto. */
+const SABOTAJES_K2 = [
+  ['input con el proveedor en castellano', estrategia('s', [{ ...paso('a', 'voice.tts'), input: { proveedor: 'x' } }]), ROUTER],
+  ['hints con el motor de ejecución', estrategia('s', [{ ...paso('a', 'voice.tts'), hints: { engine: 'x' } }]), ROUTER],
+  ['raíz del paso con una dirección', estrategia('s', [{ ...paso('a', 'voice.tts'), endpointUrl: 'x' }]), GATEWAY],
+  ['recuperación que reembolsa', estrategia('s', PASOS, { recovery: [{ kind: 'retry', because: 'x', reembolsoDeCreditos: 1 }] }), DINERO],
+  ['grupo paralelo que lanza a una cola', estrategia('s', PASOS, { parallelGroups: [{ steps: ['a', 'b'], runQueue: 'q' }] }), TRABAJOS],
+  ['anidado dos niveles con un secreto', estrategia('s', [{ ...paso('a', 'voice.tts'), input: { extra: { deep: { secretName: 'x' } } } }]), SECRETO],
+];
+for (const [que, s, efecto] of SABOTAJES_K2) {
+  const v = A.violacionesDeEstrategia(s);
+  check(`K2.12 · SABOTAJE ${que} → rechazado, y como «${efecto}»`,
+    v.length > 0 && !A.respetaLaFrontera(s) && v.every((x) => x.efecto === efecto && x.dueno === EFECTO[efecto].dueno),
+    v.map((x) => `${x.donde}.${x.clave}=${x.efecto}`).join(', ') || 'NO DETECTADO');
+}
+check('K2.13 · y proponer recuperación (`retry`) y paralelismo sigue siendo de esta capa: la estrategia honrada pasa',
+  A.respetaLaFrontera(estrategia('s', PASOS, { recovery: [{ kind: 'retry', because: 'x' }], parallelGroups: [{ steps: ['a', 'b'], maxConcurrency: 2 }] })));
+
+/* El ciclo entero, con la forma de la sombra. */
+const cicloK2 = A.crearCicloAlgoritmico();
+const pedirK2 = (input, constraints) => cicloK2.decidir({
+  decision: { contract: ALGORITHM_CONTRACT_VERSION, objective: { weights: { latency: 1, reliability: 1 } },
+    trace: { traceId: 'JOB', requestId: 'JOB:algoritmo', userId: 'u' }, budget: A.TOPES_POR_DEFECTO,
+    signals: [{ key: 'step.costUsd', subject: 's1', value: 0.01, source: 'catalog' }], ...(constraints ? { constraints } : {}) },
+  tarea: { id: 'JOB:puente', steps: [{ id: 's1', capability: 'text.search', purpose: 'p', produces: 'text', input: { kind: 'itinerary', ...input } }] },
+  componer: { paralelizar: true, optimizar: true },
+});
+const conTopesK2 = pedirK2({}, { budget: { maxCredits: 3, maxUsd: 0.05 } });
+const conBilletera = pedirK2({ walletId: 'w' });
+const conFacturacion = pedirK2({}, { billingAccount: 'b' });
+check('K2.14 · el ciclo con topes de dinero decide, y nada de lo que devuelve cruza',
+  conTopesK2.status === 'decided' && !!conTopesK2.entrega && A.violacionesEn(conTopesK2, 'algoritmo').length === 0, conTopesK2.status);
+check('K2.15 · una billetera en el paso no llega a la entrega, y la sombra la vería en lo que el ciclo devuelve',
+  !conBilletera.entrega && A.violacionesEn(conBilletera, 'algoritmo').some((x) => x.clave === 'walletId' && x.efecto === DINERO),
+  `${conBilletera.status}/${conBilletera.parada ?? '-'}`);
+check('K2.16 · una cuenta de facturación en lo que se pide para el ciclo antes de pensar: `authority_violation`',
+  conFacturacion.parada === 'authority_violation' && !conFacturacion.entrega, `${conFacturacion.status}/${conFacturacion.parada}`);
+
+check('K2.17 · la lectura por responsabilidad vive en authority.ts y va DESPUÉS de la lista del Planner, nunca en su lugar',
+  /claveDeImplementacion\(clave\) \? POR_EL_PLANNER : responsabilidadDeClave\(clave\)/.test(leer('functions/src/core/algorithm/authority.ts')));
+
+/*
+ * Lo que la revisión de la fase vio pasar (seguridad y código): raíces pegadas a palabras que no se dejan leer, un
+ * dígito pegado, signos que antes apagaban la lectura (`$`, `/`, `@`, `+`), una clave de más de 128 caracteres, y
+ * verbos que piden lo que es de otro (`generateAsset`, `dispatchJob`, `retryJob`). Y el secreto de las cabeceras.
+ */
+const VISTAS_EN_LA_REVISION = [
+  ['aiprovider', ROUTER], ['textmodel', ROUTER], ['llmvendor', ROUTER], ['defaultmodel', ROUTER], ['provider2', ROUTER],
+  ['model2', ROUTER], ['vendorx', ROUTER], ['$vendor', ROUTER], ['provider/name', ROUTER], ['@model', ROUTER],
+  ['api+key', SECRETO], [`${'x'.repeat(121)}Provider`, ROUTER],
+  ['generateAsset', MATERIALES], ['dispatchJob', TRABAJOS], ['retryJob', TRABAJOS],
+  ['authorization', SECRETO], ['Authorization', SECRETO], ['authHeader', SECRETO],
+];
+const noVistas = VISTAS_EN_LA_REVISION.filter(([clave, efecto]) => {
+  const v = cruzaComo(clave);
+  return !v || v.clave !== clave || v.efecto !== efecto || v.dueno !== EFECTO[efecto].dueno;
+});
+check(`K2.18 · REGRESIÓN · lo que la revisión vio pasar cruza ahora, y como lo que es (${VISTAS_EN_LA_REVISION.length})`,
+  noVistas.length === 0, noVistas.map(([c]) => `${c.slice(0, 24)} → ${JSON.stringify(cruzaComo(c)?.efecto ?? null)}`).join(' · ') || 'todas');
+/*
+ * Lo que la SEGUNDA pasada vio pasar: una raíz de cantidad, de par o de objeto pegada a un dígito,
+ * la pasarela por su nombre, y una clave que la normalización alarga más allá del tope de lectura.
+ */
+const VISTAS_EN_LA_SEGUNDA_PASADA = [
+  ['credits2', DINERO], ['price2', DINERO], ['accessToken2', SECRETO], ['privateKey1', SECRETO], ['refreshToken2', SECRETO],
+  ['authToken2', SECRETO], ['runJob2', TRABAJOS], ['createAsset2', MATERIALES], ['gateway', GATEWAY], ['gatewayId', GATEWAY],
+  ['authorizationHeader', SECRETO], [`${'\uFDFA'.repeat(60)}provider`, ROUTER],
+];
+const noVistas2 = VISTAS_EN_LA_SEGUNDA_PASADA.filter(([clave, efecto]) => cruzaComo(clave)?.efecto !== efecto);
+check(`K2.20 · REGRESIÓN · lo que la segunda pasada vio pasar cruza ahora, y como lo que es (${VISTAS_EN_LA_SEGUNDA_PASADA.length})`,
+  noVistas2.length === 0, noVistas2.map(([c]) => `${c.slice(-24)} → ${JSON.stringify(cruzaComo(c)?.efecto ?? null)}`).join(' · ') || 'todas');
+/* El peor caso de tiempo: 4096 claves distintas de 1019 mayúsculas (antes, una expresión cuadrática y palabras × raíces: segundos). */
+const enMayusculas = {};
+for (let i = 0; i < 4096; i++) enMayusculas[`${'A'.repeat(1018)}B${i.toString(36).toUpperCase().padStart(5, 'Q')}`] = 1;
+const t0K221 = process.hrtime.bigint();
+const vEnMayusculas = A.violacionesEn(enMayusculas, 'k2');
+const msK221 = Number(process.hrtime.bigint() - t0K221) / 1e6;
+check('K2.21 · el peor caso de tiempo está acotado: 4096 claves de 1019 mayúsculas se leen en menos de 2 s, y no se inventa nada',
+  msK221 < 2000 && vEnMayusculas.length === 0, `${msK221.toFixed(0)} ms · ${vEnMayusculas.length} cruces`);
+const { CAMPOS_PROHIBIDOS } = lib('core/observability.js');
+const NO_NOMBRAN_UN_SECRETO = ['token', 'prompt', 'message', 'content'];
+const deSecreto = CAMPOS_PROHIBIDOS.filter((c) => !NO_NOMBRAN_UN_SECRETO.includes(c.toLowerCase()));
+check('K2.19 · una lista de secretos, no dos que divergen: cada campo de `CAMPOS_PROHIBIDOS` (core/observability.ts) que nombra un secreto cruza aquí como «leer un secreto»; los que no —token, prompt, message, content— están dichos',
+  deSecreto.length >= 5 && deSecreto.every((c) => cruzaComo(c)?.efecto === SECRETO)
+  && CAMPOS_PROHIBIDOS.every((c) => deSecreto.includes(c) || NO_NOMBRAN_UN_SECRETO.includes(c.toLowerCase())),
+  deSecreto.filter((c) => cruzaComo(c)?.efecto !== SECRETO).join(', ') || deSecreto.join(', '));
+
 /* 5, 6, 7: presupuesto, iteraciones y bucles. Ejecutados. */
 const cIgnora = A.crearContador(A.presupuestoEfectivo({ maxCandidates: 2 }));
 let admitidos = 0;

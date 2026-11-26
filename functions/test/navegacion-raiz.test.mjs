@@ -28,7 +28,7 @@ const check = (name, cond, extra = '') => {
   console.log(`${cond ? '✔' : '✘'} ${name}${extra ? ` — ${extra}` : ''}`);
 };
 
-const { StackRouter, TabRouter, CommonActions } = require('@react-navigation/routers');
+const { StackRouter, TabRouter, CommonActions, StackActions } = require('@react-navigation/routers');
 const nombres = (archivo) => [...leer(archivo).matchAll(/<(?:Stack|Tab)\.Screen\s+name="(\w+)"/g)].map((m) => m[1]);
 const RAIZ = nombres('navigation/MainStackNavigator.tsx');
 const PESTANAS = nombres('navigation/TabNavigator.tsx');
@@ -66,7 +66,8 @@ console.log('\n── B · La corrección: `navegarEnLaRaiz` ──');
   const navs = cadena();
   globalThis.__refDePrueba = { isReady: () => true, getRootState: () => navs[2].state, dispatch: (a) => despachadas.push(a), navigate: () => { throw new Error('no debe usarse'); } };
   globalThis.__CommonActions = CommonActions;
-  const stub = 'data:text/javascript;base64,' + Buffer.from('export const CommonActions = globalThis.__CommonActions; export const createNavigationContainerRef = () => globalThis.__refDePrueba;').toString('base64');
+  globalThis.__StackActions = StackActions;
+  const stub = 'data:text/javascript;base64,' + Buffer.from('export const CommonActions = globalThis.__CommonActions; export const StackActions = globalThis.__StackActions; export const createNavigationContainerRef = () => globalThis.__refDePrueba;').toString('base64');
   const js = ts.transpileModule(leer('navigation/refNavegacion.ts'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText
     .replace(/from ['"]@react-navigation\/native['"]/, `from '${stub}'`);
   const { navegarEnLaRaiz } = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));

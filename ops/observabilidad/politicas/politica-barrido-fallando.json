@@ -1,0 +1,29 @@
+{
+  "displayName": "Weë · el barrido no termina",
+  "documentation": {
+    "content": "Dos o más pasadas seguidas de la reconciliación (cada 5 min) sin terminar: el dinero de tareas ya lanzadas no se está cerrando. docs/RUNTIME.md.",
+    "mimeType": "text/markdown"
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "Weë · el barrido no termina",
+      "conditionThreshold": {
+        "filter": "metric.type=\"logging.googleapis.com/user/wee_barrido_incompleto\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 1,
+        "duration": "0s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "900s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ]
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "86400s"
+  }
+}

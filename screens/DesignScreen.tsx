@@ -3,22 +3,25 @@ import { View, Text, StyleSheet, Platform, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme, enTemaClaro } from '../contexts/ThemeContext';
+import { useTheme, enTemaOscuro } from '../contexts/ThemeContext';
 import { useT } from '../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../contexts/EspacioProfesionalContext';
+import { EnlaceDeCreaciones, useColumnaDeCreator } from '../components/creator/PiezasDeCreator';
 import { useResponsive } from '../hooks/useResponsive';
 import { PaginaDeCajas } from '../components/creator/CajaQueCrece';
 import StudioHeader from '../components/studio/StudioHeader';
 import StudioPromptComposer from '../components/studio/StudioPromptComposer';
 import AjustesContextuales from '../components/creator/AjustesContextuales';
 import AvisoDeCreacion, { EstadoDeCreacion } from '../components/creator/AvisoDeCreacion';
-import FilaDeCreaciones from '../components/creator/FilaDeCreaciones';
 import FichaDeContexto from '../components/creator/FichaDeContexto';
 import EspacioDeEscritura, { useAlturaDelTeclado } from '../components/EspacioDeEscritura';
 import { ALTO_BARRA } from '../components/BarraInferior';
 import DesignExplore from '../components/design/DesignExplore';
 import DesignPanel from '../components/design/DesignPanel';
+import CabeceraDeSeccion from '../components/creator/CabeceraDeSeccion';
+import { CuerpoDeDesign, HeroDeDesign } from '../components/sectores/PortadaDesign';
 import { siempreSePregunta } from '../constants/ajustesContextuales';
-import { AJUSTES_DE_DESIGN, CREACIONES_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../constants/designTools';
+import { AJUSTES_DE_DESIGN, CategoriaDeDesign, PuntoDePartida } from '../constants/designTools';
 import { SPACING, FONT_SIZE, BORDER_RADIUS } from '../constants/design';
 import { scale } from '../utils/scale';
 
@@ -29,7 +32,7 @@ const LO_QUE_TARDA_LA_DEMO = 1600;
 const SITIO_DE_LA_BARRA = scale(96);
 
 /**
- * Sus ajustes se preguntan siempre: en Weë Design siempre se está diseñando
+ * Sus ajustes se preguntan siempre: en WeëDesign siempre se está diseñando
  * algo que se ve, así que no hay contexto del que dependan. Se pone la forma
  * del panel común una sola vez, fuera del componente: es una tabla, no cambia.
  */
@@ -42,17 +45,17 @@ const AJUSTES = siempreSePregunta(AJUSTES_DE_DESIGN);
  *
  * El sitio de Weë para diseñar y visualizar lo físico: una sala, una casa, un
  * yate de quince metros, un avión privado, una silla. El orden es el mismo que
- * en Weë Studio —nombre, caja, puertas, lo ya hecho— porque es la misma
+ * en WeëStudio —nombre, caja, puertas, lo ya hecho— porque es la misma
  * familia y quien viene de uno tiene que reconocer el otro sin pensar.
  *
- * ── Lo que comparte con Weë Studio, y lo que no ──────────────────────────────
+ * ── Lo que comparte con WeëStudio, y lo que no ──────────────────────────────
  *
  * Comparte las piezas que son iguales DE VERDAD: la cabecera, la caja donde se
  * escribe y el panel de ajustes. Si esas cambian, cambian en los dos sitios a
  * la vez y no pueden separarse.
  *
  * Tiene suyo lo que es suyo: sus categorías —que son puertas de entrada, no
- * límites—, sus ajustes —estilo, materiales, luz— y su galería. Así Weë Design
+ * límites—, sus ajustes —estilo, materiales, luz— y su galería. Así WeëDesign
  * puede crecer hacia donde necesite sin arrastrar la estructura del Studio.
  *
  * ── Lo que todavía no hay ────────────────────────────────────────────────────
@@ -66,6 +69,8 @@ const DesignScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const { isMobile, isDesktop } = useResponsive();
   const alturaTeclado = useAlturaDelTeclado();
+  const pro = useEnEspacioProfesional();
+  const columna = useColumnaDeCreator();
 
   const [prompt, setPrompt] = useState('');
   /*
@@ -79,6 +84,8 @@ const DesignScreen: React.FC = () => {
   const [camino, setCamino] = useState<(CategoriaDeDesign | 'todas')[]>([]);
   const vista = camino.length > 0 ? camino[camino.length - 1] : null;
   const abrir = useCallback((paso: CategoriaDeDesign | 'todas') => setCamino((antes) => [...antes, paso]), []);
+  /* WeëFashion vive en la ficha de especialista `business` (screens/SpecialistScreen.tsx). */
+  const irAFashion = useCallback(() => navigation.navigate('Specialist', { id: 'business' }), [navigation]);
   const volver = useCallback(() => setCamino((antes) => antes.slice(0, -1)), []);
   const [ajustesAbiertos, setAjustesAbiertos] = useState(false);
   const [ajustes, setAjustes] = useState<Record<string, string>>({});
@@ -99,6 +106,11 @@ const DesignScreen: React.FC = () => {
 
   const alCrear = useCallback(() => {
     if (!prompt.trim()) return;
+    /* En creator no hay creación de mentira: va a la experiencia común, con su plan, su precio y su resultado. */
+    if (pro) {
+      navigation.navigate('CreatorFlow', { experienceId: 'design', goal: prompt.trim() });
+      return;
+    }
     setEstado('creando');
     /*
      * AQUÍ ENTRA WEË BRAIN EL DÍA QUE SE CONECTE.
@@ -109,7 +121,7 @@ const DesignScreen: React.FC = () => {
      * mientras tanto.
      */
     temporizador.current = setTimeout(() => setEstado('listo'), LO_QUE_TARDA_LA_DEMO);
-  }, [prompt]);
+  }, [prompt, pro, navigation]);
 
   const alElegirPunto = useCallback((punto: PuntoDePartida) => {
     /* La idea queda empezada, para terminarla con palabras propias. */
@@ -145,7 +157,7 @@ const DesignScreen: React.FC = () => {
   if (vista) {
     return (
       <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
-        <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
+        <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
           <DesignPanel
             vista={vista}
             onVolver={volver}
@@ -159,7 +171,7 @@ const DesignScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={[styles.pantalla, { backgroundColor: theme.colors.background }]} edges={['top']}>
-      {/* Como en Weë Studio: la caja crece hasta llenar lo que se ve y sus botones no se salen de la vista. */}
+      {/* Como en WeëStudio: la caja crece hasta llenar lo que se ve y sus botones no se salen de la vista. */}
       <EspacioDeEscritura style={styles.scroll} descuento={isDesktop ? 0 : ALTO_BARRA}>
         <PaginaDeCajas
           style={styles.scroll}
@@ -167,12 +179,20 @@ const DesignScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null]}>
-            <StudioHeader nombre="Design" claveLema="design.slogan" claveDescripcion="design.description" />
+          <View style={[styles.centrado, anchoMaximo ? { maxWidth: anchoMaximo } : null, pro && columna]}>
+            {/* La portada de la demo YC (docs/MIGRACION-UI-DEMO-YC.md, lote 3); en creator, la cabecera de trabajo de siempre. */}
+            {pro ? (
+              <StudioHeader nombre="Design" claveLema="design.slogan" claveDescripcion="design.description" />
+            ) : (
+              <View style={styles.portada}>
+                <CabeceraDeSeccion soloIdentidad nombre="Design" lema={t('design.slogan')} />
+                <HeroDeDesign abrir={abrir} onFashion={irAFashion} />
+              </View>
+            )}
 
             {/*
               LA CAJA, MÁS CERCA DE LA PRESENTACIÓN (decisión del usuario,
-              2026-09-16, solo en Weë Design; el mismo ajuste que ya lleva Weë
+              2026-09-16, solo en WeëDesign; el mismo ajuste que ya lleva Weë
               Studio).
 
               Entre el último renglón de la cabecera y la caja había 48 puntos:
@@ -184,32 +204,42 @@ const DesignScreen: React.FC = () => {
               La caja es la misma y crece igual: esto mueve dónde empieza, no
               cuánto mide.
             */}
-            <View style={styles.cajaArriba}>
+            <View style={pro ? null : styles.cajaArriba}>
               <StudioPromptComposer
+                vitrina={!pro}
                 placeholder={t('design.placeholder')}
                 valor={prompt}
                 onCambiar={setPrompt}
-                onAjustes={() => setAjustesAbiertos(true)}
-                onReferencia={alAnadirReferencia}
-                onVoz={alAnadirReferencia}
+                /* En creator los pregunta Weë Brain en el flujo: este panel todavía no viaja a ninguna parte. */
+                onAjustes={pro ? undefined : () => setAjustesAbiertos(true)}
+                /*
+                  En creator no se ofrece: aquí todavía no hay selector de archivos y
+                  el botón añadiría un archivo de muestra que nadie eligió.
+                */
+                onReferencia={pro ? undefined : alAnadirReferencia}
+                onVoz={pro ? undefined : alAnadirReferencia}
                 onCrear={alCrear}
                 ocupado={estado === 'creando'}
               />
             </View>
 
-{/* La misma ficha que en Weë Studio: lo que ya se sabe, a la vista. */}
+{/* La misma ficha que en WeëStudio: lo que ya se sabe, a la vista. */}
             {referencias.length > 0 && (
-              <View style={styles.referencias}>
+              <View style={[styles.referencias, pro && styles.referenciasPro]}>
                 {referencias.map((r, i) => (
                   <FichaDeContexto key={`${r}-${i}`} icono="image-outline" texto={r} />
                 ))}
               </View>
             )}
 
-            <DesignExplore porFila={porFila} onAbrir={abrir} onVerTodas={() => abrir('todas')} />
+            {pro ? (
+              <DesignExplore porFila={porFila} onAbrir={abrir} onVerTodas={() => abrir('todas')} />
+            ) : (
+              <CuerpoDeDesign abrir={abrir} onFashion={irAFashion} />
+            )}
 
             {/*
-              La misma fila que la de Weë Studio —es la misma fila— con lo que
+              La misma fila que la de WeëStudio —es la misma fila— con lo que
               se hace aquí: un interior, una casa, un barco, una silla. La
               etiqueta dice qué CLASE de diseño es, que es por lo que se busca en
               esta galería, no si es imagen o video.
@@ -217,12 +247,12 @@ const DesignScreen: React.FC = () => {
               Un poco más ancha y más baja que la del Studio, porque un diseño se
               reconoce por lo ancho y un video por lo alto.
             */}
-            <FilaDeCreaciones
-              creaciones={CREACIONES_DE_DESIGN}
-              ancho={scale(140)}
-              alto={scale(120)}
-              onVerTodas={() => navigation.navigate('Projects')}
-            />
+            {pro ? (
+              <EnlaceDeCreaciones />
+            ) : (
+              /* Como en la demo YC: la portada termina en Explorar; Mis proyectos sigue en el menú y en WeëStudio. */
+              null
+            )}
           </View>
         </PaginaDeCajas>
       </EspacioDeEscritura>
@@ -235,9 +265,9 @@ const DesignScreen: React.FC = () => {
       />
 
       {/*
-        El panel de ajustes es el común de Weë AI, con el catálogo de Weë Design
+        El panel de ajustes es el común de Weë AI, con el catálogo de WeëDesign
         dentro. Antes había una segunda copia del panel solo para poder pasarle
-        otra lista, y para usarla Weë Design tenía que decir que estaba en el
+        otra lista, y para usarla WeëDesign tenía que decir que estaba en el
         área "imágenes" del Studio, que no es verdad y no lleva a ninguna parte.
 
         La pista de debajo del título es la suya: aquí los ajustes NO cambian con
@@ -267,7 +297,10 @@ const styles = StyleSheet.create({
    */
   centrado: { width: '100%', alignSelf: 'center', gap: SPACING.xxl + SPACING.xs, flex: 1 },
   /* Sube la caja 30 de los 48 que la separaban de la cabecera. Deja unos 18. */
-  cajaArriba: { marginTop: -scale(30) },
+  cajaArriba: { paddingHorizontal: SPACING.lg, marginTop: -scale(30) },
+  /* La caja sube sobre el fundido del héroe, como en la referencia. */
+  portada: { marginBottom: -scale(26) },
+  referenciasPro: { paddingHorizontal: 0, marginTop: -12 },
   referencias: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -278,7 +311,7 @@ const styles = StyleSheet.create({
 });
 
 /*
- * Weë Design es de la CUENTA, como el resto del taller: se ve claro lleves
+ * WeëDesign es de la CUENTA, como el resto del taller: se ve claro lleves
  * puesto el Perfil Real o el Perfil Weë.
  */
-export default enTemaClaro(DesignScreen);
+export default enTemaOscuro(DesignScreen);

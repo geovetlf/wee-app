@@ -44,7 +44,7 @@ const jsEnlaces = ts.transpileModule(leer('navigation/enlaces.ts'), { compilerOp
 const urlEnlaces = 'data:text/javascript;base64,' + Buffer.from(jsEnlaces).toString('base64');
 const E = await import(urlEnlaces);
 /* + misión mundo3d (2026-10-05): la puerta de «Crear mundo 3D» también decide si tiene enlace; cerrada, por defecto. */
-const fuente = `import { ${Object.keys(E).join(', ')} } from '${urlEnlaces}';\nexport const crear = (FILMMAKER_EN_LA_APP, MUNDO_3D_EN_LA_APP = false) => (${app.slice(inicio, fin + 1)});`;
+const fuente = `import { ${Object.keys(E).join(', ')} } from '${urlEnlaces}';\nexport const crear = (FILMMAKER_EN_LA_APP, MUNDO_3D_EN_LA_APP = false, VERSION_PROFESIONAL_EN_LA_WEB = true) => (${app.slice(inicio, fin + 1)});`;
 const js = ts.transpileModule(fuente, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 } }).outputText;
 const { crear } = await import('data:text/javascript;base64,' + Buffer.from(js).toString('base64'));
 
@@ -159,8 +159,10 @@ console.log('\n── Los parámetros: forma estable, recuperable al recargar, y
   check('22) y una dirección de antes con «post=[object Object]» ya no se toma por una publicación (se lee por su id)',
     !E.esPublicacion('[object Object]') && E.esPublicacion({ id: 'abc' }) && /const hasPost = esPublicacion\(route\.params\?\.post\);/.test(leer('screens/PostDetailScreen.tsx')));
   const llamadas = [...['CommunityScreen', 'HomeScreen', 'LandingScreen', 'ProfileScreen', 'ReelsScreen', 'SavedPostsScreen', 'SearchScreen', 'UserProfileScreen', 'WebLandingScreen']
-    .flatMap((p) => [...leer(`screens/${p}.tsx`).matchAll(/navigate\('PostDetail', \{([^}]*)\}\)/g)].map((m) => m[1]))];
-  check('23) cada pantalla que abre una publicación da su id', llamadas.length >= 13 && llamadas.every((m) => /postId/.test(m)), `${llamadas.length} llamadas`);
+    .flatMap((p) => [...leer(`screens/${p}.tsx`).matchAll(/navigate\('PostDetail', \{([^}]*)\}\)/g)].map((m) => m[1])),
+    /* Desde la migración de la demo YC, el muro del Home abre el Wäll inmersivo, y es su publicación la que abre PostDetail. */
+    ...[...leer('components/wall/PublicacionInmersiva.tsx').matchAll(/navigate\('PostDetail', \{([^}]*)\}\)/g)].map((m) => m[1])];
+  check('23) cada pantalla que abre una publicación da su id', llamadas.length >= 12 && llamadas.every((m) => /postId/.test(m)), `${llamadas.length} llamadas`);
 
   /* La red de seguridad: en una pantalla sin dirección propia, ningún objeto sale como texto. */
   const { estado, quitados } = E.sinObjetosSueltos({ routes: [{ name: 'Main' }, { name: 'Reels', params: { initialPost: { id: '1' }, initialVideoPosts: [{ id: '1' }], communitySlug: 'cine' } }], index: 1 }, config.screens);

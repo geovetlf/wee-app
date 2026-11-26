@@ -16,18 +16,46 @@
  * cerrarlo antes; desde la barra, no. Esa diferencia es real y se queda en cada
  * componente.
  *
- * Las experiencias de Weë Creator tampoco están aquí: ya tenían su fuente única
+ * Las experiencias de Weë AI tampoco están aquí: ya tenían su fuente única
  * en `constants/weeExperiences.ts`, y esa manda.
+ *
+ * ─── EL ORDEN DEL REDISEÑO (decisión del dueño, 2026-11-15) ──────────────────
+ *
+ *   Inicio / Ẅall · Weëls · Explorar · Comunidades · Proyectos · WeëPages
+ *   MyWeës
+ *   Guardados · Historial · Credits · Configuración
+ *   Ayuda y soporte
+ *
+ * Lo que dejó de ser una FILA —y sigue existiendo, con su pantalla y su ruta—:
+ *
+ *   · WeeTalk: es «Mensajes», en la barra inferior;
+ *   · la agenda (ËContact con el Perfil Real, ẄContact con el Perfil Weë): se
+ *     entra desde Mi Weë, que ya la enlazaba;
+ *   · Perfil Real y Perfil Weë: son el selector de identidad de la cabecera del
+ *     menú, con la misma lógica de cambio de perfil y de tema;
+ *   · el desplegable de Weë AI con sus experiencias: es la tarjeta de WeëAI, que
+ *     abre el centro creativo, donde están todas;
+ *   · «Mis proyectos» es la fila Proyectos, y «Mis creaciones» se alcanza desde
+ *     WeëAI, desde Proyectos y como acceso de MyWeës.
+ *
+ * Sus entradas siguen en `MENU_ITEM` porque el catálogo es también de dónde
+ * sacan su nombre y su dibujo el selector, la tarjeta y los accesos de MyWeës;
+ * lo que ya no están es en `WEE_MENU`, que es lo que se pinta como filas.
  */
 
 import { NombreDeIcono } from '../components/icons/trazosDeWee';
 
 /** Cada opción del menú, por su nombre. */
 export type MenuItemId =
+  | 'home'
+  | 'explore'
+  | 'mywees'
+  | 'history'
   | 'realProfile'
   | 'weeProfile'
   | 'credits'
   | 'econtact'
+  | 'pages'
   | 'communities'
   | 'weels'
   | 'weetalk'
@@ -36,6 +64,7 @@ export type MenuItemId =
   | 'creations'
   | 'saved'
   | 'settings'
+  | 'language'
   | 'help';
 
 export interface MenuItem {
@@ -71,6 +100,14 @@ export interface MenuItem {
  * justo lo que faltaba.
  */
 export const MENU_ITEM: Record<MenuItemId, MenuItem> = {
+  /* Inicio y Ẅall son el mismo sitio: la portada. La etiqueta lo dice con los dos nombres. */
+  home: { id: 'home', icono: 'casa', clave: 'menu.homeWall', emoji: '🏠', label: 'Inicio / Ẅall' },
+  /* Explorar es la pantalla de búsqueda de siempre (`Search`), con este nombre. */
+  explore: { id: 'explore', icono: 'brujula', clave: 'menu.explore', emoji: '🧭', label: 'Explorar' },
+  /* MyWeës: el organizador personal de accesos directos (screens/MyWeesScreen.tsx). Es marca. */
+  mywees: { id: 'mywees', icono: 'capas', clave: 'menu.myWees', emoji: '🗂️', label: 'MyWeës' },
+  /* Historial: la cronología de los trabajos de WeëAI (screens/HistorialScreen.tsx). */
+  history: { id: 'history', icono: 'reloj', clave: 'menu.history', emoji: '🕘', label: 'Historial' },
   realProfile: { id: 'realProfile', icono: 'perfilReal', clave: 'menu.realProfile', emoji: '👤', label: 'Perfil Real' },
   weeProfile: { id: 'weeProfile', icono: 'perfilWee', clave: 'menu.weeProfile', emoji: '🎭', label: 'Perfil Weë' },
   credits: { id: 'credits', icono: 'credits', clave: 'menu.credits', emoji: '💳', label: 'Credits' },
@@ -81,20 +118,22 @@ export const MENU_ITEM: Record<MenuItemId, MenuItem> = {
    * que se ve sin sesión.
    */
   econtact: { id: 'econtact', icono: 'econtact', clave: 'menu.econtact', emoji: '🤝', label: 'ËContact' },
+  /* WeëPages: las Páginas públicas de la cuenta (personajes, empresas, marcas…). Entidades, no caras. */
+  pages: { id: 'pages', icono: 'documento', clave: 'menu.pages', emoji: '📄', label: 'WeëPages' },
   communities: { id: 'communities', icono: 'comunidades', clave: 'menu.communities', emoji: '👥', label: 'Comunidades' },
   weels: { id: 'weels', icono: 'weels', clave: 'menu.weels', emoji: '📹', label: 'Weëls' },
   weetalk: { id: 'weetalk', icono: 'weetalk', clave: 'menu.weetalk', emoji: '💬', label: 'WeeTalk' },
   /*
-   * La entrada se llama "Weë AI", con la marca escrita como se escribe en
-   * todas partes. Y ahora también donde es un título —la miga de pan de sus
-   * pantallas, el rótulo de arriba, el atajo de la hoja Crear, la Ayuda—: las
-   * versales de "WEË AI" se fueron, porque el sitio tiene un nombre y es este.
+   * El área se llama «WeëAI» (nombre visible decidido el 2026-11-15). En el menú
+   * ya no es una fila que se despliega: es la tarjeta destacada que abre el
+   * centro creativo.
    *
    * El id sigue siendo `creator`: lo usan la ruta, el estado del menú y los
    * datos ya guardados, y cambiarlo no se vería pero sí rompería cosas.
    */
-  creator: { id: 'creator', icono: 'cerebro', clave: 'menu.creator', emoji: '🤖', label: 'Weë AI' },
-  projects: { id: 'projects', icono: 'carpeta', clave: 'menu.projects', emoji: '📁', label: 'Mis proyectos' },
+  creator: { id: 'creator', icono: 'cerebro', clave: 'nav.weeAi', emoji: '🤖', label: 'WeëAI' },
+  /* Proyectos: la entrada principal a los proyectos de Weë AI y, desde ellos, a las creaciones. */
+  projects: { id: 'projects', icono: 'carpeta', clave: 'menu.projectsTitle', emoji: '📁', label: 'Proyectos' },
   /*
    * La biblioteca de material de la CUENTA (Fase 11). Una sola, no una por
    * perfil: lo que se genera es de la cuenta. La clave vive en su propio
@@ -102,48 +141,45 @@ export const MENU_ITEM: Record<MenuItemId, MenuItem> = {
    */
   creations: { id: 'creations', icono: 'galeria', clave: 'creaciones.title', emoji: '🖼️', label: 'Mis creaciones' },
   /*
-   * Notificaciones NO está aquí, y no es un olvido: es el quinto destino de la
-   * barra inferior (`components/BarraInferior.tsx`), que se ve siempre. Tenerlo
-   * también en el menú era ofrecer dos puertas a la misma pantalla. La pantalla,
-   * su ruta y su servicio siguen exactamente donde estaban.
+   * Notificaciones NO está aquí, y no es un olvido: es la campana de la
+   * cabecera del Home. La pantalla, su ruta y su servicio siguen exactamente
+   * donde estaban.
    */
   saved: { id: 'saved', icono: 'marcador', clave: 'menu.saved', emoji: '🔖', label: 'Guardados' },
   settings: { id: 'settings', icono: 'engranaje', clave: 'menu.settings', emoji: '⚙️', label: 'Configuración' },
-  help: { id: 'help', icono: 'ayuda', clave: 'menu.help', emoji: '❓', label: 'Ayuda' },
+  /* Idioma: abre Configuración → Idioma (la misma pantalla y la misma preferencia). El nombre es el de esa pantalla; el idioma puesto se ve a la derecha, en su lengua. */
+  language: { id: 'language', icono: 'globo', clave: 'language.title', emoji: '🌐', label: 'Idioma' },
+  help: { id: 'help', icono: 'ayuda', clave: 'menu.helpSupport', emoji: '❓', label: 'Ayuda y soporte' },
 };
 
 export interface MenuSection {
-  /** El rótulo del grupo, en versales. Sin rótulo, el grupo cierra la lista. */
-  label?: string;
   items: MenuItemId[];
-  /** true en el grupo que se despliega con las experiencias de Weë Creator. */
-  creator?: boolean;
-  /**
-   * true si el grupo empieza con una línea, en vez de con un rótulo.
-   *
-   * Hasta ahora los grupos se separaban solo con su rótulo en versales, que es
-   * suficiente cuando el grupo tiene nombre. ËContact no lo tiene: es una sola
-   * opción entre lo tuyo y los destinos, y sin una línea quedaría pegada a los
-   * Credits como si fuera parte de tu cuenta.
-   */
+  /** true si el grupo empieza con una línea que lo separa del anterior. */
   divisor?: boolean;
+  /**
+   * true en el grupo que se pinta como TARJETA destacada y no como fila: MyWeës,
+   * con su descripción breve y su botón «Personalizar». Sus accesos no se
+   * despliegan en el menú: viven en su pantalla.
+   */
+  destacado?: boolean;
 }
 
 /**
- * El orden del menú.
+ * El orden del menú: las doce entradas, en cuatro grupos.
  *
- * Credits va con los perfiles, no con Explora: es lo que TIENES, no un sitio al
- * que ir. Y quien busca su saldo lo busca donde está su cuenta.
+ *  1. A dónde ir: Inicio / Ẅall, Weëls, Explorar, Comunidades, Proyectos, WeëPages.
+ *  2. MyWeës, destacada.
+ *  3. Lo tuyo: Guardados, Historial, Credits, Configuración.
+ *  4. Ayuda y soporte.
  *
- * ËContact va solo, entre líneas, justo después de tu cuenta y antes de los
- * destinos. Ni es información tuya ni es un sitio donde explorar: es tu gente.
+ * Encima van la cabecera de cuenta, el selector de identidad y la tarjeta de
+ * WeëAI; debajo, el pie legal y cerrar sesión. Eso lo pinta cada componente.
  */
 export const WEE_MENU: MenuSection[] = [
-  { label: 'PERFIL', items: ['realProfile', 'weeProfile', 'credits'] },
-  { items: ['econtact'], divisor: true },
-  { label: 'EXPLORA', items: ['communities', 'weels', 'weetalk'], divisor: true },
-  { items: ['creator'], creator: true },
-  { items: ['saved', 'settings', 'help'] },
+  { items: ['home', 'weels', 'explore', 'communities', 'projects', 'pages'] },
+  { items: ['mywees'], destacado: true },
+  { items: ['saved', 'history', 'credits', 'settings', 'language'], divisor: true },
+  { items: ['help'], divisor: true },
 ];
 
 /** Todas las opciones, en el orden en que se ven. Sirve para comprobarlo. */

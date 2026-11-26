@@ -11,7 +11,7 @@ import {
  * WEË FILMMAKER · LA TOMA DEL PLANO ELEGIDO, ATADA A REACT (F1-D).
  *
  * El único sitio de la app que usa `videoService`: una toma de un plano entra por
- * la misma callable que el vídeo de Weë Studio, con el plano en vez de un texto.
+ * la misma callable que el vídeo de WeëStudio, con el plano en vez de un texto.
  * El controlador (`utils/controladorDeToma.ts`) decide qué se pide y qué se
  * enseña; esto le da los servicios de verdad, le dice qué unidad está elegida y
  * lo deja de escuchar al salir.

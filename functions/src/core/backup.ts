@@ -85,6 +85,7 @@ export const CLASIFICACION_DE_DATOS: Readonly<Record<string, ClaseDeDatos>> = Ob
   /* ── Dinero: no se reconstruye, no se compensa, no se inventa ────────── */
   creditTransactions: { criticidad: 'CRITICAL', porque: 'el libro de Credits: cada movimiento, y es la única verdad del saldo' },
   creditStats: { criticidad: 'CRITICAL', porque: 'el circulante y los acumulados; perderlo descuadra la economía entera' },
+  creditAccounts: { criticidad: 'CRITICAL', porque: 'el saldo privado de cada cuenta (F-06); el libro lo explica, pero es el que se cobra' },
   wallets: { criticidad: 'CRITICAL', porque: 'la billetera de la cuenta' },
   transactions: { criticidad: 'CRITICAL', porque: 'libro heredado; mientras exista un documento, es dinero' },
   payments: { criticidad: 'CRITICAL', porque: 'el libro de pagos: dinero de verdad' },
@@ -139,6 +140,11 @@ export const CLASIFICACION_DE_DATOS: Readonly<Record<string, ClaseDeDatos>> = Ob
   aiRateLimits: { criticidad: 'DERIVED', porque: 'contadores de ritmo; se rellenan solos', seReconstruyeDesde: 'nada: caducan y vuelven a empezar' },
   aiProviderVerification: { criticidad: 'DERIVED', porque: 'si un proveedor contestó de verdad alguna vez', seReconstruyeDesde: 'una llamada de verificación a cada proveedor' },
   contadores: { criticidad: 'DERIVED', porque: 'contadores agregados', seReconstruyeDesde: 'la colección que cuentan' },
+  publicProfiles: {
+    criticidad: 'DERIVED',
+    porque: 'la cara pública de cada perfil (lista blanca); nadie la escribe salvo el servidor (reglas: write false)',
+    seReconstruyeDesde: 'users, con scripts/rellenar-perfiles-publicos.mjs (la misma sincronización que el espejo)',
+  },
   pushTokens: { criticidad: 'DERIVED', porque: 'los aparatos vuelven a registrarse al abrir la app', seReconstruyeDesde: 'el propio aparato, al arrancar' },
 
   /* ── Configuración: se puede volver a poner, pero hay que saber cuál era ── */
@@ -437,6 +443,7 @@ export const RELACIONES: readonly Relacion[] = Object.freeze([
   { desde: 'entities', campo: 'ownerAccountId', hacia: 'accounts', por: 'id', porque: 'toda cara es de una cuenta' },
   { desde: 'users', campo: 'entityId', hacia: 'entities', por: 'entityId', opcional: true, porque: 'la referencia pública del perfil; las copias históricas no la tienen' },
   { desde: 'creditTransactions', campo: 'userId', hacia: 'users', por: 'uid', porque: 'un movimiento de Credits es de alguien' },
+  { desde: 'creditAccounts', campo: 'uid', hacia: 'users', por: 'uid', porque: 'un saldo es de una cuenta con su Perfil Real (F-06)' },
   { desde: 'reports', campo: 'reporterAccountId', hacia: 'accounts', por: 'id', porque: 'una denuncia la hace una cuenta' },
   { desde: 'reports', campo: 'targetOwnerAccountId', hacia: 'accounts', por: 'id', opcional: true, porque: 'de quién era lo denunciado, cuando se pudo leer' },
   { desde: 'assets', campo: 'ownerAccountId', hacia: 'accounts', por: 'id', porque: 'el material es de una cuenta' },

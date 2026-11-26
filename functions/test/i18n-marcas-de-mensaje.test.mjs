@@ -52,6 +52,13 @@ const cargar = async (ruta) => {
 
 const { crearTraductor } = (await cargar('i18n/traducir.ts')).ns;
 const { DICCIONARIOS } = (await cargar('i18n/diccionarios.ts')).ns;
+/*
+ * CUÁNTOS DICCIONARIOS TIENE QUE HABER, sacado del CATÁLOGO y no escrito a mano (antes, «=== 16»): uno por idioma
+ * listo y uno por variante en los que las tienen —la misma cuenta que la prueba 38b de i18n.test.mjs—. Se compara con
+ * lo que hay en el REGISTRO, así que exige lo mismo que el 16 (ni uno de menos, ni uno de más) sin tener que tocar
+ * esta prueba cada vez que entra un idioma.
+ */
+const ESPERADOS = (await cargar('i18n/idiomas.ts')).ns.idiomasDisponibles().reduce((n, i) => n + (i.variantes?.length || 1), 0);
 const { AVISOS } = (await cargar('functions/src/shared/textosDelServidor.ts')).ns;
 const avisos = (await cargar('functions/src/social/avisos.ts')).ns;
 const UNICOS = [];
@@ -85,7 +92,7 @@ console.log('\n── A · El contrato: lo que se guarda es una marca conocida �
     /MARCAS DE DATOS/.test(CHAT) && /i18n-marcas-de-mensaje\.test\.mjs/.test(CHAT));
 }
 
-console.log('\n── B · Cada sitio que las pinta las traduce, en los 16 idiomas ──');
+console.log('\n── B · Cada sitio que las pinta las traduce, en todos los idiomas listos ──');
 {
   /* Cada clave de marca existe en el diccionario PROPIO de cada idioma: nadie cae al español ni al inglés. */
   const faltan = [];
@@ -95,7 +102,7 @@ console.log('\n── B · Cada sitio que las pinta las traduce, en los 16 idiom
       if (typeof d[m]?.[k] !== 'string' || !d[m][k].trim()) faltan.push(`${codigo}:${clave}`);
     }
   }
-  check(`6) las ${Object.keys(MARCAS).length} claves están en los ${UNICOS.length} diccionarios`, UNICOS.length === 16 && faltan.length === 0, faltan.join(' ') || 'todas');
+  check(`6) las ${Object.keys(MARCAS).length} claves están en los ${UNICOS.length} diccionarios`, ESPERADOS >= 16 && UNICOS.length === ESPERADOS && faltan.length === 0, faltan.join(' ') || 'todas');
 
   /* La lista de chats: reconoce la marca y la dice con t(); lo demás, tal cual. */
   check('7) la lista de chats las reconoce y las dice con su clave',
@@ -131,7 +138,8 @@ console.log('\n── B · Cada sitio que las pinta las traduce, en los 16 idiom
       const cuerpo = avisos.cuerpoDelMensaje(marca, codigo);
       const tabla = AVISOS[codigo] || AVISOS[codigo.split('-')[0]] || AVISOS.en;
       const esperado = tabla[{ 'Foto única': 'fotoUnica', '📷 Imagen': 'imagen', '🎤 Audio': 'audio' }[marca]];
-      if (cuerpo !== esperado || (codigo !== 'es' && cuerpo === marca)) pushMal.push(`${codigo}: ${marca} → ${cuerpo}`);
+      /* «Foto única» en portugués o «Audio» en francés son la palabra de ese idioma: coincidir no es caer al español si la declara su propia tabla. */
+      if (cuerpo !== esperado || (codigo !== 'es' && cuerpo === marca && !(AVISOS[codigo] || AVISOS[codigo.split('-')[0]]))) pushMal.push(`${codigo}: ${marca} → ${cuerpo}`);
     }
   }
   check('11) el push de una foto, una foto única o un audio nunca llega en español a quien no lee en español',

@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
-import { CEREBRO_DE_WEE } from './SistemaDeWeeBrain';
 import { Ionicons } from '@expo/vector-icons';
+import IconoDireccional from '../IconoDireccional';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useT } from '../../contexts/IdiomaContext';
+import { useEnEspacioProfesional } from '../../contexts/EspacioProfesionalContext';
+import CabeceraDeSeccion from '../creator/CabeceraDeSeccion';
 import CreditsPill from '../CreditsPill';
 import { useMarcoDeSeccion } from '../creator/MarcoDeSeccion';
-import { useAlturaDelTeclado } from '../EspacioDeEscritura';
 import { SPACING, FONT_SIZE, FONT_WEIGHT } from '../../constants/design';
 import { scale } from '../../utils/scale';
 
@@ -49,7 +49,10 @@ const CabeceraDeWeeBrain: React.FC<Props> = ({ onVolver }) => {
   const navigation = useNavigation<any>();
   const marco = useMarcoDeSeccion();
   /* Mientras se escribe, la presentación deja su sitio al cerebro. */
-  const conTeclado = useAlturaDelTeclado() > 0;
+  const pro = useEnEspacioProfesional();
+
+  /* En Weë versión creator, la cabecera baja de todas: el protagonista es el cerebro de debajo. */
+  if (pro) return <CabeceraDeSeccion nombre="Brain" lema={t('brain.slogan')} descripcion={t('brain.description')} />;
 
   const volver = onVolver || (() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Main')));
 
@@ -65,27 +68,16 @@ const CabeceraDeWeeBrain: React.FC<Props> = ({ onVolver }) => {
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
         >
-          <Ionicons name="arrow-back" size={scale(24)} color={theme.colors.text} />
+          <IconoDireccional name="arrow-back" size={scale(24)} color={theme.colors.text} />
         </TouchableOpacity>
 
         <View style={styles.centro} pointerEvents="none">
           <View style={styles.fila}>
-            {/*
-              El mismo cerebro que el del centro, en pequeño: uno solo en toda
-              la pantalla. La caja recorta un poco el aire que trae la imagen
-              alrededor, porque a este tamaño ese aire se comería el dibujo.
-            */}
-            <View style={styles.insignia}>
-              <Image source={CEREBRO_DE_WEE} style={styles.insigniaDibujo} contentFit="contain" transition={0} accessible={false} />
-            </View>
+            {/* Sin cerebro dibujado ni órbita (decisión del dueño, 2026-11-16): solo el nombre. */}
             <Text style={[styles.nombre, { color: theme.colors.text }]} numberOfLines={1}>
-              <Text>Weë </Text>
-              <Text style={{ color: theme.colors.accent }}>Brain</Text>
+              <Text>Brain</Text>
             </Text>
           </View>
-          <Text style={[styles.tagline, { color: theme.colors.textSecondary }]} numberOfLines={1}>
-            {t('brain.tagline')}
-          </Text>
         </View>
 
         {/*
@@ -111,12 +103,7 @@ const CabeceraDeWeeBrain: React.FC<Props> = ({ onVolver }) => {
         2026-09-16; medido en el teléfono: faltaban ~170 puntos y esto da ~120).
         Al cerrar el teclado vuelve. El nombre y el saldo no se van nunca.
       */}
-      {!conTeclado && (
-        <View style={styles.presentacion}>
-          <Text style={[styles.lema, { color: theme.colors.text }]}>{t('brain.slogan')}</Text>
-          <Text style={[styles.descripcion, { color: theme.colors.textSecondary }]}>{t('brain.description')}</Text>
-        </View>
-      )}
+      {/* Sin lema ni descripción decorativos (2026-11-16): el nombre y el saldo bastan. */}
     </View>
   );
 };

@@ -1,5 +1,5 @@
 /*
- * FRANCÉS — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * FRANCÉS — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -69,7 +69,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'commentaires',
   commentImageFailed: 'L’image n’a pas pu être envoyée. Réessaie.',
   commentSendFailed: 'Le commentaire n’a pas pu être envoyé. Réessaie.',
-  shareText: '{{contenido}}\n\nCréé sur Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nCréé sur Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Regarde cette publication sur Weë',
   commentsWithCount: 'Commentaires ({{total}})',
   agreeWithComment: 'D’accord avec ce commentaire',
@@ -78,4 +78,22 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: 'Masquer le prompt',
   copyPrompt: 'Copier le prompt',
   promptCopied: 'Copié',
+  demoBadge: 'Démo',
+  demoBadgeLabel: 'Contenu de démonstration',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Il n’y a encore aucune publication sur le Ẅall',
+  immersiveError: 'Impossible de charger le Ẅall',
+  immersiveEnd: 'Tu as tout vu',
+  agreePost: 'D’accord',
+  disagreePost: 'Pas d’accord',
+  mute: 'Couper le son',
+  unmute: 'Activer le son',
+  moreOptions: 'Plus d’options',
+  seeMore: 'Voir plus',
+  seeLess: 'Voir moins',
+  openPost: 'Ouvrir la publication',
+  imageOf: 'Image {{numero}} sur {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Feu',
+  reactionLaugh: 'Rire',
 };

@@ -25,6 +25,7 @@ export const common: ConPlurales<typeof import('../es/common').common> = {
   send: 'Отправить',
   share: 'Поделиться',
   retry: 'Попробуйте ещё раз',
+  mediaUnavailable: 'Этот файл недоступен',
   loading: 'Загрузка…',
   error: 'Ошибка',
   somethingWentWrong: 'Что-то пошло не так',

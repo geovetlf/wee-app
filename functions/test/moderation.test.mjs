@@ -487,11 +487,13 @@ console.log('\n── E · Estructura: lo que hay, y lo que a propósito no hay 
    * a 30 con el transporte durable (`jobQueue`), a 32 con S4 (`elements` y
    * `projectItems`), a 35 con C3 (uno de `scenes` y dos de `shots`) y a 36 con
    * F1-B (el de la lista de `productions`), los siete preparados y NINGUNO
-   * desplegado; la parte de moderación —UNO y solo uno—
-   * no se ha movido desde entonces.
+   * desplegado, y a 37 con la Línea B (2026-10-14: `creatorJobs` status + deadlineAt,
+   * para el barrido de trabajos legacy abandonados); la parte de moderación —UNO y solo uno—
+   * no se ha movido desde entonces. Subió a 41 con la autonomía del personaje (2026-11-22): los dos de `characterMemories`, el de `follows`
+   * (followingId + createdAt) y el de `users` por cuentaEstado + borrarEn (eliminar cuenta); preparados y sin desplegar.
    */
   check('111) UN índice nuevo y justificado —la cola: estado + antigüedad—, y los de antes siguen',
-    deReportes.length === 1 && igual(deReportes[0].fields.map((c) => [c.fieldPath, c.order]), [['status', 'ASCENDING'], ['createdAt', 'ASCENDING']]) && indices.length === 36,
+    deReportes.length === 1 && igual(deReportes[0].fields.map((c) => [c.fieldPath, c.order]), [['status', 'ASCENDING'], ['createdAt', 'ASCENDING']]) && indices.length === 41,
     `${deReportes.length} de reports, ${indices.length} en total`);
   check('112) el contrato de contenido ya tenía la costura: `moderationStatus` y `moderationCaseId` siguen ahí, sin tocar',
     /export type ModerationStatus = 'clear' \| 'pending' \| 'restricted' \| 'removed';/.test(leer('functions/src/core/content/content.ts')));
@@ -579,8 +581,8 @@ console.log('\n── G · Idiomas: los que haya, y sin dar por hecho que se lee
 
   /* La dirección de lectura es un DATO del idioma. */
   const catalogo = leer('i18n/idiomas.ts');
-  check('146) la dirección vive en el catálogo de idiomas, y el árabe ya está declarado RTL sin estar ofrecido',
-    /direccion: 'ltr' \| 'rtl';/.test(catalogo) && /\{ codigo: 'ar', nombreNativo: '[^']+', direccion: 'rtl', listo: false \}/.test(catalogo) && /export const direccionDe = \(codigo: string\)/.test(catalogo));
+  check('146) la dirección vive en el catálogo de idiomas, y el árabe está declarado RTL y ofrecido (lote L1)',
+    /direccion: 'ltr' \| 'rtl';/.test(catalogo) && /\{ codigo: 'ar', nombreNativo: '[^']+', direccion: 'rtl', listo: true(, localePorDefecto: 'ar-SA', heredaRegionDelAparato: true)? \}/.test(catalogo) && /export const direccionDe = \(codigo: string\)/.test(catalogo));
   check('147) y el contexto de idioma la entrega a quien monte layouts', /direccion: direccionDe\(idioma\)/.test(leer('contexts/IdiomaContext.tsx')));
   const ts = require('typescript');
   const js = ts.transpileModule(leer('hooks/useDireccion.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;

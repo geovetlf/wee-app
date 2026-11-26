@@ -13,6 +13,8 @@ import SettingsScreen from '../screens/SettingsScreen';
 import HelpScreen from '../screens/HelpScreen';
 import IdiomaScreen from '../screens/IdiomaScreen';
 import EngineAdminScreen from '../screens/EngineAdminScreen';
+import EliminarCuentaScreen from '../screens/EliminarCuentaScreen';
+import RetirarAlterEgoScreen from '../screens/RetirarAlterEgoScreen';
 import SearchScreen from '../screens/SearchScreen';
 import CreateScreen from '../screens/CreateScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
@@ -20,31 +22,49 @@ import UserProfileScreen from '../screens/UserProfileScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import CommunitiesManagementScreen from '../screens/CommunitiesManagementScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
+import ActivarCuentaScreen from '../screens/ActivarCuentaScreen';
+import { perfilDesactivado } from '../utils/cuentaDesactivada';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
 import WeeProfileCreationScreen from '../screens/WeeProfileCreationScreen';
+import CharacterSheetScreen from '../screens/CharacterSheetScreen';
 import AiAvatarScreen from '../screens/AiAvatarScreen';
 import ReelsScreen from '../screens/ReelsScreen';
+import WallScreen from '../screens/WallScreen';
+import BoostScreen from '../screens/BoostScreen';
+import BoostCampaignsScreen from '../screens/BoostCampaignsScreen';
+import BoostCampaignScreen from '../screens/BoostCampaignScreen';
 import CreditStoreScreen from '../screens/CreditStoreScreen';
 import WalletScreen from '../screens/WalletScreen';
 import WeeCreatorScreen from '../screens/WeeCreatorScreen';
+import CrearVideoScreen from '../screens/CrearVideoScreen';
+import CrearPublicacionScreen from '../screens/CrearPublicacionScreen';
+import TransformarIdentidadScreen from '../screens/TransformarIdentidadScreen';
+import PlantillasWeeAiScreen from '../screens/PlantillasWeeAiScreen';
+import HerramientasWeeAiScreen from '../screens/HerramientasWeeAiScreen';
+import FilmmakerCrearScreen from '../screens/FilmmakerCrearScreen';
+import { FILMMAKER_EN_LA_APP } from '../constants/studioExperiences';
+import FilmmakerTandasScreen from '../screens/FilmmakerTandasScreen';
 import SavedPostsScreen from '../screens/SavedPostsScreen';
+import WeePagesScreen from '../screens/WeePagesScreen';
+import WeePageScreen from '../screens/WeePageScreen';
 import EContactScreen from '../screens/EContactScreen';
 import CreatorFlowScreen from '../screens/CreatorFlowScreen';
 import SpecialistScreen from '../screens/SpecialistScreen';
+import TravelScreen from '../screens/travel/TravelScreen';
+import type { ParametrosDeTravel } from '../screens/travel/rutas';
 import StudioScreen from '../screens/StudioScreen';
+import EspacioProfesionalNavigator from './EspacioProfesionalNavigator';
+import { VERSION_PROFESIONAL_EN_LA_WEB } from '../constants/espacioProfesional';
 import ProductionScreen from '../screens/ProductionScreen';
 import Mundo3DScreen from '../screens/Mundo3DScreen';
 import DesignScreen from '../screens/DesignScreen';
 import WriterEditorScreen from '../screens/WriterEditorScreen';
 import ProjectsScreen from '../screens/ProjectsScreen';
 import MisCreacionesScreen from '../screens/MisCreacionesScreen';
+import MyWeesScreen from '../screens/MyWeesScreen';
+import HistorialScreen from '../screens/HistorialScreen';
 import ProjectScreen from '../screens/ProjectScreen';
-import WeeBizScreen from '../screens/WeeBizScreen';
-import WeeBizCategoryScreen from '../screens/WeeBizCategoryScreen';
-import WeeBizProfileScreen from '../screens/WeeBizProfileScreen';
-import WeeBizRegisterScreen from '../screens/WeeBizRegisterScreen';
-import WeeBizProductsScreen from '../screens/WeeBizProductsScreen';
 import AuthStackNavigator from './AuthStackNavigator';
 import Sidebar from '../components/Sidebar';
 import RightSidebar from '../components/RightSidebar';
@@ -54,6 +74,7 @@ import AgregarUbicacionScreen from '../screens/AgregarUbicacionScreen';
 import type { PostPlace } from '../data/places';
 import type { UbicacionPublica } from '../utils/locationPrivacy';
 import type { ContextoDeExperiencia } from '../constants/weeWorkspaces';
+import { MARCA } from '../constants/marca';
 
 export type MainStackParamList = {
   Main: undefined;
@@ -61,6 +82,9 @@ export type MainStackParamList = {
   Idioma: undefined;
   Help: { section?: 'faq' | 'legal' } | undefined;
   EngineAdmin: undefined;
+  EliminarCuenta: undefined;
+  /** Borrar un alter ego (inmediato, sin vuelta). Solo se acepta uno de la cuenta; el servidor lo vuelve a comprobar. */
+  RetirarAlterEgo: { perfilId: string };
   CommunitiesManagement: undefined;
   Search: { query?: string } | undefined;
   /**
@@ -79,7 +103,32 @@ export type MainStackParamList = {
   /** El lugar y la zona que ya trae el compositor, para poder enseñarlos y quitarlos. */
   AgregarUbicacion: { place?: PostPlace; ubicacion?: UbicacionPublica } | undefined;
   WeeCreator: { category?: string } | undefined;
+  /* «Crear video» con personajes (solo interfaz, datos locales y de muestra). */
+  CrearVideo: undefined;
+  /* WeëAI sencillo (2026-11-23): Imagen, Video corto y Editar mi foto, para publicar. */
+  CrearPublicacion: { tipo: 'imagen' | 'video' | 'editar'; idea?: string; estiloDe?: { postId: string; autorId: string; nombre: string }; jobId?: string } | undefined;
+  /* Weëls · Transform Your Identity (WITE): vídeo propio → personaje propio → revisar → publicar a mano. */
+  TransformarIdentidad: undefined;
+  /* Las plantillas de WeëAI: la pantalla con el muro completo (portada v2). */
+  Plantillas: undefined;
+  /* Las herramientas de WeëAI: Weë Brain, Moda y el avatar (portada v2). */
+  Herramientas: undefined;
+  /* La primera capa de Weë Filmmaker: «Crear» (portada de WeëAI v2). */
+  Filmmaker: undefined;
+  /* Etapa «Tandas y Storyboard» de Filmmaker (ola 3), ruta mínima para abrirla sola. */
+  FilmmakerTandas: undefined;
   SavedPosts: undefined;
+  /* WeëPages: crear y gestionar las Páginas de la cuenta; editPageId abre una para editar. */
+  WeePages: { editPageId?: string } | undefined;
+  WeePage: { pageId: string };
+  /** El Ẅall inmersivo: una publicación a la vez (screens/WallScreen.tsx). */
+  Wall: undefined;
+  /** Impulsar una publicación propia (screens/BoostScreen.tsx, docs/BOOST.md). `id: 'elegir'` abre el selector; las páginas todavía no. */
+  Boost: { tipo: 'page' | 'post'; id: string };
+  /** Mis promociones: el historial de Boost de la cuenta. */
+  BoostCampaigns: undefined;
+  /** Una promoción: estado, dinero y resultados reales. */
+  BoostCampaign: { campaignId: string };
   /** ËContact: las conexiones de Weë entre personas. */
   EContact: undefined;
   /**
@@ -98,26 +147,34 @@ export type MainStackParamList = {
    */
   CreatorFlow: ContextoDeExperiencia;
   Specialist: { id: string };
-  /* Weë Studio tiene ruta propia: es un sitio, no una ficha de especialista. */
+  /* WeëTravel: las pantallas de sus seis módulos (screens/travel/TravelScreen.tsx), apiladas con push. */
+  Travel: ParametrosDeTravel;
+  /* WeëStudio tiene ruta propia: es un sitio, no una ficha de especialista. */
   Studio: undefined;
+  /* Weë versión creator: el trabajo, sin muro, sin Weëls y solo con el Perfil Real. */
+  EspacioProfesional: { screen?: string; params?: object } | undefined;
   /**
    * «Varias escenas» (Weë Filmmaker, F1-C): una producción abierta con `productionId`; sin él, tus producciones y,
-   * si se llega desde la caja de Weë Studio, la producción a punto de nacer con lo escrito (`intencion`) y los
+   * si se llega desde la caja de WeëStudio, la producción a punto de nacer con lo escrito (`intencion`) y los
    * controles de cámara elegidos (`creativo`, por ruta del lenguaje creativo).
    */
   Production: { productionId?: string; intencion?: string; creativo?: Record<string, string> } | undefined;
   /**
-   * «Crear mundo 3D» (Weë Studio → 3D World): lo escrito en la caja del Studio (`descripcion`) y la foto adjunta
+   * «Crear mundo 3D» (WeëStudio → 3D World): lo escrito en la caja del Studio (`descripcion`) y la foto adjunta
    * (`imageUri`, local: la pantalla la sube a la carpeta de la cuenta). Sin su puerta abierta, la pantalla no hace nada.
    */
   Mundo3D: { descripcion?: string; imageUri?: string } | undefined;
-  /* Weë Design, igual que Studio: un sitio con pantalla propia. */
+  /* WeëDesign, igual que Studio: un sitio con pantalla propia. */
   Design: undefined;
   WriterEditor: { docId?: string; text?: string; title?: string; replaceText?: string } | undefined;
   Projects: undefined;
   Project: { id: string };
   /* Mis creaciones: la biblioteca de material de la cuenta (Fase 11). */
   MisCreaciones: undefined;
+  /* MyWeës: el organizador personal de accesos directos, guardado en el dispositivo por cuenta y perfil. `personalizar` lo abre ya en modo de organizar. */
+  MyWees: { personalizar?: boolean } | undefined;
+  /* Historial: la cronología de los trabajos de WeëAI de la cuenta (los que la app ya lee). Sin Credits. */
+  Historial: undefined;
   /*
    * La dirección es /post/<postId>: el id va siempre. La publicación entera, si ya se tiene, viaja en memoria para no
    * volver a leerla, pero no sale a la URL (navigation/enlaces.ts); al recargar se lee por su id.
@@ -133,20 +190,17 @@ export type MainStackParamList = {
     communityId: string;
   };
   WeeProfileCreation: undefined;
+  CharacterSheet: undefined;
   AiAvatar: undefined;
   CreditStore: undefined;
   Wallet: undefined;
-  WeeBiz: undefined;
-  WeeBizCategory: { categoryId: string; categoryLabel: string };
-  WeeBizProfile: { businessId: string };
-  WeeBizRegister: { business?: any } | undefined;
-  WeeBizProducts: { businessId: string; isOwner: boolean };
+  /* Sin Weël de partida es el feed entero: lo carga la propia pantalla (ReelsScreen). */
   Reels: {
-    initialPost: Post;
-    initialVideoPosts: Post[];
+    initialPost?: Post;
+    initialVideoPosts?: Post[];
     communitySlug?: string | null;
     initialPositionMillis?: number;
-  };
+  } | undefined;
   Auth: {
     screen?: 'Login' | 'Register';
   } | undefined;
@@ -230,9 +284,18 @@ const MainStackNavigator: React.FC = () => {
   if (authLoading || isInitialLoad) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: '#0A0A0A' }]}>
-        <ActivityIndicator size="large" color="#F5B731" />
+        <ActivityIndicator size="large" color={MARCA.primario} />
       </View>
     );
+  }
+
+  /*
+   * Una cuenta DESACTIVADA (pidió «Eliminar cuenta» y tiene 30 días para volver)
+   * no entra en la app: ve «Activar cuenta». Va antes del onboarding porque una
+   * cuenta desactivada ya lo hizo. Ver utils/cuentaDesactivada.ts.
+   */
+  if (user && userProfile && perfilDesactivado(userProfile)) {
+    return <ActivarCuentaScreen />;
   }
 
   const hasValidDisplayName = userProfile?.displayName &&
@@ -250,7 +313,7 @@ const MainStackNavigator: React.FC = () => {
    *
    * Aquí, al nivel de la pila principal, porque es el único sitio desde el que
    * se ven todas las pantallas. Dentro del navegador de pestañas solo se veían
-   * las cinco pestañas, y por eso la barra desaparecía al entrar en Weë Travel,
+   * las cinco pestañas, y por eso la barra desaparecía al entrar en WeëTravel,
    * en una publicación o en una comunidad —que son hermanas de `Main`, no hijas
    * suyas—.
    *
@@ -265,7 +328,7 @@ const MainStackNavigator: React.FC = () => {
 
         Las pantallas de las pestañas —Home, Buscar, WeeTalk, Perfil— ya dejaban
         hueco abajo desde siempre, porque la barra vivía dentro de ellas. Las
-        demás —Weë Travel, una publicación, una comunidad, Mis proyectos— nunca
+        demás —WeëTravel, una publicación, una comunidad, Mis proyectos— nunca
         tuvieron ninguna: si no se les reserva, la barra les tapa la última fila.
 
         Se reserva aquí, en un solo sitio, en vez de ir pantalla por pantalla
@@ -330,7 +393,11 @@ const MainStackNavigator: React.FC = () => {
         detachPreviousScreen: false,
       }}
     >
-      <Stack.Screen name="Main" component={MainScreen} />
+      {/*
+        Con otra pantalla encima sigue igual que siempre: esa pantalla decide. Esto solo
+        hace falta para que Weë versión creator pueda apartar lo de debajo (más abajo).
+      */}
+      <Stack.Screen name="Main" component={MainScreen} options={VERSION_PROFESIONAL_EN_LA_WEB ? { detachPreviousScreen: true } : undefined} />
       <Stack.Screen
         name="Settings"
         component={SettingsWrapper}
@@ -350,32 +417,65 @@ const MainStackNavigator: React.FC = () => {
       <Stack.Screen name="UserProfile" component={UserProfileScreen} />
       <Stack.Screen name="Community" component={CommunityScreen} />
       <Stack.Screen name="WeeProfileCreation" component={WeeProfileCreationScreen} />
+      <Stack.Screen name="CharacterSheet" component={CharacterSheetScreen} />
       <Stack.Screen name="AiAvatar" component={AiAvatarScreen} />
       <Stack.Screen name="CreditStore" component={CreditStoreScreen} />
       <Stack.Screen name="Wallet" component={WalletScreen} />
       <Stack.Screen name="WeeCreator" component={WeeCreatorScreen} />
+      <Stack.Screen name="CrearVideo" component={CrearVideoScreen} />
+      <Stack.Screen name="CrearPublicacion" component={CrearPublicacionScreen} />
+      {/* Weëls · Transform Your Identity (WITE, 2026-11-26): la entrada del compositor depende de TRANSFORMAR_IDENTIDAD_EN_WEELS; el servidor, de su propia puerta. */}
+      <Stack.Screen name="TransformarIdentidad" component={TransformarIdentidadScreen} />
+      <Stack.Screen name="Plantillas" component={PlantillasWeeAiScreen} />
+      <Stack.Screen name="Herramientas" component={HerramientasWeeAiScreen} />
+      {/* Weë Filmmaker ARCHIVADO (2026-11-23, docs/ARCHIVO.md): sin la puerta, sus pantallas no tienen ruta. */}
+      {FILMMAKER_EN_LA_APP && <Stack.Screen name="Filmmaker" component={FilmmakerCrearScreen} />}
+      {FILMMAKER_EN_LA_APP && <Stack.Screen name="FilmmakerTandas" component={FilmmakerTandasScreen} />}
       <Stack.Screen name="AgregarUbicacion" component={AgregarUbicacionScreen} />
       <Stack.Screen name="SavedPosts" component={SavedPostsScreen} />
+      <Stack.Screen name="WeePages" component={WeePagesScreen} />
+      <Stack.Screen name="WeePage" component={WeePageScreen} />
       <Stack.Screen name="EContact" component={EContactScreen} />
       <Stack.Screen name="CreatorFlow" component={CreatorFlowScreen} />
       <Stack.Screen name="Specialist" component={SpecialistScreen} />
+      <Stack.Screen name="Travel" component={TravelScreen} />
       <Stack.Screen name="Studio" component={StudioScreen} />
+      {/*
+        Solo en la web: la app móvil no cambia. Lo de debajo se aparta: sin esto, lo
+        social de la versión app seguiría al alcance del teclado detrás de creator.
+      */}
+      {VERSION_PROFESIONAL_EN_LA_WEB && <Stack.Screen name="EspacioProfesional" component={EspacioProfesionalNavigator} options={{ detachPreviousScreen: true }} />}
       <Stack.Screen name="Production" component={ProductionScreen} />
       <Stack.Screen name="Mundo3D" component={Mundo3DScreen} />
       <Stack.Screen name="Design" component={DesignScreen} />
       <Stack.Screen name="WriterEditor" component={WriterEditorScreen} />
       <Stack.Screen name="Projects" component={ProjectsScreen} />
       <Stack.Screen name="MisCreaciones" component={MisCreacionesScreen} />
+      <Stack.Screen name="MyWees" component={MyWeesScreen} />
+      <Stack.Screen name="Historial" component={HistorialScreen} />
       <Stack.Screen name="Help" component={HelpScreen} />
       <Stack.Screen name="Idioma" component={IdiomaScreen} />
       <Stack.Screen name="EngineAdmin" component={EngineAdminScreen} />
+      <Stack.Screen name="EliminarCuenta" component={EliminarCuentaScreen} options={{ gestureEnabled: false }} />
+      <Stack.Screen name="RetirarAlterEgo" component={RetirarAlterEgoScreen} options={{ gestureEnabled: false }} />
       <Stack.Screen name="CommunitiesManagement" component={CommunitiesManagementScreen} />
       <Stack.Screen name="Project" component={ProjectScreen} />
-      <Stack.Screen name="WeeBiz" component={WeeBizScreen} />
-      <Stack.Screen name="WeeBizCategory" component={WeeBizCategoryScreen} />
-      <Stack.Screen name="WeeBizProfile" component={WeeBizProfileScreen} />
-      <Stack.Screen name="WeeBizRegister" component={WeeBizRegisterScreen} />
-      <Stack.Screen name="WeeBizProducts" component={WeeBizProductsScreen} />
+      <Stack.Screen name="Boost" component={BoostScreen} />
+      <Stack.Screen name="BoostCampaigns" component={BoostCampaignsScreen} />
+      <Stack.Screen name="BoostCampaign" component={BoostCampaignScreen} />
+      {/*
+        EL WÄLL CONSERVA EL `flex: 1` DE LA TARJETA.
+
+        El `cardStyle` de una pantalla SUSTITUYE al de `screenOptions` —React
+        Navigation los junta con `Object.assign`, no los suma—, y con solo el
+        fondo negro el Ẅall perdía el `flex: 1`. En la web, una pantalla no modal
+        que ocupa la ventana entera se pinta en «modo página» (`minHeight: 100%`),
+        así que la tarjeta crecía con la lista entera: la lista ya no se
+        desplazaba, el Ẅall se abría siempre en la primera publicación y ni la
+        rueda ni las flechas lo movían. Los Weëls no lo sufren porque son modal.
+        Lo vigila functions/test/wall-inmersivo.test.mjs (sección F).
+      */}
+      <Stack.Screen name="Wall" component={WallScreen} options={{ cardStyle: { flex: 1, backgroundColor: '#000' } }} />
       <Stack.Screen
         name="Reels"
         component={ReelsScreen}

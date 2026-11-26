@@ -1,0 +1,58 @@
+/*
+ * SERBIO (ћирилица) — WeeTalk. El nombre es marca y queda en latino; los mensajes
+ * los escribe la gente y NUNCA pasan por aquí.
+ *
+ * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
+ * Tuteo e imperativo de 2.ª singular. Comillas serbias „…“ cuando se cita un
+ * botón («Приватно»). El emoji 🤝 se copia tal cual.
+ */
+export const weetalk: typeof import('../es/weetalk').weetalk = {
+  title: 'WeeTalk',
+  messagePlaceholder: 'Напиши поруку…',
+  send: 'Пошаљи',
+  empty: 'Још немаш разговора',
+  emptyHint: 'Пошаљи поруку с нечијег профила',
+  loadFailed: 'Није било могуће учитати твоје разговоре',
+  sendFailed: 'Није било могуће послати поруку',
+  attach: 'Приложи',
+  photo: 'Фотографија',
+  search: 'Претражи...',
+  noConversations: 'Нема разговора',
+  deleteConversation: 'Обриши разговор',
+  areYouSure: 'Да ли сигурно желиш да наставиш?',
+  messagePlaceholderShort: 'Порука...',
+  firstMessage: 'Пошаљи прву поруку',
+  photoSeen: 'Фотографија је погледана',
+  photoOnce: 'Једнократна фотографија',
+  photoOpened: 'Отворена',
+  tapToView: 'Додирни да погледаш',
+  tapToClose: 'Додирни да затвориш',
+  theme: 'Тема',
+  background: 'Позадина',
+  permissions: 'Дозволе',
+  photoPermission: 'Потребне су дозволе за приступ фотографијама',
+  audioPermission: 'Потребне су дозволе за снимање звука',
+  imageFailed: 'Није било могуће послати слику',
+  noConversationsHint: 'Отвори мени ⋮ на било којој објави и изабери „Пошаљи преко WeeTalk“ да започнеш приватан разговор',
+  ephemeralMode: 'Привремени режим',
+  noMessagesYet: 'Још нема порука',
+  youSaid: 'Ти: {{mensaje}}',
+  conversationStart: 'Ово је почетак твог приватног разговора',
+  beRespectful: 'Не заборави да поштујеш друге и њихову приватност 🤝',
+  anonymousUser: 'Анонимни корисник',
+  ephemeralOn: 'Привремени режим је укључен · Поруке се бришу при изласку',
+  cameraNeeded: 'Потребан је приступ камери',
+  allow: 'Дозволи',
+  recordAudio: 'Сними звук',
+  viewOnceOn: 'Погледај само једном',
+  keepInChat: 'Задржи у ћаскању',
+  themeClassic: 'Класична',
+  themeMidnight: 'Поноћ',
+  themeForest: 'Шума',
+  themeSunset: 'Залазак сунца',
+  themeOcean: 'Океан',
+  themePurple: 'Љубичаста',
+  imagePreview: '📷 Слика',
+  audioPreview: '🎤 Гласовна порука',
+  today: 'Данас',
+};

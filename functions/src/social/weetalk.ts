@@ -32,8 +32,9 @@ import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore';
 import { referenciaDesdeUrlDeWee } from '../content';
 import { esDireccionDelStorageDeWee, storageBucket } from '../engine/http';
-import { cuentaDeIdentidad, PerfilDeIdentidad } from './econtact';
-import { identidadHeredadaEsDeLaCuenta, identidadesHeredadasDeLaCuenta } from '../identity/compatibilidad';
+import { sanitizeForLog } from '../engine/sanitize';
+import { PerfilDeIdentidad } from './econtact';
+import { cuentaDelPerfilLeido, identidadesDeLaCuenta, identidadesHeredadasDeLaCuenta } from '../identity/compatibilidad';
 
 const OPTS = { region: 'us-central1' as const, timeoutSeconds: 30 };
 
@@ -77,6 +78,11 @@ export interface PuertosDelQuemador {
    * afirmar: entonces no hay namespace legítimo y no se borra nada.
    */
   cuentaDelRemitente(senderId: string): Promise<string | null>;
+  /**
+   * TODAS las caras de la cuenta autenticada (F4): las heredadas y sus alter egos (`identidadesDeLaCuenta`). Sin este
+   * puerto —las pruebas de antes— se usan solo las heredadas.
+   */
+  identidadesDeLaCuenta?(uid: string): Promise<readonly string[]>;
   ahora(): number;
 }
 
@@ -95,14 +101,23 @@ export interface PuertosDelQuemador {
  *     users/<senderId>/weetalk/<conversationId>/<archivo>
  *
  * que es exactamente lo que `storage.rules` deja escribir a quien manda una
- * foto única. `senderId` NO viene de la petición: es el del DOCUMENTO del
+ * foto única.
+ *
+ * ── F4 (alter egos): LA RUTA DE LA CARA, NO LA DE LA CUENTA ────────────────
+ *
+ * La foto única subía a `users/<cuenta>/weetalk/…`, y quien la recibía veía en
+ * la dirección el uid de la cuenta que controla al alter ego. Desde F4 la ruta
+ * buena es la de la IDENTIDAD que firma el mensaje (`users/<senderId>/…`, que
+ * `storage.rules` deja escribir a la cuenta dueña de esa cara). Mientras el
+ * cliente siga subiendo a la ruta antigua (el cambio es de F6), se acepta
+ * TAMBIÉN `users/<cuenta del remitente>/…`: las dos rutas, enteras, y ninguna
+ * otra. `senderId` NO viene de la petición: es el del DOCUMENTO del
  * mensaje —que las reglas de Firestore atan a la sesión de quien lo creó— y,
  * además, tiene que figurar en `participants` de la conversación, que el
- * servidor lee por su cuenta. Es un uid de Firebase Auth y nada más: las
- * reglas del Storage solo dejan escribir bajo `request.auth.uid`, así que
- * ningún otro nombre —incluidos los identificadores heredados del proyecto
- * anterior— puede tener una foto única legítima debajo; para ellos aquí no
- * se borra nada.
+ * servidor lee por su cuenta. Es la cara (`<uid>`, la heredada o un alter ego)
+ * o la cuenta resuelta desde ella; cualquier otra forma —un identificador con
+ * otro prefijo, con separadores— no tiene una foto única legítima debajo y
+ * aquí no se borra nada.
  * El prefijo se construye entero y se compara entero: no vale «contiene el
  * uid» ni «empieza por el uid», que dejarían pasar `users/uAnaX/…` o
  * `…/weetalk/c10/…` cuando la conversación es `c1`. El archivo es UN segmento:
@@ -113,7 +128,8 @@ export interface PuertosDelQuemador {
  * desaparece del mensaje— y queda anotado `pendingPhysicalDeletion`. Antes que
  * borrar el objeto equivocado, no borrar ninguno.
  */
-const FORMA_DE_REMITENTE = /^[A-Za-z0-9]{1,128}$/;
+/* La cuenta, la cara heredada o un alter ego opaco (F4). Solo la FORMA: de quién es se lee aparte. */
+const FORMA_DE_REMITENTE = /^(?:[A-Za-z0-9]{1,128}|hidi_[A-Za-z0-9]{1,128}|ent_[0-9abcdefghjkmnpqrstvwxyz]{26})$/;
 const FORMA_DE_ARCHIVO = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
 /*
  * Solo los hosts del Storage de Weë: un host ajeno con la forma correcta no es una dirección de Weë. La regla vivía
@@ -145,11 +161,12 @@ export const claveDeFotoUnica = (objectKey: unknown, senderId: unknown, conversa
  * nombres antiguos, que es la única en la que esto no afirma nada nuevo: de
  * quién es una cara se LEE del documento, nunca al revés.
  */
-export const participaEn = (participants: unknown, uid: string): boolean =>
-  Array.isArray(participants) && identidadesHeredadasDeLaCuenta(uid).some((id) => participants.includes(id));
+export const participaEn = (participants: unknown, uid: string, identidades: readonly string[] = identidadesHeredadasDeLaCuenta(uid)): boolean =>
+  Array.isArray(participants) && identidades.some((id) => participants.includes(id));
 
-const esLaMismaCuenta = (senderId: unknown, uid: string): boolean =>
-  identidadHeredadaEsDeLaCuenta(senderId, uid);
+/* F4: cualquiera de las caras de la cuenta —heredadas y alter egos— es «quien la mandó». */
+const esLaMismaCuenta = (firma: unknown, identidades: readonly string[]): boolean =>
+  typeof firma === 'string' && identidades.includes(firma);
 
 const direccionDe = (msg: Record<string, unknown>): string | null => {
   if (typeof msg.imageUrl === 'string' && msg.imageUrl) return msg.imageUrl;
@@ -165,13 +182,14 @@ export const crearQuemador = (p: PuertosDelQuemador) => ({
   async quemar(uid: string, conversationId: string, messageId: string): Promise<ResultadoDeQuemado> {
     const conversacion = await p.leerConversacion(conversationId);
     if (!conversacion) throw new FotoNoQuemable('no_existe');
-    if (!participaEn(conversacion.participants, uid)) throw new FotoNoQuemable('no_participas');
+    const identidades = p.identidadesDeLaCuenta ? await p.identidadesDeLaCuenta(uid) : identidadesHeredadasDeLaCuenta(uid);
+    if (!participaEn(conversacion.participants, uid, identidades)) throw new FotoNoQuemable('no_participas');
 
     const mensaje = await p.leerMensaje(conversationId, messageId);
     if (!mensaje) throw new FotoNoQuemable('no_existe');
     if (mensaje.type !== 'image' || mensaje.viewOnce !== true) throw new FotoNoQuemable('no_es_unica');
     /* Quien la mandó no la «abre»: retirarla sería otra operación, con otro nombre. */
-    if (esLaMismaCuenta(mensaje.senderId, uid)) throw new FotoNoQuemable('es_tuya');
+    if (esLaMismaCuenta(mensaje.senderId, identidades)) throw new FotoNoQuemable('es_tuya');
 
     const url = direccionDe(mensaje);
     if (!url) {
@@ -200,9 +218,10 @@ export const crearQuemador = (p: PuertosDelQuemador) => ({
      */
     const cuenta = remitente ? await p.cuentaDelRemitente(remitente) : null;
     const ref = esDireccionDelStorageDeWee(url) ? referenciaDesdeUrlDeWee(url) : null;
-    const enSuSitio = !!ref
+    /* La ruta de la cara que firma (F4) o, mientras el cliente no cambie, la de su cuenta. Nada más. */
+    const enSuSitio = !!ref && !!cuenta
       && ref.bucket === p.bucketDeWee()
-      && claveDeFotoUnica(ref.objectKey, cuenta, conversationId);
+      && (claveDeFotoUnica(ref.objectKey, remitente, conversationId) || claveDeFotoUnica(ref.objectKey, cuenta, conversationId));
     const insegura = !enSuSitio && referenciaDesdeUrlDeWee(url) !== null;
     if (insegura) {
       /* Se deja constancia, sin la URL entera: lo que importa es a dónde quería llegar. */
@@ -220,7 +239,7 @@ export const crearQuemador = (p: PuertosDelQuemador) => ({
       try {
         await p.borrarObjeto(ref.objectKey);
       } catch (error) {
-        console.error('WeeTalk: no se pudo borrar la foto única', ref.objectKey, error);
+        console.error('WeeTalk: no se pudo borrar la foto única', ref.objectKey, sanitizeForLog(error, 300));
         pendiente = true;
         await p.anotarPendiente(conversationId, messageId);
       }
@@ -271,11 +290,13 @@ const puertos = (): PuertosDelQuemador => {
       const snap = await db.collection('users').where('uid', '==', senderId).limit(5).get();
       const cuentas = new Set<string>();
       for (const d of snap.docs) {
-        const c = cuentaDeIdentidad(senderId, d.data() as PerfilDeIdentidad);
+        /* Lo heredado por su vínculo; un alter ego por su entidad (F4). */
+        const c = await cuentaDelPerfilLeido(db, senderId, d.data() as PerfilDeIdentidad);
         if (c) cuentas.add(c);
       }
       return cuentas.size === 1 ? [...cuentas][0] : null;
     },
+    identidadesDeLaCuenta: (uid) => identidadesDeLaCuenta(db, uid),
     ahora: () => Date.now(),
   };
 };

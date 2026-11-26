@@ -1,5 +1,5 @@
 /*
- * SUECO — el Wäll: la publicación y todo lo que se puede hacer con ella.
+ * SUECO — el Ẅall: la publicación y todo lo que se puede hacer con ella.
  *
  * Tipado contra el español: si allí hay una clave que aquí falta, no compila.
  *
@@ -81,7 +81,7 @@ export const wall: typeof import('../es/wall').wall = {
   statComments: 'kommentarer',
   commentImageFailed: 'Det gick inte att ladda upp bilden. Försök igen.',
   commentSendFailed: 'Det gick inte att skicka kommentaren. Försök igen.',
-  shareText: '{{contenido}}\n\nSkapat på Weë · World Encode Entity',
+  shareText: '{{contenido}}\n\nSkapat på Weë · WORLD OF EXPRESSION & EVOLUTION',
   shareTextEmpty: 'Kolla in det här inlägget på Weë',
   commentsWithCount: 'Kommentarer ({{total}})',
   agreeWithComment: 'Håller med om kommentaren',
@@ -90,4 +90,22 @@ export const wall: typeof import('../es/wall').wall = {
   hidePrompt: 'Dölj prompt',
   copyPrompt: 'Kopiera prompt',
   promptCopied: 'Kopierat!',
+  demoBadge: 'Demo',
+  demoBadgeLabel: 'Demoinnehåll',
+  /* ── El Ẅall inmersivo: una publicación a la vez ── */
+  immersiveEmpty: 'Det finns inga inlägg på Ẅall än',
+  immersiveError: 'Vi kunde inte läsa in Ẅall',
+  immersiveEnd: 'Du har sett allt',
+  agreePost: 'Håller med',
+  disagreePost: 'Håller inte med',
+  mute: 'Ljud av',
+  unmute: 'Ljud på',
+  moreOptions: 'Fler alternativ',
+  seeMore: 'Visa mer',
+  seeLess: 'Visa mindre',
+  openPost: 'Öppna inlägget',
+  imageOf: 'Bild {{numero}} av {{total}}',
+  /* Reacciones nuevas del Wall (2026-11-16): una palabra. SIN REVISIÓN NATIVA. */
+  reactionFire: 'Eld',
+  reactionLaugh: 'Skratt',
 };

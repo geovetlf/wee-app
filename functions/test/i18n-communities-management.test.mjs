@@ -91,7 +91,7 @@ console.log('\n── B · Cada pieza, con su clave ──');
     ['los otros dos rótulos', /t\('communities\.joinedSection'\)[\s\S]{0,220}t\('communities\.discoverSection'\)/],
     ['la insignia de oficial', /\{t\('communities\.official'\)\}/],
     ['el contador de miembros', /\{t\('communities\.members', \{ contador: item\.memberCount \}\)\}/],
-    ['los dos estados del botón', /\{t\(isJoined \? 'communities\.memberOf' : 'communities\.join'\)\}/],
+    ['los dos estados del botón', /\{t\(isJoined \? 'search\.member' : 'communities\.join'\)\}/],
     ['el título de la modal', /\{t\('communities\.newCommunity'\)\}/],
     ['los dos campos', /\{t\('communities\.name'\)\}[\s\S]{0,220}t\('communities\.namePlaceholder'\)/],
     ['la descripción', /\{t\('communities\.description'\)\}[\s\S]{0,260}t\('communities\.descriptionPlaceholder'\)/],
@@ -137,9 +137,9 @@ console.log('\n── C · El diálogo de salir y los tres avisos ──');
    */
   /* + cierre 2026-10-01: el de crear también pasa a `notify` (Alert.alert no se ve en la web); mismas claves. */
   check('15) y los tres avisos de error reutilizan common.error',
-    (PANTALLA.match(/(?:notify|Alert\.alert)\(t\('common\.error'\)/g) || []).length === 3
-    && /notify\(t\('common\.error'\), t\('communities\.leaveFailed'\)\)/.test(PANTALLA)
-    && /notify\(t\('common\.error'\), t\('communities\.actionFailed'\)\)/.test(PANTALLA)
+    /* Cambio 2026-11-16: unirse y salir muestran «No se pudo completar» + «Inténtalo de nuevo» (profile.actionFailed + common.retry, ya traducidas) en vez de un aviso técnico; crear sigue con common.error. */
+    (PANTALLA.match(/notify\(t\('(?:common\.error|profile\.actionFailed)'\)/g) || []).length === 3
+    && (PANTALLA.match(/notify\(t\('profile\.actionFailed'\), t\('common\.retry'\)\)/g) || []).length === 2
     && /notify\(t\('common\.error'\), t\('communities\.createFailed'\)\)/.test(PANTALLA)
     && !/Alert\.alert\(/.test(PANTALLA));
 
@@ -186,7 +186,7 @@ console.log('\n── D · Los nombres de las comunidades no se traducen ──'
 
   /* 13 · Las rutas y los registros técnicos, intactos. */
   check('13) las rutas y los console.error no se tradujeron',
-    /'Register'/.test(PANTALLA) && /'Feed'/.test(PANTALLA)
+    /'Register'/.test(PANTALLA) && /'Community'/.test(PANTALLA)
     && /console\.error\('Error loading communities:'/.test(CRUDO)
     && !/t\('Register'\)|navigate\(t\(/.test(PANTALLA));
 }
@@ -211,14 +211,16 @@ console.log('\n── E · Plurales, accesibilidad y lo que no se movió ──'
   check('9) la única etiqueta de accesibilidad está traducida',
     /accessibilityLabel=\{t\('communities\.create'\)\}/.test(PANTALLA));
   check('10) y no se añadió ninguna nueva',
-    (CRUDO.match(/accessibilityLabel=/g) || []).length === 1
+    /* 2026-11-16: la tarjeta (nombre de la comunidad) y el botón Unirse/Miembro llevan su etiqueta; ninguna escrita a mano. */
+    (CRUDO.match(/accessibilityLabel=/g) || []).length === 3
     && (CRUDO.match(/accessibilityHint=/g) || []).length === 0);
 
   /* 16 y 17 · La lógica y la navegación, donde estaban. */
-  check('16) la lógica de comunidades no cambió',
-    /await communityService\.leaveCommunity\(user\.uid, community\.id!\)/.test(PANTALLA)
-    && /await communityService\.joinCommunity\(user\.uid, communityId\)/.test(PANTALLA)
-    && /await communityService\.createCommunity\(\{/.test(PANTALLA)
+  /* Re-anclado 2026-11-05 (docs/COMUNIDADES-IDENTIDAD.md, decisiones 1–3 del dueño): unirse, salir y crear van por las callables con la cara ACTIVA. */
+  check('16) la lógica de comunidades es la del servidor, con la cara activa',
+    /await comunidadesService\.salir\(identidad, community\.id!\)/.test(PANTALLA)
+    && /await comunidadesService\.unirse\(identidad, community\.id\)/.test(PANTALLA)
+    && /await comunidadesService\.crear\(identidad, /.test(PANTALLA)
     && /updateLocalProfile\(\{ joinedCommunities: newJoined \}\)/.test(PANTALLA));
   check('16) ni los límites del formulario, ni el auto-join',
     /maxLength=\{40\}/.test(PANTALLA) && /maxLength=\{200\}/.test(PANTALLA)

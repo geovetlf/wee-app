@@ -1,29 +1,41 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import { usersService, UserProfile } from '../services/firestoreService';
+import { alterEgosService } from '../services/alterEgosService';
 import { Timestamp } from 'firebase/firestore';
 import { updateUserCache } from '../hooks/useUserById';
-import { identidadWeeDe } from '../utils/econtactModel';
+import { apuntarMisCaras } from '../utils/misCaras';
 
 /*
- * LAS DOS CARAS DE UNA CUENTA: Perfil Real y Perfil Weë.
+ * LAS CARAS DE UNA CUENTA: un Perfil Real y sus Perfiles Weë (alter egos).
  *
- * Hubo una tercera —el Perfil Biz— que hacía pasar a un negocio por una cara
- * más de la persona. Se eliminó: un negocio es una PÁGINA de la cuenta, no una
- * identidad. Weë Business, el producto, sigue existiendo y gestionará Páginas.
+ * Desde el plan de alter egos (F6, 2026-11-23) una cuenta puede tener hasta
+ * cinco alter egos —Jay Reeds, Lina Shade…—. Siguen siendo DOS TIPOS de cara y
+ * solo dos: `'real'` y `'hidi'`. El Perfil Biz se eliminó y no vuelve: un negocio
+ * es una PÁGINA de la cuenta, no una identidad.
  *
  * `'hidi'` es el valor guardado del Perfil Weë. El nombre viene de HideTok, como
- * se llamaba el proyecto antes; el concepto de producto hoy se llama Perfil Weë
- * y así se dice en pantalla. El valor se queda porque está escrito en los
- * perfiles que ya existen y comprobado en `firestore.rules`: cambiarlo sería una
- * migración, no un cambio de nombre.
+ * se llamaba el proyecto antes; en pantalla se dice Perfil Weë o alter ego. El
+ * valor se queda porque está escrito en los perfiles y comprobado en las reglas.
+ *
+ * Con UN alter ego la app se ve y funciona igual que antes: `switchIdentity()`
+ * sin argumento alterna entre el Real y el último alter ego usado, y
+ * `weeProfile` es ese alter ego. Con varios, `switchIdentity(id)` pone uno
+ * concreto. De quién es cada cara NO lo decide la app: los alter egos se LEEN del
+ * servidor (`alterEgosService.listar`) y los crea y retira el servidor.
  */
 type ProfileType = 'real' | 'hidi';
 
 interface UserProfileContextType {
-  userProfile: UserProfile | null; // La cara activa: Real o Weë
+  userProfile: UserProfile | null; // La cara activa: el Real o un alter ego
   realProfile: UserProfile | null;
+  /** El alter ego activo o, con el Real puesto, el último usado. null si la cuenta no tiene ninguno. */
   weeProfile: UserProfile | null;
+  /** Todos los alter egos de la cuenta, en el orden en que nacieron. */
+  alterEgos: UserProfile[];
+  /** La identidad de la cara puesta (el uid del Real o el del alter ego). */
+  activeIdentityId: string | null;
   activeProfileType: ProfileType;
   hasWeeProfile: boolean;
   loading: boolean;
@@ -31,8 +43,12 @@ interface UserProfileContextType {
   updateProfile: (updates: Partial<Omit<UserProfile, 'id' | 'uid' | 'createdAt'>>) => Promise<void>;
   updateLocalProfile: (updates: Partial<UserProfile>) => void;
   refreshProfile: () => void;
-  switchIdentity: () => void;
+  /** Sin argumento: alterna entre el Real y el último alter ego usado. Con un id: pone esa cara (el Real o uno de sus alter egos). */
+  switchIdentity: (id?: string) => void;
+  /** Añade (o pone al día) un alter ego recién creado y lo deja como el último usado. */
   setWeeProfile: (profile: UserProfile) => void;
+  /** Quita de la app un alter ego ya retirado por el servidor. Si era la cara puesta, vuelve al Real. */
+  quitarAlterEgo: (id: string) => void;
 }
 
 const UserProfileContext = createContext<UserProfileContextType | undefined>(undefined);
@@ -45,6 +61,27 @@ export const useUserProfile = () => {
   return context;
 };
 
+/**
+ * El último alter ego usado, por cuenta, en este aparato. Es una COMODIDAD (que la
+ * pestaña y el gesto lleven al de siempre), no un dato: si no se puede leer o
+ * escribir, se sigue sin él.
+ */
+const claveDelUltimo = (cuenta: string) => `wee.alterEgo.ultimo.v1.${cuenta}`;
+const leerUltimo = async (cuenta: string): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem(claveDelUltimo(cuenta));
+  } catch {
+    return null;
+  }
+};
+const guardarUltimo = (cuenta: string, id: string) => {
+  try {
+    void AsyncStorage.setItem(claveDelUltimo(cuenta), id).catch(() => undefined);
+  } catch {
+    /* Sin almacén local: no pasa nada. */
+  }
+};
+
 interface UserProfileProviderProps {
   children: React.ReactNode;
 }
@@ -52,18 +89,41 @@ interface UserProfileProviderProps {
 export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ children }) => {
   const { user } = useAuth();
   const [realProfile, setRealProfile] = useState<UserProfile | null>(null);
-  const [weeProfile, setWeeProfileState] = useState<UserProfile | null>(null);
-  const [activeProfileType, setActiveProfileType] = useState<ProfileType>('real');
+  const [alterEgos, setAlterEgos] = useState<UserProfile[]>([]);
+  /* null = el Real puesto; un id = ese alter ego puesto. */
+  const [alterEgoPuesto, setAlterEgoPuesto] = useState<string | null>(null);
+  const [ultimoAlterEgo, setUltimoAlterEgo] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Perfil activo basado en el tipo seleccionado
-  const userProfile = activeProfileType === 'hidi' && weeProfile ? weeProfile : realProfile;
+  const alterEgoActivo = alterEgoPuesto ? alterEgos.find((a) => a.uid === alterEgoPuesto) ?? null : null;
+  const activeProfileType: ProfileType = alterEgoActivo ? 'hidi' : 'real';
+  /* El alter ego «de turno»: el puesto, o el último usado, o el primero. Con uno solo, siempre ese. */
+  const weeProfile = alterEgoActivo
+    ?? (ultimoAlterEgo ? alterEgos.find((a) => a.uid === ultimoAlterEgo) ?? null : null)
+    ?? alterEgos[0]
+    ?? null;
+  const userProfile = alterEgoActivo ?? realProfile;
+  const activeIdentityId = userProfile?.uid ?? user?.uid ?? null;
+
+  /* Las caras de la sesión, para los servicios que no viven en React (ẄContact, MyWeës…). */
+  useEffect(() => {
+    apuntarMisCaras(user?.uid ?? null, alterEgos.map((a) => a.uid).filter(Boolean));
+  }, [user?.uid, alterEgos]);
+
+  /* El último alter ego usado de ESTA cuenta, si el aparato lo recuerda. */
+  useEffect(() => {
+    let vivo = true;
+    setUltimoAlterEgo(null);
+    if (!user) return;
+    void leerUltimo(user.uid).then((id) => { if (vivo && id) setUltimoAlterEgo(id); });
+    return () => { vivo = false; };
+  }, [user]);
 
   useEffect(() => {
     /*
-     * UNA CARGA VIEJA NO PISA A LA NUEVA. Si mientras vuelven las dos caras cambia la sesión (salir, entrar con otra
+     * UNA CARGA VIEJA NO PISA A LA NUEVA. Si mientras vuelven las caras cambia la sesión (salir, entrar con otra
      * cuenta) o se pide otra carga, la respuesta que llega tarde ya no es la de nadie: sin esta bandera dejaba en la
      * app los perfiles de la cuenta anterior encima de los de la actual.
      */
@@ -71,8 +131,8 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
     const loadUserProfiles = async () => {
       if (!user) {
         setRealProfile(null);
-        setWeeProfileState(null);
-        setActiveProfileType('real');
+        setAlterEgos([]);
+        setAlterEgoPuesto(null);
         setLoading(false);
         return;
       }
@@ -84,18 +144,9 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
         console.log('🔄 [UserProfileContext] Cargando perfiles para usuario:', user.uid);
 
         /*
-         * Las dos caras se piden A LA VEZ. Son dos consultas independientes
-         * —el perfil real por `uid`, el Perfil Weë por su identidad— y antes
-         * iban en fila: la segunda no salía hasta que volvía la primera, un
-         * viaje de red entero de más en el arranque, cuando la persona mira
-         * una pantalla vacía. Si el Perfil Weë falla se ignora, como siempre.
-         */
-        /*
          * CÓMO SERÍA EL PERFIL NUEVO, no si hay que crearlo. Eso lo decide el
          * servicio: busca por `uid` y, solo si no hay nada, crea `users/<uid>`
          * dentro de una transacción (Fase 11.x, `utils/perfilCanonico.ts`).
-         * Antes este efecto leía y creaba por su cuenta, y dos ejecuciones a
-         * la vez —dos pestañas, un refresh en vuelo— dejaban dos perfiles.
          */
         const nuevoPerfilReal = (): Omit<UserProfile, 'id'> => {
           const base = {
@@ -116,60 +167,44 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
             : { ...base, avatarType: 'predefined' as const, avatarId: 'male' };
         };
 
-        const [asegurado, perfilWee] = await Promise.all([
+        /*
+         * El Real y los alter egos se piden A LA VEZ: son consultas independientes. Si los alter egos fallan se
+         * ignora, como siempre se hizo con el Perfil Weë: la persona entra con su Perfil Real.
+         */
+        const [asegurado, perfilesWee] = await Promise.all([
           usersService.ensureRealProfile(user.uid, nuevoPerfilReal),
-          usersService.getWeeProfile(user.uid).catch((weeProfileErr) => {
-            console.log('🎭 [UserProfileContext] Error cargando el Perfil Weë (ignorado):', weeProfileErr);
-            return null;
+          alterEgosService.listar(user.uid).catch((err) => {
+            console.log('🎭 [UserProfileContext] Error cargando los alter egos (ignorado):', err);
+            return [] as UserProfile[];
           }),
         ]);
         if (!vivo) return;
 
-        let profile: UserProfile | null = asegurado.perfil;
-        if (asegurado.creado) {
-          console.log('📝 [UserProfileContext] Perfil real creado:', asegurado.perfil.id);
-        } else {
-          console.log('📥 [UserProfileContext] Perfil real cargado:', asegurado.perfil.displayName);
-        }
+        const profile: UserProfile | null = asegurado.perfil;
+        console.log(asegurado.creado ? '📝 [UserProfileContext] Perfil real creado:' : '📥 [UserProfileContext] Perfil real cargado:', asegurado.perfil.id);
 
         // Auto-fix: sync photoURLThumbnail with photoURL if out of sync
         if (profile && profile.avatarType === 'custom' && profile.photoURL && profile.photoURL !== profile.photoURLThumbnail) {
-          console.log('🔧 [UserProfileContext] Auto-syncing photoURLThumbnail with photoURL');
           profile.photoURLThumbnail = profile.photoURL;
-          // Also fix in Firestore so it doesn't happen again
           usersService.update(profile.id!, { photoURLThumbnail: profile.photoURL }).catch(() => {});
         }
 
         setRealProfile(profile);
+        if (profile) updateUserCache(user.uid, profile);
 
-        // Actualizar caché con perfil real
-        if (profile) {
-          updateUserCache(user.uid, profile);
-        }
-
-        // El Perfil Weë, que ya venía de camino junto al real
-        if (perfilWee) {
-          console.log('🎭 [UserProfileContext] Perfil Weë cargado:', perfilWee.displayName);
-          setWeeProfileState(perfilWee);
-          updateUserCache(identidadWeeDe(user.uid), perfilWee);
-        } else {
-          console.log('🎭 [UserProfileContext] No hay Perfil Weë');
-          setWeeProfileState(null);
-        }
-
-        /*
-         * Aquí se cargaba una tercera cara, el Perfil Biz, buscando el negocio
-         * de la persona. Ya no: el negocio de alguien no es otra cara suya. Las
-         * Páginas son entidades de la cuenta y se gestionan aparte, no se
-         * activan como si fueran un perfil.
-         */
+        console.log(`🎭 [UserProfileContext] Alter egos cargados: ${perfilesWee.length}`);
+        setAlterEgos(perfilesWee);
+        for (const p of perfilesWee) if (p.uid) updateUserCache(p.uid, p);
+        /* Si el alter ego puesto ya no está (retirado desde otro aparato), se vuelve al Real. */
+        setAlterEgoPuesto((puesto) => (puesto && perfilesWee.some((p) => p.uid === puesto) ? puesto : null));
       } catch (err) {
         console.error('❌ [UserProfileContext] Error loading user profile:', err);
         if (!vivo) return;
         /* Una CLAVE, no una frase: la traduce quien la pinta, con el idioma de ese momento. */
         setError('profile.loadFailedDetail');
         setRealProfile(null);
-        setWeeProfileState(null);
+        setAlterEgos([]);
+        setAlterEgoPuesto(null);
       } finally {
         if (vivo) setLoading(false);
       }
@@ -180,6 +215,16 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
       vivo = false;
     };
   }, [user, refreshTrigger]);
+
+  /* Pone al día, en memoria y en la caché, la cara que se acaba de cambiar. */
+  const reemplazarCara = useCallback((nuevo: UserProfile, cambios?: Partial<UserProfile>) => {
+    if (nuevo.profileType === 'hidi' || (alterEgoActivo && nuevo.uid === alterEgoActivo.uid)) {
+      setAlterEgos((lista) => lista.map((a) => (a.uid === nuevo.uid ? nuevo : a)));
+    } else {
+      setRealProfile(nuevo);
+    }
+    if (nuevo.uid) updateUserCache(nuevo.uid, cambios ?? nuevo);
+  }, [alterEgoActivo]);
 
   const updateProfile = async (updates: Partial<Omit<UserProfile, 'id' | 'uid' | 'createdAt'>>) => {
     const currentProfile = userProfile;
@@ -202,14 +247,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
       };
 
       // Actualizar estado local inmediatamente
-      const newProfile = { ...currentProfile, ...updatesWithTimestamp };
-      if (activeProfileType === 'hidi') {
-        setWeeProfileState(newProfile);
-        updateUserCache(identidadWeeDe(user.uid), newProfile);
-      } else {
-        setRealProfile(newProfile);
-        updateUserCache(user.uid, newProfile);
-      }
+      reemplazarCara({ ...currentProfile, ...updatesWithTimestamp });
 
       // Actualizar en Firestore
       await usersService.update(currentProfile.id, updatesWithTimestamp);
@@ -231,14 +269,7 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
       updates.photoURLThumbnail = updates.photoURL;
     }
 
-    const newProfile = { ...userProfile, ...updates };
-    if (activeProfileType === 'hidi') {
-      setWeeProfileState(newProfile);
-      updateUserCache(identidadWeeDe(user.uid), updates);
-    } else {
-      setRealProfile(newProfile);
-      updateUserCache(user.uid, updates);
-    }
+    reemplazarCara({ ...userProfile, ...updates }, updates);
   };
 
   const refreshProfile = () => {
@@ -246,32 +277,70 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
     setRefreshTrigger(prev => prev + 1);
   };
 
-  const switchIdentity = useCallback(() => {
-    if (!weeProfile) {
-      console.warn('⚠️ [UserProfileContext] No hay Perfil Weë al que cambiar');
+  /*
+   * CAMBIAR DE CARA.
+   *
+   *  · `switchIdentity()` —el gesto de la píldora, la pestaña, los atajos de
+   *    siempre— alterna entre el Real y el último alter ego usado. Con un solo
+   *    alter ego es exactamente lo de antes.
+   *  · `switchIdentity(id)` pone esa cara: el uid del Real (o `'real'`) vuelve al
+   *    Real; el de un alter ego de la cuenta, a ese. Un id que no es de la cuenta
+   *    no hace nada.
+   *
+   * El tema (claro con el Real, oscuro con cualquier alter ego) lo pone quien
+   * llama, como siempre, a partir del DESTINO.
+   */
+  const switchIdentity = useCallback((id?: string) => {
+    if (!user) return;
+    const ponerAlterEgo = (destino: string) => {
+      setAlterEgoPuesto(destino);
+      setUltimoAlterEgo(destino);
+      guardarUltimo(user.uid, destino);
+    };
+    if (id === undefined) {
+      if (alterEgoPuesto) {
+        setAlterEgoPuesto(null);
+        return;
+      }
+      if (!weeProfile?.uid) {
+        console.warn('⚠️ [UserProfileContext] No hay Perfil Weë al que cambiar');
+        return;
+      }
+      ponerAlterEgo(weeProfile.uid);
       return;
     }
-    setActiveProfileType(prev => {
-      const next = prev === 'real' ? 'hidi' : 'real';
-      console.log(`🎭 [UserProfileContext] Cambiando identidad: ${prev} → ${next}`);
-      return next;
-    });
-  }, [weeProfile]);
-
-  // Setter público para que WeeProfileCreationScreen pueda establecer el Perfil Weë recién creado
-  const setWeeProfile = useCallback((profile: UserProfile) => {
-    setWeeProfileState(profile);
-    if (user) {
-      updateUserCache(identidadWeeDe(user.uid), profile);
+    if (id === 'real' || id === user.uid || id === realProfile?.uid) {
+      setAlterEgoPuesto(null);
+      return;
     }
+    if (alterEgos.some((a) => a.uid === id)) ponerAlterEgo(id);
+  }, [user, alterEgoPuesto, weeProfile, realProfile, alterEgos]);
+
+  // Para la pantalla de crear: el alter ego recién creado entra en la lista y queda como el último usado.
+  const setWeeProfile = useCallback((profile: UserProfile) => {
+    if (!profile?.uid) return;
+    setAlterEgos((lista) => (lista.some((a) => a.uid === profile.uid)
+      ? lista.map((a) => (a.uid === profile.uid ? profile : a))
+      : [...lista, profile]));
+    setUltimoAlterEgo(profile.uid);
+    updateUserCache(profile.uid, profile);
+    if (user) guardarUltimo(user.uid, profile.uid);
   }, [user]);
 
-  const value: UserProfileContextType = {
+  const quitarAlterEgo = useCallback((id: string) => {
+    setAlterEgos((lista) => lista.filter((a) => a.uid !== id));
+    setAlterEgoPuesto((puesto) => (puesto === id ? null : puesto));
+    setUltimoAlterEgo((ultimo) => (ultimo === id ? null : ultimo));
+  }, []);
+
+  const value: UserProfileContextType = useMemo(() => ({
     userProfile,
     realProfile,
     weeProfile,
+    alterEgos,
+    activeIdentityId,
     activeProfileType,
-    hasWeeProfile: !!weeProfile,
+    hasWeeProfile: alterEgos.length > 0,
     loading,
     error,
     updateProfile,
@@ -279,7 +348,9 @@ export const UserProfileProvider: React.FC<UserProfileProviderProps> = ({ childr
     refreshProfile,
     switchIdentity,
     setWeeProfile,
-  };
+    quitarAlterEgo,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [userProfile, realProfile, weeProfile, alterEgos, activeIdentityId, activeProfileType, loading, error, switchIdentity, setWeeProfile, quitarAlterEgo, reemplazarCara]);
 
   return (
     <UserProfileContext.Provider value={value}>

@@ -154,6 +154,15 @@ export const archivoDeLaClave = (idioma, clave, SECCIONES_DEL_SERVIDOR) => {
   return `${base}/plan.ts`;
 };
 
+/**
+ * ¿Apunta bien esta entrada del registro? A una clave que existe, o —si la clave se retiró— marcada `obsoleta` con fecha
+ * y motivo. Una entrada obsoleta es historia: se conserva y no cuenta en el estado (las claves de `pares` son las vivas).
+ * Marcar obsoleta una clave que existe esconde una revisión vigente, y no vale.
+ */
+export const claveDeRegistroValida = (e, suyas) => (e.obsoleta
+  ? !(e.clave in suyas) && /^\d{4}-\d{2}-\d{2}$/.test(e.obsoleta.fecha || '') && String(e.obsoleta.motivo || '').length > 20
+  : e.clave in suyas);
+
 /** El estado de revisión de un idioma: quién revisó qué valor, y si el valor de hoy sigue siendo ese. */
 export const estadoDeRevision = (pares, registro) => {
   const ultimo = new Map();

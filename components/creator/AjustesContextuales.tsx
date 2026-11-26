@@ -8,6 +8,7 @@ import { ajustesDe, ContextoDeCreacion, GrupoDeAjustes } from '../../constants/a
 import { SPACING, FONT_SIZE, FONT_WEIGHT, BORDER_RADIUS } from '../../constants/design';
 import { scale } from '../../utils/scale';
 import TextoEnMayusculas from '../TextoEnMayusculas';
+import { RellenoDeMarca } from '../GradienteDeMarca';
 
 /** Lo que mide una píldora de alto. Va sin `scale()`: un dedo no encoge en web. */
 const ALTO_DE_PILDORA = 40;
@@ -34,7 +35,7 @@ interface Props {
   grupos?: GrupoDeAjustes[];
   /**
    * La línea de debajo del título. Por defecto explica que los ajustes cambian
-   * con lo que se está creando, que es lo que pasa en Weë Studio; una sección
+   * con lo que se está creando, que es lo que pasa en WeëStudio; una sección
    * con catálogo propio y una sola lista dice la suya, porque allí no cambian.
    */
   pista?: string;
@@ -173,6 +174,7 @@ const AjustesContextuales: React.FC<Props> = ({
             activeOpacity={0.8}
             accessibilityRole="button"
           >
+            <RellenoDeMarca radio={BORDER_RADIUS.full} />
             <Text style={styles.listoTexto}>{t('studio.settingsDone')}</Text>
           </TouchableOpacity>
         </Pressable>
