@@ -445,8 +445,12 @@ console.log('\n── I · Estructura: qué se añadió, qué NO se tocó, y qu�
       ]) && JSON.stringify(delRouter.nuevas) === JSON.stringify([
         "const MODALIDADES = ['text', 'vision', 'image', 'video', 'voice', 'music', 'doc', '3d'] as const;",
         "const MODALIDADES_COMPLETAS: Record<Modality, true> = { text: true, vision: true, image: true, video: true, voice: true, music: true, doc: true, '3d': true };",
-      ]) && deCostes.quitadas.length === 0 && JSON.stringify(deCostes.nuevas) === JSON.stringify([
-        'ai_world: 39,', "ai_world: 'Generación de mundo 3D',", "case 'world.generate':", "return 'ai_world';",
+      ]) && JSON.stringify(deCostes.quitadas) === JSON.stringify([
+        /* Sin Credits de bienvenida (dueño, definitivo 2026-11-08, autorizado de nuevo el 2026-11-27): se va el bono que leía CREDITS_WELCOME. */
+        'export const WELCOME_CREDITS = (() => {', 'const raw = process.env.CREDITS_WELCOME;', "if (raw === undefined || raw === '') return 240;",
+        'const n = Number(raw);', 'return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;', '})();',
+      ]) && JSON.stringify(deCostes.nuevas) === JSON.stringify([
+        'ai_world: 39,', "ai_world: 'Generación de mundo 3D',", 'export const WELCOME_CREDITS = 0;', "case 'world.generate':", "return 'ai_world';",
       ]), JSON.stringify({ delRouter, deCostes }));
   }
   {
