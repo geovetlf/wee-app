@@ -146,13 +146,13 @@ export const SERVICE_LABEL: Record<CreditService, string> = {
   wee_avatar: 'Avatar Weë',
 };
 
-/** Credits de bienvenida al abrir la cuenta (0 para desactivar). Configurable con CREDITS_WELCOME. */
-export const WELCOME_CREDITS = (() => {
-  const raw = process.env.CREDITS_WELCOME;
-  if (raw === undefined || raw === '') return 240;
-  const n = Number(raw);
-  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
-})();
+/*
+ * SIN BONO DE BIENVENIDA (decisión del dueño, definitiva desde el 2026-11-08 y reafirmada el 2026-11-27): una
+ * cuenta nueva empieza con 0 Credits. Ya no hay variable de entorno que lo vuelva a encender: antes, si faltaba
+ * `CREDITS_WELCOME`, se regalaban 240. El motor conserva el mecanismo (las pruebas lo ejercitan inyectando su propio
+ * valor), pero la instancia de producción recibe esto. Los 240 históricos de prueba se conservan intactos.
+ */
+export const WELCOME_CREDITS = 0;
 
 /**
  * Paquetes de Credits (compras). Los precios en USD son los de la tienda; los
