@@ -100,7 +100,7 @@ console.log('\n── A · Repetir un mensaje ya REEMBOLSADO no lo contesta grat
   check('7) conversación (cobro tras generar): no se guarda la respuesta, se marca y se dice DUPLICATE_REQUEST',
     conversacion > 0 && conversacion < BRAIN.indexOf('await messages.doc(`${messageId}_wee`).set('));
   check('8) y el `catch` recibe la marca: deshace el bloque contado y no completa ni reembolsa',
-    /const cobro = queHacerConElCobro\(\{ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui, cerradoSinCobro \}\);\s*if \(cobro\.deshacerBloque\) \{\s*await deshacerRespuesta\(uid, messageId\)/.test(BRAIN));
+    /const cobro = queHacerConElCobro\(\{ cobrado: !!spend, entregada, devolverEsSeguro, contadaAqui, cerradoSinCobro \}\);\s*if \(cobro\.deshacerBloque\) \{\s*await deshacerRespuesta\(uid, operacion\.clave, vigia\)/.test(BRAIN));
 
   /* El motor de hoy ya lanza ALREADY_REFUNDED ante ese duplicado: lo de arriba es la regla de Brain, no un parche del motor. */
   const { createCreditEngine } = lib('credits/creditEngine.js');

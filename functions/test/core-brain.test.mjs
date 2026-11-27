@@ -509,7 +509,11 @@ console.log('\n── L · El callable vivo, EJECUTADO entero ──');
     set: async (d) => { docs.set(p, { ...(docs.get(p) || {}), ...d }); },
     update: async (d) => { docs.set(p, { ...(docs.get(p) || {}), ...d }); },
   });
-  const baseFalsa = { collection: (c) => ({ doc: (id) => ref(`${c}/${id || 'chat-nuevo'}`), orderBy: () => ({ limit: () => ({ get: async () => ({ docs: [] }) }) }) }) };
+  const baseFalsa = {
+    collection: (c) => ({ doc: (id) => ref(`${c}/${id || 'chat-nuevo'}`), orderBy: () => ({ limit: () => ({ get: async () => ({ docs: [] }) }) }) }),
+    /* A-02: el mensaje se reclama en una transacción. Aquí basta con una secuencial: esta sección no prueba concurrencia. */
+    runTransaction: async (fn) => fn({ get: (r) => r.get(), set: (r, d, o) => { docs.set(r.path, o?.merge ? { ...(docs.get(r.path) || {}), ...d } : { ...d }); } }),
+  };
   const getFirestoreReal = firestore.getFirestore;
   firestore.getFirestore = () => baseFalsa;
 
@@ -559,7 +563,8 @@ console.log('\n── L · El callable vivo, EJECUTADO entero ──');
     && typeof ok.chatId === 'string' && ok.messageId.endsWith('_wee') && 'credits' in ok && 'bloque' in ok, JSON.stringify(ok));
   check('89) el mensaje entero de la persona YA NO viaja al libro como `goal`', !('goal' in inputVisto), Object.keys(inputVisto).join(','));
   check('90) pero sí todo lo que el libro necesita para cuadrar el dinero',
-    inputVisto.requestId === 'brain_m_aaa1' && inputVisto.service === 'ai_brain' && inputVisto.creditsEstimated === 0 && !!inputVisto.creditTransactionId);
+    inputVisto.requestId === lib('creator/brainUsage.js').operacionDeBrain({ userId: UID, chatId: 'chat-nuevo', messageId: 'm_aaa1', service: 'ai_brain' }).requestId
+    && /^brain_[a-f0-9]{40}$/.test(inputVisto.requestId) && inputVisto.service === 'ai_brain' && inputVisto.creditsEstimated === 0 && !!inputVisto.creditTransactionId);
   check('91) y el modelo que responde es el que se cotizó, pedido por su nombre',
     !!inputVisto.prefs?.modelId && inputVisto.prefs.allowedProviders.length === 1);
   /*

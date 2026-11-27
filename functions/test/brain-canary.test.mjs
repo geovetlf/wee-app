@@ -260,7 +260,7 @@ console.log('\n── D · Credits: la regla nueva, en el sitio exacto ──');
     check('…ENTREGADA: nunca se devuelve (era regalar la respuesta); se completa el cobro', d(true, true, true, true) === JSON.stringify({ completar: true, reembolsar: false, deshacerBloque: false })
       && d(false, true, true, true) === JSON.stringify({ completar: false, reembolsar: false, deshacerBloque: false }));
     check('…y entregada se marca justo después de guardar la respuesta, contada justo después de contarla',
-      /\.set\(\s*stripUndefined\(\{ role: 'wee'[\s\S]{0,400}?\);\s*entregada = true;/.test(BRAIN) && /const consumo = await contarRespuesta\(uid, messageId\);\s*contadaAqui = true;/.test(BRAIN));
+      /\.set\(\s*stripUndefined\(\{ role: 'wee'[\s\S]{0,400}?\);\s*entregada = true;/.test(BRAIN) && /const consumo = await contarRespuesta\(uid, operacion\.clave, vigia\);\s*contadaAqui = consumo\.nueva;/.test(BRAIN));
   }
   check('y cuando no lo es, no liquida el libro a cero: la reserva se queda autorizada', /\} else if \(spend\) \{[\s\S]{0,260}console\.warn/.test(BRAIN) && !/else if \(spend\) \{[\s\S]{0,260}refundCredits/.test(BRAIN));
   check('un error que no viene del conductor se comporta como siempre', !(new TypeError('x') instanceof FalloDelPensador) && !(new Error('x') instanceof FalloDelPensador));
@@ -268,7 +268,7 @@ console.log('\n── D · Credits: la regla nueva, en el sitio exacto ──');
   check('y que NO lo es cuando salió, lo tiene otro, o ya terminó en otra invocación',
     ['outcome_unknown', 'in_progress_elsewhere', 'completed_elsewhere'].every((mo) => new FalloDelPensador(mo, false, { code: 'PROVIDER_ERROR' }).reembolsoSeguro === false));
   check('el pensador no cobra, no reserva y no reembolsa: solo dice si es seguro', !/spendCredits|completeCredits|refundCredits|creditEngine/.test(sinComentarios(leer('functions/src/runtime/pensador.ts'))));
-  check('el canary NO cambió cuándo se cobra: búsqueda por delante, conversación por bloques de doce', BRAIN.indexOf('if (webSearch) {') < BRAIN.indexOf('engine.generate(') && /const consumo = await contarRespuesta\(uid, messageId\);\s*contadaAqui = true;\s*if \(consumo\.cobrada\)/.test(BRAIN));
+  check('el canary NO cambió cuándo se cobra: búsqueda por delante, conversación por bloques de doce', BRAIN.indexOf('if (webSearch) {') < BRAIN.indexOf('engine.generate(') && /const consumo = await contarRespuesta\(uid, operacion\.clave, vigia\);\s*contadaAqui = consumo\.nueva;\s*if \(consumo\.cobrada\)/.test(BRAIN));
   check('ni el Financial Core, ni el Credit Engine, ni los precios', !/creditEngine\.[a-z]/i.test(sinComentarios(leer('functions/src/runtime/index.ts')) + sinComentarios(leer('functions/src/runtime/conductor.ts'))));
   /* Una sola transacción para los dos caminos: la que abre la fila del libro y la que después se liquida. */
   const enElDeSiempre = BRAIN.slice(BRAIN.indexOf('const pensadorDeSiempre'), BRAIN.indexOf('const pensadorDelConductor'));

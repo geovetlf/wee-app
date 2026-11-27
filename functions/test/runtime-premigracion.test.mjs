@@ -558,7 +558,7 @@ console.log('\n── F · Credits, con el Credit Engine DE VERDAD ──');
   const BRAIN = sinComentarios(leer('functions/src/creator/brain.ts'));
   check('`creator/brain.ts` sigue reservando la búsqueda ANTES de llamar al modelo', BRAIN.indexOf('if (webSearch) {') < BRAIN.indexOf('engine.generate(') && /if \(webSearch\) \{\s*spend = await creditEngine\.spendCredits\(/.test(BRAIN));
   /* + revisión post-auditoría 2026-10-01: entre contar y cobrar se apunta que ESTA invocación contó (queHacerConElCobro). */
-  check('sigue cobrando la conversación DESPUÉS de responder, por bloques', /const consumo = await contarRespuesta\(uid, messageId\);\s*contadaAqui = true;\s*if \(consumo\.cobrada\)/.test(BRAIN) && BRAIN.indexOf('contarRespuesta(uid, messageId)') > BRAIN.indexOf('engine.generate('));
+  check('sigue cobrando la conversación DESPUÉS de responder, por bloques', /const consumo = await contarRespuesta\(uid, operacion\.clave, vigia\);\s*contadaAqui = consumo\.nueva;\s*if \(consumo\.cobrada\)/.test(BRAIN) && BRAIN.indexOf('contarRespuesta(uid, operacion.clave, vigia)') > BRAIN.indexOf('engine.generate('));
   check('sigue completando solo si hubo cobro', /if \(spend\) \{\s*await creditEngine\.completeCredits\(/.test(BRAIN));
   /*
    * ESTA COMPROBACIÓN CAMBIÓ CON EL CANARY (F12-D), y es el cambio que este
