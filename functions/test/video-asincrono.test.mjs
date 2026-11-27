@@ -311,7 +311,7 @@ const VIDEO = sinComentarios(VIDEO_SRC);
    *   Router del Core y en su guardia) y credits/creditCosts.ts +8 (el servicio `ai_world`: precio de prueba, etiqueta y
    *   capacidad). Ni gasto, ni cobro, ni reembolso. Líneas exactas en job-queue 63fal.
    */
-  const DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n8\t0\tfunctions/src/credits/creditCosts.ts';
+  const DE_LA_MISION_FAL = '2\t2\tfunctions/src/core/router.ts\n15\t7\tfunctions/src/credits/creditCosts.ts'; /* +7 −7: sin Credits de bienvenida (dueño, definitivo 2026-11-08, reautorizado 2026-11-27); líneas exactas en job-queue 63fal */
   check('A13) y el Credit Engine es el de 61d2cdf + 8e91daa, sin tocar — salvo el cierre de spendCredits del Harness (b878068) y el servicio ai_world de la misión fal, del tamaño exacto',
     git(`diff --numstat ${ANTES} -- functions/src/credits functions/src/core/financial functions/src/core/router.ts`).trim().replace(/\r/g, '') === `${DE_LA_MISION_FAL}\n${CREDITS_DEL_HARNESS}`);
   const medios = sinComentarios(leer('functions/src/runtime/medios.ts'));
