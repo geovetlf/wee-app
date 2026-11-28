@@ -150,11 +150,17 @@ export const MEDIA_SECRETS = declaradosDeMedios.map(([, secret]) => secret);
  */
 export const FAL_SECRET_NAMES = ['FAL_KEY'] as const;
 export type FalSecretName = (typeof FAL_SECRET_NAMES)[number];
-const declaradosDeFal = FAL_SECRET_NAMES.map((name) => [name, defineSecret(name)] as const);
-export const FAL_SECRET_REFS: Record<FalSecretName, ReturnType<typeof defineSecret>> =
-  Object.fromEntries(declaradosDeFal) as Record<FalSecretName, ReturnType<typeof defineSecret>>;
+/*
+ * SIN `defineSecret` (2026-11-28): la CLI de Firebase exige en CADA despliegue que exista en Secret Manager todo
+ * secreto declarado con `defineSecret` en el código, lo monte una función o no. Declarado aquí, «dormido», bloqueó el
+ * despliegue del bono de bienvenida a 0 (run 46113462806: «no value for the secret FAL_KEY»). El dueño no usa fal por
+ * ahora (trabaja con BytePlus), así que no se declara: el adaptador sigue leyendo `FAL_KEY` por su nombre con `env()`
+ * y, sin ella, `isConfigured()` es falso y el Router ni lo considera. ACTIVAR fal = crear el secreto y volver a
+ * declararlo aquí con `defineSecret` en la función que lo use.
+ */
+export const FAL_SECRET_REFS: Partial<Record<FalSecretName, ReturnType<typeof defineSecret>>> = {};
 /** Para la opción `secrets` de la función que, el día que se active, llame a fal. Hoy no la usa ninguna. */
-export const FAL_SECRETS = declaradosDeFal.map(([, secret]) => secret);
+export const FAL_SECRETS: ReturnType<typeof defineSecret>[] = [];
 
 /**
  * Valor de un secreto desde Secret Manager. Solo funciona dentro de una función
